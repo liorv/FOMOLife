@@ -9,7 +9,6 @@ import Person from './Person';
 
 
 
-import './App.css';
 // logo now lives in public/assets, so we can reference it by an absolute path
 // without importing. The assetResolver helpers are no longer necessary for
 // the Next.js build; keeping them may still help tests, but we can bypass
@@ -34,7 +33,15 @@ function saveData(data) {
 
 
 function App() {
-  const [data, setData] = useState(loadData());
+  // avoid reading localStorage during render so server & client markup match
+  const [data, setData] = useState({ tasks: [], projects: [], dreams: [], people: [] });
+  const initializedRef = React.useRef(false);
+
+  // load persisted state once on the client after hydration
+  useEffect(() => {
+    setData(loadData());
+    initializedRef.current = true;
+  }, []);
   const [input, setInput] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [type, setType] = useState('tasks');
@@ -45,7 +52,9 @@ function App() {
 
 
   useEffect(() => {
-    saveData(data);
+    if (initializedRef.current) {
+      saveData(data);
+    }
   }, [data]);
 
   const handleAdd = () => {
