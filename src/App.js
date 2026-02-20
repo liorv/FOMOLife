@@ -10,49 +10,13 @@ import Person from './Person';
 
 
 import './App.css';
-import logoAsset from './assets/logo_fomo.png';
+// logo now lives in public/assets, so we can reference it by an absolute path
+// without importing. The assetResolver helpers are no longer necessary for
+// the Next.js build; keeping them may still help tests, but we can bypass
+// them for the public image.
 
-// asset helpers moved to a module so we can unit-test and reuse them
-const { assetUrl, resolveAsset } = require('./utils/assetResolver');
+const logoUrl = '/assets/logo_fomo.png';
 
-// Compute a reliable logo URL. Prefer the resolved import (works with Parcel/webpack),
-// fall back to import.meta.url resolution only if the import didn't produce a usable URL.
-const logoUrl = (() => {
-  const resolvedImport = resolveAsset(assetUrl(logoAsset));
-
-  // expose debug values temporarily so headless/browser checks can inspect them
-  if (typeof window !== 'undefined') {
-    window.__RAW_LOGO_ASSET = logoAsset;
-    try { window.__ASSET_URL = assetUrl(logoAsset); } catch (_) { window.__ASSET_URL = null; }
-    try { window.__RESOLVED_LOGO = resolvedImport; } catch (_) { window.__RESOLVED_LOGO = null; }
-  }
-
-  // only accept the resolved import if it looks like a real image URL/string
-  if (typeof resolvedImport === 'string' && /\.(png|jpe?g|svg|gif|webp)(\?.*)?$/i.test(resolvedImport)) {
-    return resolvedImport;
-  }
-
-  // try to read Parcel's importmap (dev server) for the hashed asset path
-  try {
-    if (typeof document !== 'undefined') {
-      const im = document.querySelector('script[type="importmap"]');
-      if (im && im.textContent) {
-        const jm = JSON.parse(im.textContent);
-        const found = Object.values(jm.imports || {}).find(v => typeof v === 'string' && v.includes('logo_fomo'));
-        if (found) return found;
-      }
-    }
-  } catch (e) {
-    /* ignore */
-  }
-
-  // fallback to resolving relative to this module (best-effort)
-  try {
-    return new URL('./assets/logo_fomo.png', import.meta.url).href;
-  } catch (err) {
-    return '';
-  }
-})();
 
 const STORAGE_KEY = 'fomo_life_data';
 

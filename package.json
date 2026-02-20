@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "next": "latest",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "scripts": {
-    "start": "npm run dev",
-    "dev": "npx parcel src/index.html --open",
-    "build": "npx parcel build src/index.html",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "verify-assets": "node scripts/verify-assets.js",
     "verify-logo": "node scripts/check-logo.js",
     "verify-logo-dom": "node scripts/check-logo-dom.js",

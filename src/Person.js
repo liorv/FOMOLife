@@ -1,12 +1,9 @@
 import React from 'react';
 import SmartImage from './SmartImage';
-import logoDiscord from './assets/logo_discord.png';
-import logoSms from './assets/logo_sms.png';
-import logoWhatsapp from './assets/logo_whatsapp.png';
-
-const logoDiscordUrl = (() => { try { return new URL('./assets/logo_discord.png', import.meta.url).href; } catch (_) { return logoDiscord; } })();
-const logoSmsUrl = (() => { try { return new URL('./assets/logo_sms.png', import.meta.url).href; } catch (_) { return logoSms; } })();
-const logoWhatsappUrl = (() => { try { return new URL('./assets/logo_whatsapp.png', import.meta.url).href; } catch (_) { return logoWhatsapp; } })();
+// service icons are provided via public/assets
+const logoDiscordUrl = '/assets/logo_discord.png';
+const logoSmsUrl = '/assets/logo_sms.png';
+const logoWhatsappUrl = '/assets/logo_whatsapp.png';
 
 export default function Person({ person, idx, editingPersonIdx, editingPersonName, setEditingPersonIdx, setEditingPersonName, onSaveEdit, onCancelEdit, handleTogglePersonDefault, handleDelete, asRow = false }) {
   const Wrapper = asRow ? 'div' : 'li';

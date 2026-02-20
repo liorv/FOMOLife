@@ -1,35 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import SmartImage from './SmartImage';
-import logoDiscord from './assets/logo_discord.png';
-import logoSms from './assets/logo_sms.png';
-import logoWhatsapp from './assets/logo_whatsapp.png';
 
-// compute reliable runtime URLs (use import.meta.url fallback so imports that
-// evaluate to empty objects still produce a usable path)
-const logoDiscordUrl = (() => {
-  try { return new URL('./assets/logo_discord.png', import.meta.url).href; } catch (_) { return logoDiscord; }
-})();
-const logoSmsUrl = (() => {
-  try { return new URL('./assets/logo_sms.png', import.meta.url).href; } catch (_) { return logoSms; }
-})();
-const logoWhatsappUrl = (() => {
-  try { return new URL('./assets/logo_whatsapp.png', import.meta.url).href; } catch (_) { return logoWhatsapp; }
-})();
-
-// expose runtime values for debugging (dev only)
-if (typeof window !== 'undefined') {
-  window.__LOGO_DISCORD = logoDiscord;
-  window.__LOGO_SMS = logoSms;
-  window.__LOGO_WHATSAPP = logoWhatsapp;
-  window.__LOGO_DISCORD_URL = logoDiscordUrl;
-  window.__LOGO_SMS_URL = logoSmsUrl;
-  window.__LOGO_WHATSAPP_URL = logoWhatsappUrl;
-}
-
-// Use public/assets/ for all static assets
-
-// normalize image imports (handle bundlers that export asset objects)
-const assetUrl = (a) => (a && typeof a === 'object' && 'default' in a) ? a.default : a;
+// logos are served from public/assets; no webpack import needed
+const logoDiscordUrl = '/assets/logo_discord.png';
+const logoSmsUrl = '/assets/logo_sms.png';
+const logoWhatsappUrl = '/assets/logo_whatsapp.png';
 
 export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () => {}, allPeople = [], onOpenPeople = () => {}, onCreatePerson = () => {} }) {
   const [description, setDescription] = useState(task.description || '');
