@@ -10,6 +10,10 @@
     "start": "npm run dev",
     "dev": "npx parcel src/index.html --open",
     "build": "npx parcel build src/index.html",
+    "verify-assets": "node scripts/verify-assets.js",
+    "verify-logo": "node scripts/check-logo.js",
+    "verify-logo-dom": "node scripts/check-logo-dom.js",
+    "find-imgs": "node scripts/find-imgs.js",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "test": "jest"
   },
@@ -24,6 +28,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "jest": "^30.2.0",
-    "jest-environment-jsdom": "^30.2.0"
+    "jest-environment-jsdom": "^30.2.0",
+    "puppeteer": "^24.37.5"
   }
 }

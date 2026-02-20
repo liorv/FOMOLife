@@ -356,6 +356,8 @@ body {
 
 /* main content card */
 .container {
+  position: relative; /* allow absolutely-positioned decorative splash */
+  overflow: hidden; /* clip splash to the panel so corner-radius matches */
   flex: 1 1 0;
   margin: 0;
   background: var(--surface);
@@ -368,6 +370,32 @@ body {
   flex-direction: column;
   justify-content: flex-start;
 }
+.container > * { position: relative; z-index: 1; }
+
+/* Decorative, large splash logo that hangs out of the top-left of the container */
+.logo-splash {
+  position: absolute;
+  top: -30px;          /* nudge upward so upper quarter is cropped */
+  left: 0;
+  width: 260px;        /* slightly larger for better composition */
+  height: 260px;
+  background-repeat: no-repeat;
+  /* center horizontally (avoid right-side cut), shift up vertically to crop top */
+  background-position: 50% -25%;
+  background-size: contain; /* ensure whole logo fits horizontally */
+  opacity: 1;          /* full-color */
+  pointer-events: none; /* don't intercept clicks */
+  z-index: 0;          /* render behind interactive elements but above container bg */
+  filter: none;        /* preserve original colors */
+  border-top-left-radius: 12px; /* match container corner */
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+@media (max-width: 900px) {
+  .logo-splash { display: none; }
+} 
 
 
 @media (max-width: 900px) {
