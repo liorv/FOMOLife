@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TaskEditor from './TaskModal';
 import TaskList from './TaskList';
 import PersonList from './PersonList';
+import Integrations from './Integrations';
 import SmartImage from './SmartImage';
 
 
@@ -203,50 +204,57 @@ function App() {
           <button className={type === 'projects' ? 'active' : ''} onClick={() => setType('projects')}>Projects</button>
           <button className={type === 'dreams' ? 'active' : ''} onClick={() => setType('dreams')}>Dreams</button>
           <button className={type === 'people' ? 'active' : ''} onClick={() => setType('people')}>People</button>
+          <button className={type === 'integrations' ? 'active' : ''} onClick={() => setType('integrations')}>Integrations</button>
         </div>
-        <div className="add-bar">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={`Add a new ${type === 'people' ? 'person' : type.slice(0, -1)}`}
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          />
-          {type === 'tasks' && (
-            <input
-              type="date"
-              value={dueDate}
-              onChange={e => setDueDate(e.target.value)}
-              className="due-date-input"
-              title="Due date"
-            />
-          )}
-          <button onClick={handleAdd}>Add</button>
-        </div>
-        <ul className="item-list">
-          {type === 'people' ? (
-            <PersonList
-              people={data.people}
-              editingPersonIdx={editingPersonIdx}
-              editingPersonName={editingPersonName}
-              setEditingPersonIdx={setEditingPersonIdx}
-              setEditingPersonName={setEditingPersonName}
-              onSaveEdit={handleSavePersonEdit}
-              onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
-              handleTogglePersonDefault={handleTogglePersonDefault}
-              handleDelete={handleDelete}
-            />
-          ) : (
-            <TaskList
-              items={data[type]}
-              type={type}
-              editorTaskIdx={editorTaskIdx}
-              setEditorTaskIdx={setEditorTaskIdx}
-              handleToggle={handleToggle}
-              handleStar={handleStar}
-              handleDelete={handleDelete}
-            />
-          )}
-        </ul>
+        {type === 'integrations' ? (
+          <Integrations data={data} />
+        ) : (
+          <>
+            <div className="add-bar">
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder={`Add a new ${type === 'people' ? 'person' : type.slice(0, -1)}`}
+                onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              />
+              {type === 'tasks' && (
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  className="due-date-input"
+                  title="Due date"
+                />
+              )}
+              <button onClick={handleAdd}>Add</button>
+            </div>
+            <ul className="item-list">
+              {type === 'people' ? (
+                <PersonList
+                  people={data.people}
+                  editingPersonIdx={editingPersonIdx}
+                  editingPersonName={editingPersonName}
+                  setEditingPersonIdx={setEditingPersonIdx}
+                  setEditingPersonName={setEditingPersonName}
+                  onSaveEdit={handleSavePersonEdit}
+                  onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
+                  handleTogglePersonDefault={handleTogglePersonDefault}
+                  handleDelete={handleDelete}
+                />
+              ) : (
+                <TaskList
+                  items={data[type]}
+                  type={type}
+                  editorTaskIdx={editorTaskIdx}
+                  setEditorTaskIdx={setEditorTaskIdx}
+                  handleToggle={handleToggle}
+                  handleStar={handleStar}
+                  handleDelete={handleDelete}
+                />
+              )}
+            </ul>
+          </>
+        )}
       </div>
       {editorTaskIdx !== null && type === 'tasks' && (
         <TaskEditor
