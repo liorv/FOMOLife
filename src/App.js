@@ -3,7 +3,8 @@ import TaskEditor from './TaskModal';
 import TaskList from './TaskList';
 import TabNav from './components/TabNav';
 import AddBar from './components/AddBar';
-import PeopleSection from './components/PeopleSection';
+// PeopleSection has been replaced by TaskList for consistency
+
 
 // all static images live in public/assets
 
@@ -188,17 +189,24 @@ function App() {
         />
 
         {type === 'people' ? (
-          <PeopleSection
-            people={data.people}
-            editingPersonIdx={editingPersonIdx}
-            editingPersonName={editingPersonName}
-            setEditingPersonIdx={setEditingPersonIdx}
-            setEditingPersonName={setEditingPersonName}
-            onSaveEdit={handleSavePersonEdit}
-            onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
-            handleTogglePersonDefault={handleTogglePersonDefault}
-            handleDelete={handleDelete}
-          />
+          <div className="people-list task-person-list">
+            <div className="task-person-list-header" aria-hidden>
+              <div className="task-person-col name">Name</div>
+              <div className="task-person-col methods">Methods</div>
+            </div>
+            <TaskList
+              items={data.people}
+              type="people"
+              editingPersonIdx={editingPersonIdx}
+              editingPersonName={editingPersonName}
+              setEditingPersonIdx={setEditingPersonIdx}
+              setEditingPersonName={setEditingPersonName}
+              onSaveEdit={handleSavePersonEdit}
+              onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
+              handleTogglePersonDefault={handleTogglePersonDefault}
+              handleDelete={handleDelete}
+            />
+          </div>
         ) : (
           <ul className="item-list">
             <TaskList

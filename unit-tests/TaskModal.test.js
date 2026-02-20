@@ -15,8 +15,8 @@ describe('TaskEditor component', () => {
     const textarea = container.querySelector('textarea.task-description');
     fireEvent.change(textarea, { target: { value: 'new desc' } });
     expect(textarea.value).toBe('new desc');
-    // there is no literal "Save" text; the done button closes and saves
-    fireEvent.click(screen.getByTitle('Done (save & close)'));
+    // clicking the close icon should save and close
+    fireEvent.click(screen.getByTitle('Save & Close'));
     expect(onSave).toHaveBeenCalled();
   });
 });

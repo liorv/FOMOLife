@@ -98,11 +98,24 @@
   font-size: 0.95rem;
   margin-bottom: 12px;
 }
+/* default .people-list used for chip layout (task editor & add-bar). */
 .people-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 6px;
+}
+
+/* when rendering the full people tab the container also has
+   task-person-list; override to stack rows vertically and
+   disable wrapping so each person occupies its own horizontal
+   row. */
+.people-list.task-person-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0; /* individual rows already manage their own borders/gaps */
+  margin-bottom: 0;
 }
 /* in side-editor, show people as full-width rows so icon columns align */
 .side-editor .people-list { display: flex; flex-direction: column; gap: 8px; }
@@ -251,7 +264,21 @@
 .person-methods .method-btn.active { box-shadow: inset 0 0 0 2px #dbeafe; }
 
 /* per-person inline method icons (horizontal layout; fixed area so same-type icons align vertically) */
-.person-methods-inline { display: inline-flex; gap: 8px; margin-left: 8px; align-items: center; width: 132px; justify-content: flex-end; }
+/* Align person icons into consistent columns so all rows line up by
+   service type.  Using grid-auto-flow/auto-columns means the delete icon
+   (fourth child) simply occupies the next column without needing a hardcoded
+   column count, so all icons stay in one row even when more are added. */
+.person-methods-inline {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min-content;
+  column-gap: 8px;
+  margin-left: 8px;
+  justify-content: flex-end; /* push whole block toward right edge */
+  align-items: center;
+  /* width kept for compatibility but may shrink if fewer icons */
+  width: 148px;
+}
 .person-methods-inline .service-icon {
   width: 18px;
   height: 18px;
@@ -365,18 +392,8 @@
   display: none; /* replaced by single X close in side editor */
 }
 
-/* Done button (primary, Google-like) */
-.done-btn {
-  background: #1a73e8;
-  color: #fff;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 6px #1a73e811;
-}
-.done-btn:hover { filter: brightness(0.98); transform: translateY(-1px); }
+/* done-btn no longer used in side editor; single close icon now handles saving */
+/* styles retained in case other components reference it */
 
 .item-list li .complete {
   background: none;

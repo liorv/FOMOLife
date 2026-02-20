@@ -110,18 +110,23 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
               <strong className="person-name">{p.name}</strong>
             </div>
             <div className="task-person-col methods">
-              <div className="person-methods-inline" style={{justifyContent: 'flex-end'}}>
-                <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
-                  <img src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
-                </button>
-                <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
-                  <img src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
-                </button>
-                <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
-                  <img src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
-                </button>
-                <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`} style={{marginLeft:8}}><span className="material-icons">close</span></button>
-              </div>
+              {/* icons for each person: discord, sms, whatsapp, and remove.
+                 grid layout (see CSS) ensures every column lines up, including the
+                 close/delete icon which lives in the last column. */}
+            <div className="person-methods-inline">
+              <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
+                <img src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
+              </button>
+              <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
+                <img src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
+              </button>
+              <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
+                <img src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
+              </button>
+              <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
             </div>
           </div>
         ))}
@@ -237,9 +242,10 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
 
       <div style={{ flex: 1 }} />
 
-      <div style={{display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center'}}>
-        <button className="done-btn" onClick={handleSaveAndClose} title="Done (save & close)"><span className="material-icons" style={{verticalAlign:'middle', marginRight:6}}>check</span>Done</button>
-        <button className="editor-close-btn" onClick={handleSaveAndClose} title="Save & Close"><span className="material-icons">close</span></button>
+      <div style={{display: 'flex', justifyContent: 'center'}}>
+        <button className="editor-close-btn" onClick={handleSaveAndClose} title="Save & Close">
+          <span className="material-icons">close</span>
+        </button>
       </div>
     </div>
   );
