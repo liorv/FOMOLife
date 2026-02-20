@@ -1,18 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import TaskEditor from './TaskModal';
 import TaskList from './TaskList';
-import SmartImage from './SmartImage';
-import Person from './Person';
+import TabNav from './components/TabNav';
+import AddBar from './components/AddBar';
+import PeopleSection from './components/PeopleSection';
 
-
-// Use public/assets/ for all static assets
-
-
-
-// logo now lives in public/assets, so we can reference it by an absolute path
-// without importing. The assetResolver helpers are no longer necessary for
-// the Next.js build; keeping them may still help tests, but we can bypass
-// them for the public image.
+// all static images live in public/assets
 
 const logoUrl = '/assets/logo_fomo.png';
 
@@ -35,16 +28,18 @@ function saveData(data) {
 function App() {
   // avoid reading localStorage during render so server & client markup match
   const [data, setData] = useState({ tasks: [], projects: [], dreams: [], people: [] });
-  const initializedRef = React.useRef(false);
+  const initializedRef = useRef(false);
 
-  // load persisted state once on the client after hydration
+  // client-only hydration of persisted data
   useEffect(() => {
     setData(loadData());
     initializedRef.current = true;
   }, []);
+
   const [input, setInput] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [type, setType] = useState('tasks');
+
   const [editorTaskIdx, setEditorTaskIdx] = useState(null);
   const [editingPersonIdx, setEditingPersonIdx] = useState(null);
   const [editingPersonName, setEditingPersonName] = useState('');
@@ -182,55 +177,28 @@ function App() {
         <div className="app-bar">
           {/* header icon removed — splash art now serves as the primary brand artwork */}
         </div>
-        <div className="tabs">
-          <button className={type === 'tasks' ? 'active' : ''} onClick={() => setType('tasks')}>Tasks</button>
-          <button className={type === 'projects' ? 'active' : ''} onClick={() => setType('projects')}>Projects</button>
-          <button className={type === 'dreams' ? 'active' : ''} onClick={() => setType('dreams')}>Dreams</button>
-          <button className={type === 'people' ? 'active' : ''} onClick={() => setType('people')}>People</button>
-        </div>
-        <div className="add-bar">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={`Add a new ${type === 'people' ? 'person' : type.slice(0, -1)}`}
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          />
-          {type === 'tasks' && (
-            <input
-              type="date"
-              value={dueDate}
-              onChange={e => setDueDate(e.target.value)}
-              className="due-date-input"
-              title="Due date"
-            />
-          )}
-          <button onClick={handleAdd}>Add</button>
-        </div>
+        <TabNav active={type} onChange={setType} />
+        <AddBar
+          type={type}
+          input={input}
+          dueDate={dueDate}
+          onInputChange={setInput}
+          onDueDateChange={setDueDate}
+          onAdd={handleAdd}
+        />
 
         {type === 'people' ? (
-          /* use the same people-list UI as the task editor */
-          <div className="people-list task-person-list">
-            <div className="task-person-list-header" aria-hidden>
-              <div className="task-person-col name">Name</div>
-              <div className="task-person-col methods">Methods</div>
-            </div>
-            {data.people.map((person, idx) => (
-              <Person
-                key={idx}
-                person={person}
-                idx={idx}
-                editingPersonIdx={editingPersonIdx}
-                editingPersonName={editingPersonName}
-                setEditingPersonIdx={setEditingPersonIdx}
-                setEditingPersonName={setEditingPersonName}
-                onSaveEdit={handleSavePersonEdit}
-                onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
-                handleTogglePersonDefault={handleTogglePersonDefault}
-                handleDelete={handleDelete}
-                asRow={true}
-              />
-            ))}
-          </div>
+          <PeopleSection
+            people={data.people}
+            editingPersonIdx={editingPersonIdx}
+            editingPersonName={editingPersonName}
+            setEditingPersonIdx={setEditingPersonIdx}
+            setEditingPersonName={setEditingPersonName}
+            onSaveEdit={handleSavePersonEdit}
+            onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
+            handleTogglePersonDefault={handleTogglePersonDefault}
+            handleDelete={handleDelete}
+          />
         ) : (
           <ul className="item-list">
             <TaskList

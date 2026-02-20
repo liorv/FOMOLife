@@ -3,43 +3,46 @@ FOMO Life — Developer notes
 Images & asset handling
 -----------------------
 
-To avoid broken or incorrectly-resolved images in the app, we use a single resilient component and a set of safety checks:
+Static images now live under `public/assets` and are served directly by Next.js, which
+simplifies asset imports considerably. We still use a small helper component for
+robust fallback behavior and diagnostic logging:
 
-- Use `SmartImage` for all runtime `<img>` usage. It provides automatic fallback + clear console logging when an image fails to load.
-- The `assetResolver` normalizes imported assets so bundler-specific shapes (Parcel, webpack, etc.) work reliably.
-- CI verifies referenced image files exist and unit tests cover the resolver.
+- **SmartImage** is the preferred replacement for raw `<img>` tags. It accepts a
+  `src` string (usually a `/assets/…` path) and an optional `fallback` URL. On
+  error it logs a warning and switches to `fallback` if provided, or a tiny SVG
+  placeholder.
 
-How to convert an `<img>` to `SmartImage`
+### Converting `<img>` to `SmartImage`
 
-1. Add the import (if not present):
+1. Add the import (if not already present):
 
+   ```js
    import SmartImage from './SmartImage';
+   ```
 
-2. Replace JSX usage:
+2. Replace usage:
 
+   ```jsx
    // before
-   <img src={logoUrl} alt="Logo" className="app-logo" />
+   <img src="/assets/logo.png" alt="Logo" className="app-logo" />
 
    // after
-   <SmartImage src={logoUrl} alt="Logo" className="app-logo" />
+   <SmartImage src="/assets/logo.png" alt="Logo" className="app-logo" />
+   ```
 
-3. Optionally provide a `fallback` prop (URL or data-URI) to control what shows on error.
+3. Provide `fallback="/assets/placeholder.png"` or similar if you want a
+   specific substitute.
 
-Automated checks and developer tools
------------------------------------
+### Developer tools
 
-- Find remaining `<img>` usage in the repo:
+- `npm run find-imgs` locates raw `<img` tags that need conversion.
+- `npm run verify-assets` checks that all referenced local image files exist and
+  are non-empty.
+- ESLint is configured to warn about plain `<img>` usage; run `npm run lint`.
 
-  npm run find-imgs
+These measures help prevent broken images and make asset refs predictable in
+both development and production.
 
-  This prints files and line numbers where a plain `<img` appears so you can convert them.
-
-- Lint enforcement: ESLint is configured to disallow JSX `<img>` elements (rule -> `Use <SmartImage> instead`).
-  Running `npm run lint` will fail if any JSX `<img>` remains.
-
-- Asset verification: `npm run verify-assets` ensures referenced local image files exist and are non-empty.
-
-- Headless verification (optional): `npm run verify-logo-dom` runs a Puppeteer check that validates the app loads images at runtime.
 
 PR checklist (recommended)
 --------------------------
