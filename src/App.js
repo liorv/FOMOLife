@@ -134,6 +134,22 @@ function App() {
 
   const handleEditorClose = () => setEditorTaskIdx(null);
 
+  const handleSavePersonEdit = (idx, newName) => {
+    const name = (newName || '').trim();
+    if (!name) return;
+    const oldName = data.people[idx].name;
+    setData(prev => ({
+      ...prev,
+      people: prev.people.map((p, i) => i === idx ? { ...p, name } : p),
+      tasks: prev.tasks.map(t => ({
+        ...t,
+        people: (t.people || []).map(tp => tp.name === oldName ? { ...tp, name } : tp)
+      }))
+    }));
+    setEditingPersonIdx(null);
+    setEditingPersonName('');
+  };
+
   return (
     <div className="main-layout">
       <div className="container">
