@@ -17,16 +17,26 @@ const puppeteer = require('puppeteer');
 
     // open the first task (editor)
     await page.click('.item-list li');
-    await page.waitForSelector('.side-editor .add-person-bar input', { timeout: 5000 });
+    // the editor may be side-panel or inline, so look for either container
+    const editorSelector = '.side-editor .add-person-bar input, .inline-editor .add-person-bar input';
+    await page.waitForSelector(editorSelector, { timeout: 5000 });
+    // for inline case ensure the wrapper exists
+    const wrapper = await page.$('.task-editor-wrapper');
+    if (wrapper) {
+      console.log('inline editor wrapper present');
+    }
 
     const name = 'task-row-' + Date.now();
-    await page.type('.side-editor .add-person-bar input', name);
+    await page.type(editorSelector, name);
     await page.keyboard.press('Enter');
 
     // wait for the newly-added row in the task editor
-    await page.waitForFunction(n => !!Array.from(document.querySelectorAll('.side-editor .task-person-row')).find(r => r.textContent && r.textContent.indexOf(n) !== -1), { timeout: 5000 }, name);
+    await page.waitForFunction(n => {
+      const rows = Array.from(document.querySelectorAll('.side-editor .task-person-row, .inline-editor .task-person-row'));
+      return !!rows.find(r => r.textContent && r.textContent.indexOf(n) !== -1);
+    }, { timeout: 5000 }, name);
 
-    const rows = await page.evaluate(() => Array.from(document.querySelectorAll('.side-editor .task-person-row')).map(r => ({ text: r.querySelector('.person-name')?.textContent?.trim(), imgs: r.querySelectorAll('img.service-icon').length })));
+    const rows = await page.evaluate(() => Array.from(document.querySelectorAll('.side-editor .task-person-row, .inline-editor .task-person-row')).map(r => ({ text: r.querySelector('.person-name')?.textContent?.trim(), imgs: r.querySelectorAll('img.service-icon').length })));
 
     console.log('→ task-editor rows:', rows);
     await browser.close();

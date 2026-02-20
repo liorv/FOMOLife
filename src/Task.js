@@ -1,8 +1,8 @@
 import React from 'react';
 
-export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx, handleToggle, handleStar, handleDelete }) {
+export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx, handleToggle, handleStar, handleDelete, children }) {
   return (
-    <li key={idx} className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskIdx === idx ? ' editing' : ''}`}>
+    <li className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskIdx === idx ? ' editing' : ''}`}>
       {type === 'tasks' && (
         <input
           type="checkbox"
@@ -19,6 +19,17 @@ export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx,
       >
         {item.text}
       </span>
+      {type === 'tasks' && (
+        <span
+          className={`material-icons expand-icon${editorTaskIdx === idx ? ' open' : ''}`}
+          onClick={() => setEditorTaskIdx(idx)}
+          title={editorTaskIdx === idx ? ' Collapse editor' : 'Expand editor'}
+          aria-hidden="true"
+          style={{ cursor: 'pointer', marginLeft: 6, fontSize: '1rem' }}
+        >
+          {editorTaskIdx === idx ? 'expand_less' : 'expand_more'}
+        </span>
+      )}
       {type === 'tasks' && (
         <>
           {item.dueDate && (
@@ -47,6 +58,11 @@ export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx,
         </>
       )}
       <button className="delete" onClick={() => handleDelete(idx)} aria-label="Delete"><span className="material-icons">close</span></button>
+      {children && (
+        <div className="task-editor-wrapper">
+          {children}
+        </div>
+      )}
     </li>
   );
 }

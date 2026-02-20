@@ -98,6 +98,50 @@
   font-size: 0.95rem;
   margin-bottom: 12px;
 }
+
+/* inline version of the editor (rendered within a task row). to make it
+   feel attached, remove the heavy box-shadow and round corners so it looks
+   like a natural expansion. the padding is slightly reduced.
+*/
+.inline-editor {
+  background: var(--surface);
+  border-radius: 6px;
+  box-shadow: none; /* flush with row */
+  padding: 12px;
+  margin: 0; /* spacing is handled by wrapper */
+}
+
+/* compact header used in inline editor mode */
+.inline-header {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #202124;
+}
+
+.inline-editor .task-description {
+  width: 100%;
+  height: auto;
+  resize: vertical;
+  border: 1px solid rgba(60,64,67,0.12);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+/* wrapper around the inline editor when nested inside a task row */
+.task-editor-wrapper {
+  border-top: 1px solid rgba(60,64,67,0.1);
+  padding-top: 8px;
+  margin-top: 8px;
+  /* optional collapse animation via max-height */
+  transition: max-height 0.2s ease;
+  overflow: hidden;
+}
+
+/* now that the editor is part of the task row we no longer render a
+   separate list item for it – the old .editor-inline class is unused */
 /* default .people-list used for chip layout (task editor & add-bar). */
 .people-list {
   display: flex;
@@ -117,9 +161,11 @@
   gap: 0; /* individual rows already manage their own borders/gaps */
   margin-bottom: 0;
 }
-/* in side-editor, show people as full-width rows so icon columns align */
-.side-editor .people-list { display: flex; flex-direction: column; gap: 8px; }
-.side-editor .person-chip { width: 100%; box-sizing: border-box; }
+/* in side-editor or inline-editor show people as full-width rows so icon columns align */
+.side-editor .people-list,
+.inline-editor .people-list { display: flex; flex-direction: column; gap: 8px; }
+.side-editor .person-chip,
+.inline-editor .person-chip { width: 100%; box-sizing: border-box; }
 
 /* Task editor: render people as table-like rows rather than pill chips */
 .task-person-list { border-radius: 8px; overflow: hidden; border: 1px solid rgba(60,64,67,0.04); background: transparent; }
@@ -145,7 +191,8 @@
 .person-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; width: 160px; justify-content: flex-end; flex-shrink: 0; }
 .person-actions .person-methods-inline { width: 120px; justify-content: flex-end; }
 /* in the Task editor show the whole name (allow wrap) */
-.side-editor .person-chip .person-name {
+.side-editor .person-chip .person-name,
+.inline-editor .person-chip .person-name {
   font-weight: 600;
   color: #202124;
   overflow-wrap: anywhere;
@@ -180,6 +227,16 @@
   box-shadow: 0 2px 6px #00000008;
 }
 .avatar.small { width: 24px; height: 24px; font-size: 0.75em; }
+
+/* expand/collapse indicator next to task title */
+.expand-icon {
+  vertical-align: middle;
+  transition: transform 0.2s ease;
+}
+.expand-icon.open {
+  transform: rotate(180deg);
+}
+
 .people-count {
   background: #f1f3f4;
   color: #5f6368;
@@ -308,8 +365,10 @@
 .person-methods-inline button:hover { background: rgba(60,64,67,0.04); }
 
 /* ensure task-editor person chips still layout correctly with horizontal icons */
-.side-editor .person-chip { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
-.side-editor .person-methods-inline { margin-left: 12px; }
+.side-editor .person-chip,
+.inline-editor .person-chip { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.side-editor .person-methods-inline,
+.inline-editor .person-methods-inline { margin-left: 12px; }
 
 /* Search suggestions for TaskEditor */
 .search-suggestions {

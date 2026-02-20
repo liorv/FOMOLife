@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import TaskEditor from './TaskModal';
 import TaskList from './TaskList';
 import TabNav from './components/TabNav';
 import AddBar from './components/AddBar';
@@ -42,6 +41,10 @@ function App() {
   const [type, setType] = useState('tasks');
 
   const [editorTaskIdx, setEditorTaskIdx] = useState(null);
+  // helper which toggles the editor open/closed when the same task is clicked
+  const handleSetEditorIdx = (idx) => {
+    setEditorTaskIdx(prev => prev === idx ? null : idx);
+  };
   const [editingPersonIdx, setEditingPersonIdx] = useState(null);
   const [editingPersonName, setEditingPersonName] = useState('');
 
@@ -213,29 +216,23 @@ function App() {
               items={data[type]}
               type={type}
               editorTaskIdx={editorTaskIdx}
-              setEditorTaskIdx={setEditorTaskIdx}
+              setEditorTaskIdx={handleSetEditorIdx}
               handleToggle={handleToggle}
               handleStar={handleStar}
               handleDelete={handleDelete}
+              onEditorSave={handleEditorSave}
+              onEditorUpdate={handleEditorUpdate}
+              onEditorClose={handleEditorClose}
+              allPeople={data.people || []}
+              onOpenPeople={() => setType('people')}
+              onCreatePerson={(person) => setData(prev => {
+                if (prev.people.find(p => p.name === person.name)) return prev;
+                return { ...prev, people: [...prev.people, { name: person.name, methods: person.methods || { discord: false, sms: false, whatsapp: false } }] };
+              })}
             />
           </ul>
         )}
       </div>
-      {editorTaskIdx !== null && type === 'tasks' && (
-        <TaskEditor
-          key={editorTaskIdx}
-          task={data.tasks[editorTaskIdx]}
-          onSave={handleEditorSave}
-          onUpdateTask={handleEditorUpdate}
-          onClose={handleEditorClose}
-          allPeople={data.people || []}
-          onOpenPeople={() => setType('people')}
-          onCreatePerson={(person) => setData(prev => {
-            if (prev.people.find(p => p.name === person.name)) return prev;
-            return { ...prev, people: [...prev.people, { name: person.name, methods: person.methods || { discord: false, sms: false, whatsapp: false } }] };
-          })}
-        />
-      )}
     </div>
   );
 }

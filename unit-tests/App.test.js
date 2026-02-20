@@ -42,6 +42,17 @@ describe('App component', () => {
     // open editor and then delete task
     fireEvent.click(screen.getByText('first task'));
     expect(screen.getByText(/Edit Task/)).toBeInTheDocument();
+    // inline editor should appear immediately beneath the task row
+    expect(document.querySelector('.inline-editor')).toBeTruthy();
+    // compact header should also be present inside the inline editor
+    expect(document.querySelector('.inline-header')).toBeTruthy();
+    const icon = document.querySelector('.expand-icon');
+    expect(icon).toHaveClass('open');
+
+    // click again to collapse
+    fireEvent.click(screen.getByText('first task'));
+    expect(document.querySelector('.inline-editor')).toBeNull();
+    expect(document.querySelector('.expand-icon')).not.toHaveClass('open');
 
     const deleteButtons = screen.getAllByLabelText('Delete');
     // the first delete button belongs to the task

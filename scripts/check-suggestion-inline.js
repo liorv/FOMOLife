@@ -19,14 +19,15 @@ const puppeteer = require('puppeteer');
     }
 
     await page.click('.item-list li');
-    await page.waitForSelector('.side-editor .add-person-bar input', { timeout: 5000 });
+    const editorSelector = '.side-editor .add-person-bar input, .inline-editor .add-person-bar input';
+    await page.waitForSelector(editorSelector, { timeout: 5000 });
 
     // type a query when there are no people
     const q = 'noone';
-    await page.type('.side-editor .add-person-bar input', q);
+    await page.type(editorSelector, q);
 
-    const hasDropdown = await page.$('.side-editor .search-suggestions');
-    const hasInline = await page.$('.side-editor .suggestion-inline');
+    const hasDropdown = await page.$('.side-editor .search-suggestions, .inline-editor .search-suggestions');
+    const hasInline = await page.$('.side-editor .suggestion-inline, .inline-editor .suggestion-inline');
 
     console.log('search-suggestions present:', !!hasDropdown);
     console.log('suggestion-inline present:', !!hasInline);

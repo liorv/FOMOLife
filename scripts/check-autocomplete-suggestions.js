@@ -14,33 +14,37 @@ const puppeteer = require('puppeteer');
     // open task editor
     await page.waitForSelector('.item-list li', { timeout: 5000 });
     await page.click('.item-list li');
-    await page.waitForSelector('.side-editor .add-person-bar input', { timeout: 5000 });
+    const editorSelector = '.side-editor .add-person-bar input, .inline-editor .add-person-bar input';
+    await page.waitForSelector(editorSelector, { timeout: 5000 });
 
     // type 'a' to match Alice
-    await page.type('.side-editor .add-person-bar input', 'A');
+    await page.type(editorSelector, 'A');
 
     // wait for the dropdown to appear and ensure it has a solid background
-    await page.waitForSelector('.side-editor .search-suggestions.dropdown', { timeout: 3000 });
-    const dropdownBg = await page.evaluate(() => window.getComputedStyle(document.querySelector('.side-editor .search-suggestions.dropdown')).backgroundColor);
+    const dropdownSelector = '.side-editor .search-suggestions.dropdown, .inline-editor .search-suggestions.dropdown';
+    await page.waitForSelector(dropdownSelector, { timeout: 3000 });
+    const dropdownBg = await page.evaluate(sel => window.getComputedStyle(document.querySelector(sel)).backgroundColor, dropdownSelector);
     console.log('→ dropdown background:', dropdownBg);
 
     // wait for suggestion rows inside the dropdown
-    await page.waitForSelector('.side-editor .search-suggestions.dropdown .suggestion-row', { timeout: 3000 });
-    const suggestions = await page.evaluate(() => Array.from(document.querySelectorAll('.side-editor .search-suggestions.dropdown .suggestion-row')).map(r => r.textContent.trim()));
+    const suggestionRowSel = '.side-editor .search-suggestions.dropdown .suggestion-row, .inline-editor .search-suggestions.dropdown .suggestion-row';
+    await page.waitForSelector(suggestionRowSel, { timeout: 3000 });
+    const suggestions = await page.evaluate(() => Array.from(document.querySelectorAll(' .side-editor .search-suggestions.dropdown .suggestion-row, .inline-editor .search-suggestions.dropdown .suggestion-row')).map(r => r.textContent.trim()));
 
     console.log('→ suggestions:', suggestions);
 
     // click first suggestion and assert it became a task-person-row
-    await page.click('.side-editor .search-suggestions.dropdown .suggestion-row');
-    await page.waitForSelector('.side-editor .task-person-row', { timeout: 3000 });
-    const rows = await page.evaluate(() => Array.from(document.querySelectorAll('.side-editor .task-person-row')).map(r => r.querySelector('.person-name')?.textContent?.trim()));
+    await page.click(suggestionRowSel);
+    const taskPersonSel = '.side-editor .task-person-row, .inline-editor .task-person-row';
+    await page.waitForSelector(taskPersonSel, { timeout: 3000 });
+    const rows = await page.evaluate(() => Array.from(document.querySelectorAll('.side-editor .task-person-row, .inline-editor .task-person-row')).map(r => r.querySelector('.person-name')?.textContent?.trim()));
 
     console.log('→ added rows:', rows);
 
     // now clear input and type 'A' again — Alice should no longer be suggested
-    await page.click('.side-editor .add-person-bar input', { clickCount: 3 });
+    await page.click(editorSelector, { clickCount: 3 });
     await page.keyboard.press('Backspace');
-    await page.type('.side-editor .add-person-bar input', 'A');
+    await page.type(editorSelector, 'A');
 
     // wait briefly to allow suggestions to update
     await new Promise(res => setTimeout(res, 300));

@@ -5,7 +5,7 @@ const logoDiscordUrl = '/assets/logo_discord.png';
 const logoSmsUrl = '/assets/logo_sms.png';
 const logoWhatsappUrl = '/assets/logo_whatsapp.png';
 
-export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () => {}, allPeople = [], onOpenPeople = () => {}, onCreatePerson = () => {} }) {
+export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () => {}, allPeople = [], onOpenPeople = () => {}, onCreatePerson = () => {}, inline = false }) {
   const [description, setDescription] = useState(task.description || '');
   // merge task-level people with global defaults so people's default notification methods
   // from the People tab are used unless overridden per-task
@@ -88,9 +88,20 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
     return () => window.removeEventListener('keydown', onKey);
   }, [searchQuery, description, people]);
 
+  // `inline` mode will be rendered inside the task list; use a
+  // different class name so styles can be scoped accordingly.
+  const containerClass = inline ? 'inline-editor' : 'side-editor';
+
   return (
-    <div className="side-editor">
-      <h2>Edit Task — <span className="task-title-inline">{task.text}</span></h2>
+    <div className={containerClass}>
+      {inline ? (
+        // inline editor gets a compact header rather than a full h2
+        <div className="inline-header">
+          <strong>{task.text}</strong>
+        </div>
+      ) : (
+        <h2>Edit Task — <span className="task-title-inline">{task.text}</span></h2>
+      )}
 
       <label className="desc-label">Description</label>
       <textarea className="task-description" value={description} onChange={e => { setDescription(e.target.value); }} />
