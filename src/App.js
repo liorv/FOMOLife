@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TaskEditor from './TaskModal';
 import TaskList from './TaskList';
-import PersonList from './PersonList';
 import SmartImage from './SmartImage';
 
 
@@ -222,20 +221,33 @@ function App() {
           )}
           <button onClick={handleAdd}>Add</button>
         </div>
-        <ul className="item-list">
-          {type === 'people' ? (
-            <PersonList
-              people={data.people}
-              editingPersonIdx={editingPersonIdx}
-              editingPersonName={editingPersonName}
-              setEditingPersonIdx={setEditingPersonIdx}
-              setEditingPersonName={setEditingPersonName}
-              onSaveEdit={handleSavePersonEdit}
-              onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
-              handleTogglePersonDefault={handleTogglePersonDefault}
-              handleDelete={handleDelete}
-            />
-          ) : (
+
+        {type === 'people' ? (
+          /* use the same people-list UI as the task editor */
+          <div className="people-list task-person-list">
+            <div className="task-person-list-header" aria-hidden>
+              <div className="task-person-col name">Name</div>
+              <div className="task-person-col methods">Methods</div>
+            </div>
+            {data.people.map((person, idx) => (
+              <Person
+                key={idx}
+                person={person}
+                idx={idx}
+                editingPersonIdx={editingPersonIdx}
+                editingPersonName={editingPersonName}
+                setEditingPersonIdx={setEditingPersonIdx}
+                setEditingPersonName={setEditingPersonName}
+                onSaveEdit={handleSavePersonEdit}
+                onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
+                handleTogglePersonDefault={handleTogglePersonDefault}
+                handleDelete={handleDelete}
+                asRow={true}
+              />
+            ))}
+          </div>
+        ) : (
+          <ul className="item-list">
             <TaskList
               items={data[type]}
               type={type}
@@ -245,8 +257,8 @@ function App() {
               handleStar={handleStar}
               handleDelete={handleDelete}
             />
-          )}
-        </ul>
+          </ul>
+        )}
       </div>
       {editorTaskIdx !== null && type === 'tasks' && (
         <TaskEditor

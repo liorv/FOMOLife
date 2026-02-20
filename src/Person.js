@@ -8,9 +8,12 @@ const logoDiscordUrl = (() => { try { return new URL('./assets/logo_discord.png'
 const logoSmsUrl = (() => { try { return new URL('./assets/logo_sms.png', import.meta.url).href; } catch (_) { return logoSms; } })();
 const logoWhatsappUrl = (() => { try { return new URL('./assets/logo_whatsapp.png', import.meta.url).href; } catch (_) { return logoWhatsapp; } })();
 
-export default function Person({ person, idx, editingPersonIdx, editingPersonName, setEditingPersonIdx, setEditingPersonName, onSaveEdit, onCancelEdit, handleTogglePersonDefault, handleDelete }) {
+export default function Person({ person, idx, editingPersonIdx, editingPersonName, setEditingPersonIdx, setEditingPersonName, onSaveEdit, onCancelEdit, handleTogglePersonDefault, handleDelete, asRow = false }) {
+  const Wrapper = asRow ? 'div' : 'li';
+  const baseClass = asRow ? 'task-person-row' : 'person-chip task-person-row';
+
   return (
-    <li key={idx}>
+    <Wrapper key={idx} className={baseClass}>
       {editingPersonIdx === idx ? (
         <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
           <input value={editingPersonName} onChange={e => setEditingPersonName(e.target.value)} />
@@ -18,7 +21,7 @@ export default function Person({ person, idx, editingPersonIdx, editingPersonNam
           <button onClick={() => onCancelEdit()}>Cancel</button>
         </div>
       ) : (
-        <div className="person-chip task-person-row">
+        <>
           <strong className="person-name" style={{cursor: 'pointer'}} onClick={() => { setEditingPersonIdx(idx); setEditingPersonName(person.name); }}>{person.name}</strong>
           <div className="person-actions">
             <div className="person-methods-inline">
@@ -34,8 +37,8 @@ export default function Person({ person, idx, editingPersonIdx, editingPersonNam
             </div>
             <button className="delete" onClick={() => handleDelete(idx)} aria-label="Delete person"><span className="material-icons">close</span></button>
           </div>
-        </div>
+        </>
       )}
-    </li>
+    </Wrapper>
   );
 }
