@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import TaskEditor from './TaskModal';
+import TaskList from './TaskList';
+import PersonList from './PersonList';
 
 
 // Use public/assets/ for all static assets
