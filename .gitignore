@@ -6,3 +6,4 @@ dist/
 tmp_bundle.js
 coverage/
 .vscode/
+.next/
