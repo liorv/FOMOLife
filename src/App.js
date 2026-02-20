@@ -155,7 +155,13 @@ function App() {
     <div className="main-layout">
       <div className="container">
         <div className="app-bar">
-          <img key={assetUrl(logoAsset)} src={assetUrl(logoAsset)} alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+          <img
+            key={assetUrl(logoAsset)}
+            src={assetUrl(logoAsset)}
+            alt="FOMO Life logo"
+            className="app-logo"
+            style={{ display: "inline-block" }}
+          />
           <div className="app-title">FOMO Life</div>
         </div>
         <div className="tabs">
