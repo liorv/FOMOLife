@@ -103,6 +103,17 @@ function App() {
       }));
       return;
     }
+
+    // for tasks (or other lists) we also need to keep the editor index in sync
+    if (type === 'tasks') {
+      setEditorTaskIdx(prev => {
+        if (prev === null) return null;
+        if (prev === idx) return null; // deleted the task currently open
+        if (prev > idx) return prev - 1; // shift down after removal
+        return prev;
+      });
+    }
+
     setData(prev => ({
       ...prev,
       [type]: prev[type].filter((_, i) => i !== idx),
