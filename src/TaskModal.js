@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import SmartImage from './SmartImage';
 
 // logos are served from public/assets; no webpack import needed
 const logoDiscordUrl = '/assets/logo_discord.png';
@@ -113,13 +112,13 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
             <div className="task-person-col methods">
               <div className="person-methods-inline" style={{justifyContent: 'flex-end'}}>
                 <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
-                  <SmartImage src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
+                  <img src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
                 </button>
                 <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
-                  <SmartImage src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
+                  <img src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
                 </button>
                 <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
-                  <SmartImage src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
+                  <img src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
                 </button>
                 <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`} style={{marginLeft:8}}><span className="material-icons">close</span></button>
               </div>
