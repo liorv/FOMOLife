@@ -29,6 +29,8 @@ describe('TaskRow component', () => {
     expect(container.querySelector('.avatar')).toBeInTheDocument();
     expect(container.querySelector('.star')).toBeInTheDocument();
     expect(container.querySelector('.delete')).toBeInTheDocument();
+    // ensure row items are centered vertically
+    expect(container.querySelector('.task-checkbox').parentElement).toHaveStyle('align-items: center');
   });
 
   test('click expand calls setEditorTaskIdx', () => {

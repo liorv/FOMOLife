@@ -102,7 +102,7 @@
 /* inline version of the editor (rendered within a task row). to make it
    feel attached, remove the heavy box-shadow and round corners so it looks
    like a natural expansion. the padding is slightly reduced.
-*/
+   description width limited to half the container in wide layouts.  */
 .inline-editor {
   background: var(--surface);
   border-radius: 6px;
@@ -120,7 +120,8 @@
 }
 
 .inline-editor .task-description {
-  width: 100%;
+  width: 50%; /* half width of row */
+  max-width: 400px; /* don't stretch excessively on wide screens */
   height: auto;
   resize: vertical;
   border: 1px solid rgba(60,64,67,0.12);
@@ -234,6 +235,10 @@
 .expand-icon {
   vertical-align: middle;
   transition: transform 0.2s ease;
+  width: 24px;            /* reserve space so title doesn't shift */
+  flex-shrink: 0;
+  display: inline-flex;
+  justify-content: center;
 }
 .expand-icon.open {
   transform: rotate(180deg);
@@ -498,6 +503,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  min-width: 320px; /* prevent shrinking too far and losing logo */
 }
 .container > * { position: relative; z-index: 1; }
 
@@ -523,8 +529,10 @@ body {
 }
 
 @media (max-width: 900px) {
-  .logo-splash { display: none; }
-} 
+  /* keep logo visible; instead let container scroll horizontally */
+  /* .logo-splash { display: none; } */
+}
+ 
 
 
 @media (max-width: 900px) {
@@ -667,7 +675,7 @@ body {
 
 .task-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* vertically center all row contents */
   gap: 10px;
   padding: 12px 0 12px 0;
 }

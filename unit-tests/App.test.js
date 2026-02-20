@@ -47,6 +47,8 @@ describe('App component', () => {
     expect(editor).toBeTruthy();
     // editor should not render its own title text
     expect(editor.textContent).not.toContain('first task');
+    const textarea = editor.querySelector('textarea.task-description');
+    expect(textarea).toHaveStyle('width: 50%');
     const icon = document.querySelector('.expand-icon');
     expect(icon).toHaveClass('open');
     expect(icon.nextSibling.className).toContain('task-title');
