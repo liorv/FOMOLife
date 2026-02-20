@@ -9,6 +9,7 @@ import PersonList from './PersonList';
 
 
 import './App.css';
+import logoAsset from './assets/logo_fomo.jpg';
 
 // normalize image imports (handle bundlers that export asset objects)
 const assetUrl = (a) => (a && typeof a === 'object' && 'default' in a) ? a.default : a;
@@ -154,7 +155,7 @@ function App() {
     <div className="main-layout">
       <div className="container">
         <div className="app-bar">
-          <img src="/assets/logo_fomo.jpg" alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+          <img src={assetUrl(logoAsset)} alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
           <div className="app-title">FOMO Life</div>
         </div>
         <div className="tabs">
