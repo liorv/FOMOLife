@@ -3,35 +3,18 @@ FOMO Life — Developer notes
 Images & asset handling
 -----------------------
 
-Static images now live under `public/assets` and are served directly by Next.js, which
-simplifies asset imports considerably. We still use a small helper component for
-robust fallback behavior and diagnostic logging:
+Static images now live under `public/assets` and are served directly by Next.js.
+Raw `<img>` tags are acceptable for most use cases; for optional fallback or
+troubleshooting you may choose to wrap them manually in a short component or
+add an `onError` handler.
 
-- **SmartImage** is the preferred replacement for raw `<img>` tags. It accepts a
-  `src` string (usually a `/assets/…` path) and an optional `fallback` URL. On
-  error it logs a warning and switches to `fallback` if provided, or a tiny SVG
-  placeholder.
+### Image guidelines
 
-### Converting `<img>` to `SmartImage`
+- Use `<img src="/assets/..." alt="..." />` for static files.
+- If you need a fallback, add `onError={e => { e.currentTarget.src = '/assets/placeholder.png'; }}`
+  or similar.
 
-1. Add the import (if not already present):
-
-   ```js
-   import SmartImage from './SmartImage';
-   ```
-
-2. Replace usage:
-
-   ```jsx
-   // before
-   <img src="/assets/logo.png" alt="Logo" className="app-logo" />
-
-   // after
-   <SmartImage src="/assets/logo.png" alt="Logo" className="app-logo" />
-   ```
-
-3. Provide `fallback="/assets/placeholder.png"` or similar if you want a
-   specific substitute.
+(The former SmartImage helper has been removed.)
 
 ### Developer tools
 

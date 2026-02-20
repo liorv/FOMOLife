@@ -15,5 +15,5 @@ for (const f of files) {
   }
 }
 if (!count) console.log('No plain <img> tags found in src/ — good.');
-else console.log(`Found ${count} <img> occurrences. Convert them to SmartImage and add/import SmartImage where needed.`);
+else console.log(`Found ${count} <img> occurrences. Verify they point at /assets/ paths or add error-handling as desired.`);
 process.exit(0);
