@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TaskEditor from './TaskModal';
 import TaskList from './TaskList';
 import SmartImage from './SmartImage';
+import Person from './Person';
 
 
 // Use public/assets/ for all static assets
