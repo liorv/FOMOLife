@@ -155,7 +155,7 @@ function App() {
     <div className="main-layout">
       <div className="container">
         <div className="app-bar">
-          <img src={assetUrl(logoAsset)} alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+          <img key={assetUrl(logoAsset)} src={assetUrl(logoAsset)} alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
           <div className="app-title">FOMO Life</div>
         </div>
         <div className="tabs">
@@ -228,3 +228,4 @@ function App() {
 }
 
 export default App;
+
