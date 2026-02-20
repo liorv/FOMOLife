@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import logoDiscord from './assets/icons/logo_discord.png';
-import logoSms from './assets/icons/logo_sms.png';
-import logoWhatsapp from './assets/icons/logo_whatsapp.png';
+
+// Use public/assets/ for all static assets
 
 // normalize image imports (handle bundlers that export asset objects)
 const assetUrl = (a) => (a && typeof a === 'object' && 'default' in a) ? a.default : a;
@@ -107,13 +106,13 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
             <div className="person-actions">
               <div className="person-methods-inline">
                 <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
-                  <img className="service-icon discord-icon" src={assetUrl(logoDiscord)} alt="discord" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                  <span className="service-icon discord-icon" aria-hidden><span className="material-icons">forum</span></span>
                 </button>
                 <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
-                  <img className="service-icon sms-icon" src={assetUrl(logoSms)} alt="sms" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                  <span className="service-icon sms-icon" aria-hidden><span className="material-icons">textsms</span></span>
                 </button>
                 <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
-                  <img className="service-icon whatsapp-icon" src={assetUrl(logoWhatsapp)} alt="whatsapp" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                  <span className="service-icon whatsapp-icon" aria-hidden><span className="material-icons">chat</span></span>
                 </button>
               </div>
               <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`}><span className="material-icons">close</span></button>

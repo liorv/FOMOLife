@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import TaskEditor from './TaskModal';
 
-import logoDiscord from './assets/icons/logo_discord.png';
-import logoSms from './assets/icons/logo_sms.png';
-import logoWhatsapp from './assets/icons/logo_whatsapp.png';
+
+// Use public/assets/ for all static assets
 
 
 
@@ -35,26 +34,8 @@ function App() {
   const [editorTaskIdx, setEditorTaskIdx] = useState(null);
   const [editingPersonIdx, setEditingPersonIdx] = useState(null);
   const [editingPersonName, setEditingPersonName] = useState('');
-  const [iconStatus, setIconStatus] = useState([]);
 
-  useEffect(() => {
-    const update = () => {
-      const imgs = Array.from(document.querySelectorAll('img.service-icon'));
-      const status = imgs.map(img => ({
-        src: img.getAttribute('src') || img.src,
-        complete: img.complete,
-        naturalWidth: img.naturalWidth || 0,
-        display: window.getComputedStyle(img).display,
-      }));
-      setIconStatus(status);
-      // also log to console to help debugging
-      console.log('icon-status', status);
-    };
-    // give images a moment to load and run twice
-    const t1 = setTimeout(update, 200);
-    const t2 = setTimeout(update, 900);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [type, editorTaskIdx]);
+
 
   useEffect(() => {
     saveData(data);
@@ -155,7 +136,7 @@ function App() {
     <div className="main-layout">
       <div className="container">
         <div className="app-bar">
-          <img src="/logo_fomo.jpg" alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+          <img src="/assets/logo_fomo.jpg" alt="FOMO Life logo" className="app-logo" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
           <div className="app-title">FOMO Life</div>
         </div>
         <div className="tabs">
@@ -212,13 +193,13 @@ function App() {
                     <div className="person-actions">
                       <div className="person-methods-inline">
                         <button className={person.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonDefault(idx, 'discord')} title="Discord">
-                          <img className="service-icon discord-icon" src={assetUrl(logoDiscord)} alt="discord" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          <span className="service-icon discord-icon" aria-hidden><span className="material-icons">forum</span></span>
                         </button>
                         <button className={person.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonDefault(idx, 'sms')} title="SMS">
-                          <img className="service-icon sms-icon" src={assetUrl(logoSms)} alt="sms" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          <span className="service-icon sms-icon" aria-hidden><span className="material-icons">textsms</span></span>
                         </button>
                         <button className={person.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonDefault(idx, 'whatsapp')} title="WhatsApp">
-                          <img className="service-icon whatsapp-icon" src={assetUrl(logoWhatsapp)} alt="whatsapp" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          <span className="service-icon whatsapp-icon" aria-hidden><span className="material-icons">chat</span></span>
                         </button>
                       </div>
                       <button className="delete" onClick={() => handleDelete(idx)} aria-label="Delete person"><span className="material-icons">close</span></button>
@@ -296,20 +277,6 @@ function App() {
           })}
         />
       )}
-      {/* dev-only visual icon status (temporary) */}
-      <div style={{position: 'fixed', right: 12, bottom: 12, background: '#fff', border: '1px solid #eee', padding: 10, borderRadius: 8, zIndex: 2000, fontSize: 12}} aria-hidden>
-        <div style={{fontWeight:700, marginBottom:6}}>Icon status</div>
-        {iconStatus.length === 0 ? (
-          <div style={{color:'#777'}}>no service icons found</div>
-        ) : (
-          iconStatus.map((s, i) => (
-            <div key={`${String(s.src)}-${i}`} style={{display:'flex', justifyContent:'space-between', gap:8, alignItems:'center'}}>
-              <div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{String(s.src).split('/').pop()}</div>
-              <div style={{color: s.naturalWidth ? '#0a0' : '#c33'}}>{s.naturalWidth ? `loaded (${s.naturalWidth}px)` : 'broken'}</div>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 }
