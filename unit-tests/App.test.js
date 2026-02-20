@@ -43,9 +43,10 @@ describe('App component', () => {
     fireEvent.click(screen.getByText('first task'));
     expect(screen.getByText(/Edit Task/)).toBeInTheDocument();
     // inline editor should appear immediately beneath the task row
-    expect(document.querySelector('.inline-editor')).toBeTruthy();
-    // compact header should also be present inside the inline editor
-    expect(document.querySelector('.inline-header')).toBeTruthy();
+    const editor = document.querySelector('.inline-editor');
+    expect(editor).toBeTruthy();
+    // editor should not render its own title text
+    expect(editor.textContent).not.toContain('first task');
     const icon = document.querySelector('.expand-icon');
     expect(icon).toHaveClass('open');
     expect(icon.nextSibling.className).toContain('task-title');

@@ -132,6 +132,7 @@
 
 /* wrapper around the inline editor when nested inside a task row */
 .task-editor-wrapper {
+  width: 100%;
   border-top: 1px solid rgba(60,64,67,0.1);
   padding-top: 8px;
   margin-top: 8px;
@@ -652,10 +653,9 @@ body {
 }
 .item-list li {
   display: flex;
-  align-items: flex-start; /* keep icons and title at top when row grows */
-  gap: 10px;
-  justify-content: flex-start;
-  padding: 12px 0 12px 0;
+  flex-direction: column;
+  gap: 0;
+  padding: 0; /* header handles its own padding */
   border-bottom: 1.5px solid #e9f0fb;
   font-size: 1.08rem;
   background: #fff;
@@ -663,6 +663,13 @@ body {
   margin-bottom: 2px;
   box-shadow: 0 1px 4px #b6c6e61a;
   transition: box-shadow 0.18s, background 0.18s;
+}
+
+.task-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0 12px 0;
 }
 .item-list li:last-child {
   border-bottom: none;

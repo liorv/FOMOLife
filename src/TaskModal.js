@@ -94,12 +94,8 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
 
   return (
     <div className={containerClass}>
-      {inline ? (
-        // inline editor gets a compact header rather than a full h2
-        <div className="inline-header">
-          <strong>{task.text}</strong>
-        </div>
-      ) : (
+      {/* title is shown in the task header; inline form does not render its own header */}
+      {!inline && (
         <h2>Edit Task — <span className="task-title-inline">{task.text}</span></h2>
       )}
 

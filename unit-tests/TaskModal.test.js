@@ -27,8 +27,8 @@ describe('TaskEditor component', () => {
     expect(container.querySelector('.inline-editor')).toBeTruthy();
     // should not render the old side-panel class
     expect(container.querySelector('.side-editor')).toBeFalsy();
-    // header should be the compact inline style
-    expect(container.querySelector('.inline-header')).toBeTruthy();
+    // inline editor should not include its own title
+    expect(container.textContent).not.toContain('foo');
     const textarea = container.querySelector('textarea.task-description');
     fireEvent.change(textarea, { target: { value: 'inline desc' } });
     expect(textarea.value).toBe('inline desc');
