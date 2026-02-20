@@ -1,4 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import SmartImage from './SmartImage';
+import logoDiscord from './assets/logo_discord.png';
+import logoSms from './assets/logo_sms.png';
+import logoWhatsapp from './assets/logo_whatsapp.png';
+
+// compute reliable runtime URLs (use import.meta.url fallback so imports that
+// evaluate to empty objects still produce a usable path)
+const logoDiscordUrl = (() => {
+  try { return new URL('./assets/logo_discord.png', import.meta.url).href; } catch (_) { return logoDiscord; }
+})();
+const logoSmsUrl = (() => {
+  try { return new URL('./assets/logo_sms.png', import.meta.url).href; } catch (_) { return logoSms; }
+})();
+const logoWhatsappUrl = (() => {
+  try { return new URL('./assets/logo_whatsapp.png', import.meta.url).href; } catch (_) { return logoWhatsapp; }
+})();
+
+// expose runtime values for debugging (dev only)
+if (typeof window !== 'undefined') {
+  window.__LOGO_DISCORD = logoDiscord;
+  window.__LOGO_SMS = logoSms;
+  window.__LOGO_WHATSAPP = logoWhatsapp;
+  window.__LOGO_DISCORD_URL = logoDiscordUrl;
+  window.__LOGO_SMS_URL = logoSmsUrl;
+  window.__LOGO_WHATSAPP_URL = logoWhatsappUrl;
+}
 
 // Use public/assets/ for all static assets
 
@@ -99,29 +125,35 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
       <div className="spacer" />
 
       <label>People to notify</label>
-      <div className="people-list">
+      <div className="people-list task-person-list">
+        <div className="task-person-list-header" aria-hidden>
+          <div className="task-person-col name">Name</div>
+          <div className="task-person-col methods">Methods</div>
+        </div>
         {people.map(p => (
-          <span key={p.name} className="person-chip">
-            <span className="person-name">{p.name}</span>
-            <div className="person-actions">
-              <div className="person-methods-inline">
+          <div key={p.name} className="task-person-row">
+            <div className="task-person-col name">
+              <strong className="person-name">{p.name}</strong>
+            </div>
+            <div className="task-person-col methods">
+              <div className="person-methods-inline" style={{justifyContent: 'flex-end'}}>
                 <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
-                  <span className="service-icon discord-icon" aria-hidden><span className="material-icons">forum</span></span>
+                  <SmartImage src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
                 </button>
                 <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
-                  <span className="service-icon sms-icon" aria-hidden><span className="material-icons">textsms</span></span>
+                  <SmartImage src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
                 </button>
                 <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
-                  <span className="service-icon whatsapp-icon" aria-hidden><span className="material-icons">chat</span></span>
+                  <SmartImage src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
                 </button>
+                <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`} style={{marginLeft:8}}><span className="material-icons">close</span></button>
               </div>
-              <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`}><span className="material-icons">close</span></button>
             </div>
-          </span>
+          </div>
         ))}
       </div>
 
-      <div className="add-person-bar">
+      <div className="add-person-bar" style={{position: 'relative'}}>
         <input
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -129,7 +161,7 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
           onKeyDown={e => {
             const q = searchQuery.trim();
             const lc = q.toLowerCase();
-            const matches = q ? allPeople.filter(p => p.name.toLowerCase().includes(lc)).slice(0,6) : [];
+            const matches = q ? allPeople.filter(p => p.name.toLowerCase().includes(lc) && !people.find(pp => pp.name.toLowerCase() === p.name.toLowerCase())).slice(0,6) : [];
             const itemsCount = matches.length > 0 ? matches.length : (q ? 1 : 0);
 
             if (e.key === 'ArrowDown') {
@@ -180,58 +212,54 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
             }
           }}
         />
-      </div>
 
-      {searchQuery.trim() && (
-        <div className="search-suggestions list-below" role="listbox" aria-label="People suggestions">
-          {(() => {
-            const q = searchQuery.trim().toLowerCase();
-            const matches = allPeople.filter(p => p.name.toLowerCase().includes(q)).slice(0,6);
+        {searchQuery.trim() && (() => {
+          const q = searchQuery.trim().toLowerCase();
+          const matches = allPeople.filter(p => p.name.toLowerCase().includes(q) && !people.find(pp => pp.name.toLowerCase() === p.name.toLowerCase())).slice(0,6);
 
-            if (matches.length > 0) {
-              return matches.map((p, i) => (
-                <div
-                  key={p.name}
-                  role="option"
-                  aria-selected={activeSuggestion === i}
-                  className={activeSuggestion === i ? 'suggestion-item active' : 'suggestion-item'}
-                  onMouseEnter={() => setActiveSuggestion(i)}
-                  onMouseLeave={() => setActiveSuggestion(-1)}
-                  onClick={() => { handleAddFromAll(p); setActiveSuggestion(-1); }}
-                >
-                  <strong>{p.name}</strong>
-                  <div style={{display: 'inline-flex', gap:6, marginLeft: 8}}>
-                    <span className={p.methods?.discord ? 'method-icon active' : 'method-icon'}><span className="material-icons">forum</span></span>
-                    <span className={p.methods?.sms ? 'method-icon active' : 'method-icon'}><span className="material-icons">textsms</span></span>
-                    <span className={p.methods?.whatsapp ? 'method-icon active' : 'method-icon'}><span className="material-icons">chat</span></span>
+          // render a floating dropdown only when we have multiple matches
+          if (matches.length > 0) {
+              return (
+              <div className="search-suggestions dropdown" role="listbox" aria-label="People suggestions">
+                {matches.map((p, i) => (
+                  <div
+                    key={p.name}
+                    role="option"
+                    aria-selected={activeSuggestion === i}
+                    className={activeSuggestion === i ? 'task-person-row suggestion-row active' : 'task-person-row suggestion-row'}
+                    onMouseEnter={() => setActiveSuggestion(i)}
+                    onMouseLeave={() => setActiveSuggestion(-1)}
+                    onClick={() => { handleAddFromAll(p); setActiveSuggestion(-1); }}
+                  >
+                    <div className="task-person-col name"><strong>{p.name}</strong></div>
                   </div>
-                </div>
-              ));
-            }
-
-            const newName = searchQuery.trim();
-            return (
-              <div
-                role="option"
-                aria-selected={activeSuggestion === 0}
-                className={activeSuggestion === 0 ? 'suggestion-item active' : 'suggestion-item'}
-                onMouseEnter={() => setActiveSuggestion(0)}
-                onMouseLeave={() => setActiveSuggestion(-1)}
-                onClick={() => {
-                  const created = { name: newName, methods: { discord: false, sms: false, whatsapp: false } };
-                  setPeople(prev => prev.find(p => p.name === created.name) ? prev : [...prev, created]);
-                  setSearchQuery('');
-                  setActiveSuggestion(-1);
-                  onCreatePerson(created);
-                }}
-              >
-                <strong>Add “{newName}”</strong>
-                <span style={{ color: '#7b8ca7' }}>create and add to task</span>
+                ))}
               </div>
             );
-          })()}
-        </div>
-      )}
+          }
+
+          // no matches — show inline "Add" row (avoid floating box / scrollbars)
+          const newName = searchQuery.trim();
+          return (
+            <div
+              role="option"
+              className={activeSuggestion === 0 ? 'suggestion-inline active' : 'suggestion-inline'}
+              onMouseEnter={() => setActiveSuggestion(0)}
+              onMouseLeave={() => setActiveSuggestion(-1)}
+              onClick={() => {
+                const created = { name: newName, methods: { discord: false, sms: false, whatsapp: false } };
+                setPeople(prev => prev.find(p => p.name === created.name) ? prev : [...prev, created]);
+                setSearchQuery('');
+                setActiveSuggestion(-1);
+                onCreatePerson(created);
+              }}
+            >
+              <div className="task-person-col name"><strong>Add “{newName}”</strong></div>
+              <div className="task-person-col methods" style={{color: '#7b8ca7'}}>create and add to task</div>
+            </div>
+          );
+        })()}
+      </div>
 
       <div style={{ flex: 1 }} />
 

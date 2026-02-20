@@ -20,6 +20,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  overflow-x: hidden; /* prevent suggestions or artwork from widening the panel */
 }
 .editor-actions {
   display: flex;
@@ -107,6 +108,15 @@
 .side-editor .people-list { display: flex; flex-direction: column; gap: 8px; }
 .side-editor .person-chip { width: 100%; box-sizing: border-box; }
 
+/* Task editor: render people as table-like rows rather than pill chips */
+.task-person-list { border-radius: 8px; overflow: hidden; border: 1px solid rgba(60,64,67,0.04); background: transparent; }
+.task-person-list-header { display:flex; gap:12px; padding:8px 12px; color: #6b7280; font-size:0.85em; border-bottom: 1px solid rgba(60,64,67,0.04); }
+.task-person-row { display:flex; gap:12px; align-items:center; padding:10px 12px; background: transparent; }
+.task-person-row + .task-person-row { border-top: 1px solid rgba(60,64,67,0.03); }
+.task-person-col { flex: 1 1 0; min-width: 0; }
+.task-person-col.name { display:flex; align-items:center; gap:8px; }
+.task-person-col.methods { display:flex; justify-content:flex-end; align-items:center; width:160px; flex: 0 0 160px; }
+
 .person-chip {
   background: rgba(60,64,67,0.04);
   border-radius: 999px;
@@ -181,7 +191,11 @@
   margin-bottom: 8px;
   align-items: center;
   position: relative;
+  /* allow suggestion-inline to wrap below the input and keep dropdown above decorative art */
+  flex-wrap: wrap;
+  z-index: 60;
 }
+.add-person-bar input { flex: 1 1 auto; min-width: 160px; box-sizing: border-box; }
 
 .person-methods-inline { display: inline-flex; gap: 6px; margin-left: 8px; }
 .method-icon {
@@ -238,7 +252,16 @@
 
 /* per-person inline method icons (horizontal layout; fixed area so same-type icons align vertically) */
 .person-methods-inline { display: inline-flex; gap: 8px; margin-left: 8px; align-items: center; width: 132px; justify-content: flex-end; }
-.person-methods-inline .service-icon{ width:18px; height:18px; display:block; filter: grayscale(100%) saturate(0%); opacity: 0.6; margin:auto; }
+.person-methods-inline .service-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  filter: grayscale(100%) saturate(0%);
+  opacity: 0.6;
+  margin: auto;
+  background: transparent;
+  object-fit: contain;
+}
 .method-icon { line-height: 0; }
 .method-icon.active .service-icon { filter: none; opacity: 1; }
 .person-methods-inline .method-icon.active .service-icon,
@@ -263,27 +286,55 @@
 
 /* Search suggestions for TaskEditor */
 .search-suggestions {
-  position: static;
-  background: #fff;
+  position: static; /* inline with the Task Editor rows */
+  background: transparent;
+  border: none;
+  margin-top: 8px;
+  width: 100%;
+  z-index: 5;
+}
+.suggestion-row { padding: 10px 12px; cursor: pointer; }
+.suggestion-row:hover { background: rgba(60,64,67,0.02); }
+.suggestion-row.active { background: rgba(26,115,232,0.04); }
+
+/* legacy floating dropdown styles (keep available but not used by default) */
+.search-suggestions.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: #fff; /* solid background so decorative splash or icons don't show through */
   border: 1px solid #eef2ff;
   box-shadow: 0 6px 20px #00000010;
-  margin-top: 8px;
   border-radius: 10px;
-  width: 100%;
   max-height: 220px;
-  overflow: auto;
-  z-index: 30;
+  overflow-y: auto;     /* only vertical scroll */
+  overflow-x: hidden;   /* prevent horizontal scrollbars */
+  padding: 6px 0;
+  z-index: 200;         /* ensure it renders above splash/art */
+  box-sizing: border-box;
 }
-.suggestion-item {
-  padding: 8px 12px;
+.search-suggestions.dropdown .task-person-row { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-suggestions.dropdown .task-person-row .task-person-col.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.search-suggestions.dropdown .task-person-row .task-person-col.methods { display:none; }
+.task-person-col.methods { flex: 0 0 140px; min-width: 0; }
+
+/* Inline suggestion used when there are no matches — looks like a row */
+.suggestion-inline {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
   cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;          /* force under the input */
+  box-sizing: border-box;
+  margin-top: 8px;
 }
-.suggestion-item:hover { background: rgba(60,64,67,0.04); }
-.suggestion-item.active { background: rgba(26,115,232,0.06); outline: none; }
+.suggestion-inline:hover { background: rgba(60,64,67,0.02); }
+.suggestion-inline.active { background: rgba(26,115,232,0.04); }
 
 .material-icons { vertical-align: middle; font-size: 18px; color: inherit; }
 .suggestion-empty {
