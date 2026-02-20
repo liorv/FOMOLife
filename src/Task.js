@@ -12,6 +12,17 @@ export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx,
           title={item.done ? 'Mark as incomplete' : 'Mark as complete'}
         />
       )}
+      {type === 'tasks' && (
+        <span
+          className={`material-icons expand-icon${editorTaskIdx === idx ? ' open' : ''}`}
+          onClick={() => setEditorTaskIdx(idx)}
+          title={editorTaskIdx === idx ? ' Collapse editor' : 'Expand editor'}
+          aria-hidden="true"
+          style={{ cursor: 'pointer', marginRight: 6, fontSize: '1rem' }}
+        >
+          {editorTaskIdx === idx ? 'expand_less' : 'expand_more'}
+        </span>
+      )}
       <span
         className="task-title"
         onClick={() => type === 'tasks' ? setEditorTaskIdx(idx) : undefined}
@@ -19,17 +30,6 @@ export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx,
       >
         {item.text}
       </span>
-      {type === 'tasks' && (
-        <span
-          className={`material-icons expand-icon${editorTaskIdx === idx ? ' open' : ''}`}
-          onClick={() => setEditorTaskIdx(idx)}
-          title={editorTaskIdx === idx ? ' Collapse editor' : 'Expand editor'}
-          aria-hidden="true"
-          style={{ cursor: 'pointer', marginLeft: 6, fontSize: '1rem' }}
-        >
-          {editorTaskIdx === idx ? 'expand_less' : 'expand_more'}
-        </span>
-      )}
       {type === 'tasks' && (
         <>
           {item.dueDate && (

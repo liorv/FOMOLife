@@ -38,10 +38,12 @@ describe('TaskList component', () => {
     expect(container.querySelector('.inline-editor')).toBeTruthy();
     // the task title should still be visible
     expect(screen.getByText('task1')).toBeTruthy();
-    // expand icon should reflect open state
+    // expand icon should reflect open state and be placed before title
     const icon = container.querySelector('.expand-icon');
     expect(icon).toBeTruthy();
     expect(icon).toHaveClass('open');
+    // next sibling should be the task text span
+    expect(icon.nextSibling.className).toContain('task-title');
 
   });
 

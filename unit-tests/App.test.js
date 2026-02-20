@@ -48,6 +48,7 @@ describe('App component', () => {
     expect(document.querySelector('.inline-header')).toBeTruthy();
     const icon = document.querySelector('.expand-icon');
     expect(icon).toHaveClass('open');
+    expect(icon.nextSibling.className).toContain('task-title');
 
     // click again to collapse
     fireEvent.click(screen.getByText('first task'));
