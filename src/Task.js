@@ -1,65 +1,21 @@
 import React from 'react';
+import TaskRow from './TaskRow';
 
 export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx, handleToggle, handleStar, handleDelete, children }) {
   return (
     <li className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskIdx === idx ? ' editing' : ''}`}>
-      {/* header area – sits at top of container */}
+      {/* header area – sits at top of container, now delegated to TaskRow */}
       <div className="task-header">
-        {type === 'tasks' && (
-          <input
-            type="checkbox"
-            checked={item.done}
-            onChange={() => handleToggle(idx)}
-            className="task-checkbox"
-            title={item.done ? 'Mark as incomplete' : 'Mark as complete'}
-          />
-        )}
-        {type === 'tasks' && (
-          <span
-            className={`material-icons expand-icon${editorTaskIdx === idx ? ' open' : ''}`}
-            onClick={() => setEditorTaskIdx(idx)}
-            title={editorTaskIdx === idx ? ' Collapse editor' : 'Expand editor'}
-            aria-hidden="true"
-            style={{ cursor: 'pointer', marginRight: 6, fontSize: '1rem' }}
-          >
-            {editorTaskIdx === idx ? 'expand_less' : 'expand_more'}
-          </span>
-        )}
-        <span
-          className="task-title"
-          onClick={() => type === 'tasks' ? setEditorTaskIdx(idx) : undefined}
-          style={{ cursor: type === 'tasks' ? 'pointer' : 'default', textDecoration: item.done ? 'line-through' : undefined }}
-        >
-          {item.text}
-        </span>
-        {type === 'tasks' && (
-          <>
-            {item.dueDate && (
-              <span className="due-date"><span className="material-icons" style={{verticalAlign: 'middle', fontSize: '1rem', marginRight:6}}>event</span>{item.dueDate}</span>
-            )}
-
-            {(item.people || []).length > 0 && (
-              <div className="task-people" title={(item.people || []).map(p => p.name).join(', ')}>
-                {((item.people || []).slice(0,2)).map(p => (
-                  <div key={p.name} className="avatar small">{p.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase()}</div>
-                ))}
-                {(item.people || []).length > 2 && (
-                  <div className="people-count">+{(item.people || []).length - 2}</div>
-                )}
-              </div>
-            )}
-
-            <button
-              className={item.favorite ? 'star favorite' : 'star'}
-              title={item.favorite ? 'Unstar' : 'Star'}
-              onClick={() => handleStar(idx)}
-              aria-label={item.favorite ? 'Unstar' : 'Star'}
-            >
-              <span className="material-icons">{item.favorite ? 'star' : 'star_border'}</span>
-            </button>
-          </>
-        )}
-        <button className="delete" onClick={() => handleDelete(idx)} aria-label="Delete"><span className="material-icons">close</span></button>
+        <TaskRow
+          item={item}
+          idx={idx}
+          type={type}
+          editorTaskIdx={editorTaskIdx}
+          setEditorTaskIdx={setEditorTaskIdx}
+          handleToggle={handleToggle}
+          handleStar={handleStar}
+          handleDelete={handleDelete}
+        />
       </div>
 
       {children && (
