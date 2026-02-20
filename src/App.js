@@ -165,100 +165,27 @@ function App() {
         </div>
         <ul className="item-list">
           {type === 'people' ? (
-            data.people.map((person, idx) => (
-              <li key={idx}>
-                {editingPersonIdx === idx ? (
-                  <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
-                    <input value={editingPersonName} onChange={e => setEditingPersonName(e.target.value)} />
-                    <button onClick={() => {
-                      const newName = editingPersonName.trim();
-                      if (!newName) return;
-                      const oldName = data.people[idx].name;
-                      setData(prev => ({
-                        ...prev,
-                        people: prev.people.map((p, i) => i === idx ? { ...p, name: newName } : p),
-                        tasks: prev.tasks.map(t => ({
-                          ...t,
-                          people: (t.people || []).map(tp => tp.name === oldName ? { ...tp, name: newName } : tp)
-                        }))
-                      }));
-                      setEditingPersonIdx(null);
-                      setEditingPersonName('');
-                    }}>Save</button>
-                    <button onClick={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}>Cancel</button>
-                  </div>
-                ) : (
-                  <div className="person-chip">
-                    <strong className="person-name" style={{cursor: 'pointer'}} onClick={() => { setEditingPersonIdx(idx); setEditingPersonName(person.name); }}>{person.name}</strong>
-                    <div className="person-actions">
-                      <div className="person-methods-inline">
-                        <button className={person.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonDefault(idx, 'discord')} title="Discord">
-                          <span className="service-icon discord-icon" aria-hidden><span className="material-icons">forum</span></span>
-                        </button>
-                        <button className={person.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonDefault(idx, 'sms')} title="SMS">
-                          <span className="service-icon sms-icon" aria-hidden><span className="material-icons">textsms</span></span>
-                        </button>
-                        <button className={person.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonDefault(idx, 'whatsapp')} title="WhatsApp">
-                          <span className="service-icon whatsapp-icon" aria-hidden><span className="material-icons">chat</span></span>
-                        </button>
-                      </div>
-                      <button className="delete" onClick={() => handleDelete(idx)} aria-label="Delete person"><span className="material-icons">close</span></button>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))
+            <PersonList
+              people={data.people}
+              editingPersonIdx={editingPersonIdx}
+              editingPersonName={editingPersonName}
+              setEditingPersonIdx={setEditingPersonIdx}
+              setEditingPersonName={setEditingPersonName}
+              onSaveEdit={handleSavePersonEdit}
+              onCancelEdit={() => { setEditingPersonIdx(null); setEditingPersonName(''); }}
+              handleTogglePersonDefault={handleTogglePersonDefault}
+              handleDelete={handleDelete}
+            />
           ) : (
-            data[type].map((item, idx) => (
-              <li key={idx} className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskIdx === idx ? ' editing' : ''}`}>
-                {type === 'tasks' && (
-                  <input
-                    type="checkbox"
-                    checked={item.done}
-                    onChange={() => handleToggle(idx)}
-                    className="task-checkbox"
-                    title={item.done ? 'Mark as incomplete' : 'Mark as complete'}
-                  />
-                )}
-                <span
-                  className="task-title"
-                  onClick={() => type === 'tasks' ? setEditorTaskIdx(idx) : undefined}
-                  style={{ cursor: type === 'tasks' ? 'pointer' : 'default', textDecoration: item.done ? 'line-through' : undefined }}
-                >
-                  {item.text}
-                </span>
-                {type === 'tasks' && (
-                  <>
-                    {item.dueDate && (
-                      <span className="due-date"><span className="material-icons" style={{verticalAlign: 'middle', fontSize: '1rem', marginRight:6}}>event</span>{item.dueDate}</span>
-                    )}
-
-                    {/* show people assigned to this task */}
-                    {(item.people || []).length > 0 && (
-                      <div className="task-people" title={(item.people || []).map(p => p.name).join(', ')}>
-                        {/* show up to two avatar initials and a +N badge */}
-                        {((item.people || []).slice(0,2)).map(p => (
-                          <div key={p.name} className="avatar small">{p.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase()}</div>
-                        ))}
-                        {(item.people || []).length > 2 && (
-                          <div className="people-count">+{(item.people || []).length - 2}</div>
-                        )}
-                      </div>
-                    )}
-
-                    <button
-                      className={item.favorite ? 'star favorite' : 'star'}
-                      title={item.favorite ? 'Unstar' : 'Star'}
-                      onClick={() => handleStar(idx)}
-                      aria-label={item.favorite ? 'Unstar' : 'Star'}
-                    >
-                      <span className="material-icons">{item.favorite ? 'star' : 'star_border'}</span>
-                    </button>
-                  </>
-                )}
-                <button className="delete" onClick={() => handleDelete(idx)} aria-label="Delete"><span className="material-icons">close</span></button>
-              </li>
-            ))
+            <TaskList
+              items={data[type]}
+              type={type}
+              editorTaskIdx={editorTaskIdx}
+              setEditorTaskIdx={setEditorTaskIdx}
+              handleToggle={handleToggle}
+              handleStar={handleStar}
+              handleDelete={handleDelete}
+            />
           )}
         </ul>
       </div>
