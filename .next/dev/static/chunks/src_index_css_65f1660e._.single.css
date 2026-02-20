@@ -1,0 +1,24 @@
+/* [project]/src/index.css [client] (css) */
+:root {
+  --surface: #fff;
+  --bg: #f1f3f4;
+  --primary: #1a73e8;
+  --muted: #5f6368;
+  --card-radius: 12px;
+  --elevation-1: 0 1px 3px #3c404314, 0 1px 2px #3c40431f;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #202124;
+  margin: 0;
+  font-family: Roboto, Segoe UI, Arial, sans-serif;
+}
+
+/*# sourceMappingURL=src_index_css_65f1660e._.single.css.map*/
