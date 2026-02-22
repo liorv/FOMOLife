@@ -29,16 +29,17 @@
 
 /* inline version of editor also uses a gap so sections are evenly spaced */
 .inline-editor {
-  /* inline editor background: pale gray so it reads as a distinct panel */
-  background: #f5f6f8;
+  /* inline editor matches the soft-blue panel for a cohesive look */
+  background: #e8f4ff;
   color: #202124;
   border-radius: 6px;
-  box-shadow: none; /* flush with row */
+  box-shadow: none; /* visually attached to list item */
   padding: 12px;
   margin: 0; /* spacing is handled by wrapper */
   display: flex;
   flex-direction: column;
   gap: 12px;
+  border-left: 4px solid #60a5fa;
 }
 
 /* keep form controls readable on dark background by giving them a light surface */
@@ -1064,12 +1065,17 @@ body {
 
 /* editor panel shown as a sibling list item */
 .item-list li.editor-panel {
-  background: #f5f6f8;
+  /* Soft blue: calm, professional, contrasts well with dark text */
+  background: #e8f4ff;
+  color: #202124;
   border-radius: 10px;
-  box-shadow: 0 1px 4px #b6c6e61a;
-  padding: 12px;
-  margin-bottom: 2px;
+  box-shadow: 0 6px 18px rgba(36,50,70,0.06);
+  padding: 14px;
+  margin-bottom: 10px;
+  border-left: 4px solid #60a5fa;
+  transition: transform 120ms ease, box-shadow 120ms ease;
 }
+.item-list li.editor-panel:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(36,50,70,0.08); }
 
 .task-header {
   display: flex;
