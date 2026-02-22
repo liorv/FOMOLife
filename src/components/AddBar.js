@@ -8,13 +8,21 @@ export default function AddBar({
   onDueDateChange,
   onAdd,
 }) {
-  // clicking the calendar icon will focus (or showPicker) the hidden date input
+  // overlay state to show full‑screen calendar
+  const [calendarOpen, setCalendarOpen] = React.useState(false);
+
   const openDatePicker = () => {
-    const el = document.getElementById('addbar-date');
-    if (el) {
-      if (el.showPicker) el.showPicker();
-      else el.focus();
-    }
+    // instead of invoking native picker directly, show overlay
+    setCalendarOpen(true);
+  };
+
+  const closeCalendar = () => {
+    setCalendarOpen(false);
+  };
+
+  const handleOverlayChange = e => {
+    onDueDateChange(e.target.value);
+    closeCalendar();
   };
 
   return (
@@ -37,6 +45,18 @@ export default function AddBar({
           <button type="button" className="calendar-button" onClick={openDatePicker} title="Select due date">
             <span className="material-icons">calendar_today</span>
           </button>
+
+          {calendarOpen && (
+            <div className="calendar-overlay" onClick={closeCalendar}>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={handleOverlayChange}
+                className="fullscreen-date-input"
+                onClick={e => e.stopPropagation()}
+              />
+            </div>
+          )}
         </>
       )}
       <button onClick={onAdd}>Add</button>

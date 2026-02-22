@@ -31,4 +31,16 @@ describe('AddBar', () => {
     render(<AddBar {...defaultProps} type="projects" />);
     expect(screen.queryByTitle('Due date')).toBeNull();
   });
+
+  test('calendar overlay opens and closes on icon click', () => {
+    render(<AddBar {...defaultProps} />);
+    const calBtn = screen.getByTitle('Select due date');
+    fireEvent.click(calBtn);
+    // overlay should exist
+    const overlay = document.querySelector('.calendar-overlay');
+    expect(overlay).toBeTruthy();
+    // clicking outside (overlay) closes it
+    fireEvent.click(overlay);
+    expect(document.querySelector('.calendar-overlay')).toBeNull();
+  });
 });

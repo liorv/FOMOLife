@@ -754,13 +754,15 @@ body {
   margin-bottom: 22px;
   flex-wrap: nowrap; /* never wrap button off screen */
   overflow-x: auto; /* allow horizontal scroll if extremely narrow */
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 56px; /* just above nav height */
+  position: relative; /* now inside container flow */
   padding: 0 12px;
   background: var(--surface);
-  z-index: 90;
+  z-index: 10;
+}
+
+/* ensure container accounts for AddBar height at bottom */
+.container {
+  padding-bottom: 120px; /* create space for bottom inputs */
 }
 .add-bar input {
   flex: 1;
