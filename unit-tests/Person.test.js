@@ -4,11 +4,11 @@ import Person from '../src/Person';
 
 describe('Person component', () => {
   const baseProps = {
-    person: { name: 'Bob', methods: { discord: true, sms: false, whatsapp: false } },
-    idx: 0,
-    editingPersonIdx: null,
+    person: { id: 'p1', name: 'Bob', methods: { discord: true, sms: false, whatsapp: false } },
+    id: 'p1',
+    editingPersonId: null,
     editingPersonName: '',
-    setEditingPersonIdx: jest.fn(),
+    setEditingPersonId: jest.fn(),
     setEditingPersonName: jest.fn(),
     onSaveEdit: jest.fn(),
     onCancelEdit: jest.fn(),
@@ -23,13 +23,13 @@ describe('Person component', () => {
 
     // clicking name should trigger edit mode
     fireEvent.click(screen.getByText('Bob'));
-    expect(baseProps.setEditingPersonIdx).toHaveBeenCalledWith(0);
+    expect(baseProps.setEditingPersonId).toHaveBeenCalledWith('p1');
   });
 
   test('delete button calls handler', () => {
     render(<Person {...baseProps} />);
     const deleteBtn = screen.getByLabelText('Delete person');
     fireEvent.click(deleteBtn);
-    expect(baseProps.handleDelete).toHaveBeenCalledWith(0);
+    expect(baseProps.handleDelete).toHaveBeenCalledWith('p1');
   });
 });

@@ -213,7 +213,14 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
                 } else {
                   const created = { name: q, methods: { discord: false, sms: false, whatsapp: false } };
                   setPeople(prev => prev.find(p => p.name === created.name) ? prev : [...prev, created]);
-                  onCreatePerson(created);
+                  const maybePromise = onCreatePerson(created);
+                  if (maybePromise && typeof maybePromise.then === 'function') {
+                    maybePromise.then(newPerson => {
+                      if (newPerson && newPerson.id) {
+                        setPeople(prev => prev.map(p => p.name === newPerson.name ? newPerson : p));
+                      }
+                    });
+                  }
                   setSearchQuery('');
                 }
                 setActiveSuggestion(-1);
@@ -227,7 +234,14 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
                 const created = { name: q, methods: { discord: false, sms: false, whatsapp: false } };
                 setPeople(prev => prev.find(p => p.name === created.name) ? prev : [...prev, created]);
                 setSearchQuery('');
-                onCreatePerson(created);
+                const maybePromise = onCreatePerson(created);
+                if (maybePromise && typeof maybePromise.then === 'function') {
+                  maybePromise.then(newPerson => {
+                    if (newPerson && newPerson.id) {
+                      setPeople(prev => prev.map(p => p.name === newPerson.name ? newPerson : p));
+                    }
+                  });
+                }
               }
             }
           }}
@@ -271,7 +285,14 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
                 setPeople(prev => prev.find(p => p.name === created.name) ? prev : [...prev, created]);
                 setSearchQuery('');
                 setActiveSuggestion(-1);
-                onCreatePerson(created);
+                const maybePromise = onCreatePerson(created);
+                if (maybePromise && typeof maybePromise.then === 'function') {
+                  maybePromise.then(newPerson => {
+                    if (newPerson && newPerson.id) {
+                      setPeople(prev => prev.map(p => p.name === newPerson.name ? newPerson : p));
+                    }
+                  });
+                }
               }}
             >
               <div className="task-person-col name"><strong>Add “{newName}”</strong></div>

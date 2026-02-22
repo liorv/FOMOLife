@@ -12,17 +12,12 @@ describe('AddBar', () => {
     onAdd: jest.fn(),
   };
 
-  test('renders input controls for tasks including calendar icon', () => {
+  test('renders input controls for tasks without calendar', () => {
     render(<AddBar {...defaultProps} />);
     expect(screen.getByPlaceholderText(/Add a new task/)).toBeInTheDocument();
-    // calendar button should appear instead of visible date input
-    const calBtn = screen.getByTitle('Select due date');
-    expect(calBtn).toBeInTheDocument();
-    expect(calBtn.querySelector('.material-icons').textContent).toBe('calendar_today');
-    const hiddenInput = document.getElementById('addbar-date');
-    expect(hiddenInput).toBeTruthy();
-    expect(hiddenInput.type).toBe('date');
-    const addBtn = screen.getByText('Add');
+    // calendar button should not exist
+    expect(screen.queryByTitle('Select due date')).toBeNull();
+    const addBtn = screen.getByTitle('Add');
     fireEvent.click(addBtn);
     expect(defaultProps.onAdd).toHaveBeenCalled();
   });
@@ -32,15 +27,5 @@ describe('AddBar', () => {
     expect(screen.queryByTitle('Due date')).toBeNull();
   });
 
-  test('calendar overlay opens and closes on icon click', () => {
-    render(<AddBar {...defaultProps} />);
-    const calBtn = screen.getByTitle('Select due date');
-    fireEvent.click(calBtn);
-    // overlay should exist
-    const overlay = document.querySelector('.calendar-overlay');
-    expect(overlay).toBeTruthy();
-    // clicking outside (overlay) closes it
-    fireEvent.click(overlay);
-    expect(document.querySelector('.calendar-overlay')).toBeNull();
-  });
+  // calendar overlay tests removed since button is gone
 });

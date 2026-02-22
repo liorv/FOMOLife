@@ -5,20 +5,20 @@ import TaskList from '../src/TaskList';
 // basic smoke tests for inline editor integration
 
 describe('TaskList component', () => {
-  const tasks = [{ text: 'task1', done: false, people: [] }];
+  const tasks = [{ id: 't1', text: 'task1', done: false, people: [] }];
   const onEditorSave = jest.fn();
   const onEditorUpdate = jest.fn();
   const onEditorClose = jest.fn();
   const allPeople = [];
 
-  test('shows inline editor when editorTaskIdx matches', () => {
+  test('shows inline editor when editorTaskId matches', () => {
     const { container } = render(
       <ul className="item-list">
         <TaskList
           items={tasks}
           type="tasks"
-          editorTaskIdx={0}
-          setEditorTaskIdx={() => {}}
+          editorTaskId="t1"
+          setEditorTaskId={() => {}}
           handleToggle={() => {}}
           handleStar={() => {}}
           handleDelete={() => {}}
@@ -71,15 +71,15 @@ describe('TaskList component', () => {
     expect(li).toBeTruthy();
   });
 
-  test('clicking a task invokes setEditorTaskIdx and toggles', () => {
+  test('clicking a task invokes setEditorTaskId and toggles', () => {
     const setIdx = jest.fn();
     render(
       <ul className="item-list">
         <TaskList
           items={tasks}
           type="tasks"
-          editorTaskIdx={null}
-          setEditorTaskIdx={setIdx}
+          editorTaskId={null}
+          setEditorTaskId={setIdx}
           handleToggle={() => {}}
           handleStar={() => {}}
           handleDelete={() => {}}
@@ -94,7 +94,7 @@ describe('TaskList component', () => {
     );
 
     fireEvent.click(screen.getByText('task1'));
-    expect(setIdx).toHaveBeenCalledWith(0);
+    expect(setIdx).toHaveBeenCalledWith('t1');
     // simulate second click should also invoke setter (caller handles toggle logic)
     fireEvent.click(screen.getByText('task1'));
     expect(setIdx).toHaveBeenCalledTimes(2);

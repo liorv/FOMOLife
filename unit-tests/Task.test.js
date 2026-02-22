@@ -4,11 +4,11 @@ import Task from '../src/Task';
 
 describe('Task component', () => {
   const baseProps = {
-    item: { text: 'task1', done: false, favorite: false, dueDate: null, people: [] },
-    idx: 0,
+    item: { id: 't1', text: 'task1', done: false, favorite: false, dueDate: null, people: [] },
+    id: 't1',
     type: 'tasks',
-    editorTaskIdx: null,
-    setEditorTaskIdx: jest.fn(),
+    editorTaskId: null,
+    setEditorTaskId: jest.fn(),
     handleToggle: jest.fn(),
     handleStar: jest.fn(),
     handleDelete: jest.fn(),
@@ -19,20 +19,20 @@ describe('Task component', () => {
     expect(screen.getByText('task1')).toBeInTheDocument();
     const checkbox = screen.getByRole('checkbox');
     fireEvent.click(checkbox);
-    expect(baseProps.handleToggle).toHaveBeenCalledWith(0);
+    expect(baseProps.handleToggle).toHaveBeenCalledWith('t1');
   });
 
   test('star button toggles favorite', () => {
     render(<Task {...baseProps} />);
     const starBtn = screen.getByLabelText('Star');
     fireEvent.click(starBtn);
-    expect(baseProps.handleStar).toHaveBeenCalledWith(0);
+    expect(baseProps.handleStar).toHaveBeenCalledWith('t1');
   });
 
   test('delete button calls handler', () => {
     render(<Task {...baseProps} />);
     const deleteBtn = screen.getByLabelText('Delete');
     fireEvent.click(deleteBtn);
-    expect(baseProps.handleDelete).toHaveBeenCalledWith(0);
+    expect(baseProps.handleDelete).toHaveBeenCalledWith('t1');
   });
 });

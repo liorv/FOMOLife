@@ -19,11 +19,19 @@ function addPerson(name) {
 }
 
 describe('App component', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // wipe whatever backing store the abstraction is using
     localStorage.clear();
+    try {
+      // import here so the module doesn't run before jest sets up jsdom
+      const { clearData } = require('../src/api/storage');
+      await clearData();
+    } catch {
+      // ignore if something goes wrong; localStorage is the main thing
+    }
   });
 
-  test('task CRUD and editor synchronization', () => {
+  test('task CRUD and editor synchronization', async () => {
     render(<App />);
 
     // AddBar should be present in the bottom-input-bar container
@@ -42,11 +50,22 @@ describe('App component', () => {
     addTask('first task');
     expect(screen.getByText('first task')).toBeInTheDocument();
 
+    // the item should have been persisted with a generated id
+    const { getAll } = require('../src/api/db');
+    const saved = await getAll('tasks');
+    expect(saved.length).toBe(1);
+    expect(saved[0].id).toBeDefined();
+    const firstId = saved[0].id;
+
     // toggle completion
     const checkbox = screen.getByRole('checkbox');
     fireEvent.click(checkbox);
     expect(checkbox).toBeChecked();
     expect(screen.getByText('first task').closest('li')).toHaveClass('done');
+    // make sure persistence still has same id and done flag
+    const afterToggle = await getAll('tasks');
+    expect(afterToggle[0].id).toBe(firstId);
+    expect(afterToggle[0].done).toBe(true);
 
     // star/unstar
     let starButton = screen.getByLabelText('Star');
@@ -80,21 +99,50 @@ describe('App component', () => {
     fireEvent.click(deleteButtons[0]);
     expect(screen.queryByText('first task')).not.toBeInTheDocument();
     expect(screen.queryByText(/Edit Task/)).not.toBeInTheDocument();
+    const afterDelete = await getAll('tasks');
+    expect(afterDelete).toEqual([]);
   });
 
-  test('people management does not corrupt tasks', () => {
+  test('people management does not corrupt tasks', async () => {
     render(<App />);
 
     addPerson('Alice');
     expect(screen.getByText('Alice')).toBeInTheDocument();
+    // persisted person should have an id
+    const { getAll } = require('../src/api/db');
+    const people = await getAll('people');
+    expect(people.length).toBe(1);
+    expect(people[0].id).toBeDefined();
+
+    // ensure App forwards userId to db
+    const userApp = render(<App userId="u123" />);
+    addTask('uid task');
+    const db2 = require('../src/api/db');
+    const uTasks = await db2.getAll('tasks', 'u123');
+    expect(uTasks.some(t => t.text === 'uid task')).toBe(true);
 
     // bottom bar should still exist for adding people
     const bottom = document.querySelector('.bottom-input-bar');
     expect(bottom.querySelector('.add-bar')).toBeTruthy();
 
+    // verify namespacing works when we render with a userId
+    const db = require('../src/api/db');
+    const { getAll: getAllNamespaced } = db;
+    const otherUser = 'other';
+    // add a task as a different user directly via API
+    await db.create('tasks', { text: 'foo' }, otherUser);
+    const tasksOther = await getAllNamespaced('tasks', otherUser);
+    expect(tasksOther.length).toBe(1);
+    const tasksDefault = await getAllNamespaced('tasks');
+    expect(tasksDefault.length).toBeGreaterThanOrEqual(1);
+
     fireEvent.click(screen.getByText('Tasks'));
     addTask('task two');
     expect(screen.getByText('task two')).toBeInTheDocument();
+    const { getAll } = require('../src/api/db');
+    const tasksAfter = await getAll('tasks');
+    expect(tasksAfter.length).toBe(1);
+    expect(tasksAfter[0].id).toBeDefined();
 
     // switch to People tab and verify header label updated
     fireEvent.click(screen.getByText('People'));

@@ -134,11 +134,6 @@
   box-sizing: inherit;
 }
 
-/* inline editor uses same two-column layout; no stacking */
-.inline-editor .editor-columns {
-  /* no special rules */
-}
-
 /* ensure expand of right column when space available */
 @media (min-width: 0px) {
   .editor-columns {
@@ -1026,10 +1021,6 @@ body {
   box-shadow: 0 8px 28px #60a5fa11;
   /* allow the left border shadow to extend outside the header width */
   overflow: visible;
-}
-/* li itself no longer needs background */
-.item-list li.editing {
-  /* empty - styles moved to header */
 }
 
 .editing-subtitle {

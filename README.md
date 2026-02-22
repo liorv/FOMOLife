@@ -38,3 +38,38 @@ Why this matters
 One inconsistent import shape or a missing asset can cause a broken-image icon in users' browsers even when the dev server is serving the file correctly. The `SmartImage` + `assetResolver` + CI checks dramatically reduce the chance of regressions and make failures easy to diagnose.
 
 If you want, I can also add an automated codemod to convert remaining `<img>` tags to `SmartImage` across the codebase.
+
+
+## Persistence & data APIs
+
+A lightweight persistence layer now lives in `src/api/storage.js`.
+Instead of interacting with `localStorage` directly, application code
+imports helpers from `src/api/db.js` that wrap the storage layer.  The
+`db` API exposes familiar CRUD-style async methods (`getAll`,
+`create`, `update`, `remove`) and automatically adds a unique GUID to
+every task, project, dream and person.  State mutations throughout the
+app call these APIs directly so every change is written through
+immediately; the client never has to "save" manually.  On the client these calls no longer hit `localStorage` directly; they
+are forwarded to an internal HTTP endpoint (`/api/storage`) which itself
+executes the same helpers server‑side and writes into the `data/` folder.
+This makes every browser mutation persist to disk today and means the
+front‑end is already talking to a network API – you can switch that
+endpoint to a real backend in the future with zero client changes.  A
+fallback to `localStorage` is retained during Jest tests (and if the
+network is unreachable), so unit tests remain fast and offline
+behaviour is still sensible.  When the modules run purely on the server
+(e.g. during tests or in scripts) they still operate on a JSON file
+under `data/`, mimicking a real database and simplifying later
+migration.
+
+GUIDs are stable even if arrays are reordered, which enables the UI to
+refer to items by id rather than array index and makes scaling to
+millions of users (or syncing across devices) much more practical.
+
+The persistence layer now supports **per‑user namespaces**.  Callers
+can pass an optional `userId` argument to every `db.*` method (and the
+lower‑level `storage` helpers) and the data will be stored under a
+separate key/file.  This makes it trivial to run the same code for
+different accounts without data leakage.  Unit tests (`storage.test.js`
+and `db.test.js`) exercise the namespace behaviour and ensure that
+operations remain isolated.

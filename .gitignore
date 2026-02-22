@@ -7,3 +7,5 @@ tmp_bundle.js
 coverage/
 .vscode/
 .next/
+
+data/

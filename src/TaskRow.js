@@ -17,17 +17,17 @@ import React from 'react';
 
 export default function TaskRow({
   item,
-  idx,
+  id,
   type,
-  editorTaskIdx,
-  setEditorTaskIdx,
+  editorTaskId,
+  setEditorTaskId,
   handleToggle,
   handleStar,
   handleDelete,
   // optional callback for inline title edits
   onTitleChange,
 }) {
-  const isOpen = editorTaskIdx === idx;
+  const isOpen = editorTaskId === id;
   // determine if due date exists and is in the past and compute days left
   let isPast = false;
   let daysLeft = null;
@@ -51,7 +51,7 @@ export default function TaskRow({
         {type === 'tasks' && (
           <span
             className={`material-icons expand-icon${isOpen ? ' open' : ''}`}
-            onClick={() => setEditorTaskIdx(idx)}
+            onClick={() => setEditorTaskId(id)}
             title={isOpen ? ' Collapse editor' : 'Expand editor'}
             aria-hidden="true"
             style={{ cursor: 'pointer', fontSize: '1rem' }}
@@ -64,7 +64,7 @@ export default function TaskRow({
           <input
             type="checkbox"
             checked={item.done}
-            onChange={() => handleToggle(idx)}
+            onChange={() => handleToggle(id)}
             className="task-checkbox"
             title={item.done ? 'Mark as incomplete' : 'Mark as complete'}
           />
@@ -72,7 +72,7 @@ export default function TaskRow({
 
         <span
           className="task-title"
-          onClick={() => (type === 'tasks' ? setEditorTaskIdx(idx) : undefined)}
+          onClick={() => (type === 'tasks' ? setEditorTaskId(id) : undefined)}
           style={{
             cursor: type === 'tasks' ? 'pointer' : 'default',
             textDecoration: item.done ? 'line-through' : undefined,
@@ -113,7 +113,7 @@ export default function TaskRow({
           <button
             className={item.favorite ? 'star favorite' : 'star'}
             title={item.favorite ? 'Unstar' : 'Star'}
-            onClick={() => handleStar(idx)}
+            onClick={() => handleStar(id)}
             aria-label={item.favorite ? 'Unstar' : 'Star'}
           >
             <span className="material-icons">
@@ -123,7 +123,7 @@ export default function TaskRow({
         )}
         <button
           className="delete"
-          onClick={() => handleDelete(idx)}
+          onClick={() => handleDelete(id)}
           aria-label="Delete"
         >
           <span className="material-icons">close</span>

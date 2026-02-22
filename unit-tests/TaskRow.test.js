@@ -4,6 +4,7 @@ import TaskRow from '../src/TaskRow';
 
 describe('TaskRow component', () => {
   const task = {
+    id: 'row-1',
     text: 'row task',
     done: false,
     favorite: false,
@@ -23,10 +24,10 @@ describe('TaskRow component', () => {
     const { container } = render(
       <TaskRow
         item={task}
-        idx={0}
+        id="row-1"
         type="tasks"
-        editorTaskIdx={null}
-        setEditorTaskIdx={setEditor}
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
         handleToggle={handleToggle}
         handleStar={handleStar}
         handleDelete={handleDelete}
@@ -67,14 +68,14 @@ describe('TaskRow component', () => {
     jest.useRealTimers();
   });
 
-  test('click expand calls setEditorTaskIdx', () => {
+  test('click expand calls setEditorTaskId', () => {
     const { container, rerender } = render(
       <TaskRow
         item={task}
-        idx={0}
+        id="row-1"
         type="tasks"
-        editorTaskIdx={null}
-        setEditorTaskIdx={setEditor}
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
         handleToggle={handleToggle}
         handleStar={handleStar}
         handleDelete={handleDelete}
@@ -84,15 +85,15 @@ describe('TaskRow component', () => {
     const leftgroup = container.querySelector('.left-group');
     expect(leftgroup.querySelector('.expand-icon').textContent).toBe('chevron_right');
     fireEvent.click(screen.getByTitle('Expand editor'));
-    expect(setEditor).toHaveBeenCalledWith(0);
+    expect(setEditor).toHaveBeenCalledWith('row-1');
     // simulate prop update to open state
     rerender(
       <TaskRow
         item={task}
-        idx={0}
+        id="row-1"
         type="tasks"
-        editorTaskIdx={0}
-        setEditorTaskIdx={setEditor}
+        editorTaskId="row-1"
+        setEditorTaskId={setEditor}
         handleToggle={handleToggle}
         handleStar={handleStar}
         handleDelete={handleDelete}

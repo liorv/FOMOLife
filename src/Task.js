@@ -1,17 +1,17 @@
 import React from 'react';
 import TaskRow from './TaskRow';
 
-export default function Task({ item, idx, type, editorTaskIdx, setEditorTaskIdx, handleToggle, handleStar, handleDelete, children }) {
+export default function Task({ item, id, type, editorTaskId, setEditorTaskId, handleToggle, handleStar, handleDelete, children }) {
   return (
-    <li className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskIdx === idx ? ' editing' : ''}`}>
+    <li className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskId === id ? ' editing' : ''}`}>
       {/* header area – sits at top of container, now delegated to TaskRow */}
       <div className="task-header">
         <TaskRow
           item={item}
-          idx={idx}
+          id={id}
           type={type}
-          editorTaskIdx={editorTaskIdx}
-          setEditorTaskIdx={setEditorTaskIdx}
+          editorTaskId={editorTaskId}
+          setEditorTaskId={setEditorTaskId}
           handleToggle={handleToggle}
           handleStar={handleStar}
           handleDelete={handleDelete}

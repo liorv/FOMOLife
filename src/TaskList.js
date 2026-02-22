@@ -8,12 +8,12 @@ import TaskEditor from './TaskModal';
 // various person-specific callbacks; for everything else we delegate
 // to the existing <Task /> component.  For the tasks list we also have
 // the ability to render an inline editor directly underneath a task
-// row when `editorTaskIdx` matches the index.
+// row when `editorTaskId` matches the item's id.
 export default function TaskList({
   items = [],
   type,
-  editorTaskIdx,
-  setEditorTaskIdx,
+  editorTaskId,
+  setEditorTaskId,
   handleToggle,          // used for task checkbox or person default toggle
   handleStar,
   handleDelete,
@@ -25,9 +25,9 @@ export default function TaskList({
   onOpenPeople = () => {},
   onCreatePerson = () => {},
   // person-specific props (only used when type === 'people')
-  editingPersonIdx,
+  editingPersonId,
   editingPersonName,
-  setEditingPersonIdx,
+  setEditingPersonId,
   setEditingPersonName,
   onSaveEdit,
   onCancelEdit,
@@ -35,16 +35,17 @@ export default function TaskList({
 }) {
   return (
     <>
-      {items.map((item, idx) => {
+      {items.map(item => {
+        const id = item.id;
         if (type === 'people') {
           return (
             <Person
-              key={idx}
+              key={id}
+              id={id}
               person={item}
-              idx={idx}
-              editingPersonIdx={editingPersonIdx}
+              editingPersonId={editingPersonId}
               editingPersonName={editingPersonName}
-              setEditingPersonIdx={setEditingPersonIdx}
+              setEditingPersonId={setEditingPersonId}
               setEditingPersonName={setEditingPersonName}
               onSaveEdit={onSaveEdit}
               onCancelEdit={onCancelEdit}
@@ -60,17 +61,17 @@ export default function TaskList({
         // the task can display an expandable pane within the same list item.
         const row = (
           <Task
-            key={idx}
+            key={id}
             item={item}
-            idx={idx}
+            id={id}
             type={type}
-            editorTaskIdx={editorTaskIdx}
-            setEditorTaskIdx={setEditorTaskIdx}
+            editorTaskId={editorTaskId}
+            setEditorTaskId={setEditorTaskId}
             handleToggle={handleToggle}
             handleStar={handleStar}
             handleDelete={handleDelete}
           >
-            {type === 'tasks' && editorTaskIdx === idx && (
+            {type === 'tasks' && editorTaskId === id && (
               <div className="editor-container">
                 <TaskEditor
                   task={item}
@@ -87,7 +88,7 @@ export default function TaskList({
           </Task>
         );
 
-        if (type === 'tasks' && editorTaskIdx === idx) {
+        if (type === 'tasks' && editorTaskId === id) {
           // previously we returned two array items; now that the editor is
           // a child we can just return the row itself
           return row;
