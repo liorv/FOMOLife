@@ -39,7 +39,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-left: 4px solid #60a5fa;
 }
 
 /* keep form controls readable on dark background by giving them a light surface */
@@ -1061,16 +1060,18 @@ body {
    by making the list item itself transparent and removing the shadow/border */
 .item-list li.editing-header {
   /* header row when editor open should remain visually like other rows */
+  margin-bottom: 0; /* remove gap between header and editor panel */
 }
 
 /* editor panel shown as a sibling list item */
 .item-list li.editor-panel {
-  /* Soft blue: calm, professional, contrasts well with dark text */
+  /* Soft blue panel visually attached to the header */
   background: #e8f4ff;
   color: #202124;
-  border-radius: 10px;
+  border-radius: 0 0 10px 10px; /* only round bottom corners to attach to header */
   box-shadow: 0 6px 18px rgba(36,50,70,0.06);
   padding: 14px;
+  margin-top: 0;
   margin-bottom: 10px;
   border-left: 4px solid #60a5fa;
   transition: transform 120ms ease, box-shadow 120ms ease;
@@ -1263,9 +1264,9 @@ body {
   background: #e0f2ff; /* solid pale blue */
   /* clip to padding so header background doesn't bleed under borders */
   background-clip: padding-box;
-  border-left: 4px solid #60a5fa;
+  /* left accent removed here to avoid duplicate accents — use .editor-panel */
   box-shadow: 0 8px 28px #60a5fa11;
-  /* allow the left border shadow to extend outside the header width */
+  /* allow any visual overflow */
   overflow: visible;
 }
 
