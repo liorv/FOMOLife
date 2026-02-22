@@ -647,10 +647,10 @@ body {
 /* Decorative, large splash logo that hangs out of the top-left of the container */
 .logo-splash {
   position: absolute;
-  top: -40px;          /* nudge further upward to crop more logo */
+  top: -20px;          /* move down to reveal more of logo */
   left: 0;
-  width: 200px;        /* shrink size so less of logo intrudes */
-  height: 200px;
+  width: 160px;        /* 20% smaller than before */
+  height: 160px;
   background-repeat: no-repeat;
   /* center horizontally (avoid right-side cut), shift up vertically to crop top */
   background-position: 50% -25%;
