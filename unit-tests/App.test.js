@@ -45,10 +45,33 @@ describe('App component', () => {
     const title = document.querySelector('.title-bar');
     expect(title).toBeTruthy();
     expect(title.querySelector('img.title-logo')).toBeTruthy();
+    // search input should be available in the title bar
+    const searchInput = title.querySelector('input.title-search');
+    expect(searchInput).toBeTruthy();
+    // search icon should also be visible
+    expect(document.querySelector('.search-icon')).toBeTruthy();
+    // typing into the search should filter tasks
+    fireEvent.change(searchInput, { target: { value: 'first' } });
+    // nothing to assert yet until a task is added below
 
     // add a task
     addTask('first task');
     expect(screen.getByText('first task')).toBeInTheDocument();
+    // if search input contains a non-matching string the task disappears
+    fireEvent.change(searchInput, { target: { value: 'nomatch' } });
+    expect(screen.queryByText('first task')).not.toBeInTheDocument();
+    // clearing or setting to a matching query shows it again
+    fireEvent.change(searchInput, { target: { value: 'first' } });
+    expect(screen.getByText('first task')).toBeInTheDocument();
+
+    // switch to people view; search field should hide and query resets
+    fireEvent.click(screen.getByText('People'));
+    expect(document.querySelector('.title-search')).toBeNull();
+    // back to tasks should restore it, but it should be cleared
+    fireEvent.click(screen.getByText('Tasks'));
+    const reinput = document.querySelector('.title-search');
+    expect(reinput).toBeTruthy();
+    expect(reinput.value).toBe('');
 
     // the item should have been persisted with a generated id
     const { getAll } = require('../src/api/db');

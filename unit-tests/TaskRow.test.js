@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import TaskRow from '../src/TaskRow';
+import TaskRow from '../src/components/TaskRow';
 
 describe('TaskRow component', () => {
   const task = {

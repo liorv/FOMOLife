@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import TaskEditor from '../src/TaskModal';
+import TaskEditor from '../src/components/TaskModal';
 
 describe('TaskEditor component', () => {
   const task = { text: 'foo', description: '', dueDate: '', people: [] };

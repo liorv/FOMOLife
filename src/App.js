@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import TaskList from './TaskList';
+import TaskList from './components/TaskList';
 import TabNav from './components/TabNav';
 import AddBar from './components/AddBar';
+import LogoBar from './components/LogoBar';
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
 import * as db from './api/db';
@@ -49,6 +50,9 @@ function App({ userId } = {}) {
   };
   const [editingPersonId, setEditingPersonId] = useState(null);
   const [editingPersonName, setEditingPersonName] = useState('');
+
+  // query for top-bar search; only affects task list
+  const [searchQuery, setSearchQuery] = useState('');
 
 
 
@@ -198,14 +202,32 @@ function App({ userId } = {}) {
     setEditingPersonName('');
   };
 
+  // compute a filtered list based on the search query when viewing tasks
+  const filteredItems =
+    type === 'tasks' && searchQuery.trim()
+      ? data.tasks.filter(t =>
+          t.text.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : data[type];
+
+  // reset search when switching away from tasks
+  useEffect(() => {
+    if (type !== 'tasks' && searchQuery) {
+      setSearchQuery('');
+    }
+  }, [type]);
+
   return (
     <div className="main-layout">
       {/* outer wrapper holds the top bar and container and fills available vertical space */}
       <div className="app-outer">
-        {/* title bar containing the logo */}
-        <div className="title-bar">
-          <img src={logoUrl} alt="FOMO logo" className="title-logo" />
-        </div>
+        {/* title/logo bar component */}
+        <LogoBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          showSearch={type === 'tasks'}
+          logoUrl={logoUrl}
+        />
         <div className="container">
           {/* decorative splash removed; logo now shown in title bar */}
 
@@ -231,7 +253,7 @@ function App({ userId } = {}) {
         ) : (
           <ul className="item-list">
             <TaskList
-              items={data[type]}
+              items={filteredItems}
               type={type}
               editorTaskId={editorTaskId}
               setEditorTaskId={handleSetEditorId}

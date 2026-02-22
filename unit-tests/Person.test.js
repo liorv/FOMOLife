@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Person from '../src/Person';
+import Person from '../src/components/Person';
 
 describe('Person component', () => {
   const baseProps = {

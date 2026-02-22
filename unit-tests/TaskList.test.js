@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import TaskList from '../src/TaskList';
+import TaskList from '../src/components/TaskList';
 
 // basic smoke tests for inline editor integration
 

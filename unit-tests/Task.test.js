@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Task from '../src/Task';
+import Task from '../src/components/Task';
 
 describe('Task component', () => {
   const baseProps = {
