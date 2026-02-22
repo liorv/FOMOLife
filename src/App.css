@@ -632,11 +632,10 @@ body {
   background: var(--surface);
   border-radius: 12px;
   box-shadow: var(--elevation-1);
-  /* create extra space at top so tasks don’t overlap logo
-     adjust padding upward since logo is still intruding */
-  padding: 120px 28px 28px 28px;
+  /* padding reduced to minimum needed for logo overlap clearance */
+  padding: 60px 28px 28px 28px;
   transition: box-shadow 0.2s;
-  min-height: calc(100vh - 56px);
+  min-height: auto; /* let container shrink to content height */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -761,9 +760,9 @@ body {
   z-index: 10;
 }
 
-/* ensure container accounts for AddBar height at bottom */
+/* small bottom padding for safety; AddBar is sticky */
 .container {
-  padding-bottom: 120px; /* create space for bottom inputs */
+  padding-bottom: 40px;
 }
 .add-bar input {
   flex: 1;
