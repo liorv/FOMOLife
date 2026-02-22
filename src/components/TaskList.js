@@ -74,9 +74,9 @@ export default function TaskList({
         );
 
         if (type === 'tasks' && editorTaskId === id) {
-          // render the task row followed by a sibling editor list item
-          const editorLi = (
-            <li key={`${id}-editor`} className="editor-panel">
+          // render the task row with the editor nested inside the same <li>
+          const editor = (
+            <div key={`${id}-editor`} className="task-editor-wrapper">
               <TaskEditor
                 task={item}
                 onSave={onEditorSave}
@@ -87,9 +87,23 @@ export default function TaskList({
                 onCreatePerson={onCreatePerson}
                 inline={true}
               />
-            </li>
+            </div>
           );
-          return [row, editorLi];
+          return (
+            <Task
+              key={id}
+              item={item}
+              id={id}
+              type={type}
+              editorTaskId={editorTaskId}
+              setEditorTaskId={setEditorTaskId}
+              handleToggle={handleToggle}
+              handleStar={handleStar}
+              handleDelete={handleDelete}
+            >
+              {editor}
+            </Task>
+          );
         }
 
         return row;
