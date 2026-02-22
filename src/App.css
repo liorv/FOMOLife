@@ -20,7 +20,20 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  gap: 16px; /* vertical spacing between sections */
   overflow-x: hidden; /* prevent suggestions or artwork from widening the panel */
+}
+
+/* inline version of editor also uses a gap so sections are evenly spaced */
+.inline-editor {
+  background: var(--surface);
+  border-radius: 6px;
+  box-shadow: none; /* flush with row */
+  padding: 12px;
+  margin: 0; /* spacing is handled by wrapper */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .editor-actions {
   display: flex;
@@ -87,11 +100,98 @@
   resize: vertical;
 }
 
+/* helper layout classes for editor sections */
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ensure textarea inside a section also takes full width */
+.editor-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.desc-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* two-column layout for task editor */
+.editor-columns {
+  display: flex;
+  gap: 40px; /* extra space between left/right */
+  width: 100%;
+  /* keep columns side-by-side; they will shrink to fit and may overflow if extremely narrow */
+  flex-wrap: wrap; /* allow right column to drop below if necessary */
+}
+
+/* responsive: stack the columns vertically on narrow viewports */
+@media (max-width: 640px) {
+  .editor-columns {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .left-column,
+  .right-column {
+    flex: 1 1 100%;
+  }
+}
+
+.left-column,
+.right-column {
+  flex: 1 1 50%; /* roughly half of available space */
+  min-width: 0; /* allow content to shrink instead of forcing wrap */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  /* add inner padding so contents never touch the neighbour column */
+  padding: 0 12px;
+}
+
+/* make all direct children occupy full column width */
+.left-column > *,
+.right-column > * {
+  width: 100%;
+  box-sizing: inherit;
+}
+
+/* inline editor uses same two-column layout; no stacking */
+.inline-editor .editor-columns {
+  /* no special rules */
+}
+
+/* date input styling matches other fields */
+.due-date-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(60,64,67,0.12);
+  font-size: 1em;
+  background: #fbfdff;
+}
+
+/* title input inside editor should look like a normal text field */
+.left-column .task-title-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(60,64,67,0.12);
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
 /* Task editor fixed description box */
 .side-editor .task-description {
   width: 100%;
   height: 120px; /* static size */
-  resize: none;
+  resize: none; /* no manual resize allowed */
+  box-sizing: border-box;
   border: 1px solid rgba(60,64,67,0.12);
   border-radius: 8px;
   padding: 10px;
@@ -109,6 +209,7 @@
   box-shadow: none; /* flush with row */
   padding: 12px;
   margin: 0; /* spacing is handled by wrapper */
+  /* gap added earlier */
 }
 
 /* compact header used in inline editor mode */
@@ -120,10 +221,9 @@
 }
 
 .inline-editor .task-description {
-  width: 50%; /* half width of row */
-  max-width: 400px; /* don't stretch excessively on wide screens */
+  width: 100%;
   height: auto;
-  resize: vertical;
+  resize: none; /* prevent user resizing */
   border: 1px solid rgba(60,64,67,0.12);
   border-radius: 8px;
   padding: 10px;
@@ -170,9 +270,22 @@
 .inline-editor .person-chip { width: 100%; box-sizing: border-box; }
 
 /* Task editor: render people as table-like rows rather than pill chips */
-.task-person-list { border-radius: 8px; overflow: hidden; border: 1px solid rgba(60,64,67,0.04); background: transparent; }
-.task-person-list-header { display:flex; gap:12px; padding:8px 12px; color: #6b7280; font-size:0.85em; border-bottom: 1px solid rgba(60,64,67,0.04); }
-.task-person-row { display:flex; gap:12px; align-items:center; padding:10px 12px; background: transparent; }
+.task-person-list { border-radius: 8px; overflow: hidden; border: 1px solid rgba(60,64,67,0.04); background: transparent; width: 100%; box-sizing: border-box; }
+/* use grid layout to guarantee column alignment between header and rows */
+.task-person-list-header,
+.task-person-row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: transparent;
+}
+.task-person-list-header {
+  color: #6b7280;
+  font-size:0.85em;
+  border-bottom: 1px solid rgba(60,64,67,0.04);
+}
 .task-person-row + .task-person-row { border-top: 1px solid rgba(60,64,67,0.03); }
 .task-person-col { flex: 1 1 0; min-width: 0; }
 .task-person-col.name { display:flex; align-items:center; gap:8px; }
@@ -271,6 +384,8 @@
   /* allow suggestion-inline to wrap below the input and keep dropdown above decorative art */
   flex-wrap: wrap;
   z-index: 60;
+  width: 100%;
+  box-sizing: border-box;
 }
 .add-person-bar input { flex: 1 1 auto; min-width: 160px; box-sizing: border-box; }
 

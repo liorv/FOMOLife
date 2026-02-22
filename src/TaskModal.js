@@ -6,7 +6,9 @@ const logoSmsUrl = '/assets/logo_sms.png';
 const logoWhatsappUrl = '/assets/logo_whatsapp.png';
 
 export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () => {}, allPeople = [], onOpenPeople = () => {}, onCreatePerson = () => {}, inline = false }) {
+  const [title, setTitle] = useState(task.text || '');
   const [description, setDescription] = useState(task.description || '');
+  const [dueDate, setDueDate] = useState(task.dueDate || '');
   // merge task-level people with global defaults so people's default notification methods
   // from the People tab are used unless overridden per-task
   const initialPeople = (task.people || []).map(p => {
@@ -21,10 +23,10 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
 
   // keep a ref to latest editable state so cleanup can persist the most recent changes
-  const latestRef = React.useRef({ description: task.description || '', people: initialPeople });
+  const latestRef = React.useRef({ title: task.text || '', description: task.description || '', dueDate: task.dueDate || '', people: initialPeople });
   useEffect(() => {
-    latestRef.current = { description, people };
-  }, [description, people]);
+    latestRef.current = { title, description, dueDate, people };
+  }, [title, description, dueDate, people]);
 
   useEffect(() => {
     // reset keyboard focus whenever the query changes
@@ -34,9 +36,9 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
   // persist latest edits when editor unmounts (e.g. user switches tasks)
   useEffect(() => {
     return () => {
-      const { description: latestDesc, people: latestPeople } = latestRef.current;
+      const { title: latestTitle, description: latestDesc, dueDate: latestDate, people: latestPeople } = latestRef.current;
       const normalized = latestPeople.map(p => ({ name: p.name, methods: p.methods || { discord: false, sms: false, whatsapp: false } }));
-      onUpdateTask({ ...task, description: latestDesc, people: normalized });
+      onUpdateTask({ ...task, text: latestTitle, description: latestDesc, dueDate: latestDate || null, people: normalized });
     };
   }, []);
 
@@ -56,11 +58,12 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
 
   const saveToParent = (closeAfter = false) => {
     // Ensure people saved with methods map
-    const normalized = people.map(p => ({ name: p.name, methods: p.methods || { discord: false, sms: false, whatsapp: false } }));
+    const normalizedPeople = people.map(p => ({ name: p.name, methods: p.methods || { discord: false, sms: false, whatsapp: false } }));
+    const updated = { ...task, text: title, description, people: normalizedPeople, dueDate: dueDate || null };
     // persist without closing
-    onUpdateTask({ ...task, description, people: normalized });
+    onUpdateTask(updated);
     // if caller requested a full save+close, call onSave (parent will close)
-    if (closeAfter) onSave({ ...task, description, people: normalized });
+    if (closeAfter) onSave(updated);
   };
 
   const handleSaveAndClose = () => saveToParent(true);
@@ -96,50 +99,81 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
     <div className={containerClass}>
       {/* title is shown in the task header; inline form does not render its own header */}
       {!inline && (
-        <h2>Edit Task — <span className="task-title-inline">{task.text}</span></h2>
+        <h2>Edit Task</h2>
       )}
 
-      <label className="desc-label">Description</label>
-      <textarea className="task-description" value={description} onChange={e => { setDescription(e.target.value); }} />
-
-
-      <div className="spacer" />
-
-      <label>People to notify</label>
-      <div className="people-list task-person-list">
-        <div className="task-person-list-header" aria-hidden>
-          <div className="task-person-col name">Name</div>
-          <div className="task-person-col methods">Methods</div>
-        </div>
-        {people.map(p => (
-          <div key={p.name} className="task-person-row">
-            <div className="task-person-col name">
-              <strong className="person-name">{p.name}</strong>
-            </div>
-            <div className="task-person-col methods">
-              {/* icons for each person: discord, sms, whatsapp, and remove.
-                 grid layout (see CSS) ensures every column lines up, including the
-                 close/delete icon which lives in the last column. */}
-            <div className="person-methods-inline">
-              <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
-                <img src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
-              </button>
-              <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
-                <img src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
-              </button>
-              <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
-                <img src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
-              </button>
-              <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`}>
-                <span className="material-icons">close</span>
-              </button>
-            </div>
-            </div>
+      <div className="editor-columns">
+        <div className="left-column">
+          <div className="editor-section title-section">
+            <label htmlFor="task-title" className="desc-label">Title</label>
+            <input
+              id="task-title"
+              type="text"
+              className="task-title-input"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+            />
           </div>
-        ))}
-      </div>
 
-      <div className="add-person-bar" style={{position: 'relative'}}>
+          <div className="editor-section date-section">
+            <label htmlFor="task-date" className="desc-label">Due date</label>
+            <input
+              id="task-date"
+              type="date"
+              className="due-date-input"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+            />
+          </div>
+
+          <div className="editor-section desc-section">
+            <label htmlFor="task-desc" className="desc-label">Description</label>
+            <textarea
+              id="task-desc"
+              className="task-description"
+              value={description}
+              onChange={e => { setDescription(e.target.value); }}
+            />
+          </div>
+        </div>
+
+        <div className="right-column">
+          <div className="editor-section people-section">
+            <label>People to notify</label>
+            <div className="people-list task-person-list">
+              <div className="task-person-list-header" aria-hidden>
+                <div className="task-person-col name">Name</div>
+                <div className="task-person-col methods">How do you want to notify them?</div>
+              </div>
+          {people.map(p => (
+            <div key={p.name} className="task-person-row">
+              <div className="task-person-col name">
+                <strong className="person-name">{p.name}</strong>
+              </div>
+              <div className="task-person-col methods">
+                {/* icons for each person: discord, sms, whatsapp, and remove.
+                   grid layout (see CSS) ensures every column lines up, including the
+                   close/delete icon which lives in the last column. */}
+                <div className="person-methods-inline">
+                  <button className={p.methods.discord ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'discord')} title="Discord">
+                    <img src={logoDiscordUrl} alt="Discord" className="service-icon discord-icon" />
+                  </button>
+                  <button className={p.methods.sms ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'sms')} title="SMS">
+                    <img src={logoSmsUrl} alt="SMS" className="service-icon sms-icon" />
+                  </button>
+                  <button className={p.methods.whatsapp ? 'method-icon active' : 'method-icon'} onClick={() => handleTogglePersonMethod(p.name, 'whatsapp')} title="WhatsApp">
+                    <img src={logoWhatsappUrl} alt="WhatsApp" className="service-icon whatsapp-icon" />
+                  </button>
+                  <button className="remove-btn" onClick={() => handleRemovePerson(p.name)} aria-label={`Remove ${p.name}`}>
+                    <span className="material-icons">close</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="add-person-bar" style={{position: 'relative'}}>
         <input
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -245,7 +279,10 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
             </div>
           );
         })()}
-      </div>
+      </div> {/* close add-person-bar */}
+      </div> {/* close people-section */}
+        </div> {/* close right-column */}
+      </div> {/* close editor-columns */}
 
       <div style={{ flex: 1 }} />
 
