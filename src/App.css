@@ -118,6 +118,11 @@
   }
 }
 
+/* hide the search bar completely on very narrow viewports */
+@media (max-width: 290px) {
+  .title-bar .search-container { display: none; }
+}
+
 .left-column,
 .right-column {
   flex: 1 1 50%; /* roughly half of available space */
@@ -720,23 +725,31 @@ body {
   padding: 0;
   display: grid;
   /* allocate more width to middle column to let search box stretch */
-  grid-template-columns: 1fr 4fr 1fr;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   z-index: 15;
   position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: visible;
+  background: var(--surface);
 }
 .left-column,
 .right-column {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
+}
+.left-column {
+  min-width: 140px;
+  justify-content: flex-start;
 }
 
 /* column backgrounds (keep white for a clean title bar) */
 .left-column,
 .mid-column,
 .right-column {
-  background: white;
+  /* background: white; */
 }
 .mid-column {
   display: flex;
@@ -755,6 +768,11 @@ body {
   width: auto;
   margin-left: 0; /* flush with screen edge */
 }
+/* remove generic column padding for the top title bar so the logo
+   sits flush against the left edge of the viewport */
+.title-bar .left-column {
+  padding-left: 0;
+}
 .search-container {
   /* no absolute positioning: let the mid-row flex container control placement */
   width: 100%;
@@ -767,7 +785,9 @@ body {
 .search-inner {
   width: 100%;
   /* fill the entire middle column without capping */
-  max-width: none;
+  /* cap the visible search field so it doesn't stretch too wide */
+  max-width: 600px;
+  min-width: 150px;
   position: relative; /* for icons/popup */
 }
 

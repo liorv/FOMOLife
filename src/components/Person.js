@@ -12,7 +12,7 @@ export default function Person({ person, id, editingPersonId, editingPersonName,
     <Wrapper key={id} className={baseClass}>
       {editingPersonId === id ? (
         <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
-          <input value={editingPersonName} onChange={e => setEditingPersonName(e.target.value)} />
+          <input id={`edit-person-${id}-name`} name="person-name" value={editingPersonName} onChange={e => setEditingPersonName(e.target.value)} />
           <button onClick={() => onSaveEdit(id, editingPersonName)}>Save</button>
           <button onClick={() => onCancelEdit()}>Cancel</button>
         </div>

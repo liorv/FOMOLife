@@ -13,6 +13,8 @@ export default function AddBar({
   return (
     <div className="add-bar">
       <input
+        id={`add-${type || 'item'}-input`}
+        name={`add-${type || 'item'}`}
         value={input}
         onChange={e => onInputChange(e.target.value)}
         placeholder={`Add a new ${type === 'people' ? 'person' : type.slice(0, -1)}`}

@@ -13,6 +13,8 @@
 
 html, body, #root {
   height: 100%;
+  /* prevent the layout from collapsing at extremely small widths */
+  min-width: 220px;
 }
 body {
   margin: 0;

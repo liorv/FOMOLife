@@ -175,6 +175,8 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
 
         <div className="add-person-bar" style={{position: 'relative'}}>
         <input
+          id={`person-search-${task && task.id ? task.id : 'editor'}`}
+          name="personSearch"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search people to add (type to find)"

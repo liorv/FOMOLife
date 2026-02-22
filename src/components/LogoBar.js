@@ -40,6 +40,8 @@ export default function LogoBar({
                 </span>
                 <input
                   type="text"
+                  id="title-search"
+                  name="search"
                   className="title-search"
                   placeholder="Search tasks…"
                   value={searchQuery}

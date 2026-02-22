@@ -62,6 +62,8 @@ export default function TaskRow({
 
         {type === 'tasks' && (
           <input
+            id={`task-${id}-done`}
+            name={`task-${id}-done`}
             type="checkbox"
             checked={item.done}
             onChange={() => handleToggle(id)}
