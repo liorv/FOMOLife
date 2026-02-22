@@ -48,10 +48,10 @@ describe('TaskRow component', () => {
     const dateContainer = container.querySelector('.date-container');
     expect(dateContainer).toBeTruthy();
     const date = dateContainer.querySelector('.task-date');
-    // due 1/1/2020 with current 1/3/2020 yields -2 days
-    // full text should read "-2 days left"; short form "-2d" also present
-    expect(date.querySelector('.full').textContent).toBe('-2 days left');
-    expect(date.querySelector('.short').textContent).toBe('-2d');
+    // due 1/1/2020 with current 1/3/2020 is in the past
+    // full text should read "overdue"; short form "OD" also present
+    expect(date.querySelector('.full').textContent).toBe('overdue');
+    expect(date.querySelector('.short').textContent).toBe('OD');
     expect(date).toHaveStyle('color: rgb(255, 0, 0)');
     expect(date.parentElement).toHaveStyle('display: flex');
 
@@ -67,6 +67,28 @@ describe('TaskRow component', () => {
     expect(rightGroup.querySelectorAll('button').length).toBeGreaterThan(0);
     expect(container.querySelector('.task-checkbox').parentElement).toHaveStyle('align-items: center');
 
+    jest.useRealTimers();
+  });
+
+  test('shows overdue when due date is today', () => {
+    jest.useFakeTimers('modern');
+    jest.setSystemTime(new Date('2020-01-01'));
+    const todayTask = { ...task, dueDate: '2020-01-01' };
+    const { container } = render(
+      <TaskRow
+        item={todayTask}
+        id="row-1"
+        type="tasks"
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+      />
+    );
+    const date = container.querySelector('.task-date');
+    expect(date.querySelector('.full').textContent).toBe('overdue');
+    expect(date.querySelector('.short').textContent).toBe('OD');
     jest.useRealTimers();
   });
 

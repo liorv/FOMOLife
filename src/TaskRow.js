@@ -96,9 +96,13 @@ export default function TaskRow({
             {daysLeft !== null && (
               <>
                 <span className="full">
-                  {`${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+                  {isPast
+                    ? 'overdue'
+                    : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
                 </span>
-                <span className="short">{`${daysLeft}d`}</span>
+                <span className="short">
+                  {isPast ? 'OD' : `${daysLeft}d`}
+                </span>
               </>
             )}
           </span>
