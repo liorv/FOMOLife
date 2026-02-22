@@ -716,31 +716,68 @@ body {
 /* title bar across top, holds logo */
 .title-bar {
   width: 100%;
-  background: var(--surface);
-  padding: 0; /* remove buffers around bar */
-  display: flex;
-  justify-content: flex-start; /* logo sticks to left */
+  /* no background or shadow as requested */
+  padding: 0;
+  display: grid;
+  /* allocate more width to middle column to let search box stretch */
+  grid-template-columns: 1fr 4fr 1fr;
   align-items: center;
-  box-shadow: var(--elevation-1);
   z-index: 15;
-  position: relative; /* needed for centering search */
+  position: relative;
 }
+.left-column,
+.right-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* column backgrounds (keep white for a clean title bar) */
+.left-column,
+.mid-column,
+.right-column {
+  background: white;
+}
+.mid-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.mid-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .title-logo {
   max-height: 120px; /* twice as big */
   width: auto;
   margin-left: 0; /* flush with screen edge */
 }
 .search-container {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  max-width: 400px;
+  /* no absolute positioning: let the mid-row flex container control placement */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  /* inner wrapper still constrains to mid column via parent grid */
+}
+
+/* inner wrapper to constrain the search input width */
+.search-inner {
+  width: 100%;
+  /* fill the entire middle column without capping */
+  max-width: none;
+  position: relative; /* for icons/popup */
 }
 
 .title-search {
   width: 100%;
-  padding: 10px 12px 10px 40px; /* more vertical padding, room for icon */
+  /* left/right padding previously reserved for icons; remove to avoid
+     extra internal whitespace. icons are absolutely positioned so padding
+     is not needed. */
+  /* left padding makes room for search icon */
+  padding: 10px 10px 10px 32px;
   font-size: 1rem;
   border: 1px solid var(--border, #ccc);
   border-radius: 20px; /* fully rounded corners */
@@ -757,6 +794,95 @@ body {
   font-size: 1.3rem;
   color: var(--text-muted, #777);
   pointer-events: none;
+}
+
+/* filter button inside the search bar */
+.filter-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  color: var(--text-muted, #777);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.filter-icon:hover {
+  color: var(--text-muted-hover, #555);
+}
+
+/* ensure the popup is positioned relative to the search container so it
+   doesn't affect layout when shown */
+.search-container {
+  position: relative;
+}
+
+/* dropdown that appears when the filter button is clicked */
+.filter-popup {
+  position: absolute;
+  /* anchor to the right edge of the search-inner element where the icon lives */
+  right: 12px;
+  top: calc(100% + 4px);
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: var(--elevation-1);
+  border-radius: 4px;
+  padding: 6px 8px;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+}
+
+/* pill elements inside the dropdown; different colors per type */
+.filter-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.filter-pill.completed {
+  background: #2b6cb0; /* dark blue */
+  color: white;
+}
+.filter-pill.overdue {
+  background: #e53e3e; /* stronger red */
+  color: white;
+}
+.filter-pill:hover {
+  opacity: 0.85;
+}
+
+/* active filter indicator shown next to search field */
+.active-filter {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #d0e8ff;
+  font-size: 0.85rem;
+}
+.active-filter.completed {
+  background: #2b6cb0;
+  color: white;
+}
+.active-filter.overdue {
+  background: #e53e3e;
+  color: white;
+}
+.clear-filter {
+  margin-left: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* container for multiple active pills; positions at bottom row */
+.active-filters {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  /* vertical centering handled by mid-row styles */
 }
 
 

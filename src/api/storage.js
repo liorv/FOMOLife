@@ -158,6 +158,13 @@ export async function clearData(userId) {
     try {
       const file = dataFileFor(id);
       if (file && fs.existsSync(file)) {
+        // only backup the default namespace; user-specific files are
+        // considered disposable during testing and should not be
+        // preserved by global helpers.
+        if (id === DEFAULT_USER) {
+          const bak = file + '.bak';
+          try { fs.copyFileSync(file, bak); } catch {}
+        }
         fs.unlinkSync(file);
       }
     } catch {
@@ -183,4 +190,56 @@ export async function clearData(userId) {
 
   const key = STORAGE_KEY + `_${id}`;
   localStorage.removeItem(key);
+}
+
+// helpers used by tests to restore a backed-up file after clearData ran
+export async function restoreData(userId) {
+  const id = userId || DEFAULT_USER;
+  if (!isServer) return;
+  try {
+    const file = dataFileFor(id);
+    const bak = file + '.bak';
+    if (fs.existsSync(bak)) {
+      fs.copyFileSync(bak, file);
+      fs.unlinkSync(bak);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// ---------------------------------------------------------------------------
+// global helpers used by jest setup/teardown so the original dataset is
+// preserved once at the start of the entire test run and restored at the end.
+// This should only operate on the default user file; other namespaces are
+// considered test-only and may be created/removed freely by individual tests.
+export async function backupAllData() {
+  if (!isServer) return;
+  ensureDataDir();
+  try {
+    const defaultFile = dataFileFor(DEFAULT_USER);
+    if (fs.existsSync(defaultFile)) {
+      const dest = defaultFile + '.orig';
+      try { fs.copyFileSync(defaultFile, dest); } catch {}
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export async function restoreAllData() {
+  if (!isServer) return;
+  ensureDataDir();
+  try {
+    const defaultOrig = dataFileFor(DEFAULT_USER) + '.orig';
+    if (fs.existsSync(defaultOrig)) {
+      const target = defaultOrig.slice(0, -5);
+      try {
+        fs.copyFileSync(defaultOrig, target);
+        fs.unlinkSync(defaultOrig);
+      } catch {}
+    }
+  } catch {
+    // ignore
+  }
 }

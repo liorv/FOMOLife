@@ -3,10 +3,16 @@ import * as db from '../src/api/db';
 
 describe('db module (CRUD with GUIDs)', () => {
   beforeEach(async () => {
-    // clear underlying storage
+    // clear underlying storage for every namespace we use in tests.  the
+    // global setup has already preserved the original files so we can
+    // freely mutate them here without worrying about permanent loss.
     const { clearData } = require('../src/api/storage');
-    clearData();
+    const namespaces = [undefined, 'u1', 'u2', 'other', 'u123'];
+    for (const ns of namespaces) {
+      await clearData(ns);
+    }
   });
+
 
   test('loadData returns empty shape when nothing stored', async () => {
     const d = await db.loadData();

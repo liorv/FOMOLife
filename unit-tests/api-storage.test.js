@@ -20,7 +20,9 @@ beforeEach(async () => {
   await clearData();
 });
 
-test('API GET returns empty shape when nothing stored', async () => {
+
+// first API test: GET should return empty when no data stored
+test('API GET returns empty when nothing stored', async () => {
   const req = { method: 'GET', query: {} };
   const res = makeRes();
   await handler(req, res);
@@ -45,6 +47,7 @@ test('API POST then GET persists value', async () => {
 test('API DELETE clears stored data', async () => {
   // store something first
   await handler({ method: 'POST', query: {}, body: { data: { tasks: [{text:'x'}], projects:[], dreams:[], people:[] } } }, makeRes());
+
   const delReq = { method: 'DELETE', query: {} };
   const delRes = makeRes();
   await handler(delReq, delRes);

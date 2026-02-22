@@ -53,6 +53,8 @@ function App({ userId } = {}) {
 
   // query for top-bar search; only affects task list
   const [searchQuery, setSearchQuery] = useState('');
+  // active filters: array of 'completed'|'overdue'
+  const [filters, setFilters] = useState([]);
 
 
 
@@ -202,13 +204,32 @@ function App({ userId } = {}) {
     setEditingPersonName('');
   };
 
-  // compute a filtered list based on the search query when viewing tasks
-  const filteredItems =
-    type === 'tasks' && searchQuery.trim()
-      ? data.tasks.filter(t =>
-          t.text.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : data[type];
+  // compute a filtered list based on the search query and the
+  // user-chosen filters.  Completed tasks are hidden by default unless
+  // the corresponding pill is active; overdue selection further narrows
+  // to items with past due dates. Filters are combined with union logic.
+  const filteredItems = (() => {
+    if (type !== 'tasks') return data[type];
+
+    let list = data.tasks;
+
+    // if completed is not selected, remove done items
+    if (!filters.includes('completed')) {
+      list = list.filter(t => !t.done);
+    }
+    // if overdue is selected, further limit
+    if (filters.includes('overdue')) {
+      const now = new Date();
+      list = list.filter(t => t.dueDate && new Date(t.dueDate) < now);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter(t => t.text.toLowerCase().includes(query));
+    }
+
+    return list;
+  })();
 
   // reset search when switching away from tasks
   useEffect(() => {
@@ -227,6 +248,12 @@ function App({ userId } = {}) {
           onSearchChange={setSearchQuery}
           showSearch={type === 'tasks'}
           logoUrl={logoUrl}
+          filters={filters}
+          onToggleFilter={type => {
+            setFilters(prev => (
+              prev.includes(type) ? prev.filter(f => f !== type) : [...prev, type]
+            ));
+          }}
         />
         <div className="container">
           {/* decorative splash removed; logo now shown in title bar */}

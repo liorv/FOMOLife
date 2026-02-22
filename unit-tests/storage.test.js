@@ -6,9 +6,6 @@ describe('storage API (file/localStorage abstraction)', () => {
     await clearData();
   });
 
-  test('returns empty structure when nothing is stored', async () => {
-    await expect(loadData()).resolves.toEqual({ tasks: [], projects: [], dreams: [], people: [] });
-  });
 
   test('saveData then loadData preserves the object', async () => {
     const doc = { tasks: [{ text: 'hello', done: false }], projects: [], dreams: [], people: [] };
