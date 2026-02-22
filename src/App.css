@@ -9,7 +9,9 @@
 .side-editor {
   /* min-width removed to allow extreme narrowing during testing */
   max-width: 420px;
-  background: var(--surface);
+  /* more visible pale-blue background so the editor clearly stands out */
+  background: #eef6ff;
+  border-left: 1px solid rgba(60,64,67,0.04);
   /* keep only right-hand rounding; top-left is flush with screen edge */
   border-radius: 0 12px 12px 0;
   box-shadow: var(--elevation-1);
@@ -27,7 +29,8 @@
 
 /* inline version of editor also uses a gap so sections are evenly spaced */
 .inline-editor {
-  background: var(--surface);
+  /* match side-editor so inline editors are clearly visible */
+  background: #eef6ff;
   border-radius: 6px;
   box-shadow: none; /* flush with row */
   padding: 12px;
@@ -224,6 +227,13 @@
   /* optional collapse animation via max-height */
   transition: max-height 0.2s ease;
   overflow: hidden;
+}
+
+/* give the inline editor a little spacing so its background is visible
+   within the list item while keeping the header styling intact */
+.item-list li.editing > .inline-editor,
+.item-list li.editing > .side-editor {
+  padding: 12px;
 }
 
 /* now that the editor is part of the task row we no longer render a
@@ -1028,6 +1038,14 @@ body {
   box-shadow: 0 1px 4px #b6c6e61a;
   transition: box-shadow 0.18s, background 0.18s;
   width: auto;
+}
+
+/* when a task is open for editing, let the editor's background show
+   by making the list item itself transparent and removing the shadow/border */
+.item-list li.editing {
+  background: transparent;
+  box-shadow: none;
+  border-bottom: none;
 }
 
 .task-header {

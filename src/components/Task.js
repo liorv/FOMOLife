@@ -18,11 +18,7 @@ export default function Task({ item, id, type, editorTaskId, setEditorTaskId, ha
         />
       </div>
 
-      {children && (
-        <div className="task-editor-wrapper">
-          {children}
-        </div>
-      )}
+      {children}
     </li>
   );
 }

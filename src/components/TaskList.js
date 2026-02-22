@@ -72,18 +72,16 @@ export default function TaskList({
             handleDelete={handleDelete}
           >
             {type === 'tasks' && editorTaskId === id && (
-              <div className="editor-container">
-                <TaskEditor
-                  task={item}
-                  onSave={onEditorSave}
-                  onUpdateTask={onEditorUpdate}
-                  onClose={onEditorClose}
-                  allPeople={allPeople}
-                  onOpenPeople={onOpenPeople}
-                  onCreatePerson={onCreatePerson}
-                  inline={true}
-                />
-              </div>
+              <TaskEditor
+                task={item}
+                onSave={onEditorSave}
+                onUpdateTask={onEditorUpdate}
+                onClose={onEditorClose}
+                allPeople={allPeople}
+                onOpenPeople={onOpenPeople}
+                onCreatePerson={onCreatePerson}
+                inline={true}
+              />
             )}
           </Task>
         );
