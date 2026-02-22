@@ -830,13 +830,13 @@ body {
 .item-list {
   list-style: none;
   padding: 0;
-  margin: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
-  padding-right: 6px;
+  margin: 0 auto;
+  /* shrink to fit children rather than stretching */
   display: flex;
   flex-direction: column;
   gap: 8px;
+  align-items: flex-start;
+  max-width: 100%;
 }
 .item-list li {
   display: flex;
@@ -850,6 +850,7 @@ body {
   margin-bottom: 2px;
   box-shadow: 0 1px 4px #b6c6e61a;
   transition: box-shadow 0.18s, background 0.18s;
+  width: auto;
 }
 
 .task-header {
@@ -861,8 +862,8 @@ body {
 
 /* ensure TaskRow itself fills available horizontal space inside header */
 .task-row {
-  flex: 1;
-  width: 100%;
+  flex: none;
+  width: auto;
   display: flex; /* duplicate flex so CSS can control if inline style removed */
   align-items: center;
   gap: 6px; /* consistent spacing between columns */
