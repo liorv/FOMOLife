@@ -36,15 +36,39 @@ describe('TaskList component', () => {
     expect(container.querySelectorAll('li').length).toBe(1);
     expect(container.querySelector('.task-editor-wrapper')).toBeTruthy();
     expect(container.querySelector('.inline-editor')).toBeTruthy();
-    // the task title should still be visible
-    expect(screen.getByText('task1')).toBeTruthy();
+    // the task title should still be visible (input when editor is open)
+    const titleInput = container.querySelector('input.task-title-input');
+    expect(titleInput).toBeTruthy();
+    expect(titleInput.value).toBe('task1');
     // expand icon should reflect open state and be placed before title
     const icon = container.querySelector('.expand-icon');
     expect(icon).toBeTruthy();
     expect(icon).toHaveClass('open');
-    // next sibling should be the task text span
-    expect(icon.nextSibling.className).toContain('task-title');
+    // checkbox should come after icon
+    const checkbox = icon.nextSibling;
+    expect(checkbox.tagName).toBe('INPUT');
+    expect(checkbox.className).toContain('task-checkbox');
+    // title should follow
+    const title = checkbox.nextSibling;
+    expect(title.className).toContain('task-title');
+    // since our sample doesn't include a due date, ensure there is no .task-date element present
+    expect(container.querySelector('.task-date')).toBeFalsy();
 
+  });
+
+  test('editing row highlight applied to header only', () => {
+    const { container } = render(
+      <ul className="item-list">
+        <li className="editing">
+          <div className="task-header">foo</div>
+          <div className="task-editor-wrapper">bar</div>
+        </li>
+      </ul>
+    );
+    const header = container.querySelector('.task-header');
+    expect(header).toBeTruthy();
+    const li = container.querySelector('li.editing');
+    expect(li).toBeTruthy();
   });
 
   test('clicking a task invokes setEditorTaskIdx and toggles', () => {

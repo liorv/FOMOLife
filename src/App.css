@@ -822,10 +822,19 @@ body {
   margin-right: 4px; /* small spacing before star */
 }
 
-.item-list li.editing {
+/* highlight only the header when a task is in editing state */
+.item-list li.editing .task-header {
   background: linear-gradient(90deg,#fbfdff,#f3f9ff);
+  /* clip to padding so header background doesn't bleed under borders */
+  background-clip: padding-box;
   border-left: 4px solid #60a5fa;
   box-shadow: 0 8px 28px #60a5fa11;
+  /* allow the left border shadow to extend outside the header width */
+  overflow: visible;
+}
+/* li itself no longer needs background */
+.item-list li.editing {
+  /* empty - styles moved to header */
 }
 
 .editing-subtitle {
