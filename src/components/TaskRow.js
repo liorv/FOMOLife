@@ -42,19 +42,15 @@ export default function TaskRow({
 
   return (
     // container flex ensures left/middle/right segments and full width
-    <div
-      className="task-row"
-      style={{ display: 'flex', alignItems: 'center', flex: 1, width: '100%' }}
-    >
+    <div className="task-row">
       {/* left group: expand, checkbox, title */}
-      <div className="left-group" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="left-group">
         {type === 'tasks' && (
           <span
             className={`material-icons expand-icon${isOpen ? ' open' : ''}`}
             onClick={() => setEditorTaskId(id)}
             title={isOpen ? ' Collapse editor' : 'Expand editor'}
             aria-hidden="true"
-            style={{ cursor: 'pointer', fontSize: '1rem' }}
           >
             {isOpen ? 'expand_more' : 'chevron_right'}
           </span>
@@ -112,7 +108,7 @@ export default function TaskRow({
       )}
 
       {/* right group: notify avatars, star, delete */}
-      <div className="right-group" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div className="right-group">
         {type === 'tasks' && (item.people || []).length > 0 && (
           <div className="notify-people" title={(item.people || []).map(p => p.name).join(', ')}>
             {((item.people || []).slice(0,2)).map(p => (

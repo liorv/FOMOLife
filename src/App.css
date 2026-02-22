@@ -107,6 +107,7 @@
   width: 100%;
   /* keep columns side-by-side; they will shrink to fit and may overflow if extremely narrow */
   flex-wrap: wrap; /* allow right column to drop below if necessary */
+  align-items: flex-start; /* ensure both columns top-align so headings line up */
 }
 
 /* responsive: stack the columns vertically on narrow viewports */
@@ -159,6 +160,15 @@
 .right-column > * {
   width: 100%;
   box-sizing: inherit;
+}
+
+/* normalize label appearance inside editor columns so headings align */
+.editor-columns .editor-section > label {
+  display: block;
+  margin: 0 0 6px 0;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: inherit;
 }
 
 /* ensure expand of right column when space available */
@@ -771,12 +781,6 @@ body {
   justify-content: flex-start;
 }
 
-/* column backgrounds (keep white for a clean title bar) */
-.left-column,
-.mid-column,
-.right-column {
-  /* background: white; */
-}
 .mid-column {
   display: flex;
   flex-direction: column;
@@ -1060,7 +1064,10 @@ body {
    by making the list item itself transparent and removing the shadow/border */
 .item-list li.editing-header {
   /* header row when editor open should remain visually like other rows */
-  margin-bottom: 0; /* remove gap between header and editor panel */
+  margin-bottom: 0; /* keep list-item spacing handled visually by the editor */
+  border-bottom: none; /* remove dividing line between header and editor */
+  border-radius: 10px 10px 0 0; /* round only top corners so editor can attach */
+  box-shadow: 0 4px 10px #b6c6e61a; /* subtle shadow to match attached panel */
 }
 
 /* editor panel shown as a sibling list item */
@@ -1076,6 +1083,10 @@ body {
   border-left: 4px solid #60a5fa;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
+.item-list li.editing-header + li.editor-panel {
+  /* negate the parent .item-list gap so the editor visually attaches */
+  margin-top: -8px; /* matches .item-list gap: 8px */
+}
 .item-list li.editor-panel:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(36,50,70,0.08); }
 
 .task-header {
@@ -1087,11 +1098,11 @@ body {
 
 /* ensure TaskRow itself fills available horizontal space inside header */
 .task-row {
-  flex: none;
-  width: auto;
-  display: flex; /* duplicate flex so CSS can control if inline style removed */
+  flex: 1 1 100%; /* let row expand to fill available width */
+  width: 100%;
+  display: flex;
   align-items: center;
-  gap: 6px; /* consistent spacing between columns */
+  gap: 6px;
 }
 
 /* left, middle, and right groups help with centering the date */
@@ -1268,6 +1279,20 @@ body {
   box-shadow: 0 8px 28px #60a5fa11;
   /* allow any visual overflow */
   overflow: visible;
+}
+
+/* Editing-state alignment: consolidated rules so header content and the
+   right-column controls remain vertically aligned with the title. Keeping
+   these rules together reduces scattered overrides and makes layout
+   behavior easier to reason about. */
+.item-list li.editing-header .task-row,
+.item-list li.editing-header .task-row > *,
+.item-list li.editing-header .right-group {
+  align-items: center !important;
+}
+.item-list li.editing-header .notify-people {
+  align-self: center !important;
+  margin-top: 0;
 }
 
 .editing-subtitle {
