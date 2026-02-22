@@ -182,14 +182,6 @@ function App() {
           {/* header icon removed — splash art now serves as the primary brand artwork */}
         </div>
         <TabNav active={type} onChange={setType} />
-        <AddBar
-          type={type}
-          input={input}
-          dueDate={dueDate}
-          onInputChange={setInput}
-          onDueDateChange={setDueDate}
-          onAdd={handleAdd}
-        />
 
         {type === 'people' ? (
           <div className="people-list task-person-list">
@@ -232,6 +224,15 @@ function App() {
             />
           </ul>
         )}
+        {/* add bar placed at bottom of list and stays visible (sticky) */}
+        <AddBar
+          type={type}
+          input={input}
+          dueDate={dueDate}
+          onInputChange={setInput}
+          onDueDateChange={setDueDate}
+          onAdd={handleAdd}
+        />
       </div>
     </div>
   );

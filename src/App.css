@@ -754,7 +754,8 @@ body {
   margin-bottom: 22px;
   flex-wrap: nowrap; /* never wrap button off screen */
   overflow-x: auto; /* allow horizontal scroll if extremely narrow */
-  position: relative; /* now inside container flow */
+  position: sticky; /* stay visible at bottom */
+  bottom: 0;
   padding: 0 12px;
   background: var(--surface);
   z-index: 10;
