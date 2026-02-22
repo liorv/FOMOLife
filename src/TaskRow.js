@@ -28,8 +28,17 @@ export default function TaskRow({
   onTitleChange,
 }) {
   const isOpen = editorTaskIdx === idx;
-  // determine if due date exists and is in the past
-  const isPast = item.dueDate && new Date(item.dueDate) < new Date();
+  // determine if due date exists and is in the past and compute days left
+  let isPast = false;
+  let daysLeft = null;
+  if (item.dueDate) {
+    const due = new Date(item.dueDate);
+    const now = new Date();
+    // difference in full days (ceiling so any partial day counts as 1)
+    const msPerDay = 24 * 60 * 60 * 1000;
+    daysLeft = Math.ceil((due - now) / msPerDay);
+    isPast = daysLeft <= 0;
+  }
 
   return (
     // container flex ensures left/middle/right segments and full width
@@ -83,7 +92,7 @@ export default function TaskRow({
               fontSize: '0.95em',
             }}
           >
-            {item.dueDate}
+            {daysLeft !== null ? `${daysLeft}d` : ''}
           </span>
         </div>
       )}

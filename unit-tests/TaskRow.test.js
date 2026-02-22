@@ -15,7 +15,11 @@ describe('TaskRow component', () => {
   const handleDelete = jest.fn();
   const setEditor = jest.fn();
 
-  test('renders all columns in proper order with date and notify', () => {
+  test('renders all columns in proper order with days-left indicator and notify', () => {
+    // fix current time so days calculation is deterministic
+    jest.useFakeTimers('modern');
+    jest.setSystemTime(new Date('2020-01-03'));
+
     const { container } = render(
       <TaskRow
         item={task}
@@ -39,11 +43,12 @@ describe('TaskRow component', () => {
     expect(checkbox.tagName).toBe('INPUT');
     const title = checkbox.nextSibling;
     expect(title.textContent).toBe('row task');
-    // date should live within the date-container and be centered
+    // days-left should live within the date-container and be centered
     const dateContainer = container.querySelector('.date-container');
     expect(dateContainer).toBeTruthy();
     const date = dateContainer.querySelector('.task-date');
-    expect(date.textContent).toBe('2020-01-01');
+    // due 1/1/2020 with current 1/3/2020 yields -2 days
+    expect(date.textContent).toBe('-2d');
     expect(date).toHaveStyle('color: rgb(255, 0, 0)');
     expect(date.parentElement).toHaveStyle('display: flex');
 
@@ -58,6 +63,8 @@ describe('TaskRow component', () => {
     // buttons exist but visual centering is handled by CSS rules not visible here
     expect(rightGroup.querySelectorAll('button').length).toBeGreaterThan(0);
     expect(container.querySelector('.task-checkbox').parentElement).toHaveStyle('align-items: center');
+
+    jest.useRealTimers();
   });
 
   test('click expand calls setEditorTaskIdx', () => {
