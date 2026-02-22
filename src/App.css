@@ -148,6 +148,10 @@
   .task-row .star {
     display: none;
   }
+  /* hide date selector in AddBar on narrow screens */
+  .add-bar .due-date-input {
+    display: none;
+  }
 }
 
 .left-column,
