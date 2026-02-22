@@ -679,6 +679,77 @@ body {
   gap: 10px;
   padding: 12px 0 12px 0;
 }
+
+/* ensure TaskRow itself fills available horizontal space inside header */
+.task-row {
+  flex: 1;
+  width: 100%;
+  display: flex; /* duplicate flex so CSS can control if inline style removed */
+  align-items: center;
+  gap: 6px; /* consistent spacing between columns */
+}
+
+/* left, middle, and right groups help with centering the date */
+.left-group,
+.right-group,
+.date-container {
+  display: flex;
+  align-items: center;
+}
+
+/* ensure right-group hugs the right edge */
+.right-group {
+  margin-left: auto;
+}
+
+/* make sure date container stretches to fill available middle space */
+.date-container {
+  flex: 1;
+}
+
+/* make buttons center their icon content */
+.task-row button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-container {
+  flex: 1;
+  justify-content: center;
+}
+
+/* make every column contents themselves a flexbox so icons/inputs center within the row */
+.task-row > * {
+  display: flex;
+  align-items: center;
+}
+
+/* override any leftover align-self rules for row children */
+.task-row > * {
+  align-self: center !important;
+}
+
+.task-row .task-title,
+.task-row .task-title-input,
+.task-row .task-date {
+  line-height: 1;
+}
+
+.task-row .task-title,
+.task-row .task-title-input {
+  flex: 1; /* allow title column to take remaining space */
+  text-align: left;
+}
+.task-row .task-date {
+  flex: none;
+}
+.task-row .expand-icon {
+  flex: none; /* keep toggle at natural size */
+}
+.task-row input.task-checkbox {
+  flex: none;
+}
 .item-list li:last-child {
   border-bottom: none;
 }
@@ -692,13 +763,13 @@ body {
   transition: color 0.2s;
   font-weight: 500;
   letter-spacing: -0.5px;
-  align-self: flex-start; /* ensure title stays at top */
+  /* align-self reset removed; vertical centering handled by .task-row */
 }
 .item-list li .due-date {
   font-size: 0.97em;
   color: #7b8ca7;
   margin-left: 8px;
-  align-self: flex-start;
+  /* no align-self so it shares row centering */
 }
 .item-list li .star {
   background: none;
@@ -710,7 +781,7 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
   transition: background 0.2s;
-  align-self: flex-start;
+  /* align-self removed */
 }
 .item-list li .star.favorite {
   color: #ffd700;
@@ -735,6 +806,20 @@ body {
 }
 .item-list li .delete:hover {
   background: #ffe5e5;
+}
+
+/* new columns inside task row */
+.task-date {
+  font-size: 0.95em;
+  margin-left: 12px;
+  /* align-self removed so date sits in center like other columns */
+}
+
+.notify-people {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px; /* small spacing before star */
 }
 
 .item-list li.editing {
