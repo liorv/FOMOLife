@@ -66,7 +66,8 @@ describe('TaskRow component', () => {
     expect(rightGroup).toBeTruthy();
     // buttons exist but visual centering is handled by CSS rules not visible here
     expect(rightGroup.querySelectorAll('button').length).toBeGreaterThan(0);
-    expect(container.querySelector('.task-checkbox').parentElement).toHaveStyle('align-items: center');
+    // layout is now handled via CSS classes; ensure checkbox lives inside the left-group
+    expect(container.querySelector('.task-checkbox').parentElement).toHaveClass('left-group');
 
     jest.useRealTimers();
   });
