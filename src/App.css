@@ -59,6 +59,16 @@
 .inline-editor .material-icons {
   color: inherit;
 }
+.inline-editor .task-description {
+  width: 100%;
+  height: auto;
+  resize: none; /* prevent user resizing */
+  border: 1px solid rgba(60, 64, 67, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
 .editor-actions {
   display: flex;
   gap: 12px;
@@ -218,36 +228,12 @@
   margin-bottom: 12px;
 }
 
-/* inline version of the editor (rendered within a task row). to make it
-   feel attached, remove the heavy box-shadow and round corners so it looks
-   like a natural expansion. the padding is slightly reduced.
-   description width limited to half the container in wide layouts.  */
-.inline-editor {
-  background: inherit;
-  border-radius: 6px;
-  box-shadow: none; /* flush with row */
-  padding: 12px;
-  margin: 0; /* spacing is handled by wrapper */
-  /* gap added earlier */
-}
-
 /* compact header used in inline editor mode */
 .inline-header {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 8px;
   color: #202124;
-}
-
-.inline-editor .task-description {
-  width: 100%;
-  height: auto;
-  resize: none; /* prevent user resizing */
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 0.95rem;
-  margin-bottom: 12px;
 }
 
 /* wrapper around the inline editor when nested inside a task row */
