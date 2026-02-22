@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 // A standalone row representing a single task's primary information.
 // Ordered columns (left→right):
@@ -45,18 +45,18 @@ export default function TaskRow({
     <div className="task-row">
       {/* left group: expand, checkbox, title */}
       <div className="left-group">
-        {type === 'tasks' && (
+        {type === "tasks" && (
           <span
-            className={`material-icons expand-icon${isOpen ? ' open' : ''}`}
+            className={`material-icons expand-icon${isOpen ? " open" : ""}`}
             onClick={() => setEditorTaskId(id)}
-            title={isOpen ? ' Collapse editor' : 'Expand editor'}
+            title={isOpen ? " Collapse editor" : "Expand editor"}
             aria-hidden="true"
           >
-            {isOpen ? 'expand_more' : 'chevron_right'}
+            {isOpen ? "expand_more" : "chevron_right"}
           </span>
         )}
 
-        {type === 'tasks' && (
+        {type === "tasks" && (
           <input
             id={`task-${id}-done`}
             name={`task-${id}-done`}
@@ -64,16 +64,16 @@ export default function TaskRow({
             checked={item.done}
             onChange={() => handleToggle(id)}
             className="task-checkbox"
-            title={item.done ? 'Mark as incomplete' : 'Mark as complete'}
+            title={item.done ? "Mark as incomplete" : "Mark as complete"}
           />
         )}
 
         <span
           className="task-title"
-          onClick={() => (type === 'tasks' ? setEditorTaskId(id) : undefined)}
+          onClick={() => (type === "tasks" ? setEditorTaskId(id) : undefined)}
           style={{
-            cursor: type === 'tasks' ? 'pointer' : 'default',
-            textDecoration: item.done ? 'line-through' : undefined,
+            cursor: type === "tasks" ? "pointer" : "default",
+            textDecoration: item.done ? "line-through" : undefined,
           }}
         >
           {item.text}
@@ -86,8 +86,8 @@ export default function TaskRow({
           <span
             className="task-date"
             style={{
-              color: isPast ? 'red' : undefined,
-              fontSize: '0.95em',
+              color: isPast ? "red" : undefined,
+              fontSize: "0.95em",
             }}
           >
             {/* show full text by default, fall back to short form in tight layouts */}
@@ -95,12 +95,10 @@ export default function TaskRow({
               <>
                 <span className="full">
                   {isPast
-                    ? 'overdue'
-                    : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+                    ? "overdue"
+                    : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
                 </span>
-                <span className="short">
-                  {isPast ? 'OD' : `${daysLeft}d`}
-                </span>
+                <span className="short">{isPast ? "OD" : `${daysLeft}d`}</span>
               </>
             )}
           </span>
@@ -109,25 +107,37 @@ export default function TaskRow({
 
       {/* right group: notify avatars, star, delete */}
       <div className="right-group">
-        {type === 'tasks' && (item.people || []).length > 0 && (
-          <div className="notify-people" title={(item.people || []).map(p => p.name).join(', ')}>
-            {((item.people || []).slice(0,2)).map(p => (
-              <div key={p.name} className="avatar small">{p.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase()}</div>
+        {type === "tasks" && (item.people || []).length > 0 && (
+          <div
+            className="notify-people"
+            title={(item.people || []).map((p) => p.name).join(", ")}
+          >
+            {(item.people || []).slice(0, 2).map((p) => (
+              <div key={p.name} className="avatar small">
+                {p.name
+                  .split(" ")
+                  .map((s) => s[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
+              </div>
             ))}
             {(item.people || []).length > 2 && (
-              <div className="people-count">+{(item.people || []).length - 2}</div>
+              <div className="people-count">
+                +{(item.people || []).length - 2}
+              </div>
             )}
           </div>
         )}
-        {type === 'tasks' && (
+        {type === "tasks" && (
           <button
-            className={item.favorite ? 'star favorite' : 'star'}
-            title={item.favorite ? 'Unstar' : 'Star'}
+            className={item.favorite ? "star favorite" : "star"}
+            title={item.favorite ? "Unstar" : "Star"}
             onClick={() => handleStar(id)}
-            aria-label={item.favorite ? 'Unstar' : 'Star'}
+            aria-label={item.favorite ? "Unstar" : "Star"}
           >
             <span className="material-icons">
-              {item.favorite ? 'star' : 'star_border'}
+              {item.favorite ? "star" : "star_border"}
             </span>
           </button>
         )}

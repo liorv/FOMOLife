@@ -1,14 +1,14 @@
-import React from 'react';
+import React from "react";
 
 // A simple horizontal bar that sits at the top of the app and contains the
 // FOMO logo plus, optionally, a search field.  It is kept dumb so the
 // parent manages the query state and decides when the search box should be
 // shown (currently only on the tasks view).
 export default function LogoBar({
-  searchQuery = '',
+  searchQuery = "",
   onSearchChange = () => {},
   showSearch = false,
-  logoUrl = '/assets/logo_fomo.png',
+  logoUrl = "/assets/logo_fomo.png",
   // filters is an array of strings: any of 'completed'|'overdue'
   filters = [],
   onToggleFilter = () => {},
@@ -33,7 +33,7 @@ export default function LogoBar({
         <div className="mid-row top" />
         <div className="mid-row center">
           {showSearch && (
-            <div className="search-container" style={{ position: 'relative' }}>
+            <div className="search-container" style={{ position: "relative" }}>
               <div className="search-inner">
                 <span className="material-icons search-icon" aria-hidden="true">
                   search
@@ -45,13 +45,13 @@ export default function LogoBar({
                   className="title-search"
                   placeholder="Search tasks…"
                   value={searchQuery}
-                  onChange={e => onSearchChange(e.target.value)}
+                  onChange={(e) => onSearchChange(e.target.value)}
                   aria-label="Search tasks"
                 />
                 <span
                   className="material-icons filter-icon"
                   aria-hidden="true"
-                  onClick={() => setFilterOpen(f => !f)}
+                  onClick={() => setFilterOpen((f) => !f)}
                   data-testid="filter-button"
                 >
                   filter_list
@@ -59,10 +59,16 @@ export default function LogoBar({
 
                 {filterOpen && (
                   <div className="filter-popup" data-testid="filter-popup">
-                    <div className="filter-pill completed" onClick={() => handleSelect('completed')}>
+                    <div
+                      className="filter-pill completed"
+                      onClick={() => handleSelect("completed")}
+                    >
                       Completed
                     </div>
-                    <div className="filter-pill overdue" onClick={() => handleSelect('overdue')}>
+                    <div
+                      className="filter-pill overdue"
+                      onClick={() => handleSelect("overdue")}
+                    >
                       Overdue
                     </div>
                   </div>
@@ -74,10 +80,12 @@ export default function LogoBar({
         <div className="mid-row bottom">
           {filters.length > 0 && (
             <div className="active-filters">
-              {filters.map(f => (
+              {filters.map((f) => (
                 <span key={f} className={`active-filter ${f}`}>
-                  {f === 'completed' ? 'Completed' : 'Overdue'}{' '}
-                  <span className="clear-filter" onClick={() => clearOne(f)}>&times;</span>
+                  {f === "completed" ? "Completed" : "Overdue"}{" "}
+                  <span className="clear-filter" onClick={() => clearOne(f)}>
+                    &times;
+                  </span>
                 </span>
               ))}
             </div>

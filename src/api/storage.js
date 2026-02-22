@@ -2,26 +2,30 @@
 // executing on the server.  guarding the require calls keeps Webpack
 // from trying to bundle `fs`/`path` for the client side.
 let fs, path;
-if (typeof window === 'undefined') {
-  fs = require('fs');
-  path = require('path');
+if (typeof window === "undefined") {
+  fs = require("fs");
+  path = require("path");
 }
 
 // Internal constant used when running in the browser
-const STORAGE_KEY = 'fomo_life_data';
+const STORAGE_KEY = "fomo_life_data";
 
 // helpers to decide which backing store to talk to.
 // - isServer: running in Node (no window object)
 // - shouldUseLocalStorage: explicitly force the old browser/localStorage
 //   behavior, used during tests so they stay fast and don't hit the API.
-const isServer = typeof window === 'undefined';
-const shouldUseLocalStorage = !isServer && process.env.NODE_ENV === 'test';
+const isServer = typeof window === "undefined";
+const shouldUseLocalStorage = !isServer && process.env.NODE_ENV === "test";
 
 // When running on the server we keep a JSON file under /data.  This
 // mirrors the shape of the object that the old localStorage-based
 // helper returned, so the rest of the app doesn't need to change.
-const DATA_DIR = typeof window === 'undefined' ? path.join(process.cwd(), 'data') : null;
-const DATA_FILE = typeof window === 'undefined' ? path.join(DATA_DIR, 'fomo_life_data.json') : null;
+const DATA_DIR =
+  typeof window === "undefined" ? path.join(process.cwd(), "data") : null;
+const DATA_FILE =
+  typeof window === "undefined"
+    ? path.join(DATA_DIR, "fomo_life_data.json")
+    : null;
 
 function ensureDataDir() {
   if (!fs) return;
@@ -30,7 +34,7 @@ function ensureDataDir() {
   }
 }
 
-const DEFAULT_USER = 'default';
+const DEFAULT_USER = "default";
 
 function dataFileFor(userId) {
   if (!fs) return null;
@@ -47,11 +51,11 @@ function readFile(userId) {
     if (!fs.existsSync(file)) {
       return null;
     }
-    const raw = fs.readFileSync(file, 'utf8');
+    const raw = fs.readFileSync(file, "utf8");
     return JSON.parse(raw);
   } catch (e) {
     // swallow errors and fall back to empty object
-    console.error('storage.readFile failed', e);
+    console.error("storage.readFile failed", e);
     return null;
   }
 }
@@ -61,9 +65,9 @@ function writeFile(data, userId) {
   try {
     ensureDataDir();
     const file = dataFileFor(userId);
-    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");
   } catch (e) {
-    console.error('storage.writeFile failed', e);
+    console.error("storage.writeFile failed", e);
   }
 }
 
@@ -87,7 +91,14 @@ export async function loadData(userId) {
   if (shouldUseLocalStorage) {
     const key = STORAGE_KEY + `_${id}`;
     try {
-      return JSON.parse(localStorage.getItem(key)) || { tasks: [], projects: [], dreams: [], people: [] };
+      return (
+        JSON.parse(localStorage.getItem(key)) || {
+          tasks: [],
+          projects: [],
+          dreams: [],
+          people: [],
+        }
+      );
     } catch {
       return { tasks: [], projects: [], dreams: [], people: [] };
     }
@@ -98,7 +109,14 @@ export async function loadData(userId) {
   try {
     const res = await fetch(`/api/storage?userId=${encodeURIComponent(id)}`);
     if (res.ok) {
-      return (await res.json()) || { tasks: [], projects: [], dreams: [], people: [] };
+      return (
+        (await res.json()) || {
+          tasks: [],
+          projects: [],
+          dreams: [],
+          people: [],
+        }
+      );
     }
   } catch (e) {
     // ignore and fall through to localStorage fallback
@@ -106,7 +124,14 @@ export async function loadData(userId) {
 
   const key = STORAGE_KEY + `_${id}`;
   try {
-    return JSON.parse(localStorage.getItem(key)) || { tasks: [], projects: [], dreams: [], people: [] };
+    return (
+      JSON.parse(localStorage.getItem(key)) || {
+        tasks: [],
+        projects: [],
+        dreams: [],
+        people: [],
+      }
+    );
   } catch {
     return { tasks: [], projects: [], dreams: [], people: [] };
   }
@@ -134,8 +159,8 @@ export async function saveData(data, userId) {
   // attempt to store via API
   try {
     await fetch(`/api/storage?userId=${encodeURIComponent(id)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data }),
     });
     return;
@@ -162,8 +187,10 @@ export async function clearData(userId) {
         // considered disposable during testing and should not be
         // preserved by global helpers.
         if (id === DEFAULT_USER) {
-          const bak = file + '.bak';
-          try { fs.copyFileSync(file, bak); } catch {}
+          const bak = file + ".bak";
+          try {
+            fs.copyFileSync(file, bak);
+          } catch {}
         }
         fs.unlinkSync(file);
       }
@@ -181,7 +208,7 @@ export async function clearData(userId) {
 
   try {
     await fetch(`/api/storage?userId=${encodeURIComponent(id)}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return;
   } catch (e) {
@@ -198,7 +225,7 @@ export async function restoreData(userId) {
   if (!isServer) return;
   try {
     const file = dataFileFor(id);
-    const bak = file + '.bak';
+    const bak = file + ".bak";
     if (fs.existsSync(bak)) {
       fs.copyFileSync(bak, file);
       fs.unlinkSync(bak);
@@ -219,8 +246,10 @@ export async function backupAllData() {
   try {
     const defaultFile = dataFileFor(DEFAULT_USER);
     if (fs.existsSync(defaultFile)) {
-      const dest = defaultFile + '.orig';
-      try { fs.copyFileSync(defaultFile, dest); } catch {}
+      const dest = defaultFile + ".orig";
+      try {
+        fs.copyFileSync(defaultFile, dest);
+      } catch {}
     }
   } catch {
     // ignore
@@ -231,7 +260,7 @@ export async function restoreAllData() {
   if (!isServer) return;
   ensureDataDir();
   try {
-    const defaultOrig = dataFileFor(DEFAULT_USER) + '.orig';
+    const defaultOrig = dataFileFor(DEFAULT_USER) + ".orig";
     if (fs.existsSync(defaultOrig)) {
       const target = defaultOrig.slice(0, -5);
       try {

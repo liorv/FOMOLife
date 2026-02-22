@@ -1,7 +1,7 @@
-import React from 'react';
-import Task from './Task';
-import Person from './Person';
-import TaskEditor from './TaskModal';
+import React from "react";
+import Task from "./Task";
+import Person from "./Person";
+import TaskEditor from "./TaskModal";
 
 // TaskList serves as the generic list renderer for both tasks and people.
 // When `type` is "people" we render <Person /> rows and wire the
@@ -14,7 +14,7 @@ export default function TaskList({
   type,
   editorTaskId,
   setEditorTaskId,
-  handleToggle,          // used for task checkbox or person default toggle
+  handleToggle, // used for task checkbox or person default toggle
   handleStar,
   handleDelete,
   // task-editor props (only relevant when type === 'tasks')
@@ -35,9 +35,9 @@ export default function TaskList({
 }) {
   return (
     <>
-      {items.map(item => {
+      {items.map((item) => {
         const id = item.id;
-        if (type === 'people') {
+        if (type === "people") {
           return (
             <Person
               key={id}
@@ -49,7 +49,9 @@ export default function TaskList({
               setEditingPersonName={setEditingPersonName}
               onSaveEdit={onSaveEdit}
               onCancelEdit={onCancelEdit}
-              handleTogglePersonDefault={handleTogglePersonDefault || handleToggle}
+              handleTogglePersonDefault={
+                handleTogglePersonDefault || handleToggle
+              }
               handleDelete={handleDelete}
               asRow={true}
             />
@@ -73,7 +75,7 @@ export default function TaskList({
           />
         );
 
-        if (type === 'tasks' && editorTaskId === id) {
+        if (type === "tasks" && editorTaskId === id) {
           // render the task row with the editor nested inside the same <li>
           const editor = (
             <div key={`${id}-editor`} className="task-editor-wrapper">

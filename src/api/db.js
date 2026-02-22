@@ -1,20 +1,20 @@
-import { loadData as rawLoad, saveData as rawSave } from './storage';
+import { loadData as rawLoad, saveData as rawSave } from "./storage";
 
 // default namespace used when no userId is provided
-const DEFAULT_USER = 'default';
+const DEFAULT_USER = "default";
 
 // generate a UUID; uses the Web Crypto API in browsers and Node 14+ but
 // falls back to a simple polyfill when unavailable.  The exact format is
 // not critical for this mock implementation, but it gives us unique
 // identifiers that look realistic.
 function generateId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   // fallback: relatively random hex string
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -26,9 +26,9 @@ function generateId() {
 // structure so that subsequent loads are fast.
 function ensureIds(data) {
   let changed = false;
-  ['tasks', 'projects', 'dreams', 'people'].forEach(type => {
+  ["tasks", "projects", "dreams", "people"].forEach((type) => {
     if (!Array.isArray(data[type])) data[type] = [];
-    data[type] = data[type].map(item => {
+    data[type] = data[type].map((item) => {
       if (!item.id) {
         changed = true;
         return { ...item, id: generateId() };
@@ -68,7 +68,7 @@ export async function getAll(type, userId) {
 
 export async function getById(type, id, userId) {
   const arr = await getAll(type, userId || DEFAULT_USER);
-  return arr.find(i => i.id === id) || null;
+  return arr.find((i) => i.id === id) || null;
 }
 
 /**
@@ -97,7 +97,7 @@ export async function update(type, id, changes, userId) {
   const data = await loadData(uid);
   const arr = data[type] || [];
   let found = false;
-  const newArr = arr.map(i => {
+  const newArr = arr.map((i) => {
     if (i.id === id) {
       found = true;
       return { ...i, ...changes, id };
@@ -107,14 +107,14 @@ export async function update(type, id, changes, userId) {
   if (!found) return null;
   data[type] = newArr;
   saveData(data, uid);
-  return newArr.find(i => i.id === id);
+  return newArr.find((i) => i.id === id);
 }
 
 export async function remove(type, id, userId) {
   const uid = userId || DEFAULT_USER;
   const data = await loadData(uid);
   const arr = data[type] || [];
-  const newArr = arr.filter(i => i.id !== id);
+  const newArr = arr.filter((i) => i.id !== id);
   if (newArr.length === arr.length) return false;
   data[type] = newArr;
   saveData(data, uid);
