@@ -8,6 +8,15 @@ export default function AddBar({
   onDueDateChange,
   onAdd,
 }) {
+  // clicking the calendar icon will focus (or showPicker) the hidden date input
+  const openDatePicker = () => {
+    const el = document.getElementById('addbar-date');
+    if (el) {
+      if (el.showPicker) el.showPicker();
+      else el.focus();
+    }
+  };
+
   return (
     <div className="add-bar">
       <input
@@ -17,13 +26,18 @@ export default function AddBar({
         onKeyDown={e => e.key === 'Enter' && onAdd()}
       />
       {type === 'tasks' && (
-        <input
-          type="date"
-          value={dueDate}
-          onChange={e => onDueDateChange(e.target.value)}
-          className="due-date-input"
-          title="Due date"
-        />
+        <>
+          <input
+            id="addbar-date"
+            type="date"
+            value={dueDate}
+            onChange={e => onDueDateChange(e.target.value)}
+            className="due-date-input hidden"
+          />
+          <button type="button" className="calendar-button" onClick={openDatePicker} title="Select due date">
+            <span className="material-icons">calendar_today</span>
+          </button>
+        </>
       )}
       <button onClick={onAdd}>Add</button>
     </div>
