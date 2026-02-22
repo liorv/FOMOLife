@@ -70,8 +70,13 @@ export default function TaskList({
             handleToggle={handleToggle}
             handleStar={handleStar}
             handleDelete={handleDelete}
-          >
-            {type === 'tasks' && editorTaskId === id && (
+          />
+        );
+
+        if (type === 'tasks' && editorTaskId === id) {
+          // render the task row followed by a sibling editor list item
+          const editorLi = (
+            <li key={`${id}-editor`} className="editor-panel">
               <TaskEditor
                 task={item}
                 onSave={onEditorSave}
@@ -82,14 +87,9 @@ export default function TaskList({
                 onCreatePerson={onCreatePerson}
                 inline={true}
               />
-            )}
-          </Task>
-        );
-
-        if (type === 'tasks' && editorTaskId === id) {
-          // previously we returned two array items; now that the editor is
-          // a child we can just return the row itself
-          return row;
+            </li>
+          );
+          return [row, editorLi];
         }
 
         return row;

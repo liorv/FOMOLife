@@ -3,7 +3,7 @@ import TaskRow from './TaskRow';
 
 export default function Task({ item, id, type, editorTaskId, setEditorTaskId, handleToggle, handleStar, handleDelete, children }) {
   return (
-    <li className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskId === id ? ' editing' : ''}`}>
+    <li className={`${item.done ? 'done' : ''}${type === 'tasks' && editorTaskId === id ? ' editing-header' : ''}`}>
       {/* header area – sits at top of container, now delegated to TaskRow */}
       <div className="task-header">
         <TaskRow

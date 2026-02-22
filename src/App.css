@@ -29,8 +29,9 @@
 
 /* inline version of editor also uses a gap so sections are evenly spaced */
 .inline-editor {
-  /* match side-editor so inline editors are clearly visible */
-  background: #eef6ff;
+  /* inline editor background: pale gray so it reads as a distinct panel */
+  background: #f5f6f8;
+  color: #202124;
   border-radius: 6px;
   box-shadow: none; /* flush with row */
   padding: 12px;
@@ -39,6 +40,21 @@
   flex-direction: column;
   gap: 12px;
 }
+
+/* keep form controls readable on dark background by giving them a light surface */
+.inline-editor input,
+.inline-editor textarea,
+.inline-editor .task-title-input,
+.inline-editor .due-date-input,
+.inline-editor .person-chip,
+.inline-editor .task-person-list {
+  background: #ffffff;
+  color: #202124;
+  border-color: rgba(0,0,0,0.08);
+}
+
+.inline-editor .desc-label { color: #202124; }
+.inline-editor .material-icons { color: inherit; }
 .editor-actions {
   display: flex;
   gap: 12px;
@@ -191,7 +207,7 @@
    like a natural expansion. the padding is slightly reduced.
    description width limited to half the container in wide layouts.  */
 .inline-editor {
-  background: var(--surface);
+  background: inherit;
   border-radius: 6px;
   box-shadow: none; /* flush with row */
   padding: 12px;
@@ -1042,10 +1058,17 @@ body {
 
 /* when a task is open for editing, let the editor's background show
    by making the list item itself transparent and removing the shadow/border */
-.item-list li.editing {
-  background: transparent;
-  box-shadow: none;
-  border-bottom: none;
+.item-list li.editing-header {
+  /* header row when editor open should remain visually like other rows */
+}
+
+/* editor panel shown as a sibling list item */
+.item-list li.editor-panel {
+  background: #f5f6f8;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px #b6c6e61a;
+  padding: 12px;
+  margin-bottom: 2px;
 }
 
 .task-header {
