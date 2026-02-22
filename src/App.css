@@ -139,6 +139,15 @@
   .right-column {
     flex: 1 1 100%;
   }
+  /* hide avatars in the task row when there's insufficient space */
+  .task-row .notify-people {
+    display: none;
+  }
+  /* also hide date and favorite icons to prevent overlap */
+  .task-row .task-date,
+  .task-row .star {
+    display: none;
+  }
 }
 
 .left-column,
@@ -163,6 +172,13 @@
 /* inline editor uses same two-column layout; no stacking */
 .inline-editor .editor-columns {
   /* no special rules */
+}
+
+/* ensure expand of right column when space available */
+@media (min-width: 641px) {
+  .editor-columns {
+    flex-wrap: nowrap;
+  }
 }
 
 /* date input styling matches other fields */
@@ -720,6 +736,8 @@ body {
   display: flex;
   gap: 10px;
   margin-bottom: 22px;
+  flex-wrap: nowrap; /* never wrap button off screen */
+  overflow-x: auto; /* allow horizontal scroll if extremely narrow */
 }
 .add-bar input {
   flex: 1;
@@ -757,6 +775,8 @@ body {
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(60,64,67,0.08);
   transition: box-shadow 0.12s, transform 0.06s;
+  flex: none; /* prevents shrinking */
+  min-width: 70px;
 }
 .add-bar button:hover {
   box-shadow: 0 4px 12px rgba(26,115,232,0.12);
@@ -817,9 +837,11 @@ body {
   margin-left: auto;
 }
 
-/* make sure date container stretches to fill available middle space */
+/* make sure date container does not stretch, stays minimal */
 .date-container {
-  flex: 1;
+  flex: none;
+  width: auto;
+  max-width: 80px;
 }
 
 /* make buttons center their icon content */
@@ -830,8 +852,10 @@ body {
 }
 
 .date-container {
-  flex: 1;
+  flex: none;
   justify-content: center;
+  width: auto;
+  max-width: 80px;
 }
 
 /* make every column contents themselves a flexbox so icons/inputs center within the row */
@@ -849,6 +873,14 @@ body {
 .task-row .task-title-input,
 .task-row .task-date {
   line-height: 1;
+}
+
+.task-row .task-date {
+  max-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .task-row .task-title,
