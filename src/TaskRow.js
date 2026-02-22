@@ -84,7 +84,7 @@ export default function TaskRow({
 
       {/* middle group: date centered */}
       {item.dueDate && (
-        <div className="date-container" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+        <div className="date-container">
           <span
             className="task-date"
             style={{
@@ -92,7 +92,15 @@ export default function TaskRow({
               fontSize: '0.95em',
             }}
           >
-            {daysLeft !== null ? `${daysLeft}d` : ''}
+            {/* show full text by default, fall back to short form in tight layouts */}
+            {daysLeft !== null && (
+              <>
+                <span className="full">
+                  {`${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+                </span>
+                <span className="short">{`${daysLeft}d`}</span>
+              </>
+            )}
           </span>
         </div>
       )}

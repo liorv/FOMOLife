@@ -49,7 +49,9 @@ describe('TaskRow component', () => {
     expect(dateContainer).toBeTruthy();
     const date = dateContainer.querySelector('.task-date');
     // due 1/1/2020 with current 1/3/2020 yields -2 days
-    expect(date.textContent).toBe('-2d');
+    // full text should read "-2 days left"; short form "-2d" also present
+    expect(date.querySelector('.full').textContent).toBe('-2 days left');
+    expect(date.querySelector('.short').textContent).toBe('-2d');
     expect(date).toHaveStyle('color: rgb(255, 0, 0)');
     expect(date.parentElement).toHaveStyle('display: flex');
 
@@ -65,6 +67,28 @@ describe('TaskRow component', () => {
     expect(rightGroup.querySelectorAll('button').length).toBeGreaterThan(0);
     expect(container.querySelector('.task-checkbox').parentElement).toHaveStyle('align-items: center');
 
+    jest.useRealTimers();
+  });
+
+  test('shows correct text for future due date and pluralization', () => {
+    jest.useFakeTimers('modern');
+    jest.setSystemTime(new Date('2020-01-01')); // current date
+    const futureTask = { ...task, dueDate: '2020-01-04' }; // 3 days ahead
+    const { container } = render(
+      <TaskRow
+        item={futureTask}
+        id="row-1"
+        type="tasks"
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+      />
+    );
+    const date = container.querySelector('.task-date');
+    expect(date.querySelector('.full').textContent).toBe('3 days left');
+    expect(date.querySelector('.short').textContent).toBe('3d');
     jest.useRealTimers();
   });
 

@@ -104,13 +104,16 @@
   .task-row .notify-people {
     display: none;
   }
-  /* also hide date and favorite icons to prevent overlap */
-  .task-row .task-date,
-  .task-row .star {
-    display: none;
-  }
+  /* date and star remain visible; short text kicks in at 480px to save space */
   /* hide date selector in AddBar on narrow screens */
   .add-bar .due-date-input {
+    display: none;
+  }
+}
+
+/* at very narrow widths, hide the star to avoid crowded buttons */
+@media (max-width: 480px) {
+  .task-row .star {
     display: none;
   }
 }
@@ -880,11 +883,20 @@ body {
   margin-left: auto;
 }
 
-/* make sure date container does not stretch, stays minimal */
+/* style for date container: keep it a fixed-size column that can shrink
+   only to the size of the short indicator; title will take remaining space and
+   is allowed to compress first. */
 .date-container {
   flex: none;
-  width: auto;
-  max-width: 80px;
+  display: flex;
+  justify-content: center;
+  min-width: 3ch; /* ensure at least '0d' fits */
+}
+
+@media (max-width: 480px) {
+  .date-container {
+    min-width: 2ch;
+  }
 }
 
 /* make buttons center their icon content */
@@ -892,13 +904,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.date-container {
-  flex: none;
-  justify-content: center;
-  width: auto;
-  max-width: 80px;
 }
 
 /* make every column contents themselves a flexbox so icons/inputs center within the row */
@@ -918,18 +923,36 @@ body {
   line-height: 1;
 }
 
+/* date text: full string normally visible, abbreviated when space is tight */
+.task-date .short {
+  display: none;
+}
+@media (max-width: 480px) {
+  .task-date .full {
+    display: none;
+  }
+  .task-date .short {
+    display: inline;
+  }
+}
+
 .task-row .task-date {
-  max-width: 80px;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .task-row .task-title,
 .task-row .task-title-input {
-  flex: 1; /* allow title column to take remaining space */
+  flex: 1 1 0; /* grow and shrink; zero basis lets it compress fully */
+  min-width: 0; /* required so flex items can shrink below content size */
   text-align: left;
+}
+
+/* prevent title text from spilling out of the row; use ellipsis when too long */
+.task-row .task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .task-row .task-date {
   flex: none;
