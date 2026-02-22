@@ -1062,7 +1062,7 @@ body {
 
 /* when a task is open for editing, let the editor's background show
    by making the list item itself transparent and removing the shadow/border */
-.item-list li.editing-header {
+.item-list li.is-editing {
   /* header row when editor open should remain visually like other rows */
   margin-bottom: 0; /* keep list-item spacing handled visually by the editor */
   border-bottom: none; /* remove dividing line between header and editor */
@@ -1083,7 +1083,7 @@ body {
   border-left: 4px solid #60a5fa;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
-.item-list li.editing-header + li.editor-panel {
+.item-list li.is-editing + li.editor-panel {
   /* negate the parent .item-list gap so the editor visually attaches */
   margin-top: -8px; /* matches .item-list gap: 8px */
 }
@@ -1285,12 +1285,12 @@ body {
    right-column controls remain vertically aligned with the title. Keeping
    these rules together reduces scattered overrides and makes layout
    behavior easier to reason about. */
-.item-list li.editing-header .task-row,
-.item-list li.editing-header .task-row > *,
-.item-list li.editing-header .right-group {
+.item-list li.is-editing .task-row,
+.item-list li.is-editing .task-row > *,
+.item-list li.is-editing .right-group {
   align-items: center !important;
 }
-.item-list li.editing-header .notify-people {
+.item-list li.is-editing .notify-people {
   align-self: center !important;
   margin-top: 0;
 }
