@@ -632,8 +632,9 @@ body {
   background: var(--surface);
   border-radius: 12px;
   box-shadow: var(--elevation-1);
-  /* create extra space at top so tasks don’t overlap logo (approx 20% of 260px) */
-  padding: 80px 28px 28px 28px;
+  /* create extra space at top so tasks don’t overlap logo
+     adjust padding upward since logo is still intruding */
+  padding: 120px 28px 28px 28px;
   transition: box-shadow 0.2s;
   min-height: calc(100vh - 56px);
   display: flex;
@@ -646,10 +647,10 @@ body {
 /* Decorative, large splash logo that hangs out of the top-left of the container */
 .logo-splash {
   position: absolute;
-  top: -30px;          /* nudge upward so upper quarter is cropped */
+  top: -40px;          /* nudge further upward to crop more logo */
   left: 0;
-  width: 260px;        /* slightly larger for better composition */
-  height: 260px;
+  width: 200px;        /* shrink size so less of logo intrudes */
+  height: 200px;
   background-repeat: no-repeat;
   /* center horizontally (avoid right-side cut), shift up vertically to crop top */
   background-position: 50% -25%;
