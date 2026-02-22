@@ -647,7 +647,7 @@ body {
 /* Decorative, large splash logo that hangs out of the top-left of the container */
 .logo-splash {
   position: absolute;
-  top: -20px;          /* move down to reveal more of logo */
+  top: -4px;          /* move down further (~10% of 160px) to show more */
   left: 0;
   width: 160px;        /* 20% smaller than before */
   height: 160px;
