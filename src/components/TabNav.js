@@ -1,24 +1,25 @@
 import React from 'react';
 
 const tabs = [
-  { key: 'tasks', label: 'Tasks' },
-  { key: 'projects', label: 'Projects' },
-  { key: 'dreams', label: 'Dreams' },
-  { key: 'people', label: 'People' },
+  { key: 'tasks', label: 'Tasks', icon: 'check_circle' },
+  { key: 'projects', label: 'Projects', icon: 'folder' },
+  { key: 'dreams', label: 'Dreams', icon: 'lightbulb' },
+  { key: 'people', label: 'People', icon: 'people' },
 ];
 
 export default function TabNav({ active, onChange }) {
   return (
-    <div className="tabs">
+    <nav className="tabs" role="navigation">
       {tabs.map(t => (
         <button
           key={t.key}
           className={active === t.key ? 'active' : ''}
           onClick={() => onChange(t.key)}
         >
-          {t.label}
+          <span className="material-icons tab-icon">{t.icon}</span>
+          <span className="tab-label">{t.label}</span>
         </button>
       ))}
-    </div>
+    </nav>
   );
 }
