@@ -7,7 +7,7 @@
   padding: 0; /* no extra buffer */
 }
 .side-editor {
-  min-width: 200px;
+  /* min-width removed to allow extreme narrowing during testing */
   max-width: 420px;
   background: var(--surface);
   /* keep only right-hand rounding; top-left is flush with screen edge */
@@ -284,7 +284,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-width: 220px; /* make all person chips the same length */
+  /* min-width removed for testing */
   max-width: 260px;
 }
 .person-chip .person-name { flex: 1 1 auto; min-width: 0; } /* let name take remaining space */
@@ -372,7 +372,7 @@
   width: 100%;
   box-sizing: border-box;
 }
-.add-person-bar input { flex: 1 1 auto; min-width: 80px; box-sizing: border-box; }
+.add-person-bar input { flex: 1 1 auto; box-sizing: border-box; }
 
 .person-methods-inline { display: inline-flex; gap: 6px; margin-left: 8px; }
 .method-icon {
@@ -603,7 +603,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-width: 200px; /* prevent shrinking too far and losing logo */
+  /* min-width removed temporarily */
   width: 100%; /* ensure it takes full width of its flex space */
 }
 .container > * { position: relative; z-index: 1; }
@@ -642,13 +642,13 @@ body {
     align-items: stretch;
   }
   .container {
-    /* already squared off by default; ensure no rounding on narrow screens */
+    /* squared-off narrow layout; remove extra top padding */
     border-radius: 0;
     min-height: 60vh;
-    padding: 32px 12px 24px 12px;
+    padding: 0 12px 24px 12px;
   }
-  /* when container padding shrinks, push the sticky add-bar down accordingly */
-  .add-bar { top: 32px; }
+  /* adjust sticky offset to match removal above */
+  .add-bar { top: 0; }
   .side-editor {
     border-radius: 0 0 18px 18px;
     margin: 0;
@@ -785,7 +785,7 @@ body {
   /* when space is extremely tight we allow the field to collapse
      almost completely – a single character (≈one short word) is enough
      for the placeholder and keeps the button visible. */
-  min-width: 10ch;
+  /* temporary removal of min-width to allow collapse */
   padding: 12px 14px;
   border: 1px solid rgba(60,64,67,0.12);
   border-radius: 8px;
