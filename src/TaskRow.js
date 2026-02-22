@@ -28,23 +28,8 @@ export default function TaskRow({
   onTitleChange,
 }) {
   const isOpen = editorTaskIdx === idx;
-  const [localText, setLocalText] = React.useState(item.text);
   // determine if due date exists and is in the past
   const isPast = item.dueDate && new Date(item.dueDate) < new Date();
-
-  // keep local state in sync if parent updates the task text
-  React.useEffect(() => {
-    setLocalText(item.text);
-  }, [item.text]);
-
-  const handleTextInput = e => {
-    const val = e.target.value;
-    // only allow alphanumeric and space (validation from table)
-    if (/^[a-zA-Z0-9 ]*$/.test(val)) {
-      setLocalText(val);
-      if (onTitleChange) onTitleChange(val, idx);
-    }
-  };
 
   return (
     // container flex ensures left/middle/right segments and full width
@@ -76,25 +61,16 @@ export default function TaskRow({
           />
         )}
 
-        {isOpen ? (
-          <input
-            className="task-title-input"
-            value={localText}
-            onChange={handleTextInput}
-            pattern="[a-zA-Z0-9 ]+"
-          />
-        ) : (
-          <span
-            className="task-title"
-            onClick={() => (type === 'tasks' ? setEditorTaskIdx(idx) : undefined)}
-            style={{
-              cursor: type === 'tasks' ? 'pointer' : 'default',
-              textDecoration: item.done ? 'line-through' : undefined,
-            }}
-          >
-            {item.text}
-          </span>
-        )}
+        <span
+          className="task-title"
+          onClick={() => (type === 'tasks' ? setEditorTaskIdx(idx) : undefined)}
+          style={{
+            cursor: type === 'tasks' ? 'pointer' : 'default',
+            textDecoration: item.done ? 'line-through' : undefined,
+          }}
+        >
+          {item.text}
+        </span>
       </div>
 
       {/* middle group: date centered */}

@@ -94,31 +94,5 @@ describe('TaskRow component', () => {
     expect(leftgroup.querySelector('.expand-icon').textContent).toBe('expand_more');
   });
 
-  test('shows editable input when row is open and enforces validation', () => {
-    const editCallback = jest.fn();
-    const { container } = render(
-      <TaskRow
-        item={task}
-        idx={0}
-        type="tasks"
-        editorTaskIdx={0}
-        setEditorTaskIdx={setEditor}
-        handleToggle={handleToggle}
-        handleStar={handleStar}
-        handleDelete={handleDelete}
-        onTitleChange={editCallback}
-      />
-    );
-
-    const input = container.querySelector('input.task-title-input');
-    expect(input).toBeInTheDocument();
-    expect(input).toHaveAttribute('pattern', '[a-zA-Z0-9 ]+');
-
-    // type a valid character, callback should be invoked
-    fireEvent.change(input, { target: { value: 'a' } });
-    expect(editCallback).toHaveBeenCalledWith('a', 0);
-    // invalid character should be ignored (callback not called again)
-    fireEvent.change(input, { target: { value: 'a!' } });
-    expect(editCallback).toHaveBeenCalledTimes(1);
-  });
+  // inline editing has been removed; title remains read-only even when row is open
 });
