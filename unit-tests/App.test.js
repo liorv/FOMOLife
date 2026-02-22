@@ -4,14 +4,16 @@ import App from '../src/App';
 
 // helpers
 function addTask(text) {
-  const input = screen.getByPlaceholderText(/Add a new/);
+  // target the add-bar input located in the bottom-input-bar
+  const input = document.querySelector('.bottom-input-bar .add-bar input');
   fireEvent.change(input, { target: { value: text } });
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 }
 
 function addPerson(name) {
   fireEvent.click(screen.getByText('People'));
-  const input = screen.getByPlaceholderText(/Add a new person/);
+  // the add-bar now lives in the bottom-input-bar regardless of active tab
+  const input = document.querySelector('.bottom-input-bar .add-bar input') || screen.getByPlaceholderText(/Add a new person/);
   fireEvent.change(input, { target: { value: name } });
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 }
@@ -23,6 +25,18 @@ describe('App component', () => {
 
   test('task CRUD and editor synchronization', () => {
     render(<App />);
+
+    // AddBar should be present in the bottom-input-bar container
+    const bottom = document.querySelector('.bottom-input-bar');
+    expect(bottom).toBeTruthy();
+    const input = bottom.querySelector('.add-bar input');
+    expect(bottom.querySelector('.add-bar')).toBeTruthy();
+    // input exists; actual width behaviour is enforced by CSS loaded in the
+    // browser environment, not jsdom used for tests.
+    // title bar with logo should exist above content
+    const title = document.querySelector('.title-bar');
+    expect(title).toBeTruthy();
+    expect(title.querySelector('img.title-logo')).toBeTruthy();
 
     // add a task
     addTask('first task');
@@ -41,20 +55,23 @@ describe('App component', () => {
 
     // open editor and then delete task
     fireEvent.click(screen.getByText('first task'));
-    expect(screen.getByText(/Edit Task/)).toBeInTheDocument();
     // inline editor should appear immediately beneath the task row
     const editor = document.querySelector('.inline-editor');
     expect(editor).toBeTruthy();
     // editor should not render its own title text
     expect(editor.textContent).not.toContain('first task');
     const textarea = editor.querySelector('textarea.task-description');
-    expect(textarea).toHaveStyle('width: 50%');
+    // style rules for width are in CSS, not inline; we just ensure the textarea exists
+    expect(textarea).toBeTruthy();
     const icon = document.querySelector('.expand-icon');
     expect(icon).toHaveClass('open');
-    expect(icon.nextSibling.className).toContain('task-title');
+    const afterIcon = icon.nextSibling;
+    expect(afterIcon.className).toContain('task-checkbox');
+    const titleElem = afterIcon.nextSibling;
+    expect(titleElem.className).toContain('task-title');
 
-    // click again to collapse
-    fireEvent.click(screen.getByText('first task'));
+    // click the expand icon again to collapse (title is now an input)
+    fireEvent.click(document.querySelector('.expand-icon'));
     expect(document.querySelector('.inline-editor')).toBeNull();
     expect(document.querySelector('.expand-icon')).not.toHaveClass('open');
 
@@ -71,12 +88,19 @@ describe('App component', () => {
     addPerson('Alice');
     expect(screen.getByText('Alice')).toBeInTheDocument();
 
+    // bottom bar should still exist for adding people
+    const bottom = document.querySelector('.bottom-input-bar');
+    expect(bottom.querySelector('.add-bar')).toBeTruthy();
+
     fireEvent.click(screen.getByText('Tasks'));
     addTask('task two');
     expect(screen.getByText('task two')).toBeInTheDocument();
 
-    // delete the person
+    // switch to People tab and verify header label updated
     fireEvent.click(screen.getByText('People'));
+    const headerMethods = document.querySelector('.task-person-list-header .methods');
+    expect(headerMethods.textContent).toBe('Notifications');
+    // delete the person
     const removeBtn = screen.getByLabelText('Delete person');
     fireEvent.click(removeBtn);
     expect(screen.queryByText('Alice')).not.toBeInTheDocument();

@@ -15,8 +15,8 @@ describe('TaskEditor component', () => {
     // verify layout columns exist
     expect(container.querySelector('.editor-columns .left-column')).toBeTruthy();
     expect(container.querySelector('.editor-columns .right-column')).toBeTruthy();
-    // header text should reflect notification question
-    expect(container.querySelector('.task-person-list-header .methods').textContent).toBe('How do you want to notify them?');
+    // header text should now be the simplified label
+    expect(container.querySelector('.task-person-list-header .methods').textContent).toBe('Notifications');
 
     const titleInput = container.querySelector('input#task-title');
     expect(titleInput).toBeTruthy();

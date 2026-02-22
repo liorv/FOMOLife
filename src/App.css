@@ -3,19 +3,20 @@
   display: flex;
   gap: 24px;
   align-items: stretch;
-  min-height: 100vh;
-  padding: 28px;
+  height: 100vh; /* fill screen; fixed nav sits on top without affecting flow */
+  padding: 0; /* no extra buffer */
 }
 .side-editor {
-  min-width: 340px;
+  min-width: 200px;
   max-width: 420px;
   background: var(--surface);
-  border-radius: 12px;
+  /* keep only right-hand rounding; top-left is flush with screen edge */
+  border-radius: 0 12px 12px 0;
   box-shadow: var(--elevation-1);
   padding: 28px;
   margin: 0;
   position: relative;
-  height: calc(100vh - 56px);
+  height: 100%; /* fill the available vertical space of main-layout */
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -58,46 +59,6 @@
   height: 1.1em;
   accent-color: #2b6cb0;
   cursor: pointer;
-}
-/* Modal styles */
-.modal-backdrop {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #0007;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.modal {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 32px #0002;
-  padding: 28px 24px 18px 24px;
-  min-width: 320px;
-  max-width: 95vw;
-  min-height: 220px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal h2 {
-  margin-top: 0;
-  margin-bottom: 16px;
-  color: #2b6cb0;
-}
-.modal label {
-  display: block;
-  margin-top: 12px;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-.modal textarea {
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid rgba(60,64,67,0.12);
-  padding: 10px;
-  font-size: 0.98rem;
-  resize: vertical;
 }
 
 /* helper layout classes for editor sections */
@@ -179,7 +140,7 @@
 }
 
 /* ensure expand of right column when space available */
-@media (min-width: 641px) {
+@media (min-width: 0px) {
   .editor-columns {
     flex-wrap: nowrap;
   }
@@ -254,9 +215,9 @@
 /* wrapper around the inline editor when nested inside a task row */
 .task-editor-wrapper {
   width: 100%;
-  border-top: 1px solid rgba(60,64,67,0.1);
-  padding-top: 8px;
-  margin-top: 8px;
+  border-top: none; /* remove dividing line */
+  padding-top: 0;   /* eliminate top buffer */
+  margin-top: 0;    /* eliminate gap above */
   /* optional collapse animation via max-height */
   transition: max-height 0.2s ease;
   overflow: hidden;
@@ -282,6 +243,10 @@
   flex-wrap: nowrap;
   gap: 0; /* individual rows already manage their own borders/gaps */
   margin-bottom: 0;
+  /* behave like the task list: shrink to content and allow horizontal scroll when needed */
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: stretch;
 }
 /* in side-editor or inline-editor show people as full-width rows so icon columns align */
 .side-editor .people-list,
@@ -407,7 +372,7 @@
   width: 100%;
   box-sizing: border-box;
 }
-.add-person-bar input { flex: 1 1 auto; min-width: 160px; box-sizing: border-box; }
+.add-person-bar input { flex: 1 1 auto; min-width: 80px; box-sizing: border-box; }
 
 .person-methods-inline { display: inline-flex; gap: 6px; margin-left: 8px; }
 .method-icon {
@@ -451,9 +416,6 @@
   padding: 8px 14px;
   font-size: 1em;
   cursor: pointer;
-}
-.modal select {
-  display: none; /* replaced by clickable logos */
 }
 
 /* Notification section removed — methods are now per-person using the icons next to each name */
@@ -571,7 +533,6 @@
   font-size: 0.95rem;
 }
 
-.spacer { height: 18px; }
 
 /* Close (X) button at mid/bottom of side editor */
 .editor-close-btn {
@@ -588,13 +549,7 @@
   box-shadow: 0 6px 18px #00000010;
   transition: transform 0.12s, background 0.12s;
 }
-.editor-close-btn:hover { transform: translateY(-2px); background: #fff; }
-.modal-actions {
-  display: none; /* replaced by single X close in side editor */
-}
-
-/* done-btn no longer used in side editor; single close icon now handles saving */
-/* styles retained in case other components reference it */
+.editor-close-btn:hover { transform: translateY(-2px); background: #fff; }/* styles retained in case other components reference it */
 
 .item-list li .complete {
   background: none;
@@ -621,25 +576,35 @@ body {
   background: var(--bg);
   min-height: 100vh;
   color: #202124;
+  padding-bottom: 0; /* removed buffer — nav handled by layout */
+}
+
+/* wrapper containing top bar and content, sized between top and bottom chrome */
+.app-outer {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* take all available space in main-layout */
 }
 
 /* main content card */
 .container {
   position: relative; /* allow absolutely-positioned decorative splash */
   overflow: hidden; /* clip splash to the panel so corner-radius matches */
-  flex: 1 1 0;
+  flex: 1 1 auto; /* stretch to fill .app-outer remaining space */
   margin: 0;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: var(--elevation-1);
-  /* padding reduced to minimum needed for logo overlap clearance */
-  padding: 60px 28px 28px 28px;
+  /* removed padding – container touches app-outer edges */
+  padding: 0;
+  box-sizing: border-box; /* include padding in height computation */
   transition: box-shadow 0.2s;
-  min-height: auto; /* let container shrink to content height */
+  overflow-y: auto; /* scroll internally if content exceeds the allotted height */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-width: 320px; /* prevent shrinking too far and losing logo */
+  min-width: 200px; /* prevent shrinking too far and losing logo */
+  width: 100%; /* ensure it takes full width of its flex space */
 }
 .container > * { position: relative; z-index: 1; }
 
@@ -677,10 +642,13 @@ body {
     align-items: stretch;
   }
   .container {
-    border-radius: 18px 18px 0 0;
+    /* already squared off by default; ensure no rounding on narrow screens */
+    border-radius: 0;
     min-height: 60vh;
     padding: 32px 12px 24px 12px;
   }
+  /* when container padding shrinks, push the sticky add-bar down accordingly */
+  .add-bar { top: 32px; }
   .side-editor {
     border-radius: 0 0 18px 18px;
     margin: 0;
@@ -693,21 +661,7 @@ body {
   }
 }
 
-.app-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(60,64,67,0.08);
-  margin-bottom: 14px;
-}
-.app-logo { width: 36px; height: 36px; object-fit: contain; margin-right: 12px; }
-.app-title {
-  font-size: 1.28rem;
-  font-weight: 700;
-  color: var(--primary);
-  padding-left: 4px;
-}
+/* header removed, styles no longer needed */
 
 .tabs {
   display: flex;
@@ -747,25 +701,91 @@ body {
   color: var(--primary);
 }
 
+/* global input bar inserted above the fixed tab navigation */
+.bottom-input-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 60px; /* sit just above the tab nav (which is ~48px high plus padding) */
+  background: var(--surface);
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+  z-index: 20;
+}
+
+/* title bar across top, holds logo */
+.title-bar {
+  width: 100%;
+  background: var(--surface);
+  padding: 0; /* remove buffers around bar */
+  display: flex;
+  justify-content: flex-start; /* shift logo to left */
+  align-items: center;
+  box-shadow: var(--elevation-1);
+  z-index: 15;
+}
+.title-logo {
+  max-height: 120px; /* twice as big */
+  width: auto;
+}
+
+
+/* ensure AddBar inside bottom bar stretches to fill available space */
+.bottom-input-bar .add-bar {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0; /* AddBar defines its own padding */
+  position: static; /* disable sticky behavior when relocated */
+}
+
 .add-bar {
   display: flex;
   gap: 10px;
   margin-bottom: 22px;
   flex-wrap: nowrap; /* never wrap button off screen */
-  overflow-x: auto; /* allow horizontal scroll if extremely narrow */
-  position: sticky; /* stay visible at bottom */
-  bottom: 0;
+  overflow-x: visible; /* let outer container handle scrolling instead */
+  position: sticky; /* stay visible at top of list */
+  /* offset below container padding/logo so it never climbs over the graphic */
+  top: 60px;
   padding: 0 12px;
   background: var(--surface);
   z-index: 10;
 }
 
-/* small bottom padding for safety; AddBar is sticky */
+/* bottom padding ensures content doesn’t slide beneath the fixed nav bar */
 .container {
-  padding-bottom: 40px;
+  padding-bottom: 0; /* no bottom buffer */
+  margin-bottom: 0; /* keep no gap */
+}
+
+/* plus-button style inside add-bar */
+.add-bar .add-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* override generic padding applied later */
+  padding: 0 !important;
+}
+.add-bar .add-btn .material-icons {
+  font-size: 24px;
+  line-height: 1;
+}
+.add-bar .add-btn:hover {
+  background: #2563eb; /* slightly darker shade for hover */
 }
 .add-bar input {
   flex: 1;
+  /* when space is extremely tight we allow the field to collapse
+     almost completely – a single character (≈one short word) is enough
+     for the placeholder and keeps the button visible. */
+  min-width: 10ch;
   padding: 12px 14px;
   border: 1px solid rgba(60,64,67,0.12);
   border-radius: 8px;
@@ -775,24 +795,6 @@ body {
   box-shadow: inset 0 -1px 0 rgba(60,64,67,0.02);
 }
 
-.add-bar .hidden {
-  position: absolute;
-  width: 0;
-  height: 0;
-  border: none;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.calendar-button {
-  background: none;
-  border: none;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
 .add-bar input:focus {
   outline: none;
   border-color: var(--primary);
@@ -820,7 +822,7 @@ body {
   box-shadow: 0 1px 2px rgba(60,64,67,0.08);
   transition: box-shadow 0.12s, transform 0.06s;
   flex: none; /* prevents shrinking */
-  min-width: 70px;
+  min-width: 50px;
 }
 .add-bar button:hover {
   box-shadow: 0 4px 12px rgba(26,115,232,0.12);
@@ -831,11 +833,12 @@ body {
   list-style: none;
   padding: 0;
   margin: 0 auto;
-  /* shrink to fit children rather than stretching */
+  /* fill the available width and let rows stretch */
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: flex-start;
+  align-items: stretch; /* make each child take full width */
+  width: 100%;
   max-width: 100%;
 }
 .item-list li {
@@ -945,7 +948,7 @@ body {
 .item-list li:last-child {
   border-bottom: none;
 }
-.item-list li.done span {
+.item-list li.done .task-title {
   text-decoration: line-through;
   color: #b6b6b6;
 }
@@ -1016,7 +1019,7 @@ body {
 
 /* highlight only the header when a task is in editing state */
 .item-list li.editing .task-header {
-  background: linear-gradient(90deg,#fbfdff,#f3f9ff);
+  background: #e0f2ff; /* solid pale blue */
   /* clip to padding so header background doesn't bleed under borders */
   background-clip: padding-box;
   border-left: 4px solid #60a5fa;

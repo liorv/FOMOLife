@@ -143,7 +143,7 @@ export default function TaskEditor({ task, onSave, onClose, onUpdateTask = () =>
             <div className="people-list task-person-list">
               <div className="task-person-list-header" aria-hidden>
                 <div className="task-person-col name">Name</div>
-                <div className="task-person-col methods">How do you want to notify them?</div>
+                <div className="task-person-col methods">Notifications</div>
               </div>
           {people.map(p => (
             <div key={p.name} className="task-person-row">

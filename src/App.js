@@ -176,18 +176,20 @@ function App() {
 
   return (
     <div className="main-layout">
-      <div className="container">
-        <div className="logo-splash" aria-hidden="true" style={{ backgroundImage: `url(${logoUrl})` }} />
-        <div className="app-bar">
-          {/* header icon removed — splash art now serves as the primary brand artwork */}
+      {/* outer wrapper holds the top bar and container and fills available vertical space */}
+      <div className="app-outer">
+        {/* title bar containing the logo */}
+        <div className="title-bar">
+          <img src={logoUrl} alt="FOMO logo" className="title-logo" />
         </div>
-        <TabNav active={type} onChange={setType} />
+        <div className="container">
+          {/* decorative splash removed; logo now shown in title bar */}
 
         {type === 'people' ? (
           <div className="people-list task-person-list">
             <div className="task-person-list-header" aria-hidden>
               <div className="task-person-col name">Name</div>
-              <div className="task-person-col methods">Methods</div>
+              <div className="task-person-col methods">Notifications</div>
             </div>
             <TaskList
               items={data.people}
@@ -224,7 +226,10 @@ function App() {
             />
           </ul>
         )}
-        {/* add bar placed at bottom of list and stays visible (sticky) */}
+        </div>
+      </div>
+      {/* bottom‐aligned add bar; replicates original AddBar controls */}
+      <div className="bottom-input-bar">
         <AddBar
           type={type}
           input={input}
@@ -234,6 +239,7 @@ function App() {
           onAdd={handleAdd}
         />
       </div>
+      <TabNav active={type} onChange={setType} />
     </div>
   );
 }
