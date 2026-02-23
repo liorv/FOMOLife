@@ -982,15 +982,6 @@ body {
   /* debug mid-column bg applied on parent via nested selector */
 }
 
-/* debug color for mid column */
-.title-bar .mid-column {
-  background-color: rgba(0, 255, 0, 0.1); /* light green */
-}
-
-/* debug color for right column separate rule */
-.title-bar .right-column {
-  background-color: rgba(0, 0, 255, 0.1); /* light blue */
-}
 
 /* inner wrapper to constrain the search input width */
 .search-inner {
