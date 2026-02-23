@@ -20,6 +20,7 @@ export default function ProjectEditor({
   onCreatePerson = () => {},
   onOpenPeople = () => {},
   onAddSubproject = () => {},
+  onBack = () => {},
 }) {
   const [local, setLocal] = useState(() => ({
     ...project,
@@ -146,7 +147,6 @@ export default function ProjectEditor({
     onApplyChange(updated);
   };
 
-
   const handleTaskToggle = (subId, taskId) => {
     const updated = {
       ...local,
@@ -178,8 +178,6 @@ export default function ProjectEditor({
     setLocal(updated);
     onApplyChange(updated);
   };
-
-
 
   const handleTaskStar = (subId, taskId) => {
     const updated = {

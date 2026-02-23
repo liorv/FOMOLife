@@ -389,7 +389,7 @@ function App({ userId } = {}) {
             type === "projects" &&
             data.projects.find((p) => p.id === editingProjectId)?.text
           }
-          onBack={editingProjectId ? exitEditor : undefined}
+          onBack={editingProjectId && type === "projects" ? exitEditor : undefined}
           onLogoClick={editingProjectId && type === "projects" ? exitEditor : undefined}
           onTitleChange={
             editingProjectId

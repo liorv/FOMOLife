@@ -358,12 +358,12 @@ describe('App component', () => {
       expect(unnamedInputs.length).toBe(1);
     });
 
-    // the title bar should display a Done text button on the right
-    const doneBtn = screen.getByTitle('Done');
-    expect(doneBtn).toBeInTheDocument();
-    expect(doneBtn.textContent).toBe('Done');
+    // the title bar should display a Back to Projects button on the right
+    const backBtn = screen.getByTitle('Back to Projects');
+    expect(backBtn).toBeInTheDocument();
+    expect(backBtn.textContent).toBe('folderBack to Projects');
     await act(async () => {
-      fireEvent.click(doneBtn);
+      fireEvent.click(backBtn);
     });
     // after pressing done bar logo should reappear
     expect(screen.getByAltText('FOMO logo')).toBeInTheDocument();

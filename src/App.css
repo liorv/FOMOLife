@@ -1013,6 +1013,37 @@ body {
   padding: 4px;
 }
 
+/* Material Design back to projects button */
+.projects-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 24px;
+  padding: 8px 16px;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a73e8;
+  transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+.projects-button:hover {
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.16);
+  background-color: #f8f9fa;
+}
+
+.projects-button .material-icons {
+  font-size: 18px;
+}
+
+.projects-button .projects-label {
+  font-weight: 500;
+}
+
 .back-circle {
   display: inline-flex;
   align-items: center;

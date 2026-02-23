@@ -24,7 +24,7 @@ describe('LogoBar component', () => {
     expect(onLogo).toHaveBeenCalled();
   });
 
-  test('shows title and done button when editing', async () => {
+  test('shows title and back button when editing', async () => {
     const back = jest.fn();
     render(<LogoBar title="Project A" onBack={back} />);
     // logo should still be present
@@ -33,13 +33,13 @@ describe('LogoBar component', () => {
     // bar-title-text class)
     const titleElement = screen.getByText('Project A');
     expect(titleElement).toHaveClass('bar-title-text');
-    // Done button rendered in right column with text
-    const doneBtn = screen.getByTitle('Done');
-    expect(doneBtn).toBeInTheDocument();
-    expect(doneBtn).toHaveClass('done-button');
-    expect(doneBtn.textContent).toBe('Done');
+    // Back to Projects button rendered in right column with text
+    const backBtn = screen.getByTitle('Back to Projects');
+    expect(backBtn).toBeInTheDocument();
+    expect(backBtn).toHaveClass('projects-button');
+    expect(backBtn.textContent).toBe('folderBack to Projects');
     // clicking triggers callback
-    fireEvent.click(doneBtn);
+    fireEvent.click(backBtn);
     expect(back).toHaveBeenCalled();
   });
 
