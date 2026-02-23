@@ -168,6 +168,8 @@
   gap: 12px;
   box-sizing: border-box;
   /* add inner padding so contents never touch the neighbour column */
+  /* debug backgrounds */
+  background-color: rgba(255, 0, 0, 0.1); /* light red */
   padding: 0 12px;
 }
 
@@ -927,7 +929,13 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* center rows should stretch children; we'll override when necessary */
+  justify-content: stretch;
+}
+
+/* center row variant used by title-bar search area */
+.mid-row.center {
+  justify-content: stretch;
 }
 
 .title-logo {
@@ -941,19 +949,29 @@ body {
   padding-left: 0;
 }
 .search-container {
-  /* no absolute positioning: let the mid-row flex container control placement */
-  width: 100%;
+  /* let the container expand to fill available space and pass it along */
+  flex: 1 1 auto;
   display: flex;
-  justify-content: center;
+  justify-content: stretch; /* child will fill this container */
   /* inner wrapper still constrains to mid column via parent grid */
+  /* debug mid-column bg applied on parent via nested selector */
+}
+
+/* debug color for mid column */
+.title-bar .mid-column {
+  background-color: rgba(0, 255, 0, 0.1); /* light green */
+}
+
+/* debug color for right column separate rule */
+.title-bar .right-column {
+  background-color: rgba(0, 0, 255, 0.1); /* light blue */
 }
 
 /* inner wrapper to constrain the search input width */
 .search-inner {
   width: 100%;
-  /* fill the entire middle column without capping */
-  /* cap the visible search field so it doesn't stretch too wide */
-  max-width: 600px;
+  /* fill the entire middle column; no maximum so it stretches fully */
+  max-width: none; /* removed earlier 600px cap */
   min-width: 150px;
   position: relative; /* for icons/popup */
 }
