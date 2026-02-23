@@ -4,6 +4,8 @@ import TabNav from "./components/TabNav";
 import AddBar from "./components/AddBar";
 import LogoBar from "./components/LogoBar";
 import SearchTasks from "./components/SearchTasks";
+import ProjectTile, { PROJECT_COLORS } from "./components/ProjectTile";
+import ConfirmModal from "./components/ConfirmModal";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
 import * as db from "./api/db";
@@ -18,6 +20,12 @@ const logoUrl = "/assets/logo_fomo.png";
 // storage layer.  this makes it easy to replace the implementation with
 // a network service in the future.
 
+// helpers used solely within App
+function pickRandomColor() {
+  // simple random hex color; ensures 6 digits
+  return "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0");
+}
+
 function App({ userId } = {}) {
   // avoid accessing the persistence layer during render so server & client
   // markup match.  loadData is synchronous today but may become async
@@ -29,6 +37,7 @@ function App({ userId } = {}) {
     dreams: [],
     people: [],
   });
+  const [confirmingProjectId, setConfirmingProjectId] = useState(null);
   const initializedRef = useRef(false);
 
   // client-only hydration of persisted data.  we call the async db
@@ -99,7 +108,20 @@ function App({ userId } = {}) {
         );
         setData((prev) => ({ ...prev, people: [...prev.people, newPerson] }));
       }
+    } else if (type === "projects") {
+      // choose next unused color by cycling through PROJECT_COLORS in order
+      const len = (data.projects && data.projects.length) || 0;
+      const idx = len % PROJECT_COLORS.length;
+      const color = PROJECT_COLORS[idx];
+      const progress = Math.floor(Math.random() * 40) + 30;
+      const newProject = await db.create(
+        "projects",
+        { text: input, color, progress },
+        userId,
+      );
+      setData((prev) => ({ ...prev, projects: [...prev.projects, newProject] }));
     } else {
+      // fallback for dreams and other types
       const newItem = await db.create(
         type,
         { text: input, done: false },
@@ -297,7 +319,17 @@ function App({ userId } = {}) {
         <div className="container">
           {/* decorative splash removed; logo now shown in title bar */}
 
-          {type === "people" ? (
+          {type === "projects" ? (
+            <div className="projects-panel">
+              {data.projects.map((p) => (
+                <ProjectTile
+                  key={p.id}
+                  project={p}
+                  onDelete={() => setConfirmingProjectId(p.id)}
+                />
+              ))}
+            </div>
+          ) : type === "people" ? (
             <div className="people-list task-person-list">
               <div className="task-person-list-header" aria-hidden>
                 <div className="task-person-col name">Name</div>
@@ -372,6 +404,16 @@ function App({ userId } = {}) {
         />
       </div>
       <TabNav active={type} onChange={setType} />
+      {confirmingProjectId && (
+        <ConfirmModal
+          message="Are you sure you want to delete this project? This action cannot be undone."
+          onConfirm={async () => {
+            await handleDelete(confirmingProjectId);
+            setConfirmingProjectId(null);
+          }}
+          onCancel={() => setConfirmingProjectId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1058,8 +1058,67 @@ body {
   border-radius: 12px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background-color 0.2s;
 }
+
+/* confirmation dialog used for irreversible actions */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 90%;
+  width: 300px;
+  text-align: center;
+  box-shadow: var(--elevation-2);
+}
+
+.confirm-modal .warning-icon {
+  font-size: 3rem;
+  color: var(--danger-color, #d32f2f);
+  display: block;
+  margin: 0 auto 10px;
+}
+
+.confirm-modal .confirm-message {
+  margin-bottom: 16px;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.confirm-btn {
+  background: var(--danger-color, #d32f2f);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #ccc;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .filter-pill.completed {
   background: #2b6cb0; /* dark blue */
   color: white;
@@ -1217,6 +1276,103 @@ body {
   width: 100%;
   max-width: 100%;
 }
+
+/* project layout: grid of square tiles */
+.projects-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.project-tile {
+  position: relative;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--elevation-1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  /* give some breathing room around contents */
+  padding: 12px;
+  box-sizing: border-box;
+}
+.project-tile .project-strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background-color: var(--project-color, #000);
+}
+.project-tile .project-name {
+  /* horizontal padding removed because parent now provides it */
+  font-size: 1rem;
+  font-weight: 600;
+  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-tile .project-progress-container {
+  width: 100%;
+  height: 30px; /* even taller bar */
+  background: #e6e6e6;
+  border-radius: 7px; /* round container so progress is clipped */
+  overflow: hidden;
+  position: relative; /* for centered text */
+}
+.project-tile .project-progress {
+  height: 100%;
+  background: var(--project-color, var(--primary));
+  transition: width 0.3s ease;
+  border-radius: 7px 0 0 7px; /* round leading edge */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+/* percent label below progress bar; customizable via CSS vars */
+.project-tile .project-percent {
+  text-align: center;
+  color: #000;
+  font-size: var(--project-percent-size, 2rem);
+  font-family: var(--project-percent-font, inherit);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* previously progress-text inside bar is no longer used but keep for
+   backwards compatibility in case someone styled it */
+.project-tile .project-progress .progress-text {
+  display: none;
+}
+.project-tile .project-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  /* keep icons away from tile edges */
+  margin-top: 8px;
+}
+.project-tile .project-actions .material-icons {
+  cursor: pointer;
+  background: #aaa;
+  color: #fff;
+  border-radius: 50%;
+  padding: 4px;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.project-tile .material-icons {
+  cursor: pointer;
+}
+
 .item-list li {
   display: flex;
   flex-direction: column;
@@ -1480,3 +1636,13 @@ body {
   font-size: 0.95rem;
   word-break: break-word;
 }
+
+/* global default */
+.projects-panel .project-tile {
+  --project-tile-width: 250px;
+  --project-tile-height: 180px;
+}
+
+/* individual override */
+.tile-large { --project-tile-width: 320px; }
+.tile-short { --project-tile-height: 120px; }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import App from '../src/App';
+import { PROJECT_COLORS } from '../src/components/ProjectTile';
 
 // helpers
 function addTask(text) {
@@ -14,6 +15,13 @@ function addPerson(name) {
   fireEvent.click(screen.getByText('People'));
   // the add-bar now lives in the bottom-input-bar regardless of active tab
   const input = document.querySelector('.bottom-input-bar .add-bar input') || screen.getByPlaceholderText(/Add a new person/);
+  fireEvent.change(input, { target: { value: name } });
+  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+}
+
+function addProject(name) {
+  fireEvent.click(screen.getByText('Projects'));
+  const input = document.querySelector('.bottom-input-bar .add-bar input');
   fireEvent.change(input, { target: { value: name } });
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 }
@@ -248,6 +256,91 @@ describe('App component', () => {
     // storage should no longer contain the deleted item (others may remain)
     const afterDelete = await getAll('tasks');
     expect(afterDelete.some(t => t.text === 'first task')).toBe(false);
+  });
+
+  test('project tab shows tile with name, color and progress', async () => {
+    render(<App />);
+
+    // switch to projects
+    fireEvent.click(screen.getByText('Projects'));
+    addProject('Build rockets');
+    // expect tile appears
+    await screen.findByText('Build rockets');
+    const tile = screen.getByText('Build rockets').closest('.project-tile');
+    expect(tile).toBeTruthy();
+
+    // should persist project with color and progress fields
+    const { getAll } = require('../src/api/db');
+    const projects = await getAll('projects');
+    expect(projects.length).toBe(1);
+    expect(projects[0].text).toBe('Build rockets');
+    expect(typeof projects[0].progress).toBe('number');
+    expect(projects[0].progress).toBeGreaterThanOrEqual(30);
+    expect(projects[0].progress).toBeLessThanOrEqual(70);
+    // color may be null (generated later) but should exist as a key
+    expect('color' in projects[0]).toBe(true);
+    expect(typeof projects[0].color).toBe('string');
+    expect(projects[0].color).toMatch(/^#[0-9a-fA-F]{6}$/);
+    // first project should take the first color in the list
+    expect(projects[0].color).toBe(PROJECT_COLORS[0]);
+
+    // add second project and verify color rotates
+    addProject('Second project');
+    await screen.findByText('Second project');
+    const projects2 = await getAll('projects');
+    expect(projects2.length).toBe(2);
+    expect(projects2[1].color).toBe(PROJECT_COLORS[1]);
+
+    // check that progress bar exists in DOM and style has percentage
+    const progressEl = tile.querySelector('.project-progress');
+    expect(progressEl).toBeTruthy();
+    expect(progressEl.style.width).toMatch(/\d+%/);
+
+    // icons
+    expect(tile.querySelector('.edit-icon')).toBeTruthy();
+    expect(tile.querySelector('.delete-icon')).toBeTruthy();
+  });
+
+  test('deleting a project shows confirmation modal and removes when confirmed', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Projects'));
+    addProject('DeleteMe');
+    const tile = await screen.findByText('DeleteMe');
+    const projectTile = tile.closest('.project-tile');
+
+    // open confirm dialog
+    fireEvent.click(projectTile.querySelector('.delete-icon'));
+    const modal = document.querySelector('.confirm-modal');
+    expect(modal).toBeTruthy();
+    expect(modal.textContent).toContain('Are you sure you want to delete this project');
+    // confirm via button
+    const deleteBtn = modal.querySelector('.confirm-btn');
+    fireEvent.click(deleteBtn);
+    await waitFor(() => {
+      expect(screen.queryByText('DeleteMe')).not.toBeInTheDocument();
+    });
+    const { getAll } = require('../src/api/db');
+    const projects = await getAll('projects');
+    expect(projects.some(p => p.text === 'DeleteMe')).toBe(false);
+  });
+
+  test('cancelling project deletion leaves item intact', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Projects'));
+    addProject('KeepMe');
+    const tile = await screen.findByText('KeepMe');
+    const projectTile = tile.closest('.project-tile');
+
+    // open modal and cancel
+    fireEvent.click(projectTile.querySelector('.delete-icon'));
+    const modal = document.querySelector('.confirm-modal');
+    expect(modal).toBeTruthy();
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    fireEvent.click(cancelBtn);
+    expect(screen.getByText('KeepMe')).toBeInTheDocument();
+    const { getAll } = require('../src/api/db');
+    const projects = await getAll('projects');
+    expect(projects.some(p => p.text === 'KeepMe')).toBe(true);
   });
 
   test('people management does not corrupt tasks', async () => {
