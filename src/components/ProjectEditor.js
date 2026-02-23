@@ -128,6 +128,11 @@ export default function ProjectEditor({
   };
 
   const addTask = (subId, text = "") => {
+    // prevent creating tasks with no name (or only whitespace)
+    if (!text || text.trim() === "") {
+      return;
+    }
+
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {

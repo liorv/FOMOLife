@@ -71,4 +71,24 @@ describe('ProjectEditor', () => {
     const taskInput = document.getElementById('new-task-sub1');
     expect(taskInput).toBeInTheDocument();
   });
+
+  test('does not add task without a name', () => {
+    const props = {
+      ...defaultProps,
+      project: {
+        ...defaultProps.project,
+        subprojects: [{ id: 'sub1', text: 'foo', tasks: [], newTaskText: '' }],
+      },
+    };
+    render(<ProjectEditor {...props} />);
+    const input = document.getElementById('new-task-sub1');
+    // pressing enter when empty should not create a task
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(document.querySelectorAll('.project-editor .task-row').length).toBe(0);
+    // typing whitespace and clicking add should also do nothing
+    fireEvent.change(input, { target: { value: '   ' } });
+    const addBtn = document.querySelector('.add-task-btn');
+    fireEvent.click(addBtn);
+    expect(document.querySelectorAll('.project-editor .task-row').length).toBe(0);
+  });
 });
