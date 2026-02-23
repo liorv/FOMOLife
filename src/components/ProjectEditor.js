@@ -29,6 +29,10 @@ export default function ProjectEditor({
       : [],
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  // using a ref instead of state for cooldown avoids triggering updates that
+  // cause warnings in tests (setTimeout would update state outside of act).
+  const addingRef = React.useRef(false);
   // hover state for subprojects no longer needed; delete button is always visible
   const handleSetEditorId = (id) => {
     setEditorTaskId((prev) => (prev === id ? null : id));
@@ -197,32 +201,34 @@ export default function ProjectEditor({
   };
 
   return (
-    <div className="project-editor">
+    <div className="project-editor" style={{ position: 'relative' }}>
       {/* project editor now owns its own floating add button; caller should
           not render the global bottom input bar when this component is shown */}
       {(local.subprojects || []).map((sub, idx, arr) => {
         const isLast = idx === arr.length - 1;
+        const collapsed = sub.collapsed;
         return (
-          <details
+          <div
             key={sub.id}
-            open={!sub.collapsed}
-            className="subproject"
+            className={"subproject" + (collapsed ? " collapsed" : "")}
           >
-            <summary className="subproject-summary">
+            <div className="subproject-summary">
               <button
                 className="collapse-btn"
                 onClick={(e) => {
                   e.preventDefault();
                   toggleSubCollapse(sub.id);
                 }}
-                title={sub.collapsed ? "Show tasks" : "Hide tasks"}
+                title={collapsed ? "Show tasks" : "Hide tasks"}
               >
                 <span className="material-icons">
-                  {sub.collapsed ? "expand_more" : "expand_less"}
+                  {collapsed ? "expand_more" : "expand_less"}
                 </span>
               </button>
               <input
+                id={`subproject-name-${sub.id}`}
                 className="subproject-name-input"
+                name="subproject-name"
                 placeholder="Please name the subproject"
                 value={sub.text}
                 onChange={(e) => updateSubText(sub.id, e.target.value)}
@@ -234,59 +240,94 @@ export default function ProjectEditor({
               >
                 <span className="material-icons">close</span>
               </button>
-            </summary>
-            <div className="subproject-body">
-              <div className="subproject-tasks">
-                <div className="add-task-row">
-                <input
-                  className="new-task-input"
-                  placeholder="New task"
-                  value={sub.newTaskText || ""}
-                  onChange={(e) => updateSubNewTask(sub.id, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      addTask(sub.id, sub.newTaskText || "");
-                    }
-                  }}
-                />
-                <button
-                  className="add-task-btn"
-                  onClick={() => addTask(sub.id, sub.newTaskText || "")}
-                  title="Add task"
-                >
-                  Add
-                </button>
-              </div>
-              <ul className="item-list">
-                <TaskList
-                  items={sub.tasks || []}
-                  type="tasks"
-                  editorTaskId={editorTaskId}
-                  setEditorTaskId={handleSetEditorId}
-                  handleToggle={(taskId) => handleTaskToggle(sub.id, taskId)}
-                  handleStar={(taskId) => handleTaskStar(sub.id, taskId)}
-                  handleDelete={(taskId) => handleTaskDelete(sub.id, taskId)}
-                  onEditorSave={handleEditorSave(sub.id)}
-                  onEditorUpdate={handleEditorUpdate(sub.id)}
-                  onEditorClose={handleEditorClose}
-                  allPeople={allPeople}
-                  onOpenPeople={onOpenPeople}
-                  onCreatePerson={onCreatePerson}
-                />
-              </ul>
             </div>
+            {!collapsed && (
+              <div className="subproject-body">
+                <div className="subproject-tasks">
+                  <div className="add-task-row">
+                    <input
+                      id={`new-task-${sub.id}`}
+                      className="new-task-input"
+                      name="new-task"
+                      placeholder="New task"
+                      value={sub.newTaskText || ""}
+                      onChange={(e) => updateSubNewTask(sub.id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          addTask(sub.id, sub.newTaskText || "");
+                        }
+                      }}
+                    />
+                    <button
+                      className="add-task-btn"
+                      onClick={() => addTask(sub.id, sub.newTaskText || "")}
+                      title="Add task"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <ul className="item-list">
+                    <TaskList
+                      items={sub.tasks || []}
+                      type="tasks"
+                      editorTaskId={editorTaskId}
+                      setEditorTaskId={handleSetEditorId}
+                      handleToggle={(taskId) => handleTaskToggle(sub.id, taskId)}
+                      handleStar={(taskId) => handleTaskStar(sub.id, taskId)}
+                      handleDelete={(taskId) => handleTaskDelete(sub.id, taskId)}
+                      onEditorSave={handleEditorSave(sub.id)}
+                      onEditorUpdate={handleEditorUpdate(sub.id)}
+                      onEditorClose={handleEditorClose}
+                      allPeople={allPeople}
+                      onOpenPeople={onOpenPeople}
+                      onCreatePerson={onCreatePerson}
+                    />
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
-          </details>
         );
       })}
       {/* replicates the FAB formerly living in the global bottom bar */}
       <button
         className="fab"
-        onClick={() => onAddSubproject("")}
-        title="Add subproject"
+        onClick={() => setFabMenuOpen(!fabMenuOpen)}
+        title={fabMenuOpen ? "Close menu" : "Add subproject"}
       >
-        <span className="material-icons">add</span>
+        <span className="material-icons">{fabMenuOpen ? "close" : "add"}</span>
       </button>
+      {fabMenuOpen && (
+        <div className="fab-menu" role="menu">
+          <button
+            className="fab-small"
+            onClick={() => {
+              setFabMenuOpen(false);
+            }}
+            title="AI assisted subproject"
+          >
+            <span className="material-icons">auto_awesome</span>
+            <span className="fab-label">AI assisted project design</span>
+          </button>
+          <button
+            className="fab-small"
+            onClick={() => {
+              if (!addingRef.current) {
+                addingRef.current = true;
+                onAddSubproject("");
+                setFabMenuOpen(false);
+                setTimeout(() => {
+                  addingRef.current = false;
+                }, 500);
+              }
+            }}
+            title="Add manual subproject"
+          >
+            <span className="material-icons">edit</span>
+            <span className="fab-label">Add subproject</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

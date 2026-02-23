@@ -50,7 +50,9 @@ export default function LogoBar({
             <span className="bar-title" onClick={handleTitleClick}>
               {editing ? (
                 <input
+                  id="project-title-input"
                   className="bar-title-input"
+                  name="project-title"
                   value={draftTitle}
                   onChange={(e) => setDraftTitle(e.target.value)}
                   onBlur={finishEdit}
@@ -78,7 +80,9 @@ export default function LogoBar({
             aria-label="Back to Projects"
           >
             <span className="material-icons">folder</span>
-            <span className="projects-label">Back to Projects</span>
+            <span className="projects-label" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+            Back to Projects
+          </span>
           </button>
         )}
       </div>

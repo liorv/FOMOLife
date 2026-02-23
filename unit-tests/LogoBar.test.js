@@ -38,6 +38,9 @@ describe('LogoBar component', () => {
     expect(backBtn).toBeInTheDocument();
     expect(backBtn).toHaveClass('projects-button');
     expect(backBtn.textContent).toBe('folderBack to Projects');
+    // label should not be allowed to collapse under flexbox pressure
+    const label = backBtn.querySelector('.projects-label');
+    expect(label).toHaveStyle({ flexShrink: 0, whiteSpace: 'nowrap' });
     // clicking triggers callback
     fireEvent.click(backBtn);
     expect(back).toHaveBeenCalled();
@@ -52,6 +55,8 @@ describe('LogoBar component', () => {
     fireEvent.click(titleSpan);
     const input = document.querySelector('.bar-title-input');
     expect(input).toBeInTheDocument();
+    // input should carry the accessibility id we added
+    expect(input.id).toBe('project-title-input');
     // change the text and press Enter
     fireEvent.change(input, { target: { value: 'World' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
@@ -62,5 +67,17 @@ describe('LogoBar component', () => {
     expect(document.querySelector('.bar-title-input')).toBeNull();
     render(<LogoBar title="World" onTitleChange={change} />);
     expect(screen.getByText('World')).toBeInTheDocument();
+  });
+
+  test('label disappears at 400px breakpoint', () => {
+    const back = jest.fn();
+    window.innerWidth = 400;
+    window.dispatchEvent(new Event('resize'));
+    render(<LogoBar title="Project B" onBack={back} />);
+    const backBtn = screen.getByTitle('Back to Projects');
+    // the icon should still be present but the label removed
+    expect(backBtn.textContent).toBe('folder');
+    const label = backBtn.querySelector('.projects-label');
+    expect(label).toBeNull();
   });
 });
