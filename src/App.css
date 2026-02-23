@@ -942,6 +942,23 @@ body {
 .search-tasks {
   flex: 1 1 auto;     /* grow to fill the mid-row space */
   display: flex;      /* make it a flex container so the inner child can flex */
+  flex-direction: column; /* stack search box and active pills vertically */
+  align-items: stretch;
+}
+
+/* active filters should be slightly smaller and not stretch the row */
+.active-filter {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;       /* reduce size */
+  padding: 2px 6px;        /* tighter padding */
+}
+
+.active-filters {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-start; /* align to left underneath search */
+  margin-top: 2px;
 }
 
 .title-logo {
