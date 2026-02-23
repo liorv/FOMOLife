@@ -78,7 +78,8 @@ export default function LogoBar({
           )}
         </div>
         <div className="mid-row bottom">
-          {filters.length > 0 && (
+          {/* only show active pills when the search box is visible (i.e. tasks view) */}
+          {showSearch && filters.length > 0 && (
             <div className="active-filters">
               {filters.map((f) => (
                 <span key={f} className={`active-filter ${f}`}>

@@ -258,10 +258,15 @@ function App({ userId } = {}) {
     return list;
   })();
 
-  // reset search when switching away from tasks
+  // reset search and active filters when switching away from tasks
   useEffect(() => {
-    if (type !== "tasks" && searchQuery) {
-      setSearchQuery("");
+    if (type !== "tasks") {
+      if (searchQuery) {
+        setSearchQuery("");
+      }
+      if (filters.length) {
+        setFilters([]);
+      }
     }
   }, [type]);
 
