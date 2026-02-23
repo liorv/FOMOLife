@@ -710,18 +710,18 @@
   height: 48px;
   border-radius: 999px;
   border: none;
-  background: #f1f5f9;
+  background: transparent; /* start with no visible circle */
   color: #374151;
   font-size: 18px;
   cursor: pointer;
-  box-shadow: 0 6px 18px #00000010;
+  box-shadow: none;
   transition:
     transform 0.12s,
     background 0.12s;
 }
 .editor-close-btn:hover {
   transform: translateY(-2px);
-  background: #fff;
+  background: #f1f5f9; /* light gray filled circle on hover */
 } /* styles retained in case other components reference it */
 
 .item-list li .complete {
@@ -1106,7 +1106,7 @@ body {
      with a hover-visible X icon; styles below replicate task-row's delete
      button behavior for the summary header. */
 .subproject-summary .delete {
-  background: #eee;
+  background: transparent; /* hide circle until hover */
   color: #555;
   border-radius: 50%;
   padding: 4px;
@@ -1119,13 +1119,20 @@ body {
   transition: opacity 0.2s, visibility 0.2s;
 }
 .subproject-summary .delete.visible,
-.subproject-summary:hover .delete {
+.subproject-summary:hover .delete,
+/* show when hovering anywhere in the subproject block */
+.subproject:hover .delete {
   opacity: 1;
   visibility: visible;
 }
+
 .subproject-name-input {
   /* width removed to avoid overflowing flex container; flex rules govern size */
   box-sizing: border-box;
+}
+/* light background circle on hover for extra affordance */
+.subproject .delete:hover {
+  background: #eee;
 }
 .add-task-row {
   display: flex;
@@ -1871,7 +1878,7 @@ body {
    only appears when the row is hovered.  JS also toggles a "visible" class
    so we can test the behaviour with jsdom. */
 .task-row .delete {
-  background: #eee;
+  background: transparent; /* no circle until hover */
   color: #555;
   border-radius: 50%;
   padding: 4px;
@@ -1882,6 +1889,9 @@ body {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s, visibility 0.2s;
+}
+.task-row .delete:hover {
+  background: #eee;
 }
 .task-row .delete.visible,
 .task-row:hover .delete {

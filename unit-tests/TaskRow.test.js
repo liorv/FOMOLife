@@ -61,6 +61,8 @@ describe('TaskRow component', () => {
 
     const deleteBtn = container.querySelector('.delete');
     expect(deleteBtn).toBeInTheDocument();
+    // button background should not yet be the hover color (#eee)
+    expect(getComputedStyle(deleteBtn).backgroundColor).not.toBe('rgb(238, 238, 238)');
     // should not be visible by default (JS will add the class when hovered)
     expect(deleteBtn).not.toHaveClass('visible');
 

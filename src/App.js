@@ -40,6 +40,8 @@ function App({ userId } = {}) {
   });
   const [confirmingProjectId, setConfirmingProjectId] = useState(null);
   const [editingProjectId, setEditingProjectId] = useState(null);
+  // track if a blank subproject is pending additions to avoid races
+  const pendingBlankSubRef = useRef(false);
   
   // helper to exit editing mode, removing any unnamed subprojects first
   const exitEditor = async () => {
@@ -128,7 +130,10 @@ function App({ userId } = {}) {
     ) {
       return;
     }
-    // create new subproject; name may be blank
+    // mark pending if blank being added (prevents back-to-back clicks)
+    if (!name.trim()) {
+      pendingBlankSubRef.current = true;
+    }
     const newSub = {
       id: generateId(),
       text: (name || "").trim(),
@@ -424,6 +429,13 @@ function App({ userId } = {}) {
               <ProjectEditor
                 project={data.projects.find((p) => p.id === editingProjectId)}
                 onApplyChange={(updated) => {
+                  // if any unnamed subprojects removed or named, clear pending flag
+                  if (updated.subprojects) {
+                    const hasBlank = updated.subprojects.some(
+                      (s) => !s.text || s.text.trim() === ""
+                    );
+                    pendingBlankSubRef.current = hasBlank;
+                  }
                   db.update("projects", editingProjectId, updated, userId);
                   setData((prev) => ({
                     ...prev,
