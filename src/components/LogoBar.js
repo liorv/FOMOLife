@@ -8,8 +8,29 @@ export default function LogoBar({
   logoUrl = "/assets/logo_fomo.png",
   title, // when provided, show instead of logo/search
   onBack, // invoked when back button is pressed
+  onTitleChange, // optional callback when title is edited inline
   children,
 }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState(title || "");
+
+  React.useEffect(() => {
+    setDraftTitle(title || "");
+  }, [title]);
+
+  const finishEdit = () => {
+    setEditing(false);
+    if (onTitleChange && draftTitle !== title) {
+      onTitleChange(draftTitle);
+    }
+  };
+
+  const handleTitleClick = () => {
+    if (onTitleChange) {
+      setEditing(true);
+    }
+  };
+
   return (
     <div className="title-bar">
       <div className="left-column">
@@ -20,16 +41,20 @@ export default function LogoBar({
         <div className="mid-row top" />
         <div className="mid-row center">
           {title ? (
-            <span className="bar-title">
-              {title}
-              {onBack && (
-                <button
-                  className="back-circle"
-                  onClick={onBack}
-                  title="Back"
-                >
-                  <span className="material-icons">arrow_back</span>
-                </button>
+            <span className="bar-title" onClick={handleTitleClick}>
+              {editing ? (
+                <input
+                  className="bar-title-input"
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  onBlur={finishEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") finishEdit();
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <span className="bar-title-text">{title}</span>
               )}
             </span>
           ) : (
@@ -38,7 +63,17 @@ export default function LogoBar({
         </div>
         <div className="mid-row bottom" />
       </div>
-      <div className="right-column" />
+      <div className="right-column">
+        {onBack && (
+          <button
+            className="check-circle"
+            onClick={onBack}
+            title="Done"
+          >
+            <span className="material-icons">check</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -59,8 +59,18 @@ describe('TaskRow component', () => {
     // notify avatars exist and should appear before star
     expect(container.querySelector('.notify-people')).toBeInTheDocument();
 
+    const deleteBtn = container.querySelector('.delete');
+    expect(deleteBtn).toBeInTheDocument();
+    // should not be visible by default (JS will add the class when hovered)
+    expect(deleteBtn).not.toHaveClass('visible');
+
+    // simulate hover and ensure the visibility class gets toggled
+    fireEvent.mouseOver(container.querySelector('.task-row'));
+    expect(deleteBtn).toHaveClass('visible');
+    fireEvent.mouseOut(container.querySelector('.task-row'));
+    expect(deleteBtn).not.toHaveClass('visible');
+
     expect(container.querySelector('.star')).toBeInTheDocument();
-    expect(container.querySelector('.delete')).toBeInTheDocument();
     // right-group should exist (CSS handles pushing it right)
     const rightGroup = container.querySelector('.right-group');
     expect(rightGroup).toBeTruthy();

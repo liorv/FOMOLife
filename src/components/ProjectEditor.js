@@ -23,10 +23,11 @@ export default function ProjectEditor({
   const [local, setLocal] = useState(() => ({
     ...project,
     subprojects: project.subprojects
-      ? project.subprojects.map((s) => ({ ...s, collapsed: false }))
+      ? project.subprojects.map((s) => ({ ...s, collapsed: false, newTaskText: "" }))
       : [],
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
+  const [hoveredSub, setHoveredSub] = useState(null); // track which subproject header is hovered
   const handleSetEditorId = (id) => {
     setEditorTaskId((prev) => (prev === id ? null : id));
   };
@@ -66,15 +67,12 @@ export default function ProjectEditor({
   useEffect(() => {
     setLocal({
       ...project,
-      subprojects: project.subprojects ? [...project.subprojects] : [],
+      subprojects: project.subprojects
+        ? project.subprojects.map((s) => ({ ...s, newTaskText: "" }))
+        : [],
     });
   }, [project]);
 
-  const updateField = (changes) => {
-    const updated = { ...local, ...changes };
-    setLocal(updated);
-    onApplyChange(updated);
-  };
 
 
   const deleteSubproject = (id) => {
@@ -100,9 +98,14 @@ export default function ProjectEditor({
   const toggleSubCollapse = (id) => {
     const updated = {
       ...local,
-      subprojects: (local.subprojects || []).map((s) =>
-        s.id === id ? { ...s, collapsed: !s.collapsed } : s,
-      ),
+      subprojects: (local.subprojects || []).map((s) => {
+        if (s.id === id) {
+          // flip the clicked one
+          return { ...s, collapsed: !s.collapsed };
+        }
+        // collapse all others unconditionally
+        return { ...s, collapsed: true };
+      }),
     };
     setLocal(updated);
     onApplyChange(updated);
@@ -118,14 +121,14 @@ export default function ProjectEditor({
     setLocal(updated);
   };
 
-  const addTask = (subId) => {
+  const addTask = (subId, text = "") => {
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {
         if (s.id !== subId) return s;
         const newTask = {
           id: generateId(),
-          text: "",
+          text,
           done: false,
           dueDate: null,
           favorite: false,
@@ -134,6 +137,7 @@ export default function ProjectEditor({
         return {
           ...s,
           tasks: [...(s.tasks || []), newTask],
+          newTaskText: "",
         };
       }),
     };
@@ -195,21 +199,18 @@ export default function ProjectEditor({
 
   return (
     <div className="project-editor">
-      <div className="editor-section">
-        <label htmlFor="proj-name-input">Project Name</label>
-        <input
-          id="proj-name-input"
-          className="proj-name-input"
-          value={local.text || ""}
-          onChange={(e) => updateField({ text: e.target.value })}
-        />
-      </div>
       {/* input bar at bottom will handle new subproject names */}
       {/* preserve spacing if desired by keeping an empty section or remove entirely */}
       {(local.subprojects || []).map((sub, idx, arr) => {
         const isLast = idx === arr.length - 1;
         return (
-          <details key={sub.id} open={!sub.collapsed}>
+          <details
+            key={sub.id}
+            open={!sub.collapsed}
+            className="subproject"
+            onMouseEnter={() => setHoveredSub(sub.id)}
+            onMouseLeave={() => setHoveredSub(null)}
+          >
             <summary className="subproject-summary">
               <button
                 className="collapse-btn"
@@ -225,26 +226,40 @@ export default function ProjectEditor({
               </button>
               <input
                 className="subproject-name-input"
-                placeholder="Subproject name"
+                placeholder="Please name the subproject"
                 value={sub.text}
                 onChange={(e) => updateSubText(sub.id, e.target.value)}
               />
               <button
-                className="delete-subproj-inline"
+                className={hoveredSub === sub.id ? "delete visible" : "delete"}
                 onClick={() => deleteSubproject(sub.id)}
                 title="Delete subproject"
               >
-                <span className="material-icons">delete</span>
+                <span className="material-icons">close</span>
               </button>
             </summary>
-            <div className="subproject-tasks">
-              <button
-                className="add-task-btn"
-                onClick={() => addTask(sub.id)}
-                title="Add task"
-              >
-                Task
-              </button>
+            <div className="subproject-body">
+              <div className="subproject-tasks">
+                <div className="add-task-row">
+                <input
+                  className="new-task-input"
+                  placeholder="New task"
+                  value={sub.newTaskText || ""}
+                  onChange={(e) => updateSubNewTask(sub.id, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      addTask(sub.id, sub.newTaskText || "");
+                    }
+                  }}
+                />
+                <button
+                  className="add-task-btn"
+                  onClick={() => addTask(sub.id, sub.newTaskText || "")}
+                  title="Add task"
+                >
+                  Add
+                </button>
+              </div>
               <ul className="item-list">
                 <TaskList
                   items={sub.tasks || []}
@@ -263,6 +278,7 @@ export default function ProjectEditor({
                 />
               </ul>
             </div>
+          </div>
           </details>
         );
       })}

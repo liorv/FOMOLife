@@ -40,8 +40,31 @@ function App({ userId } = {}) {
   });
   const [confirmingProjectId, setConfirmingProjectId] = useState(null);
   const [editingProjectId, setEditingProjectId] = useState(null);
-  // input for adding subprojects while editing
-  const [newSubName, setNewSubName] = useState("");
+  
+  // helper to exit editing mode, removing any unnamed subprojects first
+  const exitEditor = async () => {
+    if (editingProjectId) {
+      const project = data.projects.find((p) => p.id === editingProjectId);
+      if (project && project.subprojects) {
+        const cleaned = project.subprojects.filter(
+          (s) => s.text && s.text.trim() !== ""
+        );
+        if (cleaned.length !== project.subprojects.length) {
+          await db.update("projects", editingProjectId, { subprojects: cleaned }, userId);
+          setData((prev) => ({
+            ...prev,
+            projects: prev.projects.map((pr) =>
+              pr.id === editingProjectId ? { ...pr, subprojects: cleaned } : pr
+            ),
+          }));
+        }
+      }
+    }
+    setEditingProjectId(null);
+  };
+  // state placeholder previously reserved for subproject input; no longer needed
+  // (subproject names start empty and are edited inline)  
+
   const initializedRef = useRef(false);
 
   // client-only hydration of persisted data.  we call the async db
@@ -94,12 +117,24 @@ function App({ userId } = {}) {
     });
   };
 
-  const handleAddSubproject = async (name) => {
-    const text = (name || "").trim();
-    if (!text || !editingProjectId) return;
+  const handleAddSubproject = async (name = "") => {
+    if (!editingProjectId) return;
     const project = data.projects.find((p) => p.id === editingProjectId);
     if (!project) return;
-    const newSub = { id: generateId(), text, tasks: [], collapsed: false };
+    // avoid inserting another unnamed subproject
+    if (
+      project.subprojects &&
+      project.subprojects.some((s) => !s.text || s.text.trim() === "")
+    ) {
+      return;
+    }
+    // create new subproject; name may be blank
+    const newSub = {
+      id: generateId(),
+      text: (name || "").trim(),
+      tasks: [],
+      collapsed: false,
+    };
     const updatedSubs = [...(project.subprojects || []), newSub];
     await db.update("projects", editingProjectId, { subprojects: updatedSubs }, userId);
     setData((prev) => ({
@@ -349,8 +384,21 @@ function App({ userId } = {}) {
             type === "projects" &&
             data.projects.find((p) => p.id === editingProjectId)?.text
           }
-          onBack={
-            editingProjectId ? () => setEditingProjectId(null) : undefined
+          onBack={editingProjectId ? exitEditor : undefined}
+          onTitleChange={
+            editingProjectId
+              ? (newText) => {
+                  const id = editingProjectId;
+                  // update persistent storage and in-memory state
+                  db.update('projects', id, { text: newText }, userId);
+                  setData((prev) => ({
+                    ...prev,
+                    projects: prev.projects.map((p) =>
+                      p.id === id ? { ...p, text: newText } : p,
+                    ),
+                  }));
+                }
+              : undefined
           }
         >
           {type === "tasks" && !editingProjectId && (
@@ -485,15 +533,17 @@ function App({ userId } = {}) {
       {/* bottom‐aligned add bar; replicates original AddBar controls */}
       <div className="bottom-input-bar">
         {editingProjectId ? (
-          <AddBar
-            type="subprojects"
-            input={newSubName}
-            onInputChange={setNewSubName}
-            onAdd={async () => {
-              await handleAddSubproject(newSubName);
-              setNewSubName("");
+          <button
+            className="fab"
+            onClick={async () => {
+              // create a new, blank subproject; placeholder text in editor
+              // will prompt the user to name it.
+              await handleAddSubproject("");
             }}
-          />
+            title="Add subproject"
+          >
+            <span className="material-icons">add</span>
+          </button>
         ) : (
           <AddBar
             type={type}

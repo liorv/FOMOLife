@@ -971,6 +971,25 @@ body {
 .bar-title {
   font-size: 1.25rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center; /* ensure back button and text are vertically centered */
+  gap: 4px;
+}
+
+/* text span separate so clicks on button don't trigger edit */
+.bar-title-text {
+  cursor: pointer;
+}
+
+/* input used when editing title inline */
+.bar-title-input {
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 2px 4px;
+  border: 1px solid rgba(60,64,67,0.3);
+  border-radius: 4px;
+  height: 32px;             /* match back-circle height */
+  box-sizing: border-box;
 }
 
 /* simple icon button used for back arrow */
@@ -999,6 +1018,24 @@ body {
 }
 .back-circle .material-icons {
   font-size: 20px;
+}
+
+/* done/check icon in right column when editing project */
+.check-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  width: 56px;      /* match FAB size */
+  height: 56px;
+  border-radius: 50%;
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.check-circle .material-icons {
+  font-size: 24px;
 }
 
 /* project editor layout */
@@ -1049,6 +1086,9 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 12px;
+  background: #f0f0f0;
+  border-radius: 8px 8px 0 0;
 }
 .collapse-btn {
   background: none;
@@ -1062,24 +1102,29 @@ body {
 }
 .subproject-summary input {
   flex: 1;
-}
-.delete-subproj-inline {
-  background: #e53e3e;
-  color: #fff;
-  border: none;
-  width: 32px;
-  height: 32px;
+}/* previous inline deletion button for subprojects has been replaced
+     with a hover-visible X icon; styles below replicate task-row's delete
+     button behavior for the summary header. */
+.subproject-summary .delete {
+  background: #eee;
+  color: #555;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px;
+  margin-left: 8px;
+  font-size: 1.1rem;
   cursor: pointer;
+  /* hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
 }
-.delete-subproj-inline .material-icons {
-  font-size: 20px;
+.subproject-summary .delete.visible,
+.subproject-summary:hover .delete {
+  opacity: 1;
+  visibility: visible;
 }
 .subproject-name-input {
-  width: 100%;
+  /* width removed to avoid overflowing flex container; flex rules govern size */
   box-sizing: border-box;
 }
 .add-task-row {
@@ -1103,20 +1148,70 @@ body {
 }
 
 /* project editor task button and row spacing */
-.project-editor .add-task-btn {
-  background: #2b6cb0;
-  color: #fff;
+/* icon button that lives in the subproject summary */
+.subproject-summary .add-task-btn {
+  background: none;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 4px;
   cursor: pointer;
-  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+}
+
+.subproject-summary .add-task-btn .material-icons {
+  font-size: 1.25rem;
+  color: #2b6cb0;
 }
 
 /* make sure task list inside project editor is at least full width so
    right‑hand controls don't wrap or get clipped */
 .project-editor ul.item-list {
   min-width: 100%;
+}
+
+/* FAB used when editing inside a project */
+.fab {
+  position: fixed;
+  bottom: 80px; /* above tab nav */
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2b6cb0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* subtle, spread shadow rather than harsh border */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  z-index: 30;
+}
+.fab:focus {
+  outline: none;
+}
+.fab .material-icons {
+  font-size: 24px;
+}
+
+/* subproject container styling to visually group tasks as part of the
+   subproject card */
+.project-editor details.subproject {
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.project-editor details.subproject .subproject-body {
+  padding: 8px 12px;
+  background: #fff;
+  /* indent inner content to feel subordinate */
+  padding-left: 24px;
 }
 
 /* prevent task rows from shrinking; allow horizontal scroll of full content */
@@ -1757,6 +1852,7 @@ body {
   color: #2563eb;
 }
 .item-list li .delete {
+  /* default styling for generic list deletions (projects/people) */
   background: none;
   border: none;
   color: #e53e3e;
@@ -1770,6 +1866,29 @@ body {
 .item-list li .delete:hover {
   background: #ffe5e5;
 }
+
+/* task rows get a completely different delete button: gray circle that
+   only appears when the row is hovered.  JS also toggles a "visible" class
+   so we can test the behaviour with jsdom. */
+.task-row .delete {
+  background: #eee;
+  color: #555;
+  border-radius: 50%;
+  padding: 4px;
+  margin-left: 10px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  /* hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+.task-row .delete.visible,
+.task-row:hover .delete {
+  opacity: 1;
+  visibility: visible;
+}
+
 
 /* new columns inside task row */
 .task-date {

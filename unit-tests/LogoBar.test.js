@@ -16,18 +16,42 @@ describe('LogoBar component', () => {
     expect(document.querySelector('.filter-icon')).toBeNull();
   });
 
-  test('shows title and back button when editing', () => {
+  test('shows title and done/check button when editing', async () => {
     const back = jest.fn();
     render(<LogoBar title="Project A" onBack={back} />);
     // logo should still be present
     expect(screen.getByAltText('FOMO logo')).toBeInTheDocument();
-    // title should appear
-    expect(screen.getByText('Project A')).toHaveClass('bar-title');
-    // back button rendered next to title and styled circular
-    const backBtn = screen.getByTitle('Back');
-    expect(backBtn).toBeInTheDocument();
-    expect(backBtn).toHaveClass('back-circle');
-    fireEvent.click(backBtn);
+    // title should appear centered (text lives inside a span with the
+    // bar-title-text class)
+    const titleElement = screen.getByText('Project A');
+    expect(titleElement).toHaveClass('bar-title-text');
+    // done/check button rendered in right column and styled circular
+    const doneBtn = screen.getByTitle('Done');
+    expect(doneBtn).toBeInTheDocument();
+    expect(doneBtn).toHaveClass('check-circle');
+    // clicking back is synchronous; no special act needed
+    fireEvent.click(doneBtn);
     expect(back).toHaveBeenCalled();
+  });
+
+  test('title becomes editable when clicked and commits changes', () => {
+    const change = jest.fn();
+    render(<LogoBar title="Hello" onTitleChange={change} />);
+    const titleSpan = screen.getByText('Hello');
+    expect(titleSpan).toBeInTheDocument();
+    // clicking the title enters edit mode
+    fireEvent.click(titleSpan);
+    const input = document.querySelector('.bar-title-input');
+    expect(input).toBeInTheDocument();
+    // change the text and press Enter
+    fireEvent.change(input, { target: { value: 'World' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    // callback should have been called with new value
+    expect(change).toHaveBeenCalledWith('World');
+    // after commit the input should disappear; the component itself
+    // still renders the original prop, so we update it to simulate parent
+    expect(document.querySelector('.bar-title-input')).toBeNull();
+    render(<LogoBar title="World" onTitleChange={change} />);
+    expect(screen.getByText('World')).toBeInTheDocument();
   });
 });

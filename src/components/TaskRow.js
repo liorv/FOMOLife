@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 // A standalone row representing a single task's primary information.
 // Ordered columns (left→right):
@@ -28,6 +28,7 @@ export default function TaskRow({
   onTitleChange,
 }) {
   const isOpen = editorTaskId === id;
+  const [isHovered, setIsHovered] = useState(false);
   // determine if due date exists and is in the past and compute days left
   let isPast = false;
   let daysLeft = null;
@@ -42,7 +43,11 @@ export default function TaskRow({
 
   return (
     // container flex ensures left/middle/right segments and full width
-    <div className="task-row">
+    <div
+      className={`task-row${isHovered ? " hovered" : ""}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* left group: expand, checkbox, title */}
       <div className="left-group">
         {type === "tasks" && (
@@ -142,7 +147,7 @@ export default function TaskRow({
           </button>
         )}
         <button
-          className="delete"
+          className={isHovered ? "delete visible" : "delete"}
           onClick={() => handleDelete(id)}
           aria-label="Delete"
         >
