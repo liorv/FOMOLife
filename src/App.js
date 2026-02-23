@@ -3,6 +3,7 @@ import TaskList from "./components/TaskList";
 import TabNav from "./components/TabNav";
 import AddBar from "./components/AddBar";
 import LogoBar from "./components/LogoBar";
+import SearchTasks from "./components/SearchTasks";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
 import * as db from "./api/db";
@@ -275,20 +276,24 @@ function App({ userId } = {}) {
       {/* outer wrapper holds the top bar and container and fills available vertical space */}
       <div className="app-outer">
         {/* title/logo bar component */}
-        <LogoBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          showSearch={type === "tasks"}
-          logoUrl={logoUrl}
-          filters={filters}
-          onToggleFilter={(type) => {
-            setFilters((prev) =>
-              prev.includes(type)
-                ? prev.filter((f) => f !== type)
-                : [...prev, type],
-            );
-          }}
-        />
+        {/* logo bar always shown; pass task search component as child when
+            we're on tasks tab */}
+        <LogoBar logoUrl={logoUrl}>
+          {type === "tasks" && (
+            <SearchTasks
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filters={filters}
+              onToggleFilter={(type) => {
+                setFilters((prev) =>
+                  prev.includes(type)
+                    ? prev.filter((f) => f !== type)
+                    : [...prev, type],
+                );
+              }}
+            />
+          )}
+        </LogoBar>
         <div className="container">
           {/* decorative splash removed; logo now shown in title bar */}
 
