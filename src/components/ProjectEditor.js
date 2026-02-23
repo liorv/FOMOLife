@@ -19,6 +19,7 @@ export default function ProjectEditor({
   allPeople = [],
   onCreatePerson = () => {},
   onOpenPeople = () => {},
+  onAddSubproject = () => {},
 }) {
   const [local, setLocal] = useState(() => ({
     ...project,
@@ -27,7 +28,7 @@ export default function ProjectEditor({
       : [],
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
-  const [hoveredSub, setHoveredSub] = useState(null); // track which subproject header is hovered
+  // hover state for subprojects no longer needed; delete button is always visible
   const handleSetEditorId = (id) => {
     setEditorTaskId((prev) => (prev === id ? null : id));
   };
@@ -199,8 +200,8 @@ export default function ProjectEditor({
 
   return (
     <div className="project-editor">
-      {/* input bar at bottom will handle new subproject names */}
-      {/* preserve spacing if desired by keeping an empty section or remove entirely */}
+      {/* project editor now owns its own floating add button; caller should
+          not render the global bottom input bar when this component is shown */}
       {(local.subprojects || []).map((sub, idx, arr) => {
         const isLast = idx === arr.length - 1;
         return (
@@ -208,8 +209,6 @@ export default function ProjectEditor({
             key={sub.id}
             open={!sub.collapsed}
             className="subproject"
-            onMouseEnter={() => setHoveredSub(sub.id)}
-            onMouseLeave={() => setHoveredSub(null)}
           >
             <summary className="subproject-summary">
               <button
@@ -231,7 +230,7 @@ export default function ProjectEditor({
                 onChange={(e) => updateSubText(sub.id, e.target.value)}
               />
               <button
-                className={hoveredSub === sub.id ? "delete visible" : "delete"}
+                className="delete"
                 onClick={() => deleteSubproject(sub.id)}
                 title="Delete subproject"
               >
@@ -282,6 +281,14 @@ export default function ProjectEditor({
           </details>
         );
       })}
+      {/* replicates the FAB formerly living in the global bottom bar */}
+      <button
+        className="fab"
+        onClick={() => onAddSubproject("")}
+        title="Add subproject"
+      >
+        <span className="material-icons">add</span>
+      </button>
     </div>
   );
 }
@@ -293,4 +300,5 @@ ProjectEditor.propTypes = {
     subprojects: PropTypes.array,
   }).isRequired,
   onApplyChange: PropTypes.func,
+  onAddSubproject: PropTypes.func,
 };

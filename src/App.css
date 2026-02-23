@@ -779,6 +779,13 @@ body {
   /* min-width removed temporarily */
   width: 100%; /* ensure it takes full width of its flex space */
 }
+
+/* when viewing the tasks tab we want a little breathing room around
+   the task list; apply extra padding on all sides of the main panel */
+.container.tasks-padding {
+  padding: 20px;
+}
+
 .container > * {
   position: relative;
   z-index: 1;
@@ -877,7 +884,10 @@ body {
   color: var(--primary);
 }
 
-/* global input bar inserted above the fixed tab navigation */
+.main-layout.editing .bottom-input-bar {
+  display: none;
+}
+
 .bottom-input-bar {
   position: fixed;
   left: 0;
@@ -1011,7 +1021,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #2b6cb0; /* blue background */
+  background: blue; /* blue background */
   color: #fff; /* white icon */
   border: none;
   cursor: pointer;
@@ -1029,13 +1039,30 @@ body {
   width: 56px;      /* match FAB size */
   height: 56px;
   border-radius: 50%;
-  background: #2b6cb0;
+  background: blue;
   color: #fff;
   border: none;
   cursor: pointer;
 }
 .check-circle .material-icons {
   font-size: 24px;
+}
+
+/* simple rectangular button used when a project editor wants a text 'Done' */
+.done-button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.done-button:hover {
+  background: #2563eb;
 }
 
 /* project editor layout */
@@ -1106,33 +1133,27 @@ body {
      with a hover-visible X icon; styles below replicate task-row's delete
      button behavior for the summary header. */
 .subproject-summary .delete {
-  background: transparent; /* hide circle until hover */
-  color: #555;
+  /* icon-button style: circle only on hover */
+  background: transparent;
+  color: #333;
+  border: none;
+  outline: none;
   border-radius: 50%;
   padding: 4px;
   margin-left: 8px;
   font-size: 1.1rem;
   cursor: pointer;
-  /* hidden by default */
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s;
-}
-.subproject-summary .delete.visible,
-.subproject-summary:hover .delete,
-/* show when hovering anywhere in the subproject block */
-.subproject:hover .delete {
-  opacity: 1;
   visibility: visible;
+  opacity: 1;
 }
 
 .subproject-name-input {
   /* width removed to avoid overflowing flex container; flex rules govern size */
   box-sizing: border-box;
 }
-/* light background circle on hover for extra affordance */
-.subproject .delete:hover {
-  background: #eee;
+/* delete button hover remains subtle: slightly darker background */
+.subproject-summary .delete:hover {
+  background: #eee; /* show pale gray circle on hover */
 }
 .add-task-row {
   display: flex;
@@ -1186,7 +1207,8 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #2b6cb0;
+  /* use requested magenta shade */
+  background: #d32998;
   color: #fff;
   display: flex;
   align-items: center;
@@ -1221,10 +1243,15 @@ body {
   padding-left: 24px;
 }
 
-/* prevent task rows from shrinking; allow horizontal scroll of full content */
+/* project-editor tasks should still be able to scroll horizontally when content is wide, but
+   also expand to fill the available container so the right-group can be pushed to the
+   far edge (matching the behavior on the main tasks tab).  `min-width: max-content`
+   ensures we don't shrink smaller than the contents, which is what triggers the
+   overflow-x auto on the parent. */
 .project-editor .task-row {
-  flex: 0 0 auto; /* size to content, not to container */
-  width: max-content;
+  flex: 1 1 100%;        /* behave like normal task-row: grow/shrink to container */
+  width: 100%;           /* fill the subproject body width so margin-left:auto works */
+  min-width: max-content; /* still allow overflow horizontally when content is wider */
 }
 
 .task-list {
@@ -1837,66 +1864,61 @@ body {
   /* no align-self so it shares row centering */
 }
 .item-list li .star {
-  background: none;
+  /* star icon: no circle by default, circle appears on hover */
+  background: transparent;
   border: none;
   color: #e0b100;
   font-size: 1.2em;
   cursor: pointer;
   margin-left: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: 50%;
   transition: background 0.2s;
-  /* align-self removed */
 }
 .item-list li .star.favorite {
   color: #ffd700;
   text-shadow: 0 0 2px #ffd70099;
 }
-.item-list li .star:hover {
-  background: #fffbe5;
-}
+
 .item-list li span:hover {
   color: #2563eb;
 }
+
+.item-list li .star:hover {
+  background: #eee; /* circle on hover */
+}
 .item-list li .delete {
-  /* default styling for generic list deletions (projects/people) */
-  background: none;
+  /* default styling for generic list deletions (projects/people/tasks) */
+  background: transparent;
+  color: #333;
   border: none;
-  color: #e53e3e;
+  outline: none;
   font-size: 1.1rem;
   cursor: pointer;
   margin-left: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: 50%;
   transition: background 0.2s;
 }
 .item-list li .delete:hover {
-  background: #ffe5e5;
+  background: #eee; /* show circle on hover */
 }
 
-/* task rows get a completely different delete button: gray circle that
-   only appears when the row is hovered.  JS also toggles a "visible" class
-   so we can test the behaviour with jsdom. */
+/* task rows: delete button permanently visible as circular icon button */
 .task-row .delete {
-  background: transparent; /* no circle until hover */
-  color: #555;
+  background: transparent;         /* no circle until hover */
+  color: #333;                     /* match subproject X color */
+  border: none;
+  outline: none;
   border-radius: 50%;
-  padding: 4px;
-  margin-left: 10px;
+  padding: 4px;                    /* same hit area as subproject button */
+  margin-left: 8pm;                /* align with subproject spacing */
   font-size: 1.1rem;
   cursor: pointer;
-  /* hidden by default */
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s;
+  transition: background 0.2s;
 }
 .task-row .delete:hover {
-  background: #eee;
-}
-.task-row .delete.visible,
-.task-row:hover .delete {
-  opacity: 1;
-  visibility: visible;
+  background: #eee; /* show circle on hover */
 }
 
 

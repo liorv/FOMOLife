@@ -376,7 +376,7 @@ function App({ userId } = {}) {
   }, [type, editingProjectId]);
 
   return (
-    <div className="main-layout">
+    <div className={`main-layout${editingProjectId ? ' editing' : ''}`}>
       {/* outer wrapper holds the top bar and container and fills available vertical space */}
       <div className="app-outer">
         {/* title/logo bar component */}
@@ -390,6 +390,7 @@ function App({ userId } = {}) {
             data.projects.find((p) => p.id === editingProjectId)?.text
           }
           onBack={editingProjectId ? exitEditor : undefined}
+          onLogoClick={editingProjectId && type === "projects" ? exitEditor : undefined}
           onTitleChange={
             editingProjectId
               ? (newText) => {
@@ -421,7 +422,7 @@ function App({ userId } = {}) {
             />
           )}
         </LogoBar>
-        <div className="container">
+        <div className={`container ${type === 'tasks' ? 'tasks-padding' : ''}`}>
           {/* decorative splash removed; logo now shown in title bar */}
 
           {type === "projects" ? (
@@ -444,6 +445,7 @@ function App({ userId } = {}) {
                     ),
                   }));
                 }}
+                onAddSubproject={handleAddSubproject}
                 allPeople={data.people}
                 onOpenPeople={() => setType("people")}
                 onCreatePerson={async (person) => {
@@ -543,20 +545,11 @@ function App({ userId } = {}) {
         </div>
       </div>
       {/* bottom‐aligned add bar; replicates original AddBar controls */}
-      <div className="bottom-input-bar">
-        {editingProjectId ? (
-          <button
-            className="fab"
-            onClick={async () => {
-              // create a new, blank subproject; placeholder text in editor
-              // will prompt the user to name it.
-              await handleAddSubproject("");
-            }}
-            title="Add subproject"
-          >
-            <span className="material-icons">add</span>
-          </button>
-        ) : (
+      {/* when a project is being edited we no longer render the global
+          bottom bar; the editor component is responsible for its own
+          "add subproject" button. */}
+      {!editingProjectId && (
+        <div className="bottom-input-bar">
           <AddBar
             type={type}
             input={input}
@@ -565,8 +558,8 @@ function App({ userId } = {}) {
             onDueDateChange={setDueDate}
             onAdd={handleAdd}
           />
-        )}
-      </div>
+        </div>
+      )}
       <TabNav active={type} onChange={setType} />
       {confirmingProjectId && (
         <ConfirmModal

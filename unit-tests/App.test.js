@@ -49,6 +49,10 @@ describe('App component', () => {
     expect(bottom).toBeTruthy();
     const input = bottom.querySelector('.add-bar input');
     expect(bottom.querySelector('.add-bar')).toBeTruthy();
+    // when the app loads on the tasks tab the container should gain
+    // our padding helper class so content isn't flush against the edges
+    const container = document.querySelector('.container');
+    expect(container).toHaveClass('tasks-padding');
     // input exists; actual width behaviour is enforced by CSS loaded in the
     // browser environment, not jsdom used for tests.
     // title bar with logo should exist above content
@@ -77,6 +81,8 @@ describe('App component', () => {
 
     // switch to people view; search field should hide and query resets
     fireEvent.click(screen.getByText('People'));
+    // the padding helper class should be removed when leaving tasks
+    expect(container).not.toHaveClass('tasks-padding');
     expect(document.querySelector('.title-search')).toBeNull();
     // back to tasks should restore it, but it should be cleared
     fireEvent.click(screen.getByText('Tasks'));
@@ -312,7 +318,7 @@ describe('App component', () => {
     // open editor mode
     fireEvent.click(tile.querySelector('.edit-icon'));
 
-    // logo remains visible and title shown in the center
+    // while editing a project the logo remains visible with the title
     expect(screen.getByAltText('FOMO logo')).toBeInTheDocument();
     let titleEl = screen.getByText('EditMe');
     // the text lives in an inner span with class 'bar-title-text'
@@ -332,10 +338,10 @@ describe('App component', () => {
     expect(editor).toBeInTheDocument();
     const subInputs = editor.querySelectorAll('.subproject-name-input');
     expect(subInputs.length).toBe(0);
-    // bottom bar should still be present but now contains a floating action button
-    const bottom = document.querySelector('.bottom-input-bar');
-    expect(bottom).toBeTruthy();
-    const fab = bottom.querySelector('.fab');
+    // once the project editor is shown the global bottom bar is removed
+    expect(document.querySelector('.bottom-input-bar')).toBeNull();
+    // the editor itself provides a FAB for adding subprojects
+    const fab = document.querySelector('.fab');
     expect(fab).toBeInTheDocument();
 
     // create an unnamed subproject via FAB and ensure it appears (may update async)
@@ -352,10 +358,10 @@ describe('App component', () => {
       expect(unnamedInputs.length).toBe(1);
     });
 
-    // the title bar should display a check mark (Done) button on the right
+    // the title bar should display a Done text button on the right
     const doneBtn = screen.getByTitle('Done');
     expect(doneBtn).toBeInTheDocument();
-    expect(doneBtn).toHaveClass('check-circle');
+    expect(doneBtn.textContent).toBe('Done');
     await act(async () => {
       fireEvent.click(doneBtn);
     });
@@ -392,9 +398,10 @@ describe('App component', () => {
     ).toBe(0);
 
     // use FAB to add new subprojects while editing; default name expected
-    const bottomBar = document.querySelector('.bottom-input-bar');
-    expect(bottomBar).toBeTruthy();
-    const fab = bottomBar.querySelector('.fab');
+    // global bar should be gone while editing
+    expect(document.querySelector('.bottom-input-bar')).toBeNull();
+    // the floating action button lives on the page
+    const fab = document.querySelector('.fab');
     expect(fab).toBeInTheDocument();
     // click twice quickly to simulate race
     fireEvent.click(fab);
@@ -465,15 +472,12 @@ describe('App component', () => {
     fireEvent.click(secondCollapse);
     expect(details[0].hasAttribute('open')).toBe(false);
     expect(details[1].hasAttribute('open')).toBe(true);
-    // delete the second (empty) subproject using new hover button anywhere in the
-    // subproject container and ensure it vanishes
+    // delete button is always visible with circular background
     const deleteBtns = document.querySelectorAll('.project-editor .subproject .delete');
     expect(deleteBtns.length).toBeGreaterThanOrEqual(2);
     const deleteBtn = deleteBtns[0]; // target the first subproject for removal
     expect(deleteBtn).toBeInTheDocument();
-    // background should be transparent until hover
-    expect(getComputedStyle(deleteBtn).backgroundColor).toBe('transparent');
-    // button exists in DOM even when hidden; clicking it should remove the subproject
+    // button exists in DOM; clicking it should remove the subproject
     fireEvent.click(deleteBtn);
     // wait for removal to propagate
     await waitFor(() => {

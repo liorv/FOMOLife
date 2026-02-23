@@ -61,16 +61,7 @@ describe('TaskRow component', () => {
 
     const deleteBtn = container.querySelector('.delete');
     expect(deleteBtn).toBeInTheDocument();
-    // button background should not yet be the hover color (#eee)
-    expect(getComputedStyle(deleteBtn).backgroundColor).not.toBe('rgb(238, 238, 238)');
-    // should not be visible by default (JS will add the class when hovered)
-    expect(deleteBtn).not.toHaveClass('visible');
-
-    // simulate hover and ensure the visibility class gets toggled
-    fireEvent.mouseOver(container.querySelector('.task-row'));
-    expect(deleteBtn).toHaveClass('visible');
-    fireEvent.mouseOut(container.querySelector('.task-row'));
-    expect(deleteBtn).not.toHaveClass('visible');
+    // icon should always be present without any hover interaction
 
     expect(container.querySelector('.star')).toBeInTheDocument();
     // right-group should exist (CSS handles pushing it right)

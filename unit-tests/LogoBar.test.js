@@ -16,7 +16,15 @@ describe('LogoBar component', () => {
     expect(document.querySelector('.filter-icon')).toBeNull();
   });
 
-  test('shows title and done/check button when editing', async () => {
+  test('logo can act as navigation when onLogoClick provided', () => {
+    const onLogo = jest.fn();
+    render(<LogoBar onLogoClick={onLogo} />);
+    const logo = screen.getByAltText('FOMO logo');
+    logo.click();
+    expect(onLogo).toHaveBeenCalled();
+  });
+
+  test('shows title and done button when editing', async () => {
     const back = jest.fn();
     render(<LogoBar title="Project A" onBack={back} />);
     // logo should still be present
@@ -25,11 +33,12 @@ describe('LogoBar component', () => {
     // bar-title-text class)
     const titleElement = screen.getByText('Project A');
     expect(titleElement).toHaveClass('bar-title-text');
-    // done/check button rendered in right column and styled circular
+    // Done button rendered in right column with text
     const doneBtn = screen.getByTitle('Done');
     expect(doneBtn).toBeInTheDocument();
-    expect(doneBtn).toHaveClass('check-circle');
-    // clicking back is synchronous; no special act needed
+    expect(doneBtn).toHaveClass('done-button');
+    expect(doneBtn.textContent).toBe('Done');
+    // clicking triggers callback
     fireEvent.click(doneBtn);
     expect(back).toHaveBeenCalled();
   });

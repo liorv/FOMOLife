@@ -8,6 +8,7 @@ export default function LogoBar({
   logoUrl = "/assets/logo_fomo.png",
   title, // when provided, show instead of logo/search
   onBack, // invoked when back button is pressed
+  onLogoClick, // invoked when logo is clicked (e.g. act as back nav)
   onTitleChange, // optional callback when title is edited inline
   children,
 }) {
@@ -35,7 +36,12 @@ export default function LogoBar({
     <div className="title-bar">
       <div className="left-column">
         {/* logo always shown, even when a title is present */}
-        <img src={logoUrl} alt="FOMO logo" className="title-logo" />
+        <img
+          src={logoUrl}
+          alt="FOMO logo"
+          className="title-logo"
+          {...(onLogoClick ? { onClick: onLogoClick, style: { cursor: 'pointer' } } : {})}
+        />
       </div>
       <div className="mid-column">
         <div className="mid-row top" />
@@ -66,11 +72,13 @@ export default function LogoBar({
       <div className="right-column">
         {onBack && (
           <button
-            className="check-circle"
+            className="projects-button"
             onClick={onBack}
-            title="Done"
+            title="Back to Projects"
+            aria-label="Back to Projects"
           >
-            <span className="material-icons">check</span>
+            <span className="material-icons">folder</span>
+            <span className="projects-label">Back to Projects</span>
           </button>
         )}
       </div>
