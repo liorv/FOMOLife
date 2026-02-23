@@ -929,14 +929,21 @@ body {
   flex: 1;
   display: flex;
   align-items: center;
-  /* center rows should stretch children; we'll override when necessary */
-  justify-content: stretch;
+  /* default to start; children can grow if they are flex items */
+  justify-content: flex-start;
 }
 
 /* center row variant used by title-bar search area */
 .mid-row.center {
-  justify-content: stretch;
+  justify-content: flex-start; /* keep left alignment but allow child to grow */
 }
+
+/* wrapper around search-container must take full width provided by mid-row */
+.search-tasks {
+  width: 100%;
+  display: flex;      /* make it a flex container so the inner child can flex */
+}
+
 
 .title-logo {
   max-height: 120px; /* twice as big */
@@ -952,7 +959,7 @@ body {
   /* let the container expand to fill available space and pass it along */
   flex: 1 1 auto;
   display: flex;
-  justify-content: stretch; /* child will fill this container */
+  justify-content: center; /* inner wrapper handles stretching via width:100% */
   /* inner wrapper still constrains to mid column via parent grid */
   /* debug mid-column bg applied on parent via nested selector */
 }
