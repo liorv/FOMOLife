@@ -966,6 +966,186 @@ body {
   width: auto;
   margin-left: 0; /* flush with screen edge */
 }
+
+/* when a title is shown in the logo bar make it prominent */
+.bar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* simple icon button used for back arrow */
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.back-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2b6cb0; /* blue background */
+  color: #fff; /* white icon */
+  border: none;
+  cursor: pointer;
+}
+.back-circle .material-icons {
+  font-size: 20px;
+}
+
+/* project editor layout */
+.project-editor {
+  /* flush against container edges, no extra buffer */
+  padding: 0;
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-x: auto; /* allow scrolling if a row is too wide */
+  flex: 1 1 auto;  /* fill vertical space in container */
+  overflow-y: auto; /* scroll internally if content is tall */
+}
+
+/* simple accordion container used when editing projects */
+.project-edit-accordion {
+  padding: 16px;
+  width: 100%;
+  overflow-x: auto; /* permit horizontal scroll of contents */
+}
+.project-edit-accordion details {
+  width: 100%;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 6px;
+  padding: 8px;
+}
+.project-edit-accordion summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.project-editor .editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.project-editor input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 64, 67, 0.12);
+  font-size: 1em;
+}
+
+
+.subproject-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  font-size: 1.2rem;
+}
+.subproject-summary input {
+  flex: 1;
+}
+.delete-subproj-inline {
+  background: #e53e3e;
+  color: #fff;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.delete-subproj-inline .material-icons {
+  font-size: 20px;
+}
+.subproject-name-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.add-task-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+.add-task-row .new-task-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid rgba(60, 64, 67, 0.12);
+  border-radius: 6px;
+}
+.add-task-row .add-task-btn {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* project editor task button and row spacing */
+.project-editor .add-task-btn {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+/* make sure task list inside project editor is at least full width so
+   right‑hand controls don't wrap or get clipped */
+.project-editor ul.item-list {
+  min-width: 100%;
+}
+
+/* prevent task rows from shrinking; allow horizontal scroll of full content */
+.project-editor .task-row {
+  flex: 0 0 auto; /* size to content, not to container */
+  width: max-content;
+}
+
+.task-list {
+  list-style: disc inside;
+  padding-left: 0;
+}
+.editor-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+.editor-actions button {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+}
+.editor-actions .close {
+  background: #e53e3e;
+}
 /* remove generic column padding for the top title bar so the logo
    sits flush against the left edge of the viewport */
 .title-bar .left-column {

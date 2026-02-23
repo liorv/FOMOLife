@@ -301,6 +301,129 @@ describe('App component', () => {
     expect(tile.querySelector('.delete-icon')).toBeTruthy();
   });
 
+  test('clicking edit enters project editing mode with title and back button', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Projects'));
+    addProject('EditMe');
+    await screen.findByText('EditMe');
+    const tile = screen.getByText('EditMe').closest('.project-tile');
+    expect(tile).toBeTruthy();
+
+    // open editor mode
+    fireEvent.click(tile.querySelector('.edit-icon'));
+
+    // logo remains visible and title shown in the center
+    expect(screen.getByAltText('FOMO logo')).toBeInTheDocument();
+    expect(screen.getByText('EditMe')).toHaveClass('bar-title');
+    // project editor container should appear with no pre‑existing subprojects
+    const editor = document.querySelector('.project-editor');
+    expect(editor).toBeInTheDocument();
+    const subInputs = editor.querySelectorAll('.subproject-name-input');
+    expect(subInputs.length).toBe(0);
+    // bottom bar should still be present and show subproject placeholder
+    const bottom = document.querySelector('.bottom-input-bar');
+    expect(bottom).toBeTruthy();
+    expect(bottom.querySelector('input').placeholder).toMatch(/subproject/);
+
+    // back button should be available and return to normal view
+    const backBtn = screen.getByTitle('Back');
+    expect(backBtn).toBeInTheDocument();
+    expect(backBtn).toHaveClass('back-circle');
+    fireEvent.click(backBtn);
+    // after pressing back bar logo should reappear and add bar returns
+    expect(screen.getByAltText('FOMO logo')).toBeInTheDocument();
+    const bottomAfter = document.querySelector('.bottom-input-bar');
+    expect(bottomAfter.querySelector('.add-bar')).toBeTruthy();
+    // bar placeholder should reflect current type (projects by default)
+    expect(bottomAfter.querySelector('input').placeholder).toMatch(/project/);
+    // project tile still visible and editor gone
+    expect(screen.getByText('EditMe')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Project Name')).toBeNull();
+  });
+
+  test('can add subprojects and tasks inside editor', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Projects'));
+    addProject('E');
+    await screen.findByText('E');
+    const tile = screen.getByText('E').closest('.project-tile');
+    fireEvent.click(tile.querySelector('.edit-icon'));
+
+    // no subprojects initially
+    expect(
+      document.querySelectorAll('.project-editor .subproject-name-input').length,
+    ).toBe(0);
+
+    // use the global bottom bar while editing
+    const bottomBar = document.querySelector('.bottom-input-bar');
+    expect(bottomBar).toBeTruthy();
+    const subAddInput = bottomBar.querySelector('.add-bar input');
+    fireEvent.change(subAddInput, { target: { value: 'Sub1' } });
+    fireEvent.keyDown(subAddInput, { key: 'Enter', code: 'Enter' });
+
+    let summaryInputs =
+      document.querySelectorAll('.project-editor .subproject-name-input');
+    expect(summaryInputs.length).toBe(1);
+    expect(summaryInputs[0].value).toBe('Sub1');
+    // bar cleared after add
+    expect(bottomBar.querySelector('.add-bar input').value).toBe('');
+
+    // add a second subproject via button click
+    fireEvent.change(bottomBar.querySelector('.add-bar input'), {
+      target: { value: 'Sub2' },
+    });
+    fireEvent.click(bottomBar.querySelector('.add-bar .add-btn'));
+    summaryInputs =
+      document.querySelectorAll('.project-editor .subproject-name-input');
+    expect(summaryInputs.length).toBe(2);
+    expect(summaryInputs[1].value).toBe('Sub2');
+
+    // clicking the add-task button should insert a TaskRow
+    const addTaskBtn = document.querySelector(
+      '.project-editor .add-task-btn',
+    );
+    expect(addTaskBtn).toBeInTheDocument();
+    fireEvent.click(addTaskBtn);
+    // a new task-row should now exist inside editor
+    let taskRow = document.querySelector(
+      '.project-editor .task-row',
+    );
+    expect(taskRow).toBeInTheDocument();
+    // delete the subproject using inline button and ensure it vanishes
+    const deleteBtn = document.querySelector('.project-editor .delete-subproj-inline');
+    expect(deleteBtn).toBeInTheDocument();
+    fireEvent.click(deleteBtn);
+    expect(document.querySelector('.project-editor .subproject-name-input')).toBeNull();
+    // open the inline editor and change the task name
+    const expandIcon = taskRow.querySelector('.expand-icon');
+    fireEvent.click(expandIcon);
+    let inlineEditor = document.querySelector('.inline-editor');
+    expect(inlineEditor).toBeInTheDocument();
+    const titleInput = inlineEditor.querySelector('.task-title-input');
+    fireEvent.change(titleInput, { target: { value: 'Renamed' } });
+    // notification add-bar should be available
+    expect(inlineEditor.querySelector('.add-person-bar input')).toBeInTheDocument();
+    const saveBtn = inlineEditor.querySelector('button.editor-close-btn');
+    expect(saveBtn).toBeInTheDocument();
+    fireEvent.click(saveBtn);
+    // ensure the row title updated
+    expect(taskRow.querySelector('.task-title').textContent).toBe('Renamed');
+    // click expand icon again to confirm it toggles off
+    fireEvent.click(expandIcon);
+    expect(document.querySelector('.inline-editor')).toBeNull();
+
+    // collapse the subproject using the collapse button and ensure tasks hide
+    const collapseBtn = document.querySelector('.project-editor .collapse-btn');
+    expect(collapseBtn).toBeInTheDocument();
+    fireEvent.click(collapseBtn);
+    expect(document.querySelector('.project-editor .task-row')).toBeNull();
+
+    // expand again and verify row still exists
+    fireEvent.click(collapseBtn);
+    taskRow = document.querySelector('.project-editor .task-row');
+    expect(taskRow).toBeInTheDocument();
+  });
+
   test('deleting a project shows confirmation modal and removes when confirmed', async () => {
     render(<App />);
     fireEvent.click(screen.getByText('Projects'));

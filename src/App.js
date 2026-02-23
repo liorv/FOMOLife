@@ -5,6 +5,7 @@ import AddBar from "./components/AddBar";
 import LogoBar from "./components/LogoBar";
 import SearchTasks from "./components/SearchTasks";
 import ProjectTile, { PROJECT_COLORS } from "./components/ProjectTile";
+import ProjectEditor from "./components/ProjectEditor";
 import ConfirmModal from "./components/ConfirmModal";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
@@ -38,6 +39,9 @@ function App({ userId } = {}) {
     people: [],
   });
   const [confirmingProjectId, setConfirmingProjectId] = useState(null);
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  // input for adding subprojects while editing
+  const [newSubName, setNewSubName] = useState("");
   const initializedRef = useRef(false);
 
   // client-only hydration of persisted data.  we call the async db
@@ -78,6 +82,33 @@ function App({ userId } = {}) {
       db.saveData && db.saveData(data, userId);
     }
   }, [data]);
+
+  const generateId = () => {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
+  const handleAddSubproject = async (name) => {
+    const text = (name || "").trim();
+    if (!text || !editingProjectId) return;
+    const project = data.projects.find((p) => p.id === editingProjectId);
+    if (!project) return;
+    const newSub = { id: generateId(), text, tasks: [], collapsed: false };
+    const updatedSubs = [...(project.subprojects || []), newSub];
+    await db.update("projects", editingProjectId, { subprojects: updatedSubs }, userId);
+    setData((prev) => ({
+      ...prev,
+      projects: prev.projects.map((pr) =>
+        pr.id === editingProjectId ? { ...pr, subprojects: updatedSubs } : pr,
+      ),
+    }));
+  };
 
   const handleAdd = async () => {
     if (!input.trim()) return;
@@ -254,6 +285,8 @@ function App({ userId } = {}) {
     setEditingPersonName("");
   };
 
+  // add a named subproject to the currently editing project
+
   // compute a filtered list based on the search query and the
   // user-chosen filters.  Completed tasks are hidden by default unless
   // the corresponding pill is active; overdue selection further narrows
@@ -293,6 +326,15 @@ function App({ userId } = {}) {
     }
   }, [type]);
 
+  // clear subproject input when switching between projects or leaving edit mode
+
+  // if user navigates away from projects, exit editing mode
+  useEffect(() => {
+    if (type !== "projects" && editingProjectId) {
+      setEditingProjectId(null);
+    }
+  }, [type, editingProjectId]);
+
   return (
     <div className="main-layout">
       {/* outer wrapper holds the top bar and container and fills available vertical space */}
@@ -300,8 +342,18 @@ function App({ userId } = {}) {
         {/* title/logo bar component */}
         {/* logo bar always shown; pass task search component as child when
             we're on tasks tab */}
-        <LogoBar logoUrl={logoUrl}>
-          {type === "tasks" && (
+        <LogoBar
+          logoUrl={logoUrl}
+          title={
+            editingProjectId &&
+            type === "projects" &&
+            data.projects.find((p) => p.id === editingProjectId)?.text
+          }
+          onBack={
+            editingProjectId ? () => setEditingProjectId(null) : undefined
+          }
+        >
+          {type === "tasks" && !editingProjectId && (
             <SearchTasks
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -320,15 +372,53 @@ function App({ userId } = {}) {
           {/* decorative splash removed; logo now shown in title bar */}
 
           {type === "projects" ? (
-            <div className="projects-panel">
-              {data.projects.map((p) => (
-                <ProjectTile
-                  key={p.id}
-                  project={p}
-                  onDelete={() => setConfirmingProjectId(p.id)}
-                />
-              ))}
-            </div>
+            editingProjectId && data.projects.find((p) => p.id === editingProjectId) ? (
+              <ProjectEditor
+                project={data.projects.find((p) => p.id === editingProjectId)}
+                onApplyChange={(updated) => {
+                  db.update("projects", editingProjectId, updated, userId);
+                  setData((prev) => ({
+                    ...prev,
+                    projects: prev.projects.map((pr) =>
+                      pr.id === editingProjectId ? { ...pr, ...updated } : pr,
+                    ),
+                  }));
+                }}
+                allPeople={data.people}
+                onOpenPeople={() => setType("people")}
+                onCreatePerson={async (person) => {
+                  if (data.people.find((p) => p.name === person.name)) return null;
+                  const newPerson = await db.create(
+                    "people",
+                    {
+                      name: person.name,
+                      methods: person.methods || {
+                        discord: false,
+                        sms: false,
+                        whatsapp: false,
+                      },
+                    },
+                    userId,
+                  );
+                  setData((prev) => ({
+                    ...prev,
+                    people: [...prev.people, newPerson],
+                  }));
+                  return newPerson;
+                }}
+              />
+            ) : (
+              <div className="projects-panel">
+                {data.projects.map((p) => (
+                  <ProjectTile
+                    key={p.id}
+                    project={p}
+                    onDelete={() => setConfirmingProjectId(p.id)}
+                    onEdit={() => setEditingProjectId(p.id)}
+                  />
+                ))}
+              </div>
+            )
           ) : type === "people" ? (
             <div className="people-list task-person-list">
               <div className="task-person-list-header" aria-hidden>
@@ -394,14 +484,26 @@ function App({ userId } = {}) {
       </div>
       {/* bottom‐aligned add bar; replicates original AddBar controls */}
       <div className="bottom-input-bar">
-        <AddBar
-          type={type}
-          input={input}
-          dueDate={dueDate}
-          onInputChange={setInput}
-          onDueDateChange={setDueDate}
-          onAdd={handleAdd}
-        />
+        {editingProjectId ? (
+          <AddBar
+            type="subprojects"
+            input={newSubName}
+            onInputChange={setNewSubName}
+            onAdd={async () => {
+              await handleAddSubproject(newSubName);
+              setNewSubName("");
+            }}
+          />
+        ) : (
+          <AddBar
+            type={type}
+            input={input}
+            dueDate={dueDate}
+            onInputChange={setInput}
+            onDueDateChange={setDueDate}
+            onAdd={handleAdd}
+          />
+        )}
       </div>
       <TabNav active={type} onChange={setType} />
       {confirmingProjectId && (

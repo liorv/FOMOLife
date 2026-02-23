@@ -6,20 +6,36 @@ import React from "react";
 // shown (currently only on the tasks view).
 export default function LogoBar({
   logoUrl = "/assets/logo_fomo.png",
-  // children are rendered in the center row; the app can pass the
-  // search/filters component when on the tasks tab.  This keeps the title
-  // bar layout flexible while decoupling task‑specific logic from the
-  // logo itself.
+  title, // when provided, show instead of logo/search
+  onBack, // invoked when back button is pressed
   children,
 }) {
   return (
     <div className="title-bar">
       <div className="left-column">
+        {/* logo always shown, even when a title is present */}
         <img src={logoUrl} alt="FOMO logo" className="title-logo" />
       </div>
       <div className="mid-column">
         <div className="mid-row top" />
-        <div className="mid-row center">{children}</div>
+        <div className="mid-row center">
+          {title ? (
+            <span className="bar-title">
+              {title}
+              {onBack && (
+                <button
+                  className="back-circle"
+                  onClick={onBack}
+                  title="Back"
+                >
+                  <span className="material-icons">arrow_back</span>
+                </button>
+              )}
+            </span>
+          ) : (
+            children
+          )}
+        </div>
         <div className="mid-row bottom" />
       </div>
       <div className="right-column" />
