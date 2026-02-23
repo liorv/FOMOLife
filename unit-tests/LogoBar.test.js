@@ -2,8 +2,26 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import LogoBar from '../src/components/LogoBar';
 
+// jest's JSDOM doesn't evaluate media queries, so we polyfill
+// window.matchMedia to approximate the 400px breakpoint used in
+// the component/CSS. Call setMatchMedia after changing innerWidth.
+function setMatchMedia(width) {
+  window.matchMedia = jest.fn().mockImplementation(query => {
+    const mq = {
+      matches: query === '(max-width:400px)' ? width <= 400 : false,
+      media: query,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+    return mq;
+  });
+}
+
 describe('LogoBar component', () => {
   test('renders only the logo and basic layout', () => {
+    setMatchMedia(window.innerWidth || 800);
     render(<LogoBar />);
     const logo = screen.getByAltText('FOMO logo');
     expect(logo).toBeInTheDocument();
@@ -17,6 +35,7 @@ describe('LogoBar component', () => {
   });
 
   test('logo can act as navigation when onLogoClick provided', () => {
+    setMatchMedia(window.innerWidth || 800);
     const onLogo = jest.fn();
     render(<LogoBar onLogoClick={onLogo} />);
     const logo = screen.getByAltText('FOMO logo');
@@ -25,6 +44,7 @@ describe('LogoBar component', () => {
   });
 
   test('shows title and back button when editing', async () => {
+    setMatchMedia(window.innerWidth || 800);
     const back = jest.fn();
     render(<LogoBar title="Project A" onBack={back} />);
     // logo should still be present
@@ -33,20 +53,23 @@ describe('LogoBar component', () => {
     // bar-title-text class)
     const titleElement = screen.getByText('Project A');
     expect(titleElement).toHaveClass('bar-title-text');
-    // Back to Projects button rendered in right column with text
-    const backBtn = screen.getByTitle('Back to Projects');
-    expect(backBtn).toBeInTheDocument();
-    expect(backBtn).toHaveClass('projects-button');
-    expect(backBtn.textContent).toBe('folderBack to Projects');
-    // label should not be allowed to collapse under flexbox pressure
-    const label = backBtn.querySelector('.projects-label');
-    expect(label).toHaveStyle({ flexShrink: 0, whiteSpace: 'nowrap' });
+    // Close button rendered in right column
+    const closeBtn = screen.getByTitle('Close');
+    expect(closeBtn).toBeInTheDocument();
+    expect(closeBtn).toHaveClass('icon-button');
+    // make sure sizing styles are applied for better touch targets
+    expect(closeBtn).toHaveStyle({ padding: '12px' });
+    const icon = closeBtn.querySelector('.material-icons');
+    expect(icon).toHaveStyle({ fontSize: '24px' });
+    // the button's textContent is just the material icon name
+    expect(closeBtn.textContent).toBe('close');
     // clicking triggers callback
-    fireEvent.click(backBtn);
+    fireEvent.click(closeBtn);
     expect(back).toHaveBeenCalled();
   });
 
   test('title becomes editable when clicked and commits changes', () => {
+    setMatchMedia(window.innerWidth || 800);
     const change = jest.fn();
     render(<LogoBar title="Hello" onTitleChange={change} />);
     const titleSpan = screen.getByText('Hello');
@@ -69,15 +92,11 @@ describe('LogoBar component', () => {
     expect(screen.getByText('World')).toBeInTheDocument();
   });
 
-  test('label disappears at 400px breakpoint', () => {
+  // the close button is always icon-only; no breakpoint handling required
+  test('close button always shows icon only', () => {
     const back = jest.fn();
-    window.innerWidth = 400;
-    window.dispatchEvent(new Event('resize'));
     render(<LogoBar title="Project B" onBack={back} />);
-    const backBtn = screen.getByTitle('Back to Projects');
-    // the icon should still be present but the label removed
-    expect(backBtn.textContent).toBe('folder');
-    const label = backBtn.querySelector('.projects-label');
-    expect(label).toBeNull();
+    const closeBtn = screen.getByTitle('Close');
+    expect(closeBtn.textContent).toBe('close');
   });
 });

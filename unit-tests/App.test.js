@@ -341,11 +341,19 @@ describe('App component', () => {
     // once the project editor is shown the global bottom bar is removed
     expect(document.querySelector('.bottom-input-bar')).toBeNull();
     // the editor itself provides a FAB for adding subprojects
-    const fab = document.querySelector('.fab');
+    const fab = document.querySelector('.project-editor > .fab:not(.fab-small)');
     expect(fab).toBeInTheDocument();
 
     // create an unnamed subproject via FAB and ensure it appears (may update async)
     fireEvent.click(fab);
+    const manualBtn = document.querySelector('.fab-small[title="Add manual subproject"]');
+    // menu buttons should not be fixed to the viewport
+    expect(window.getComputedStyle(manualBtn).position).not.toBe('fixed');
+    // label visible on manual button
+    expect(manualBtn.textContent).toContain('Add subproject');
+    const aiBtn = document.querySelector('.fab-small[title="AI assisted subproject"]');
+    expect(aiBtn.textContent).toContain('AI assisted project design');
+    fireEvent.click(manualBtn);
     await waitFor(() => {
       const unnamedInputs = document.querySelectorAll('.project-editor .subproject-name-input');
       expect(unnamedInputs.length).toBe(1);
@@ -358,12 +366,12 @@ describe('App component', () => {
       expect(unnamedInputs.length).toBe(1);
     });
 
-    // the title bar should display a Back to Projects button on the right
-    const backBtn = screen.getByTitle('Back to Projects');
-    expect(backBtn).toBeInTheDocument();
-    expect(backBtn.textContent).toBe('folderBack to Projects');
+    // the title bar should display a close icon button on the right
+    const closeBtn = screen.getByTitle('Close');
+    expect(closeBtn).toBeInTheDocument();
+    expect(closeBtn.textContent).toBe('close');
     await act(async () => {
-      fireEvent.click(backBtn);
+      fireEvent.click(closeBtn);
     });
     // after pressing done bar logo should reappear
     expect(screen.getByAltText('FOMO logo')).toBeInTheDocument();
@@ -403,9 +411,12 @@ describe('App component', () => {
     // the floating action button lives on the page
     const fab = document.querySelector('.fab');
     expect(fab).toBeInTheDocument();
-    // click twice quickly to simulate race
+    // click twice quickly to simulate race; pick the manual-add button explicitly
     fireEvent.click(fab);
-    fireEvent.click(fab);
+    let manual = document.querySelector('.fab-small[title="Add manual subproject"]');
+    fireEvent.click(manual);
+    // second click after the first close will do nothing but simulate rapid taps
+    fireEvent.click(manual);
     let summaryInputs;
     // first subproject should still be only one
     await waitFor(() => {
@@ -420,15 +431,33 @@ describe('App component', () => {
     expect(document.querySelector('.subproject-summary .add-task-btn')).toBeNull();
 
     // clicking FAB again should not add another unnamed project
-    fireEvent.click(fab);
+    // re-locate the main fab in case it was replaced by a re-render
+    fireEvent.click(document.querySelector('.project-editor > .fab:not(.fab-small)'));
     await waitFor(() => {
       summaryInputs =
         document.querySelectorAll('.project-editor .subproject-name-input');
       expect(summaryInputs.length).toBe(1);
     });
-    // now name the subproject and click fab again to verify a second appears
+    // close the menu so subsequent click will open it rather than close
+    fireEvent.click(document.querySelector('.project-editor > .fab:not(.fab-small)'));
+    // now name the subproject and wait for the change to percolate
     fireEvent.change(summaryInputs[0], { target: { value: 'Named' } });
-    fireEvent.click(fab);
+    await waitFor(() => {
+      const current = document.querySelector('.project-editor .subproject-name-input');
+      expect(current && current.value).toBe('Named');
+    });
+    // give React a moment to flush the parent state update before adding again
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // open menu again and add a second subproject
+    // locate fresh main fab reference before clicking
+    fireEvent.click(document.querySelector('.project-editor > .fab:not(.fab-small)'));
+    await waitFor(() => {
+      manual = document.querySelector('.fab-small[title="Add manual subproject"]');
+      expect(manual).toBeTruthy();
+    });
+    // manual creation button ignores clicks while `isAdding` is true for 500ms
+    await new Promise((r) => setTimeout(r, 600));
+    fireEvent.click(manual);
     await waitFor(() => {
       summaryInputs =
         document.querySelectorAll('.project-editor .subproject-name-input');
@@ -457,21 +486,20 @@ describe('App component', () => {
     });
 
     // only one subproject may be expanded at once
-    const details = document.querySelectorAll('.project-editor details');
-    expect(details.length).toBe(2);
-    // details elements should be marked as subprojects and contain the new body wrapper
-    details.forEach((d) => {
-      expect(d.classList.contains('subproject')).toBe(true);
+    const subs = document.querySelectorAll('.project-editor .subproject');
+    expect(subs.length).toBe(2);
+    // each container should still contain the body wrapper
+    subs.forEach((d) => {
       expect(d.querySelector('.subproject-body')).toBeTruthy();
     });
     // collapse the first one if open
-    const firstCollapse = details[0].querySelector('.collapse-btn');
+    const firstCollapse = subs[0].querySelector('.collapse-btn');
     fireEvent.click(firstCollapse); // toggle first subproject closed
     // now expand the second: clicking its button should also close the first
-    const secondCollapse = details[1].querySelector('.collapse-btn');
+    const secondCollapse = subs[1].querySelector('.collapse-btn');
     fireEvent.click(secondCollapse);
-    expect(details[0].hasAttribute('open')).toBe(false);
-    expect(details[1].hasAttribute('open')).toBe(true);
+    expect(subs[0].classList.contains('collapsed')).toBe(true);
+    expect(subs[1].classList.contains('collapsed')).toBe(false);
     // delete button is always visible with circular background
     const deleteBtns = document.querySelectorAll('.project-editor .subproject .delete');
     expect(deleteBtns.length).toBeGreaterThanOrEqual(2);

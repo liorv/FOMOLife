@@ -26,6 +26,10 @@ export default function LogoBar({
     }
   };
 
+  // previously we managed a media-query-driven flag to hide the
+  // projects label at narrow widths.  the design has switched to a
+  // plain close icon, so no responsive logic is needed here.
+
   const handleTitleClick = () => {
     if (onTitleChange) {
       setEditing(true);
@@ -74,15 +78,15 @@ export default function LogoBar({
       <div className="right-column">
         {onBack && (
           <button
-            className="projects-button"
+            className="icon-button close-button"
             onClick={onBack}
-            title="Back to Projects"
-            aria-label="Back to Projects"
+            title="Close"
+            aria-label="Close"
+            style={{ padding: '12px' }}
           >
-            <span className="material-icons">folder</span>
-            <span className="projects-label" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-            Back to Projects
-          </span>
+            <span className="material-icons" style={{ fontSize: '48px' }}>
+              close
+            </span>
           </button>
         )}
       </div>

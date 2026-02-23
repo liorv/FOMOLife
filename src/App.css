@@ -152,6 +152,7 @@
   }
 }
 
+
 /* hide the search bar completely on very narrow viewports */
 @media (max-width: 290px) {
   .title-bar .search-container {
@@ -1013,36 +1014,11 @@ body {
   padding: 4px;
 }
 
-/* Material Design back to projects button */
-.projects-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #dadce0;
-  border-radius: 24px;
-  padding: 8px 16px;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
-  cursor: pointer;
-  font-family: 'Roboto', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a73e8;
-  transition: box-shadow 0.2s, background-color 0.2s;
-}
-
-.projects-button:hover {
-  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.16);
-  background-color: #f8f9fa;
-}
-
-.projects-button .material-icons {
+/* ensure close icon is an appropriate size */
+.close-button .material-icons {
   font-size: 18px;
 }
 
-.projects-button .projects-label {
-  font-weight: 500;
-}
 
 .back-circle {
   display: inline-flex;
@@ -1251,6 +1227,54 @@ body {
   cursor: pointer;
   z-index: 30;
 }
+
+/* small floating menu that opens when the FAB is clicked inside a project editor */
+.fab-menu {
+  position: fixed;
+  /* position the top of the menu a small distance above the main FAB so
+     the buttons are clearly on top rather than overlapping its hit area. */
+  bottom: 150px; /* sit above the bottom input and tab bar */
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 110; /* above the tabs (z-index 100) so it doesn't get clipped */
+}
+
+/* variant used inside fab-menu; inherits color/shadow from regular FAB but
+   does not position itself independently.  position:static ensures the
+   buttons flow inside .fab-menu rather than fixed at the viewport. */
+.fab-small {
+  position: static;
+  /* pill styling rather than circular */
+  padding: 8px 16px;
+  font-size: 1rem;
+  border-radius: 24px;
+  background: #d32998;
+  color: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start; /* icon at left edge */
+  gap: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* icon inside pill should be appropriately sized */
+.fab-small .material-icons {
+  font-size: 1.2rem;
+}
+
+/* label no longer needs top margin */
+.fab-label {
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #fff;
+}
 .fab:focus {
   outline: none;
 }
@@ -1260,18 +1284,23 @@ body {
 
 /* subproject container styling to visually group tasks as part of the
    subproject card */
-.project-editor details.subproject {
+.project-editor .subproject {
   margin: 8px 0;
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
 }
 
-.project-editor details.subproject .subproject-body {
+.project-editor .subproject .subproject-body {
   padding: 8px 12px;
   background: #fff;
   /* indent inner content to feel subordinate */
   padding-left: 24px;
+}
+
+/* hide body content when collapsed; class is toggled in JS */
+.project-editor .subproject.collapsed .subproject-body {
+  display: none;
 }
 
 /* project-editor tasks should still be able to scroll horizontally when content is wide, but

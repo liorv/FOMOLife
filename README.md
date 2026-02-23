@@ -73,3 +73,31 @@ separate key/file.  This makes it trivial to run the same code for
 different accounts without data leakage.  Unit tests (`storage.test.js`
 and `db.test.js`) exercise the namespace behaviour and ensure that
 operations remain isolated.
+
+## UI Development & Accessibility Tips
+
+To keep the app maintainable and accessible, please follow these guidelines when
+adding or changing interactive UI:
+
+- **Avoid interactive elements inside `<summary>`.**  Browsers and
+  assistive technologies handle focus oddly when a `<summary>` contains
+  other controls.  Wrap collapsible headers in plain `<div>`s and toggle
+  visibility with a class (e.g. `.collapsed`) instead.  See
+  `src/components/ProjectEditor.js` for the recent refactor.
+
+- **Mind the stacking context.**  Floating buttons and menus should stack
+  predictably.  The tab bar uses `z-index: 100`, modals use `1000`; any
+  temporary dropdowns should sit in between (e.g. `.fab-menu { z-index:
+  110; }`).  Centralize such rules in `src/App.css`.
+
+- **Write robust tests for stateful UI.**  Always query fresh DOM elements
+  before interacting and use `waitFor` when state updates asynchronously.
+  Simulate real user pacing when elements disable themselves (`isAdding`);
+  a short `setTimeout` in tests helps avoid flakiness.
+
+- **Use proper ARIA roles.**  Add `role="menu"` or similar when a group
+  of buttons behaves like a menu.  Keep an eye on `eslint-plugin-jsx-a11y`
+  warnings; they often catch issues early.
+
+These tips are now part of the project documentation so future changes
+avoid the pitfalls we just fixed.
