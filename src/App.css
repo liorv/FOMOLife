@@ -940,10 +940,9 @@ body {
 
 /* wrapper around search-container must take full width provided by mid-row */
 .search-tasks {
-  width: 100%;
+  flex: 1 1 auto;     /* grow to fill the mid-row space */
   display: flex;      /* make it a flex container so the inner child can flex */
 }
-
 
 .title-logo {
   max-height: 120px; /* twice as big */
