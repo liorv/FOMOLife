@@ -27,3 +27,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: #202124;
 }
+
+.search-inner {
+    width:100%;
+    /* let the wrapper fill the column; no cap here so App.css rules take effect */
+    max-width:none;
+    min-width:150px;
+    position:relative;
+}
