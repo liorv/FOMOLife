@@ -941,9 +941,7 @@ body {
 /* wrapper around search-container must take full width provided by mid-row */
 .search-tasks {
   flex: 1 1 auto;     /* grow to fill the mid-row space */
-  display: flex;      /* make it a flex container so the inner child can flex */
-  flex-direction: column; /* stack search box and active pills vertically */
-  align-items: stretch;
+  position: relative; /* so pills can be absolutely positioned below */
 }
 
 /* active filters should be slightly smaller and not stretch the row */
@@ -955,10 +953,14 @@ body {
 }
 
 .active-filters {
+  position: absolute;
+  top: calc(100% + 10px); /* float below search bar with a 10px gap */
+  left: 0;
   display: flex;
   gap: 4px;
-  justify-content: flex-start; /* align to left underneath search */
-  margin-top: 10px; /* give some breathing room under the search box */
+  justify-content: flex-start;
+  /* keep pills from expanding the parent height */
+  width: auto;
 }
 
 .title-logo {
