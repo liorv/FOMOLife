@@ -44,11 +44,26 @@ describe('SubprojectRow', () => {
     expect(screen.getByText('+1')).toBeInTheDocument();
   });
 
-  test('menu button calls callback with id', () => {
+  test('menu button opens options and edit choice calls callback', () => {
     const onEdit = jest.fn();
     render(<SubprojectRow sub={baseSub} onEdit={onEdit} />);
     fireEvent.click(document.querySelector('.subproject-row .menu-button'));
+    // menu should appear
+    expect(document.querySelector('.subproject-row-menu')).toBeTruthy();
+    const editItem = document.querySelector('.subproject-row-menu .edit-item');
+    expect(editItem.textContent).toBe('Edit');
+    fireEvent.click(editItem);
     expect(onEdit).toHaveBeenCalledWith('sub1');
+  });
+
+  test('delete option present and calls onDelete', () => {
+    const onDelete = jest.fn();
+    render(<SubprojectRow sub={baseSub} onEdit={jest.fn()} onDelete={onDelete} />);
+    fireEvent.click(document.querySelector('.subproject-row .menu-button'));
+    const deleteItem = document.querySelector('.subproject-row-menu .delete-item');
+    expect(deleteItem.textContent).toBe('Delete');
+    fireEvent.click(deleteItem);
+    expect(onDelete).toHaveBeenCalledWith('sub1');
   });
 
   test('allows inline name editing when callback provided', () => {

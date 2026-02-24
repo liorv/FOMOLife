@@ -1,9 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-export default function SubprojectRow({ sub, onEdit, onNameChange }) {
+export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete }) {
   const [editing, setEditing] = React.useState(false);
   const [draftName, setDraftName] = React.useState(sub.text || "");
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const tasks = sub.tasks || [];
   const count = tasks.length;
   const doneCount = tasks.filter((t) => t.done).length;
@@ -90,10 +91,34 @@ export default function SubprojectRow({ sub, onEdit, onNameChange }) {
       <button
         className="menu-button"
         title="More options"
-        onClick={() => onEdit(sub.id)}
+        onClick={() => setMenuOpen((o) => !o)}
       >
         <span className="material-icons">more_vert</span>
       </button>
+      {menuOpen && (
+        <div className="subproject-row-menu">
+          <button
+            className="menu-item edit-item"
+            onClick={() => {
+              setMenuOpen(false);
+              onEdit(sub.id);
+            }}
+          >
+            Edit
+          </button>
+          {onDelete && (
+            <button
+              className="menu-item delete-item"
+              onClick={() => {
+                setMenuOpen(false);
+                onDelete(sub.id);
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      )}
       {/* hamburger menu triggers edit action for now */}
       <button
         className="menu-button"
@@ -116,6 +141,6 @@ SubprojectRow.propTypes = {
     people: PropTypes.array,
   }).isRequired,
   onEdit: PropTypes.func.isRequired,
-  // deletion is handled via the editor, not row
   onNameChange: PropTypes.func,
+  onDelete: PropTypes.func,
 };

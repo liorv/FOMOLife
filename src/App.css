@@ -1333,6 +1333,7 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   border-radius: 4px;
   transition: box-shadow 0.2s ease;
+  position: relative; /* needed for menu positioning */
 }
 .subproject-row:hover {
   box-shadow: 0 4px 6px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.12);
@@ -1403,6 +1404,30 @@ body {
 /* specific styling for hamburger menu */
 .subproject-row .menu-button {
   margin-left: auto; /* push to right edge */
+}
+
+.subproject-row-menu {
+  position: absolute;
+  right: 16px;
+  top: 100%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  z-index: 10;
+}
+.subproject-row-menu .menu-item {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.subproject-row-menu .menu-item:hover {
+  background: rgba(0,0,0,0.04);
 }
 
 .task-list {

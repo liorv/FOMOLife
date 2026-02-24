@@ -56,6 +56,10 @@ describe('SubprojectEditor', () => {
     // click edit icon should trigger onToggleCollapse via onEdit
     const menuBtn = document.querySelector('.subproject-row .menu-button');
     fireEvent.click(menuBtn);
+    // choose the "Edit" menu item
+    const editItem = document.querySelector('.subproject-row-menu .edit-item');
+    expect(editItem).toBeTruthy();
+    fireEvent.click(editItem);
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
   });
 
