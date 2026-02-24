@@ -51,7 +51,8 @@ describe('SubprojectRow', () => {
     // menu should appear
     expect(document.querySelector('.subproject-row-menu')).toBeTruthy();
     const editItem = document.querySelector('.subproject-row-menu .edit-item');
-    expect(editItem.textContent).toBe('Edit');
+    expect(editItem.textContent).toContain('Edit');
+    expect(editItem.querySelector('.menu-icon')).toBeTruthy();
     fireEvent.click(editItem);
     expect(onEdit).toHaveBeenCalledWith('sub1');
   });
@@ -61,7 +62,8 @@ describe('SubprojectRow', () => {
     render(<SubprojectRow sub={baseSub} onEdit={jest.fn()} onDelete={onDelete} />);
     fireEvent.click(document.querySelector('.subproject-row .menu-button'));
     const deleteItem = document.querySelector('.subproject-row-menu .delete-item');
-    expect(deleteItem.textContent).toBe('Delete');
+    expect(deleteItem.textContent).toContain('Delete');
+    expect(deleteItem.querySelector('.menu-icon')).toBeTruthy();
     fireEvent.click(deleteItem);
     expect(onDelete).toHaveBeenCalledWith('sub1');
   });

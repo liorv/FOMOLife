@@ -104,7 +104,7 @@ export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete }) {
               onEdit(sub.id);
             }}
           >
-            Edit
+            <span className="material-icons menu-icon">edit</span> Edit
           </button>
           {onDelete && (
             <button
@@ -114,7 +114,7 @@ export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete }) {
                 onDelete(sub.id);
               }}
             >
-              Delete
+              <span className="material-icons menu-icon">delete</span> Delete
             </button>
           )}
         </div>
