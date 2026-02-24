@@ -307,6 +307,31 @@ describe('App component', () => {
     expect(tile.querySelector('.delete-icon')).toBeTruthy();
   });
 
+  test('tasks can be reordered via drag and drop', async () => {
+    render(<App />);
+    // add two tasks and verify initial order
+    addTask('first');
+    addTask('second');
+    await screen.findByText('second');
+    const rowsBefore = document.querySelectorAll('.task-row');
+    expect(rowsBefore[0].textContent).toContain('first');
+    expect(rowsBefore[1].textContent).toContain('second');
+
+    // simulate dragging the first row onto the second
+    const dragHandle = rowsBefore[0].querySelector('.drag-handle');
+    fireEvent.dragStart(dragHandle);
+    const targetRow = rowsBefore[1];
+    fireEvent.dragOver(targetRow);
+    fireEvent.drop(targetRow);
+
+    // after drop, order should update; wait until the first row text flips
+    await waitFor(() => {
+      const rowsAfter = document.querySelectorAll('.task-row');
+      expect(rowsAfter[0].textContent).toContain('second');
+      expect(rowsAfter[1].textContent).toContain('first');
+    });
+  });
+
   test('clicking edit enters project editing mode with title and back button', async () => {
     render(<App />);
     fireEvent.click(screen.getByText('Projects'));

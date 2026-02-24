@@ -11,10 +11,34 @@ export default function Task({
   handleStar,
   handleDelete,
   children,
+  // drag callbacks forwarded from TaskList/App
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }) {
   return (
     <li
       className={`${item.done ? "done" : ""}${type === "tasks" && editorTaskId === id ? " is-editing" : ""}`}
+      draggable={type === "tasks"}
+      onDragStart={(e) => {
+        onDragStart && onDragStart(id, e);
+      }}
+      onDragOver={(e) => {
+        if (type === "tasks") {
+          e.preventDefault();
+          onDragOver && onDragOver(id, e);
+        }
+      }}
+      onDrop={(e) => {
+        if (type === "tasks") {
+          e.preventDefault();
+          onDrop && onDrop(id, e);
+        }
+      }}
+      onDragEnd={(e) => {
+        onDragEnd && onDragEnd(id, e);
+      }}
     >
       {/* header area – sits at top of container, now delegated to TaskRow */}
       <div className="task-header">

@@ -96,6 +96,8 @@ function App({ userId } = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   // active filters: array of 'completed'|'overdue'
   const [filters, setFilters] = useState([]);
+  // drag-and-drop state used while reordering tasks
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
 
   // The old "save-on-every-change" effect is no longer strictly
   // necessary since each handler uses the async db API directly.  We
@@ -375,6 +377,35 @@ function App({ userId } = {}) {
     }
   }, [type, editingProjectId]);
 
+  // drag handlers passed down to TaskList so tasks can be reordered
+  const handleDragStart = (id, e) => {
+    // record which task is currently being dragged
+    setDraggedTaskId(id);
+  };
+
+  const handleDragOver = (id, e) => {
+    // no action other than preventing default already handled by TaskRow
+  };
+
+  const handleDrop = (id, e) => {
+    if (!draggedTaskId || draggedTaskId === id) return;
+    // reorder tasks array in state; skip persistence for simplicity
+    setData((prev) => {
+      const tasks = [...prev.tasks];
+      const fromIdx = tasks.findIndex((t) => t.id === draggedTaskId);
+      const toIdx = tasks.findIndex((t) => t.id === id);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const [moved] = tasks.splice(fromIdx, 1);
+      tasks.splice(toIdx, 0, moved);
+      return { ...prev, tasks };
+    });
+    setDraggedTaskId(null);
+  };
+
+  const handleDragEnd = (id, e) => {
+    setDraggedTaskId(null);
+  };
+
   return (
     <div className={`main-layout${editingProjectId ? ' editing' : ''}`}>
       {/* outer wrapper holds the top bar and container and fills available vertical space */}
@@ -513,6 +544,10 @@ function App({ userId } = {}) {
                 handleToggle={handleToggle}
                 handleStar={handleStar}
                 handleDelete={handleDelete}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
                 onEditorSave={handleEditorSave}
                 onEditorUpdate={handleEditorUpdate}
                 onEditorClose={handleEditorClose}

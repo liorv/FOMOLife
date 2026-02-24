@@ -26,6 +26,11 @@ export default function TaskRow({
   handleDelete,
   // optional callback for inline title edits
   onTitleChange,
+  // drag-and-drop callbacks (only relevant when `type === 'tasks'`)
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }) {
   const isOpen = editorTaskId === id;
   // determine if due date exists and is in the past and compute days left
@@ -42,18 +47,51 @@ export default function TaskRow({
 
   return (
     // container flex ensures left/middle/right segments and full width
-    <div className="task-row">
-      {/* left group: expand, checkbox, title */}
+    <div
+      className="task-row"
+      draggable={type === "tasks"}
+      onDragOver={(e) => {
+        if (type === "tasks") {
+          e.preventDefault();
+          onDragOver && onDragOver(id, e);
+        }
+      }}
+      onDrop={(e) => {
+        if (type === "tasks") {
+          e.preventDefault();
+          onDrop && onDrop(id, e);
+        }
+      }}
+      onDragEnd={(e) => {
+        if (type === "tasks") {
+          onDragEnd && onDragEnd(id, e);
+        }
+      }}
+    >
+      {/* left group: drag handle, expand, checkbox, title */}
       <div className="left-group">
         {type === "tasks" && (
-          <span
-            className={`material-icons expand-icon${isOpen ? " open" : ""}`}
-            onClick={() => setEditorTaskId(id)}
-            title={isOpen ? " Collapse editor" : "Expand editor"}
-            aria-hidden="true"
-          >
-            {isOpen ? "expand_more" : "chevron_right"}
-          </span>
+          <>
+            <span
+              className="drag-handle material-icons"
+              title="Drag to reorder"
+              aria-hidden="true"
+              draggable={true}
+              onDragStart={(e) => {
+                onDragStart && onDragStart(id, e);
+              }}
+            >
+              drag_handle
+            </span>{/* no whitespace between handle and expand icon */}
+            <span
+              className={`material-icons expand-icon${isOpen ? " open" : ""}`}
+              onClick={() => setEditorTaskId(id)}
+              title={isOpen ? " Collapse editor" : "Expand editor"}
+              aria-hidden="true"
+            >
+              {isOpen ? "expand_more" : "chevron_right"}
+            </span>
+          </>
         )}
 
         {type === "tasks" && (
@@ -70,6 +108,7 @@ export default function TaskRow({
 
         <span
           className="task-title"
+          title={item.text} /* always show full text on hover */
           onClick={() => (type === "tasks" ? setEditorTaskId(id) : undefined)}
           style={{
             cursor: type === "tasks" ? "pointer" : "default",

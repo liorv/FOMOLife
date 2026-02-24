@@ -34,8 +34,25 @@ describe('TaskRow component', () => {
       />
     );
 
-    // order: expand icon -> checkbox -> title inside left-group
+    // order: drag handle -> expand icon -> checkbox -> title inside left-group
     const left = container.querySelector('.left-group');
+    const dragHandle = left.querySelector('.drag-handle');
+    expect(dragHandle).toBeTruthy();
+    expect(dragHandle.textContent).toBe('drag_handle');
+    // draggable attribute should be present on handle
+    expect(dragHandle.getAttribute('draggable')).toBe('true');
+    // there should be no extra right margin (icon only)
+    expect(window.getComputedStyle(dragHandle).marginRight).toBe('0px');
+    // handle should be taken out of layout via absolute positioning
+    expect(window.getComputedStyle(dragHandle).position).toBe('absolute');
+
+    // title span should include the full text as a tooltip
+    const titleSpan = container.querySelector('.task-title');
+    expect(titleSpan.getAttribute('title')).toBe('row task');
+    // style should truncate with ellipsis (nowrap)
+    const style = window.getComputedStyle(titleSpan);
+    expect(style.whiteSpace).toBe('nowrap');
+
     const icon = left.querySelector('.expand-icon');
     expect(icon).toBeTruthy();
     // collapsed icon should face right
@@ -67,6 +84,35 @@ describe('TaskRow component', () => {
     // right-group should exist (CSS handles pushing it right)
     const rightGroup = container.querySelector('.right-group');
     expect(rightGroup).toBeTruthy();
+    // ensure right-group is absolutely positioned so icons stay visible
+    const rgStyle = window.getComputedStyle(rightGroup);
+    expect(rgStyle.position).toBe('absolute');
+    expect(rgStyle.right).toBe('4px');
+    expect(rgStyle.zIndex).toBe('2');
+    // row padding should leave room for the icons
+    const row = container.querySelector('.task-row');
+    expect(window.getComputedStyle(row).paddingRight).toBe('64px');
+    // row should be allowed to shrink below child min-content and not overflow
+    const rowStyle = window.getComputedStyle(row);
+    expect(rowStyle.minWidth).toBe('0px');
+    expect(rowStyle.maxWidth).toBe('100%');
+    // title itself has extra right padding so text doesn't touch icons
+    const titleStyle = window.getComputedStyle(container.querySelector('.task-title'));
+    expect(titleStyle.paddingRight).toBe('8px');
+
+    // simulate narrow viewport: apply media query style manually
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 });
+    window.dispatchEvent(new Event('resize'));
+    const titleAfter = window.getComputedStyle(container.querySelector('.task-title'));
+    expect(titleAfter.maxWidth).toBe('150px');
+    // flex basis should also be fixed at 150px so the field itself shrinks
+    expect(titleAfter.flex).toContain('150px');
+
+    // if we simulate a wider viewport we should no longer have a max-width set
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 800 });
+    window.dispatchEvent(new Event('resize'));
+    const titleWide = window.getComputedStyle(container.querySelector('.task-title'));
+    expect(titleWide.maxWidth).toBe('none');
     // buttons exist but visual centering is handled by CSS rules not visible here
     expect(rightGroup.querySelectorAll('button').length).toBeGreaterThan(0);
     // layout is now handled via CSS classes; ensure checkbox lives inside the left-group
@@ -151,6 +197,26 @@ describe('TaskRow component', () => {
       />
     );
     expect(leftgroup.querySelector('.expand-icon').textContent).toBe('expand_more');
+  });
+
+  test('drag handle invokes provided callback', () => {
+    const dragStart = jest.fn();
+    const { container } = render(
+      <TaskRow
+        item={task}
+        id="row-1"
+        type="tasks"
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+        onDragStart={dragStart}
+      />
+    );
+    const handle = container.querySelector('.drag-handle');
+    fireEvent.dragStart(handle);
+    expect(dragStart).toHaveBeenCalledWith('row-1', expect.any(Object));
   });
 
   // inline editing has been removed; title remains read-only even when row is open

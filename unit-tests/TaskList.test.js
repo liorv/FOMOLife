@@ -51,6 +51,9 @@ describe('TaskList component', () => {
     // title should follow
     const title = checkbox.nextSibling;
     expect(title.className).toContain('task-title');
+    // title receives full text as tooltip and is truncated
+    expect(title.getAttribute('title')).toBe('task1');
+    expect(window.getComputedStyle(title).whiteSpace).toBe('nowrap');
     // since our sample doesn't include a due date, ensure there is no .task-date element present
     expect(container.querySelector('.task-date')).toBeFalsy();
 
@@ -73,6 +76,8 @@ describe('TaskList component', () => {
 
   test('clicking a task invokes setEditorTaskId and toggles', () => {
     const setIdx = jest.fn();
+    // also make sure drag callbacks are forwarded
+    const dragStart = jest.fn();
     render(
       <ul className="item-list">
         <TaskList
@@ -83,6 +88,10 @@ describe('TaskList component', () => {
           handleToggle={() => {}}
           handleStar={() => {}}
           handleDelete={() => {}}
+          onDragStart={dragStart}
+          onDragOver={() => {}}
+          onDrop={() => {}}
+          onDragEnd={() => {}}
           onEditorSave={onEditorSave}
           onEditorUpdate={onEditorUpdate}
           onEditorClose={onEditorClose}
@@ -92,6 +101,13 @@ describe('TaskList component', () => {
         />
       </ul>
     );
+
+    // simulate dragstart on the handle to ensure callback runs
+    const handleElem = document.querySelector('.drag-handle');
+    // handle should have no right margin
+    expect(window.getComputedStyle(handleElem).marginRight).toBe('0px');
+    fireEvent.dragStart(handleElem);
+    expect(dragStart).toHaveBeenCalledWith('t1', expect.any(Object));
 
     fireEvent.click(screen.getByText('task1'));
     expect(setIdx).toHaveBeenCalledWith('t1');

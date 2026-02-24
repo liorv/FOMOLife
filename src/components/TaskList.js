@@ -17,6 +17,11 @@ export default function TaskList({
   handleToggle, // used for task checkbox or person default toggle
   handleStar,
   handleDelete,
+  // drag callbacks for reordering tasks
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
   // task-editor props (only relevant when type === 'tasks')
   onEditorSave,
   onEditorUpdate,
@@ -72,6 +77,10 @@ export default function TaskList({
             handleToggle={handleToggle}
             handleStar={handleStar}
             handleDelete={handleDelete}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onDragEnd={onDragEnd}
           />
         );
 
@@ -102,6 +111,10 @@ export default function TaskList({
               handleToggle={handleToggle}
               handleStar={handleStar}
               handleDelete={handleDelete}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
             >
               {editor}
             </Task>

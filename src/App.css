@@ -94,6 +94,24 @@
   cursor: pointer;
 }
 
+/* drag handle icon styling for sortable tasks */
+.drag-handle {
+  cursor: grab;
+  position: absolute; /* remove from flex flow */
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 1.2em; /* ensure consistent icon size */
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+
 /* helper layout classes for editor sections */
 .editor-section {
   display: flex;
@@ -1640,6 +1658,7 @@ body {
   /* fill the available width and let rows stretch */
   display: flex;
   flex-direction: column;
+  min-width: 0; /* allow container to shrink when children have large min-content */
   gap: 8px;
   align-items: stretch; /* make each child take full width */
   width: 100%;
@@ -1804,9 +1823,13 @@ body {
 .task-row {
   flex: 1 1 100%; /* let row expand to fill available width */
   width: 100%;
+  min-width: 0;        /* allow row to shrink below its min-content (long unbreakable text) */
+  max-width: 100%;     /* never exceed parent width */
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative; /* needed for absolutely-positioned handle */
+  padding-left: 28px; /* reserve space for handle so content doesn't overlap */
 }
 
 /* left, middle, and right groups help with centering the date */
@@ -1817,9 +1840,20 @@ body {
   align-items: center;
 }
 
-/* ensure right-group hugs the right edge */
+/* ensure right-group is always visible by taking it out of the flow */
 .right-group {
-  margin-left: auto;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;               /* float above title text */
+  /* width will be determined by its contents */
+  flex: none;
+}
+
+/* row padding should give title some breathing room so it doesn't run under the icons */
+.task-row {
+  padding-right: 64px; /* slightly larger buffer to accommodate two icons */
 }
 
 /* style for date container: keep it a fixed-size column that can shrink
@@ -1885,6 +1919,8 @@ body {
   flex: 1 1 0; /* grow and shrink; zero basis lets it compress fully */
   min-width: 0; /* required so flex items can shrink below content size */
   text-align: left;
+  /* ensure text doesn't run directly up against right icons */
+  padding-right: 8px;
 }
 
 /* prevent title text from spilling out of the row; use ellipsis when too long */
@@ -1892,6 +1928,17 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* width is unconstrained by default; the field flexes naturally and
+     padding/right-group ensure icons don't overlap.  the small-screen
+     cap is applied in a media query below. */
+}
+
+/* extra constraint on very narrow viewports */
+@media (max-width: 400px) {
+  .task-row .task-title {
+    max-width: 150px; /* limit the title width to 150px so icons never overlap */
+    flex: 0 1 150px; /* enforce a 150px basis so the field itself shrinks to that width */
+  }
 }
 .task-row .task-date {
   flex: none;
