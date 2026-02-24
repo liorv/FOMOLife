@@ -1937,6 +1937,26 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+/* Flip menu vertically if it would go off-screen at bottom */
+.project-tile .project-menu-dropdown[data-flipped-v="true"] {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+  animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -2019,6 +2039,136 @@ body {
   animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: fit-content;
   overflow: visible;
+  max-width: calc(100vw - 32px); /* ensure doesn't exceed viewport with margin */
+}
+
+/* Flip color picker to left side if it would go off-screen on right */
+.project-tile .color-picker-submenu[data-flipped="true"] {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+/* Mobile Color Picker Modal Overlay */
+.color-picker-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.color-picker-modal {
+  background: #ffffff;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.color-picker-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.color-picker-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #202124;
+}
+
+.color-picker-modal-close {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5f6368;
+  transition: all 0.2s ease;
+}
+
+.color-picker-modal-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #202124;
+}
+
+.color-picker-modal-close .material-icons {
+  font-size: 1.5rem;
+}
+
+/* Color grid in modal should be centered and larger on mobile */
+.color-picker-modal .color-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.color-picker-modal .color-option {
+  width: 48px;
+  height: 48px;
+}
+
+.color-picker-modal .color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.color-picker-modal .color-option.selected {
+  border-color: #202124;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #202124;
+}
+
+.color-picker-modal .color-option .material-icons {
+  font-size: 1.2rem;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+/* For light colors in the modal, we might need dark text */
+.color-picker-modal .color-option[style*="#FFC107"] .material-icons,
+.color-picker-modal .color-option[style*="#FFA000"] .material-icons,
+.color-picker-modal .color-option[style*="#FF8F00"] .material-icons {
+  color: #202124;
+  text-shadow: none;
 }
 
 .project-tile .color-picker-grid {

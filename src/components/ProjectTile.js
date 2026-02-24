@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
+import ReactDOM from "react-dom";
 
 // a simple hash function to convert a string into an index for a color list
 function hashString(str) {
@@ -50,8 +51,12 @@ export default function ProjectTile({
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
+  const [colorPickerFlipped, setColorPickerFlipped] = useState(false);
   const menuRef = useRef(null);
   const dragRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const colorPickerRef = useRef(null);
 
   const color = useMemo(() => {
     if (project.color) return project.color;
@@ -73,6 +78,102 @@ export default function ProjectTile({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [menuOpen]);
+
+  // Close modal when clicking overlay (but not the modal itself)
+  useEffect(() => {
+    function handleOverlayClick(event) {
+      if (event.target.classList.contains("color-picker-modal-overlay")) {
+        setShowColorPicker(false);
+      }
+    }
+
+    if (showColorPicker && window.innerWidth < 768) {
+      document.addEventListener("mousedown", handleOverlayClick);
+      return () => document.removeEventListener("mousedown", handleOverlayClick);
+    }
+  }, [showColorPicker]);
+
+  // Detect viewport boundaries and adjust menu positioning
+  useEffect(() => {
+    if (!menuOpen || !dropdownRef.current) return;
+
+    const adjustMenuPosition = () => {
+      const dropdown = dropdownRef.current;
+      if (!dropdown) return;
+
+      const rect = dropdown.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      
+      // Much more aggressive threshold on mobile (< 768px width)
+      const threshold = viewportWidth < 768 ? 20 : 10;
+
+      // Check if menu is cut off at bottom
+      const isBottomCutOff = rect.bottom > viewportHeight - threshold;
+      setMenuFlippedVertically(isBottomCutOff);
+
+      // Check if color picker is cut off on right
+      if (colorPickerRef.current) {
+        const colorPickerRect = colorPickerRef.current.getBoundingClientRect();
+        const isRightCutOff = colorPickerRect.right > viewportWidth - threshold;
+        const isLeftCutOff = colorPickerRect.left < threshold;
+        setColorPickerFlipped(isRightCutOff && !isLeftCutOff);
+      }
+    };
+
+    // Check immediately and on window resize
+    adjustMenuPosition();
+    window.addEventListener("resize", adjustMenuPosition);
+    // Use multiple animation frames to ensure DOM is fully settled
+    const raf1 = requestAnimationFrame(adjustMenuPosition);
+    const raf2 = requestAnimationFrame(() => {
+      setTimeout(adjustMenuPosition, 50);
+    });
+
+    return () => {
+      window.removeEventListener("resize", adjustMenuPosition);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [menuOpen]);
+
+  // Additional effect to adjust color picker when it opens
+  useEffect(() => {
+    if (!showColorPicker || !colorPickerRef.current) return;
+
+    const checkColorPickerPosition = () => {
+      const colorPicker = colorPickerRef.current;
+      if (!colorPicker) return;
+
+      const rect = colorPicker.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Much more aggressive threshold on mobile (< 768px width)
+      const threshold = viewportWidth < 768 ? 20 : 10;
+      
+      // Check if color picker is cut off on right or left
+      const isRightCutOff = rect.right > viewportWidth - threshold;
+      const isLeftCutOff = rect.left < threshold;
+      
+      // Also check vertical (bottom cutoff)
+      const isBottomCutOff = rect.bottom > viewportHeight - threshold;
+      
+      setColorPickerFlipped(isRightCutOff && !isLeftCutOff);
+    };
+
+    // Use multiple animation frames to ensure DOM is fully settled
+    checkColorPickerPosition();
+    const raf1 = requestAnimationFrame(checkColorPickerPosition);
+    const raf2 = requestAnimationFrame(() => {
+      setTimeout(checkColorPickerPosition, 50);
+    });
+    
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [showColorPicker]);
 
   // Listen for global menu close events to prevent multiple menus from being open
   useEffect(() => {
@@ -179,7 +280,11 @@ export default function ProjectTile({
             <span className="material-icons">more_vert</span>
           </button>
           {menuOpen && (
-            <div className="project-menu-dropdown">
+            <div
+              className="project-menu-dropdown"
+              ref={dropdownRef}
+              data-flipped-v={menuFlippedVertically ? "true" : "false"}
+            >
               <button
                 className="menu-item color-menu-item"
                 onClick={() => setShowColorPicker(!showColorPicker)}
@@ -190,8 +295,13 @@ export default function ProjectTile({
                 <span className="menu-arrow">›</span>
               </button>
 
-              {showColorPicker && (
-                <div className="color-picker-submenu">
+              {/* On desktop, show color picker as submenu; on mobile it's a modal */}
+              {showColorPicker && window.innerWidth >= 768 && (
+                <div
+                  className="color-picker-submenu"
+                  ref={colorPickerRef}
+                  data-flipped={colorPickerFlipped ? "true" : "false"}
+                >
                   <div className="color-picker-grid">
                     {DEFAULT_COLORS.map((c) => (
                       <button
@@ -233,6 +343,41 @@ export default function ProjectTile({
           )}
         </div>
       </div>
+
+      {/* Mobile color picker modal - rendered at document root to avoid scroll clipping */}
+      {showColorPicker && window.innerWidth < 768 && ReactDOM.createPortal(
+        <div className="color-picker-modal-overlay">
+          <div className="color-picker-modal">
+            <div className="color-picker-modal-header">
+              <h3>Choose Color</h3>
+              <button
+                className="color-picker-modal-close"
+                onClick={() => setShowColorPicker(false)}
+                aria-label="Close color picker"
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="color-picker-grid">
+              {DEFAULT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  className={`color-option ${c === color ? "selected" : ""}`}
+                  style={{ backgroundColor: c }}
+                  title={`Change to ${c}`}
+                  onClick={() => handleColorChange(c)}
+                  aria-label={`Color ${c}`}
+                >
+                  {c === color && (
+                    <span className="material-icons">check</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <div className="project-body">
         <div className="project-progress-section">
