@@ -1,8 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete }) {
-  const [editing, setEditing] = React.useState(false);
+export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete, autoEdit = false }) {
+  const [editing, setEditing] = React.useState(autoEdit && (!sub.text || sub.text.trim() === ""));
   const [draftName, setDraftName] = React.useState(sub.text || "");
   const [menuOpen, setMenuOpen] = React.useState(false);
   const tasks = sub.tasks || [];
@@ -148,4 +148,5 @@ SubprojectRow.propTypes = {
   onEdit: PropTypes.func.isRequired,
   onNameChange: PropTypes.func,
   onDelete: PropTypes.func,
+  autoEdit: PropTypes.bool,
 };

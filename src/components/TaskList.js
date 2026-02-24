@@ -38,6 +38,8 @@ export default function TaskList({
   onSaveEdit,
   onCancelEdit,
   handleTogglePersonDefault,
+  newlyAddedTaskId = null,
+  onClearNewTask = () => {},
 }) {
   return (
     <>
@@ -83,6 +85,8 @@ export default function TaskList({
             onDragOver={onDragOver}
             onDrop={onDrop}
             onDragEnd={onDragEnd}
+            newlyAddedTaskId={newlyAddedTaskId}
+            onClearNewTask={onClearNewTask}
           />
         );
 

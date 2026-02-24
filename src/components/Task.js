@@ -17,6 +17,8 @@ export default function Task({
   onDragOver,
   onDrop,
   onDragEnd,
+  newlyAddedTaskId = null,
+  onClearNewTask = () => {},
 }) {
   return (
     <li
@@ -53,6 +55,8 @@ export default function Task({
           handleStar={handleStar}
           handleDelete={handleDelete}
           onTitleChange={onTitleChange}
+          newlyAddedTaskId={newlyAddedTaskId}
+          onClearNewTask={onClearNewTask}
         />
       </div>
 

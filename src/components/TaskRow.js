@@ -31,11 +31,15 @@ export default function TaskRow({
   onDragOver,
   onDrop,
   onDragEnd,
+  newlyAddedTaskId = null,
+  onClearNewTask = () => {},
 }) {
   const isOpen = editorTaskId === id;
 
   // inline title editing state
-  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(
+    newlyAddedTaskId === id && (!item.text || item.text.trim() === "")
+  );
   const [draftTitle, setDraftTitle] = useState(item.text || "");
 
   useEffect(() => {
@@ -43,10 +47,23 @@ export default function TaskRow({
     if (!isOpen) {
       setEditingTitle(false);
     }
-  }, [item.text, isOpen]);
+    // auto-enable editing if this is the newly added task with no text
+    if (newlyAddedTaskId === id && (!item.text || item.text.trim() === "")) {
+      setEditingTitle(true);
+    }
+  }, [item.text, isOpen, newlyAddedTaskId, id]);
 
   const finishEdit = () => {
     setEditingTitle(false);
+    // clear the newly added flag
+    if (newlyAddedTaskId === id) {
+      onClearNewTask();
+    }
+    // if the task title is empty or only whitespace, delete the task
+    if (!draftTitle.trim()) {
+      handleDelete(id);
+      return;
+    }
     if (onTitleChange && draftTitle !== item.text) {
       onTitleChange(id, draftTitle);
     }

@@ -21,14 +21,17 @@ export default function ProjectEditor({
   onOpenPeople = () => {},
   onAddSubproject = () => {},
   onBack = () => {},
+  newlyAddedSubprojectId = null,
+  onClearNewSubproject = () => {},
 }) {
   const [local, setLocal] = useState(() => ({
     ...project,
     subprojects: project.subprojects
-      ? project.subprojects.map((s) => ({ ...s, collapsed: false, newTaskText: "" }))
+      ? project.subprojects.map((s) => ({ ...s, collapsed: s.collapsed !== undefined ? s.collapsed : false, newTaskText: "" }))
       : [],
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
+  const [newlyAddedTaskId, setNewlyAddedTaskId] = useState(null);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   // track a drag operation so tasks may be reordered within a subproject
   const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
@@ -94,6 +97,42 @@ export default function ProjectEditor({
   };
 
   const updateSubText = (id, text) => {
+    // if text is empty, check if we should delete or give a temp name
+    if (!text || text.trim() === "") {
+      const subproject = (local.subprojects || []).find((s) => s.id === id);
+      if (subproject) {
+        const taskCount = (subproject.tasks || []).length;
+        // if no tasks, delete the subproject
+        if (taskCount === 0) {
+          const updated = {
+            ...local,
+            subprojects: (local.subprojects || []).filter((s) => s.id !== id),
+          };
+          setLocal(updated);
+          onApplyChange(updated);
+          if (id === newlyAddedSubprojectId) {
+            onClearNewSubproject();
+          }
+          return;
+        }
+        // if has tasks, give it a temporary name
+        const tempName = `Untitled (${taskCount})`;
+        const updated = {
+          ...local,
+          subprojects: (local.subprojects || []).map((s) =>
+            s.id === id ? { ...s, text: tempName } : s,
+          ),
+        };
+        setLocal(updated);
+        onApplyChange(updated);
+        if (id === newlyAddedSubprojectId) {
+          onClearNewSubproject();
+        }
+        return;
+      }
+    }
+    
+    // normal case: update the text
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) =>
@@ -102,6 +141,10 @@ export default function ProjectEditor({
     };
     setLocal(updated);
     onApplyChange(updated);
+    // clear the newly added flag when the name is edited
+    if (id === newlyAddedSubprojectId) {
+      onClearNewSubproject();
+    }
   };
 
   const toggleSubCollapse = (id) => {
@@ -171,6 +214,15 @@ export default function ProjectEditor({
     };
     setLocal(updated);
     onApplyChange(updated);
+    // if task was created blank, mark it as newly added so it enters edit mode
+    if (!text || text.trim() === "") {
+      const newTask = updated.subprojects
+        .find((s) => s.id === subId)
+        ?.tasks.slice(-1)[0];
+      if (newTask) {
+        setNewlyAddedTaskId(newTask.id);
+      }
+    }
   };
 
   const handleTaskToggle = (subId, taskId) => {
@@ -285,6 +337,9 @@ export default function ProjectEditor({
           onOpenPeople={onOpenPeople}
           onCreatePerson={onCreatePerson}
           onTaskTitleChange={(taskId, newText) => updateTask(sub.id, taskId, { text: newText })}
+          autoEdit={newlyAddedSubprojectId === sub.id}
+          newlyAddedTaskId={newlyAddedTaskId}
+          onClearNewTask={() => setNewlyAddedTaskId(null)}
         />
       ))}
       {/* replicates the FAB formerly living in the global bottom bar */}

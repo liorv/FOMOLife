@@ -27,6 +27,9 @@ export default function SubprojectEditor({
   onCreatePerson,
   // new callback for inline title edits within tasks
   onTaskTitleChange,
+  autoEdit = false,
+  newlyAddedTaskId = null,
+  onClearNewTask = () => {},
 }) {
   const collapsed = sub.collapsed;
   // helper used by the header + tests; parent already binds the subproject id
@@ -48,6 +51,7 @@ export default function SubprojectEditor({
         onEdit={onToggleCollapse}
         onNameChange={(newName) => onUpdateText(newName)}
         onDelete={onDelete}
+        autoEdit={autoEdit}
       />
     );
   }
@@ -106,6 +110,8 @@ export default function SubprojectEditor({
               allPeople={allPeople}
               onOpenPeople={onOpenPeople}
               onCreatePerson={onCreatePerson}
+              newlyAddedTaskId={newlyAddedTaskId}
+              onClearNewTask={onClearNewTask}
             />
           </ul>
         </div>
@@ -143,4 +149,7 @@ SubprojectEditor.propTypes = {
   onOpenPeople: PropTypes.func,
   onCreatePerson: PropTypes.func,
   onTaskTitleChange: PropTypes.func, // optional inline title callback
+  autoEdit: PropTypes.bool,
+  newlyAddedTaskId: PropTypes.string,
+  onClearNewTask: PropTypes.func,
 };

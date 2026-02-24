@@ -40,6 +40,7 @@ function App({ userId } = {}) {
   });
   const [confirmingProjectId, setConfirmingProjectId] = useState(null);
   const [editingProjectId, setEditingProjectId] = useState(null);
+  const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState(null);
   // track if a blank subproject is pending additions to avoid races
   const pendingBlankSubRef = useRef(false);
   
@@ -140,10 +141,11 @@ function App({ userId } = {}) {
       id: generateId(),
       text: (name || "").trim(),
       tasks: [],
-      collapsed: false,
+      collapsed: true,
     };
     const updatedSubs = [...(project.subprojects || []), newSub];
     await db.update("projects", editingProjectId, { subprojects: updatedSubs }, userId);
+    setNewlyAddedSubprojectId(newSub.id);
     setData((prev) => ({
       ...prev,
       projects: prev.projects.map((pr) =>
@@ -193,6 +195,12 @@ function App({ userId } = {}) {
         userId,
       );
       setData((prev) => ({ ...prev, projects: [...prev.projects, newProject] }));
+      // immediately enter editing mode and add a blank subproject
+      setEditingProjectId(newProject.id);
+      // schedule the subproject addition after state updates settle
+      setTimeout(() => {
+        handleAddSubproject("");
+      }, 0);
     } else {
       // fallback for dreams and other types
       const newItem = await db.create(
@@ -486,6 +494,8 @@ function App({ userId } = {}) {
                   }));
                 }}
                 onAddSubproject={handleAddSubproject}
+                newlyAddedSubprojectId={newlyAddedSubprojectId}
+                onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
                 allPeople={data.people}
                 onOpenPeople={() => setType("people")}
                 onCreatePerson={async (person) => {
