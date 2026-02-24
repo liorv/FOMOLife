@@ -633,7 +633,7 @@ body {
   gap: 6px;
   position: relative;
   padding-left: 10px;
-  padding-right: 64px; /* reserve space for right-group icons */
+  padding-right: 80px; /* reserve space for right-group icons */
   overflow: visible;
   box-sizing: border-box;
 }
@@ -2299,7 +2299,7 @@ body {
 
 .subproject-right-group {
   position: absolute;
-  right: 16px;
+  right: 60px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -2382,9 +2382,17 @@ body {
 
 /* Subproject row menu — matches project-tile menu styling */
 .subproject-row .project-menu {
-  position: relative;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   flex: 0 0 auto;
-  z-index: 200;
+  z-index: 1000;
+}
+
+.subproject-row .project-menu .menu-button {
+  position: relative;
+  z-index: 1;
 }
 
 .subproject-row .project-menu-dropdown {
@@ -2395,7 +2403,7 @@ body {
   border-radius: var(--border-radius);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
   min-width: 180px;
-  z-index: 1000;
+  z-index: 9999;
   overflow: visible;
   margin-top: 4px;
   animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
