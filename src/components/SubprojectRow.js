@@ -119,14 +119,6 @@ export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete }) {
           )}
         </div>
       )}
-      {/* hamburger menu triggers edit action for now */}
-      <button
-        className="menu-button"
-        title="More options"
-        onClick={() => onEdit(sub.id)}
-      >
-        <span className="material-icons">more_vert</span>
-      </button>
     </div>
   );
 }
