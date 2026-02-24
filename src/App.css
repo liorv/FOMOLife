@@ -86,7 +86,7 @@
   background: #e53e3e;
 }
 .task-checkbox {
-  margin-right: 10px;
+  margin-right: 6px;
   width: 1.1em;
   height: 1.1em;
   accent-color: #2b6cb0;
@@ -1922,7 +1922,7 @@ body {
   align-items: center;
   gap: 6px;
   position: relative; /* needed for absolutely-positioned handle */
-  padding-left: 28px; /* reserve space for handle so content doesn't overlap */
+  padding-left: 20px; /* reserve space for handle so content doesn't overlap */
 }
 
 /* left, middle, and right groups help with centering the date */
