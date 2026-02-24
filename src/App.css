@@ -1066,6 +1066,7 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
+  gap: 20px;
   overflow-x: auto; /* allow scrolling if a row is too wide */
   flex: 1 1 auto;  /* fill vertical space in container */
   overflow-y: auto; /* scroll internally if content is tall */
@@ -1110,8 +1111,7 @@ body {
   padding: 0 16px;
   background: #fde9f6; /* pale pink */
   border-radius: 0;
-  /* bottom border separates summary from body content */
-  border-bottom: 1px solid #ddd;
+  /* no border; flows seamlessly into body */
   box-sizing: border-box; /* ensure height includes padding */
 }
 
@@ -1261,21 +1261,19 @@ body {
 /* subproject container styling to visually group tasks as part of the
    subproject card */
 .project-editor .subproject {
-  /* truly flush; no external or internal borders */
-  margin: 0 0px;
-  border: none;
-  border-radius: 0;
-  overflow: visible; /* allow absolutely positioned icons (right-group) to remain visible */
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
   cursor: grab;
   user-select: none;
   transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #fff;
 }
 
 .project-editor .subproject:active {
   cursor: grabbing;
 }
-
-/* previous separator rule removed so nothing remains between cards */
 
 .project-editor .subproject .subproject-body {
   padding: 0;
@@ -1306,7 +1304,7 @@ body {
   align-items: center;
   gap: 12px;
   height: 50px;
-  padding: 0 16px;
+  padding: 30px 10px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   border-radius: 4px;
@@ -1734,6 +1732,9 @@ body {
   font-size: 24px;
   line-height: 1;
   color: #d32998;
+}
+.bottom-input-bar .add-bar .add-btn .material-icons {
+  color: #fff; /* white plus sign in task tab */
 }
 .add-bar .add-btn:hover {
   background: #2563eb; /* slightly darker shade for hover */
@@ -2306,6 +2307,24 @@ body {
   }
 
   .task-row .star {
+    display: none;
+  }
+
+  .subproject-row-stats {
+    font-size: 0.8em;
+    gap: 3px;
+    min-width: fit-content;
+  }
+
+  .subproject-row-stats .stats-icon {
+    font-size: 1.1em;
+  }
+
+  .subproject-row-stats .task-label {
+    display: none;
+  }
+
+  .subproject-row-stats .stat-percent {
     display: none;
   }
 }

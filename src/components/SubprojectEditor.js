@@ -163,6 +163,9 @@ export default function SubprojectEditor({
             {collapsed ? "expand_more" : "expand_less"}
           </span>
         </button>
+        <span className="material-icons subproject-icon" aria-hidden="true">
+          folder
+        </span>
         <span
           className="subproject-name-display"
           title={sub.text}

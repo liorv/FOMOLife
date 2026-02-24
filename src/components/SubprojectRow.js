@@ -176,7 +176,7 @@ export default function SubprojectRow({
           <span className="material-icons stats-icon" aria-hidden="true">
             assignment
           </span>
-          {count} task{count !== 1 ? "s" : ""} ({percent}%)
+          {count} <span className="task-label">task{count !== 1 ? "s" : ""}</span> <span className="stat-percent">({percent}%)</span>
         </span>
         {hasDescription && (
           <span className="material-icons desc-icon" title="Has description">
