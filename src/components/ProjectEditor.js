@@ -284,6 +284,7 @@ export default function ProjectEditor({
           allPeople={allPeople}
           onOpenPeople={onOpenPeople}
           onCreatePerson={onCreatePerson}
+          onTaskTitleChange={(taskId, newText) => updateTask(sub.id, taskId, { text: newText })}
         />
       ))}
       {/* replicates the FAB formerly living in the global bottom bar */}

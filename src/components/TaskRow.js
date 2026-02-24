@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 // A standalone row representing a single task's primary information.
 // Ordered columns (left→right):
@@ -33,6 +33,34 @@ export default function TaskRow({
   onDragEnd,
 }) {
   const isOpen = editorTaskId === id;
+
+  // inline title editing state
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(item.text || "");
+
+  useEffect(() => {
+    setDraftTitle(item.text || "");
+    if (!isOpen) {
+      setEditingTitle(false);
+    }
+  }, [item.text, isOpen]);
+
+  const finishEdit = () => {
+    setEditingTitle(false);
+    if (onTitleChange && draftTitle !== item.text) {
+      onTitleChange(id, draftTitle);
+    }
+  };
+
+  const handleTitleClick = () => {
+    if (onTitleChange) {
+      // always open the row and begin editing when inline edits are supported
+      setEditorTaskId(id);
+      setEditingTitle(true);
+    } else if (type === "tasks") {
+      setEditorTaskId(id);
+    }
+  };
   // determine if due date exists and is in the past and compute days left
   let isPast = false;
   let daysLeft = null;
@@ -100,17 +128,43 @@ export default function TaskRow({
           />
         )}
 
-        <span
-          className="task-title"
-          title={item.text} /* always show full text on hover */
-          onClick={() => (type === "tasks" ? setEditorTaskId(id) : undefined)}
-          style={{
-            cursor: type === "tasks" ? "pointer" : "default",
-            textDecoration: item.done ? "line-through" : undefined,
-          }}
-        >
-          {item.text}
-        </span>
+        {editingTitle ? (
+          <input
+            className="task-title-input"
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            onBlur={finishEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") finishEdit();
+            }}
+            autoFocus
+          />
+        ) : (
+          <div className="task-title-container">
+            <span
+              className="task-title"
+              title={item.text} /* always show full text on hover */
+              onClick={handleTitleClick}
+              style={{
+                cursor: type === "tasks" ? "pointer" : "default",
+                textDecoration: item.done ? "line-through" : undefined,
+              }}
+            >
+              {item.text}
+            </span>
+            {type === "tasks" && (
+              <span
+                className="material-icons editable-indicator"
+                onClick={() => {
+                  setEditorTaskId(id);
+                  setEditingTitle(true);
+                }}
+              >
+                edit
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* middle group: date centered */}

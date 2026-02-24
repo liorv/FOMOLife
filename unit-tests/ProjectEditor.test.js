@@ -89,8 +89,8 @@ describe('ProjectEditor', () => {
     render(<ProjectEditor {...props} />);
     const addBtn = document.querySelector('.add-task-header-btn');
     expect(addBtn).toBeTruthy();
-    expect(addBtn.textContent).toContain('Plus task');
-    expect(addBtn.title).toBe('Plus task');
+    expect(addBtn.textContent).toContain('Task');
+    expect(addBtn.title).toBe('AddTask');
     fireEvent.click(addBtn);
     // the ProjectEditor passes a spy to the subcomponent; we can't directly
     // observe the call here, so at minimum ensure clicking doesn't crash and
@@ -144,6 +144,37 @@ describe('ProjectEditor', () => {
     const applied = props.onApplyChange.mock.calls.pop()[0];
     expect(applied.subprojects[0].tasks[0].text).toBe('b');
     expect(applied.subprojects[0].tasks[1].text).toBe('a');
+  });
+
+  test('inline title edit in project editor updates state and triggers onApplyChange', async () => {
+    const props = {
+      ...defaultProps,
+      onApplyChange: jest.fn(),
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          {
+            id: 'sub1',
+            text: 'foo',
+            tasks: [{ id: 't1', text: 'orig', done: false, favorite: false, people: [] }],
+            newTaskText: '',
+          },
+        ],
+      },
+    };
+    const { container } = render(<ProjectEditor {...props} />);
+    const titleSpan = container.querySelector('.task-title');
+    fireEvent.click(titleSpan);
+    const input = container.querySelector('input.task-title-input');
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: 'newtext' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => {
+      expect(container.querySelector('.task-title').textContent).toBe('newtext');
+    });
+    expect(props.onApplyChange).toHaveBeenCalled();
+    const applied = props.onApplyChange.mock.calls.pop()[0];
+    expect(applied.subprojects[0].tasks[0].text).toBe('newtext');
   });
 
   test('collapsed subproject renders as SubprojectRow', () => {

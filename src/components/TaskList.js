@@ -17,6 +17,7 @@ export default function TaskList({
   handleToggle, // used for task checkbox or person default toggle
   handleStar,
   handleDelete,
+  onTitleChange,
   // drag callbacks for reordering tasks
   onDragStart,
   onDragOver,
@@ -77,6 +78,7 @@ export default function TaskList({
             handleToggle={handleToggle}
             handleStar={handleStar}
             handleDelete={handleDelete}
+            onTitleChange={onTitleChange}
             onDragStart={onDragStart}
             onDragOver={onDragOver}
             onDrop={onDrop}
@@ -111,6 +113,7 @@ export default function TaskList({
               handleToggle={handleToggle}
               handleStar={handleStar}
               handleDelete={handleDelete}
+              onTitleChange={onTitleChange}
               onDragStart={onDragStart}
               onDragOver={onDragOver}
               onDrop={onDrop}

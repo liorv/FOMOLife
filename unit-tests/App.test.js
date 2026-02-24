@@ -227,16 +227,19 @@ describe('App component', () => {
       expect(btn).toHaveAttribute('aria-label', 'Unstar');
     });
 
-    // open editor and then delete task
+    // click the task name to open inline editor and immediately begin editing
     fireEvent.click(screen.getByText('first task'));
     // inline editor should appear immediately beneath the task row
     const editor = document.querySelector('.inline-editor');
     expect(editor).toBeTruthy();
-    // editor should not render its own title text
-    expect(editor.textContent).not.toContain('first task');
-    const textarea = editor.querySelector('textarea.task-description');
-    // style rules for width are in CSS, not inline; we just ensure the textarea exists
-    expect(textarea).toBeTruthy();
+    // title input should already be focused for editing
+    let rowInput = document.querySelector('input.task-title-input');
+    expect(rowInput).toBeTruthy();
+    fireEvent.change(rowInput, { target: { value: 'first updated' } });
+    fireEvent.keyDown(rowInput, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => {
+      expect(screen.getByText('first updated')).toBeInTheDocument();
+    });
     const icon = document.querySelector('.expand-icon');
     expect(icon).toHaveClass('open');
     const afterIcon = icon.nextSibling;
@@ -244,24 +247,29 @@ describe('App component', () => {
     const titleElem = afterIcon.nextSibling;
     expect(titleElem.className).toContain('task-title');
 
-    // click the expand icon again to collapse (title is now an input)
+    // click expand icon again to collapse
     fireEvent.click(document.querySelector('.expand-icon'));
     expect(document.querySelector('.inline-editor')).toBeNull();
     expect(document.querySelector('.expand-icon')).not.toHaveClass('open');
 
-    // remove the original "first task" by finding its row explicitly
-    const firstRowForDeletion = Array.from(document.querySelectorAll('.task-row')).find(r => r.textContent.includes('first task'));
+    // wait for database record to include updated name
+    await waitFor(async () => {
+      const all = await getAll('tasks');
+      expect(all.some(t => t.text === 'first updated')).toBe(true);
+    });
+
+    // delete row regardless of displayed text
+    const firstRowForDeletion = Array.from(document.querySelectorAll('.task-row')).find(r => r.textContent.includes('first task') || r.textContent.includes('first updated'));
     if (firstRowForDeletion) {
       const deleteBtn = firstRowForDeletion.querySelector('button.delete');
       fireEvent.click(deleteBtn);
     }
     await waitFor(() => {
-      expect(screen.queryByText('first task')).not.toBeInTheDocument();
+      expect(screen.queryByText(/first task|first updated/)).not.toBeInTheDocument();
     });
     expect(screen.queryByText(/Edit Task/)).not.toBeInTheDocument();
-    // storage should no longer contain the deleted item (others may remain)
     const afterDelete = await getAll('tasks');
-    expect(afterDelete.some(t => t.text === 'first task')).toBe(false);
+    expect(afterDelete.every(t => t.text !== 'first task' && t.text !== 'first updated')).toBe(true);
   });
 
   test('project tab shows tile with name, color and progress', async () => {

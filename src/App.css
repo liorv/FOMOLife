@@ -2170,3 +2170,40 @@ body {
 /* individual override */
 .tile-large { --project-tile-width: 320px; }
 .tile-short { --project-tile-height: 120px; }
+/* editable indicator: tiny pencil icon for inline-editable fields */
+/* overlay positioned absolutely to the right, no layout impact */
+.task-title-container,
+.subproject-name-container,
+.person-name-container {
+  position: relative;
+  display: inline-block;
+}
+
+.editable-indicator {
+  font-size: 0.75rem !important;
+  color: #a0a0a0 !important;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  cursor: pointer !important;
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* show more opaque on hover for better visibility */
+.task-title-container:hover .editable-indicator,
+.subproject-name-container:hover .editable-indicator,
+.person-name-container:hover .editable-indicator,
+.task-row:hover .editable-indicator,
+.subproject-row:hover .editable-indicator,
+.person-chip:hover .editable-indicator,
+.task-person-row:hover .editable-indicator {
+  opacity: 1;
+}

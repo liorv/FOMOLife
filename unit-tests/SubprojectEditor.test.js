@@ -45,8 +45,8 @@ describe('SubprojectEditor', () => {
     // header should include add-task button now that the input row is gone
     const addBtn = document.querySelector('.add-task-header-btn');
     expect(addBtn).toBeTruthy();
-    expect(addBtn.textContent).toContain('Plus task');
-    expect(addBtn.title).toBe('Plus task');
+    expect(addBtn.textContent).toContain('Task');
+    expect(addBtn.title).toBe('AddTask');
   });
 
   test('shows SubprojectRow when collapsed and edit button works', () => {
@@ -85,8 +85,8 @@ test('header add button calls onAddTask and avoids duplicate blank tasks', () =>
 
     const addBtn = document.querySelector('.add-task-header-btn');
     expect(addBtn).toBeTruthy();
-    expect(addBtn.textContent).toContain('Plus task');
-    expect(addBtn.title).toBe('Plus task');
+    expect(addBtn.textContent).toContain('Task');
+    expect(addBtn.title).toBe('AddTask');
     fireEvent.click(addBtn);
     expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
     expect(handlers.onAddTask).toHaveBeenCalledWith("", true);
@@ -122,5 +122,18 @@ test('header add button calls onAddTask and avoids duplicate blank tasks', () =>
     fireEvent.drop(rows[1]);
     // because handlers are mocks, just make sure drop handler called
     expect(defaultHandlers.onDrop).toHaveBeenCalled();
+  });
+
+  test('inline title edits within a subproject call provided callback', () => {
+    const handlers = { ...defaultHandlers, onTaskTitleChange: jest.fn() };
+    const subWithTasks = { ...defaultSub, tasks: [{ id: 't1', text: 'foo', done: false, favorite: false, people: [] }] };
+    const { container } = render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
+    const titleSpan = container.querySelector('.task-title');
+    fireEvent.click(titleSpan);
+    const input = container.querySelector('input.task-title-input');
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: 'bar' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(handlers.onTaskTitleChange).toHaveBeenCalledWith('t1', 'bar');
   });
 });

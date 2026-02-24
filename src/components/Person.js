@@ -37,16 +37,27 @@ export default function Person({
         </div>
       ) : (
         <>
-          <strong
-            className="person-name"
-            style={{ cursor: "pointer" }}
-            onClick={() => {
-              setEditingPersonId(id);
-              setEditingPersonName(person.name);
-            }}
-          >
-            {person.name}
-          </strong>
+          <div className="person-name-container">
+            <strong
+              className="person-name"
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                setEditingPersonId(id);
+                setEditingPersonName(person.name);
+              }}
+            >
+              {person.name}
+            </strong>
+            <span
+              className="material-icons editable-indicator"
+              onClick={() => {
+                setEditingPersonId(id);
+                setEditingPersonName(person.name);
+              }}
+            >
+              edit
+            </span>
+          </div>
           <div className="person-actions">
             <div className="person-methods-inline">
               <button

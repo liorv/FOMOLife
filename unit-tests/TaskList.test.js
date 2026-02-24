@@ -113,6 +113,76 @@ describe('TaskList component', () => {
     expect(setIdx).toHaveBeenCalledTimes(2);
   });
 
+  test('forwards title-change callback and edits inline when already open', () => {
+    const change = jest.fn();
+    const { container } = render(
+      <ul className="item-list">
+        <TaskList
+          items={tasks}
+          type="tasks"
+          editorTaskId="t1"
+          setEditorTaskId={() => {}}
+          handleToggle={() => {}}
+          handleStar={() => {}}
+          handleDelete={() => {}}
+          onTitleChange={change}
+          onDragStart={() => {}}
+          onDragOver={() => {}}
+          onDrop={() => {}}
+          onDragEnd={() => {}}
+          onEditorSave={onEditorSave}
+          onEditorUpdate={onEditorUpdate}
+          onEditorClose={onEditorClose}
+          allPeople={allPeople}
+          onOpenPeople={() => {}}
+          onCreatePerson={() => {}}
+        />
+      </ul>
+    );
+
+    const titleSpan = container.querySelector('.task-title');
+    fireEvent.click(titleSpan);
+    const input = container.querySelector('input.task-title-input');
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: 'foo' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(change).toHaveBeenCalledWith('t1', 'foo');
+  });
+
+  test('clicking title when closed opens row and input', () => {
+    const change = jest.fn();
+    const setIdx = jest.fn();
+    const { container } = render(
+      <ul className="item-list">
+        <TaskList
+          items={tasks}
+          type="tasks"
+          editorTaskId={null}
+          setEditorTaskId={setIdx}
+          handleToggle={() => {}}
+          handleStar={() => {}}
+          handleDelete={() => {}}
+          onTitleChange={change}
+          onDragStart={() => {}}
+          onDragOver={() => {}}
+          onDrop={() => {}}
+          onDragEnd={() => {}}
+          onEditorSave={onEditorSave}
+          onEditorUpdate={onEditorUpdate}
+          onEditorClose={onEditorClose}
+          allPeople={allPeople}
+          onOpenPeople={() => {}}
+          onCreatePerson={() => {}}
+        />
+      </ul>
+    );
+
+    const titleSpan = container.querySelector('.task-title');
+    fireEvent.click(titleSpan);
+    expect(setIdx).toHaveBeenCalledWith('t1');
+    expect(container.querySelector('input.task-title-input')).toBeTruthy();
+  });
+
   // showDragHandle tests removed since handle no longer exists
 
 });

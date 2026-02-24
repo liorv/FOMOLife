@@ -182,6 +182,75 @@ describe('TaskRow component', () => {
 
   // inline editing has been removed; title remains read-only even when row is open
 
+  test('allows inline title editing when row is open', () => {
+    const change = jest.fn();
+    const { container, rerender } = render(
+      <TaskRow
+        item={task}
+        id="row-1"
+        type="tasks"
+        editorTaskId="row-1"
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+        onTitleChange={change}
+      />
+    );
+
+    // initial span visible
+    const titleSpan = container.querySelector('.task-title');
+    expect(titleSpan).toBeTruthy();
+    fireEvent.click(titleSpan);
+
+    const input = container.querySelector('input.task-title-input');
+    expect(input).toBeTruthy();
+    expect(input.value).toBe('row task');
+    fireEvent.change(input, { target: { value: 'updated' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(change).toHaveBeenCalledWith('row-1', 'updated');
+
+    // update prop and ensure edit state resets
+    rerender(
+      <TaskRow
+        item={{ ...task, text: 'updated' }}
+        id="row-1"
+        type="tasks"
+        editorTaskId="row-1"
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+        onTitleChange={change}
+      />
+    );
+    expect(container.querySelector('input.task-title-input')).toBeNull();
+    expect(container.querySelector('.task-title').textContent).toBe('updated');
+  });
+
+  test('clicking title when closed opens row and input immediately', () => {
+    const change = jest.fn();
+    const { container } = render(
+      <TaskRow
+        item={task}
+        id="row-1"
+        type="tasks"
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+        onTitleChange={change}
+      />
+    );
+
+    const titleSpan = container.querySelector('.task-title');
+    fireEvent.click(titleSpan);
+    expect(setEditor).toHaveBeenCalledWith('row-1');
+    const input = container.querySelector('input.task-title-input');
+    // input may appear synchronously thanks to our state updates
+    expect(input).toBeTruthy();
+  });
 
   // inline editing has been removed; title remains read-only even when row is open
 });

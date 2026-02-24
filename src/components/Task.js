@@ -10,6 +10,7 @@ export default function Task({
   handleToggle,
   handleStar,
   handleDelete,
+  onTitleChange,
   children,
   // drag callbacks forwarded from TaskList/App
   onDragStart,
@@ -51,6 +52,7 @@ export default function Task({
           handleToggle={handleToggle}
           handleStar={handleStar}
           handleDelete={handleDelete}
+          onTitleChange={onTitleChange}
         />
       </div>
 

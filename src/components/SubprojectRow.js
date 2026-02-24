@@ -52,16 +52,29 @@ export default function SubprojectRow({ sub, onEdit, onNameChange, onDelete }) {
             autoFocus
           />
         ) : (
-          <span
-            onClick={() => {
-              if (onNameChange) {
-                setEditing(true);
-              }
-            }}
-            style={{ cursor: onNameChange ? "text" : "default" }}
-          >
-            {sub.text}
-          </span>
+          <div className="subproject-name-container">
+            <span
+              onClick={() => {
+                if (onNameChange) {
+                  setEditing(true);
+                }
+              }}
+              style={{ cursor: onNameChange ? "text" : "default" }}
+            >
+              {sub.text}
+            </span>
+            {onNameChange && (
+              <span
+                className="material-icons editable-indicator"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditing(true);
+                }}
+              >
+                edit
+              </span>
+            )}
+          </div>
         )}
       </span>
       <span

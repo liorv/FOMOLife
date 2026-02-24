@@ -304,6 +304,15 @@ function App({ userId } = {}) {
     }));
   };
 
+  // inline title edits from rows update text without opening full editor
+  const handleTaskTitleChange = async (id, newText) => {
+    await db.update("tasks", id, { text: newText }, userId);
+    setData((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((t) => (t.id === id ? { ...t, text: newText } : t)),
+    }));
+  };
+
   const handleEditorClose = () => setEditorTaskId(null);
 
   const handleSavePersonEdit = async (id, newName) => {
@@ -544,6 +553,7 @@ function App({ userId } = {}) {
                 handleToggle={handleToggle}
                 handleStar={handleStar}
                 handleDelete={handleDelete}
+                onTitleChange={handleTaskTitleChange}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
