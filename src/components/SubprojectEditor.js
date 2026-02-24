@@ -62,7 +62,9 @@ export default function SubprojectEditor({
         >
           {sub.text}
         </span>
-        {/* reorder toggle */}
+        {/* spacer pushes buttons to right */}
+        <div style={{ flex: '1 1 auto' }} />
+        {/* reorder toggle on right */}
         <button
           className="reorder-btn"
           title={reorderMode ? "Finish reordering" : "Reorder tasks"}
