@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import ProjectEditor from '../src/components/ProjectEditor';
 
 // mock helpers used by ProjectEditor
@@ -172,10 +172,33 @@ describe('ProjectEditor', () => {
     expect(wrappers.length).toBe(2);
     expect(wrappers[0].textContent).toContain('one');
     expect(wrappers[1].textContent).toContain('two');
-    // drag first onto second
-    fireEvent.dragStart(wrappers[0]);
-    fireEvent.dragOver(wrappers[1]);
-    fireEvent.drop(wrappers[1]);
+    
+    // drag first onto second - use a mock dataTransfer object
+    const dragstartEvent = new Event('dragstart', { bubbles: true, cancelable: true });
+    const dragData = { subprojectId: 's1' };
+    dragstartEvent.dataTransfer = {
+      effectAllowed: 'move',
+      setData: jest.fn(),
+      getData: jest.fn(),
+    };
+    dragstartEvent.dataTransfer.getData.mockReturnValue(JSON.stringify(dragData));
+    
+    const dragoverEvent = new Event('dragover', { bubbles: true, cancelable: true });
+    dragoverEvent.dataTransfer = {
+      dropEffect: 'move',
+    };
+    
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
+    dropEvent.dataTransfer = {
+      getData: jest.fn().mockReturnValue(JSON.stringify(dragData)),
+    };
+    
+    act(() => {
+      wrappers[0].dispatchEvent(dragstartEvent);
+      wrappers[1].dispatchEvent(dragoverEvent);
+      wrappers[1].dispatchEvent(dropEvent);
+    });
+    
     await waitFor(() => {
       const after = document.querySelectorAll('.project-editor .subproject');
       expect(after[0].textContent).toContain('two');
@@ -245,13 +268,13 @@ describe('ProjectEditor', () => {
     expect(wrapper).toBeTruthy();
     expect(wrapper.style.overflow).toBe('visible');
     expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
-    // toggle open by clicking expand button
+    // toggle open by clicking expand button (in SubprojectRow when collapsed)
     fireEvent.click(document.querySelector('.subproject-expand-btn'));
     // wrapper still present, now showing body
     expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
     expect(document.querySelector('.project-editor .subproject-body')).toBeTruthy();
-    // collapse again
-    fireEvent.click(document.querySelector('.subproject-expand-btn'));
+    // collapse again - now the button is .collapse-btn (in expanded view)
+    fireEvent.click(document.querySelector('.project-editor .collapse-btn'));
     expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
   });
 });

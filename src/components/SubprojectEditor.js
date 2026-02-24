@@ -6,10 +6,12 @@ import AddBar from "./AddBar";
 
 export default function SubprojectEditor({
   sub,
+  project,
   editorTaskId,
   setEditorTaskId,
   onDelete,
   onUpdateText,
+  onUpdateColor,
   onToggleCollapse,
   onUpdateNewTask,
   onAddTask,
@@ -20,6 +22,10 @@ export default function SubprojectEditor({
   onDragOver,
   onDrop,
   onDragEnd,
+  onDragOverSubprojectTile,
+  onDragLeaveSubprojectTile,
+  onDropOnSubprojectTile,
+  isDragOverSubprojectTile = false,
   onEditorSave,
   onEditorUpdate,
   onEditorClose,
@@ -140,21 +146,46 @@ export default function SubprojectEditor({
       onDragStart={handleSubDragStart}
       onDragOver={handleSubDragOver}
       onDrop={handleSubDrop}
-      style={{ opacity: isDragging ? 0.5 : 1, overflow: 'visible' }}
+      style={{ 
+        opacity: isDragging ? 0.5 : 1, 
+        overflow: 'visible',
+        backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
+        borderLeft: isDragOverSubprojectTile ? '3px solid #1a73e8' : 'none',
+        transition: 'all 0.2s ease',
+      }}
     >
       {collapsed ? (
         <SubprojectRow
           sub={sub}
+          project={project}
           onEdit={onToggleCollapse}
           onNameChange={(newName) => onUpdateText(newName)}
+          onColorChange={(id, color) => onUpdateColor(color)}
           onDelete={onDelete}
+          onDragOverSubprojectTile={onDragOverSubprojectTile}
+          onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
+          onDropOnSubprojectTile={onDropOnSubprojectTile}
+          isDragOverSubprojectTile={isDragOverSubprojectTile}
           autoEdit={autoEdit}
           isDragging={isDragging}
           /* drag handled by wrapper */
         />
       ) : (
         <>
-          <div className="subproject-summary">
+          <div 
+            className="subproject-summary"
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (onDragOverSubprojectTile) onDragOverSubprojectTile();
+            }}
+            onDragLeave={() => {
+              if (onDragLeaveSubprojectTile) onDragLeaveSubprojectTile();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (onDropOnSubprojectTile) onDropOnSubprojectTile(e);
+            }}
+          >
             <button
               className="collapse-btn"
               onClick={(e) => {
@@ -167,10 +198,21 @@ export default function SubprojectEditor({
                 {collapsed ? "expand_more" : "expand_less"}
               </span>
             </button>
-            <span className="material-icons subproject-icon" aria-hidden="true">
-              folder
+            <span 
+              className="material-icons subproject-icon" 
+              aria-hidden="true"
+              style={
+                (sub.color || (sub.isProjectLevel && project?.color))
+                  ? { color: sub.color || project?.color }
+                  : {}
+              }
+            >
+              {sub.isProjectLevel ? "assignment_turned_in" : "folder"}
             </span>
-            <span className="subproject-name-display" title={sub.text}>
+            <span 
+              className="subproject-name-display" 
+              title={sub.text}
+            >
               {sub.text}
             </span>
             <div style={{ flex: '1 1 auto' }} />

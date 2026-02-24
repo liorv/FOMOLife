@@ -33,8 +33,9 @@ function App({ userId } = {}) {
     if (editingProjectId) {
       const project = data.projects.find((p) => p.id === editingProjectId);
       if (project && project.subprojects) {
+        // Keep the project-level subproject, remove other unnamed ones
         const cleaned = project.subprojects.filter(
-          (s) => s.text && s.text.trim() !== ""
+          (s) => s.isProjectLevel || (s.text && s.text.trim() !== "")
         );
         if (cleaned.length !== project.subprojects.length) {
           await db.update("projects", editingProjectId, { subprojects: cleaned }, userId);
@@ -52,11 +53,50 @@ function App({ userId } = {}) {
 
   const initializedRef = useRef(false);
 
+  // --- Helper to ensure project-level tasks subproject ----------------
+
+  // Ensures a project has a project-level tasks subproject at position 0
+  const ensureProjectLevelTasks = (project) => {
+    if (!project.subprojects) {
+      project.subprojects = [];
+    }
+
+    // Check if first subproject is the project-level tasks subproject
+    const hasProjectLevel = project.subprojects[0]?.isProjectLevel;
+
+    if (!hasProjectLevel) {
+      // Create project-level tasks subproject with project name
+      const projectLevelSub = {
+        id: `project-level-${project.id}`,
+        text: `${project.text} Tasks`,
+        tasks: [],
+        collapsed: true,
+        isProjectLevel: true,
+        projectColor: project.color,
+      };
+      // Insert at the beginning
+      project.subprojects = [projectLevelSub, ...project.subprojects];
+    } else {
+      // Update project-level tasks to always have the current project name
+      project.subprojects[0] = {
+        ...project.subprojects[0],
+        text: `${project.text} Tasks`,
+        projectColor: project.color,
+      };
+    }
+
+    return project;
+  };
+
   // --- Data hydration (runs once on mount) --------------------------------
 
   useEffect(() => {
     (async () => {
       const loaded = await db.loadData(userId);
+      // Ensure all projects have project-level tasks subproject
+      if (loaded.projects) {
+        loaded.projects = loaded.projects.map(ensureProjectLevelTasks);
+      }
       setData(loaded);
       initializedRef.current = true;
     })();
@@ -155,13 +195,12 @@ function App({ userId } = {}) {
         { text: input, color, progress },
         userId,
       );
-      setData((prev) => ({ ...prev, projects: [...prev.projects, newProject] }));
-      // immediately enter editing mode and add a blank subproject
+      // Add project-level tasks subproject
+      const projectWithLevel = ensureProjectLevelTasks(newProject);
+      await db.update("projects", newProject.id, { subprojects: projectWithLevel.subprojects }, userId);
+      setData((prev) => ({ ...prev, projects: [...prev.projects, projectWithLevel] }));
+      // immediately enter editing mode
       setEditingProjectId(newProject.id);
-      // schedule the subproject addition after state updates settle
-      setTimeout(() => {
-        handleAddSubproject("");
-      }, 0);
     } else {
       // fallback for dreams and other types
       const newItem = await db.create(

@@ -31,6 +31,7 @@ export default function ProjectEditor({
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
   const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
+  const [dragOverSubprojectId, setDragOverSubprojectId] = useState(null);
   const editorContainerRef = useRef(null);
   // Ref-based cooldown avoids setState-outside-act warnings in tests.
   const addingRef = React.useRef(false);
@@ -102,6 +103,11 @@ export default function ProjectEditor({
   // --- Subproject helpers --------------------------------------------------
 
   const deleteSubproject = (id) => {
+    // Prevent deletion of project-level tasks subproject
+    const subproject = (local.subprojects || []).find((s) => s.id === id);
+    if (subproject && subproject.isProjectLevel) {
+      return;
+    }
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).filter((s) => s.id !== id),
@@ -111,9 +117,15 @@ export default function ProjectEditor({
   };
 
   const updateSubText = (id, text) => {
+    const subproject = (local.subprojects || []).find((s) => s.id === id);
+    
+    // Prevent updating the project-level subproject
+    if (subproject && subproject.isProjectLevel) {
+      return;
+    }
+
     // if text is empty, check if we should delete or give a temp name
     if (!text || text.trim() === "") {
-      const subproject = (local.subprojects || []).find((s) => s.id === id);
       if (subproject) {
         const taskCount = (subproject.tasks || []).length;
         // if no tasks, delete the subproject
@@ -159,6 +171,24 @@ export default function ProjectEditor({
     if (id === newlyAddedSubprojectId) {
       onClearNewSubproject();
     }
+  };
+
+  const updateSubColor = (id, color) => {
+    const subproject = (local.subprojects || []).find((s) => s.id === id);
+    
+    // Prevent updating the project-level subproject
+    if (subproject && subproject.isProjectLevel) {
+      return;
+    }
+
+    const updated = {
+      ...local,
+      subprojects: (local.subprojects || []).map((s) =>
+        s.id === id ? { ...s, color } : s,
+      ),
+    };
+    setLocal(updated);
+    onApplyChange(updated);
   };
 
   const toggleSubCollapse = (id) => {
@@ -294,13 +324,75 @@ export default function ProjectEditor({
     setDraggedTask({ subId, taskId });
   };
 
+  const handleDragOverSubproject = (subId) => {
+    setDragOverSubprojectId(subId);
+  };
+
+  const handleDragLeaveSubproject = () => {
+    setDragOverSubprojectId(null);
+  };
+
   const handleDrop = (subId) => (taskId) => {
     const { subId: fromSub, taskId: draggedId } = draggedTask;
-    if (!draggedId || fromSub !== subId || draggedId === taskId) {
+    if (!draggedId) {
       setDraggedTask({ subId: null, taskId: null });
+      setDragOverSubprojectId(null);
       return;
     }
+
     setLocal((prev) => {
+      // If dropping on same subproject and same task, do nothing
+      if (fromSub === subId && draggedId === taskId) {
+        return prev;
+      }
+
+      // If dropping on a different subproject, move the task
+      if (fromSub !== subId) {
+        const fromSubIdx = (prev.subprojects || []).findIndex((s) => s.id === fromSub);
+        const toSubIdx = (prev.subprojects || []).findIndex((s) => s.id === subId);
+        
+        if (fromSubIdx === -1 || toSubIdx === -1) {
+          return prev;
+        }
+
+        const newSubprojects = [...(prev.subprojects || [])];
+        
+        // Find and remove task from source subproject
+        const fromSubTasks = [...(newSubprojects[fromSubIdx].tasks || [])];
+        const taskIdx = fromSubTasks.findIndex((t) => t.id === draggedId);
+        if (taskIdx === -1) {
+          return prev;
+        }
+        
+        const [movedTask] = fromSubTasks.splice(taskIdx, 1);
+        newSubprojects[fromSubIdx] = {
+          ...newSubprojects[fromSubIdx],
+          tasks: fromSubTasks,
+        };
+
+        // Add task to target subproject
+        const toSubTasks = [...(newSubprojects[toSubIdx].tasks || [])];
+        
+        // If taskId is specified and exists in target, insert before it
+        const toTaskIdx = toSubTasks.findIndex((t) => t.id === taskId);
+        if (toTaskIdx !== -1) {
+          toSubTasks.splice(toTaskIdx, 0, movedTask);
+        } else {
+          // Otherwise append at end
+          toSubTasks.push(movedTask);
+        }
+        
+        newSubprojects[toSubIdx] = {
+          ...newSubprojects[toSubIdx],
+          tasks: toSubTasks,
+        };
+
+        const updated = { ...prev, subprojects: newSubprojects };
+        onApplyChange(updated);
+        return updated;
+      }
+
+      // Otherwise, reorder within same subproject
       const subs = (prev.subprojects || []).map((s) => {
         if (s.id !== subId) return s;
         const tasks = [...(s.tasks || [])];
@@ -316,7 +408,57 @@ export default function ProjectEditor({
       return updated;
     });
     setDraggedTask({ subId: null, taskId: null });
+    setDragOverSubprojectId(null);
   };
+
+  const handleDropOnSubprojectTile = (subId) => (e) => {
+    e.preventDefault();
+    const { subId: fromSub, taskId: draggedId } = draggedTask;
+    if (!draggedId || fromSub === subId) {
+      setDraggedTask({ subId: null, taskId: null });
+      setDragOverSubprojectId(null);
+      return;
+    }
+
+    setLocal((prev) => {
+      const fromSubIdx = (prev.subprojects || []).findIndex((s) => s.id === fromSub);
+      const toSubIdx = (prev.subprojects || []).findIndex((s) => s.id === subId);
+      
+      if (fromSubIdx === -1 || toSubIdx === -1) {
+        return prev;
+      }
+
+      const newSubprojects = [...(prev.subprojects || [])];
+      
+      // Find and remove task from source subproject
+      const fromSubTasks = [...(newSubprojects[fromSubIdx].tasks || [])];
+      const taskIdx = fromSubTasks.findIndex((t) => t.id === draggedId);
+      if (taskIdx === -1) {
+        return prev;
+      }
+      
+      const [movedTask] = fromSubTasks.splice(taskIdx, 1);
+      newSubprojects[fromSubIdx] = {
+        ...newSubprojects[fromSubIdx],
+        tasks: fromSubTasks,
+      };
+
+      // Append task to target subproject
+      const toSubTasks = [...(newSubprojects[toSubIdx].tasks || [])];
+      toSubTasks.push(movedTask);
+      
+      newSubprojects[toSubIdx] = {
+        ...newSubprojects[toSubIdx],
+        tasks: toSubTasks,
+      };
+
+      const updated = { ...prev, subprojects: newSubprojects };
+      onApplyChange(updated);
+      return updated;
+    });
+    setDraggedTask({ subId: null, taskId: null });
+    setDragOverSubprojectId(null);
+  };;
 
   const handleDragEnd = () => {
     setDraggedTask({ subId: null, taskId: null });
@@ -327,6 +469,13 @@ export default function ProjectEditor({
     const targetIndex = (local.subprojects || []).findIndex((s) => s.id === targetSubId);
 
     if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Prevent reordering the project-level tasks subproject
+    const draggedSub = (local.subprojects || [])[draggedIndex];
+    const targetSub = (local.subprojects || [])[targetIndex];
+    if (draggedSub?.isProjectLevel || targetSub?.isProjectLevel) {
+      return;
+    }
 
     // Create new array with reordered subprojects
     const newSubprojects = [...(local.subprojects || [])];
@@ -354,10 +503,12 @@ export default function ProjectEditor({
         <SubprojectEditor
           key={sub.id}
           sub={sub}
+          project={local}
           editorTaskId={editorTaskId}
           setEditorTaskId={handleSetEditorId}
           onDelete={() => deleteSubproject(sub.id)}
           onUpdateText={(text) => updateSubText(sub.id, text)}
+          onUpdateColor={(color) => updateSubColor(sub.id, color)}
           onToggleCollapse={() => toggleSubCollapse(sub.id)}
           onUpdateNewTask={(text) => updateSubNewTask(sub.id, text)}
           onAddTask={(text, allowBlank) => addTask(sub.id, text, allowBlank)}
@@ -368,6 +519,10 @@ export default function ProjectEditor({
           onDragOver={() => { /* noop - no extra logic needed */ }}
           onDrop={handleDrop(sub.id)}
           onDragEnd={handleDragEnd}
+          onDragOverSubprojectTile={() => handleDragOverSubproject(sub.id)}
+          onDragLeaveSubprojectTile={handleDragLeaveSubproject}
+          onDropOnSubprojectTile={handleDropOnSubprojectTile(sub.id)}
+          isDragOverSubprojectTile={dragOverSubprojectId === sub.id && draggedTask.taskId !== null}
           onEditorSave={handleEditorSave(sub.id)}
           onEditorUpdate={handleEditorUpdate(sub.id)}
           onEditorClose={handleEditorClose}
