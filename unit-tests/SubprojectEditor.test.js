@@ -35,11 +35,13 @@ const defaultHandlers = {
 };
 
 describe('SubprojectEditor', () => {
-  test('renders inputs with ids based on subproject id and enforces maxlength', () => {
+  test('renders subproject name as static text when expanded', () => {
     render(<SubprojectEditor sub={defaultSub} {...defaultHandlers} />);
-    const nameInput = document.getElementById('subproject-name-sub1');
-    expect(nameInput).toBeInTheDocument();
-    expect(nameInput).toHaveAttribute('maxLength', '100');
+    const nameDisplay = document.querySelector('.subproject-name-display');
+    expect(nameDisplay).toBeInTheDocument();
+    expect(nameDisplay.textContent).toBe(defaultSub.text);
+    // input should not exist anymore
+    expect(document.getElementById('subproject-name-sub1')).toBeNull();
     const taskInput = document.getElementById('new-task-sub1');
     expect(taskInput).toBeInTheDocument();
   });

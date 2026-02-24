@@ -54,15 +54,12 @@ export default function SubprojectEditor({
             {collapsed ? "expand_more" : "expand_less"}
           </span>
         </button>
-        <input
-          id={`subproject-name-${sub.id}`}
-          className="subproject-name-input"
-          name="subproject-name"
-          placeholder="Please name the subproject"
-          maxLength={100}
-          value={sub.text}
-          onChange={(e) => onUpdateText(e.target.value)}
-        />
+        <span
+          className="subproject-name-display"
+          title={sub.text}
+        >
+          {sub.text}
+        </span>
         <button
           className="delete"
           onClick={onDelete}
