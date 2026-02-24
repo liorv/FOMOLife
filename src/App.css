@@ -107,18 +107,19 @@ body {
    ============================================================ */
 .main-layout {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   height: 100vh;
   padding: 0;
+  overflow: hidden;
 }
 
 /* Outer wrapper holding top bar + content; fills between logo bar and nav */
 .app-outer {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  padding-bottom: var(--nav-height);
+  overflow: hidden;
 }
 
 
@@ -132,8 +133,7 @@ body {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   z-index: 15;
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: visible;
   background: var(--color-surface);
@@ -274,15 +274,11 @@ body {
    ============================================================ */
 .container {
   position: relative;
-  overflow-x: visible;
-  overflow-y: scroll;
+  overflow-x: hidden;
+  overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
-  /* Use explicit longhand to avoid shorthand override conflict */
-  padding-top: 0;
-  padding-right: 0;
-  padding-left: 0;
-  padding-bottom: var(--nav-height);
+  padding: 0;
   background: var(--color-surface);
   border-radius: 0;
   box-shadow: var(--elevation-1);
@@ -325,10 +321,9 @@ body {
   justify-content: space-around;
   margin-bottom: 0;
   gap: 0;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
+  height: var(--nav-height);
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   border-top: 1px solid rgba(0, 0, 0, 0.1);
@@ -371,10 +366,7 @@ body {
 }
 
 .bottom-input-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--nav-height);
+  flex-shrink: 0;
   background: var(--color-surface);
   padding: 8px 12px;
   display: flex;
@@ -2715,14 +2707,9 @@ body {
   27. RESPONSIVE — Tablet (≤900px)
    ============================================================ */
 @media (max-width: 900px) {
-  .main-layout {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .container {
     border-radius: 0;
-    min-height: 60vh;
+    min-height: 0;
   }
 
   .add-bar {

@@ -488,7 +488,6 @@ function App({ userId } = {}) {
         </LogoBar>
         <div
           className={`container ${type === 'tasks' ? 'tasks-padding' : ''}`}
-          style={{ overflow: 'auto' }}
         >
           {/* decorative splash removed; logo now shown in title bar */}
 
