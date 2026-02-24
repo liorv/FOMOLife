@@ -1101,13 +1101,13 @@ body {
 }
 
 .subproject-summary {
-  /* mimic the compact row look when expanded:
-     white background, generous padding, no rounded corners */
+  /* header row for subproject editor now uses a pale pink background
+     to differentiate it slightly from the body content */
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #fff;
+  background: #fde9f6; /* pale pink */
   border-radius: 0;
   /* bottom border separates summary from body content */
   border-bottom: 1px solid #ddd;
@@ -1373,18 +1373,31 @@ body {
   margin-left: auto; /* push to right edge */
 }
 
-/* button in header to add a new task */
+/* button in header to add a new task - now a material-style button with label */
 .add-task-header-btn {
-  background: none;
+  background: #d32998;
+  color: #fff;
   border: none;
   cursor: pointer;
-  padding: 6px;
+  padding: 6px 12px;
   margin-left: 8px;
-  border-radius: 50%;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+}
+.add-task-header-btn .material-icons {
+  font-size: 20px;
+  margin-right: 4px;
+}
+.add-task-header-btn .add-task-label {
+  line-height: 1;
 }
 .add-task-header-btn:hover {
-  background: rgba(0,0,0,0.04);
+  background: #3700b3;
 }
+
+/* (removed duplicate earlier in file) */
 
 .subproject-row-menu {
   position: absolute;

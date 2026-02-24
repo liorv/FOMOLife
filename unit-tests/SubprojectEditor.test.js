@@ -43,7 +43,10 @@ describe('SubprojectEditor', () => {
     // input should not exist anymore
     expect(document.getElementById('subproject-name-sub1')).toBeNull();
     // header should include add-task button now that the input row is gone
-    expect(document.querySelector('.add-task-header-btn')).toBeTruthy();
+    const addBtn = document.querySelector('.add-task-header-btn');
+    expect(addBtn).toBeTruthy();
+    expect(addBtn.textContent).toContain('Plus task');
+    expect(addBtn.title).toBe('Plus task');
   });
 
   test('shows SubprojectRow when collapsed and edit button works', () => {
@@ -82,6 +85,8 @@ test('header add button calls onAddTask and avoids duplicate blank tasks', () =>
 
     const addBtn = document.querySelector('.add-task-header-btn');
     expect(addBtn).toBeTruthy();
+    expect(addBtn.textContent).toContain('Plus task');
+    expect(addBtn.title).toBe('Plus task');
     fireEvent.click(addBtn);
     expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
     expect(handlers.onAddTask).toHaveBeenCalledWith("", true);

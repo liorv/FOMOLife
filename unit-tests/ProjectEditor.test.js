@@ -89,6 +89,8 @@ describe('ProjectEditor', () => {
     render(<ProjectEditor {...props} />);
     const addBtn = document.querySelector('.add-task-header-btn');
     expect(addBtn).toBeTruthy();
+    expect(addBtn.textContent).toContain('Plus task');
+    expect(addBtn.title).toBe('Plus task');
     fireEvent.click(addBtn);
     // the ProjectEditor passes a spy to the subcomponent; we can't directly
     // observe the call here, so at minimum ensure clicking doesn't crash and

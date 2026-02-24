@@ -75,10 +75,11 @@ export default function SubprojectEditor({
         <div style={{ flex: '1 1 auto' }} />
         <button
           className="add-task-header-btn"
-          title="Add task"
+          title="AddTask"
           onClick={addEmptyTask}
         >
           <span className="material-icons">add</span>
+          <span className="add-task-label">Task</span>
         </button>
       </div>
       <div className="subproject-body">
