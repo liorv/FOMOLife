@@ -54,8 +54,7 @@ export default function TaskRow({
 
   const handleTitleClick = () => {
     if (onTitleChange) {
-      // always open the row and begin editing when inline edits are supported
-      setEditorTaskId(id);
+      // only do inline editing, don't open the full task editor
       setEditingTitle(true);
     } else if (type === "tasks") {
       setEditorTaskId(id);
@@ -156,7 +155,6 @@ export default function TaskRow({
               <span
                 className="material-icons editable-indicator"
                 onClick={() => {
-                  setEditorTaskId(id);
                   setEditingTitle(true);
                 }}
               >

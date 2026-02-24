@@ -2006,6 +2006,16 @@ body {
   padding-right: 8px;
 }
 
+/* style the inline editing input to match project editor appearance */
+.task-row .task-title-input {
+  font-size: 1em;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 64, 67, 0.12);
+  background: #fbfdff;
+  box-sizing: border-box;
+}
+
 /* prevent title text from spilling out of the row; use ellipsis when too long */
 .task-row .task-title {
   overflow: hidden;
