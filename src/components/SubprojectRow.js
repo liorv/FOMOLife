@@ -273,8 +273,11 @@ export default function SubprojectRow({
             )}
           </div>
         )}
-        {/* hamburger menu on far right */}
-        <div className="project-menu" ref={menuRef}>
+      </div>
+
+      {/* hamburger menu on far right — outside of right-group so it's not constrained by its z-index */}
+      {!sub.isProjectLevel && (
+        <div className="project-menu" ref={menuRef} style={menuOpen || showColorPicker ? { zIndex: 10000 } : {}}>
           <button
             className="menu-button"
             title="More options"
@@ -368,7 +371,7 @@ export default function SubprojectRow({
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* Mobile color picker modal - rendered at document root to avoid scroll clipping */}
       {showColorPicker && !sub.isProjectLevel && onColorChange && window.innerWidth < 768 && ReactDOM.createPortal(
