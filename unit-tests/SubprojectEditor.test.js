@@ -100,16 +100,23 @@ describe('SubprojectEditor', () => {
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
   });
 
-  test('does not invoke add handler for empty task', () => {
-    render(<SubprojectEditor sub={defaultSub} {...defaultHandlers} />);
-    const input = document.getElementById('new-task-sub1');
-    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-    expect(defaultHandlers.onAddTask).not.toHaveBeenCalled();
-    fireEvent.change(input, { target: { value: '   ' } });
-    const btn = screen.getByTitle('Add task');
-    fireEvent.click(btn);
-    expect(defaultHandlers.onAddTask).not.toHaveBeenCalled();
+test('header add button calls onAddTask and avoids duplicate blank tasks', () => {
+    const handlers = { ...defaultHandlers, onAddTask: jest.fn() };
+    const subWithTasks = { ...defaultSub, tasks: [] };
+    const { rerender } = render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
+
+    const addBtn = document.querySelector('.add-task-header-btn');
+    expect(addBtn).toBeTruthy();
+    fireEvent.click(addBtn);
+    expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
+
+    // simulate parent having added an empty task and re-render
+    subWithTasks.tasks = [{ id: 't1', text: '' }];
+    rerender(<SubprojectEditor sub={subWithTasks} {...handlers} />);
+    fireEvent.click(addBtn);
+    expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
   });
+
 
   test('drag and drop props are passed through to TaskList and reorder logic can be triggered', async () => {
     const subWithTasks = {

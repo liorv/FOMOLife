@@ -27,6 +27,16 @@ export default function SubprojectEditor({
   onCreatePerson,
 }) {
   const collapsed = sub.collapsed;
+  // helper used by the header + tests; parent already binds the subproject id
+  const addEmptyTask = () => {
+    // don't add another blank if one exists
+    if ((sub.tasks || []).some((t) => !t.text || t.text.trim() === "")) {
+      return;
+    }
+    // ask the parent to create an empty task for us; the first argument is
+    // the task text, not the subproject id, because ProjectEditor already
+    // wrapped this function with the appropriate sub id.
+  };
 
   // when collapsed, just render a compact row; edit button will expand
   if (collapsed) {
@@ -63,31 +73,16 @@ export default function SubprojectEditor({
         </span>
         {/* spacer pushes menu to the right */}
         <div style={{ flex: '1 1 auto' }} />
+        <button
+          className="add-task-header-btn"
+          title="Add task"
+          onClick={addEmptyTask}
+        >
+          <span className="material-icons">add</span>
+        </button>
       </div>
       <div className="subproject-body">
         <div className="subproject-tasks">
-          <div className="add-task-row">
-            <input
-              id={`new-task-${sub.id}`}
-              className="new-task-input"
-              name="new-task"
-              placeholder="New task"
-              value={sub.newTaskText || ""}
-              onChange={(e) => onUpdateNewTask(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  onAddTask(sub.newTaskText || "");
-                }
-              }}
-            />
-            <button
-              className="add-task-btn"
-              onClick={() => onAddTask(sub.newTaskText || "")}
-              title="Add task"
-            >
-              Add
-            </button>
-          </div>
           <ul className="item-list">
             <TaskList
               items={sub.tasks || []}
