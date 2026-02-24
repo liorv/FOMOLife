@@ -1400,6 +1400,11 @@ body {
   background: rgba(0,0,0,0.04);
 }
 
+/* specific styling for hamburger menu */
+.subproject-row .menu-button {
+  margin-left: auto; /* push to right edge */
+}
+
 .task-list {
   list-style: disc inside;
   padding-left: 0;

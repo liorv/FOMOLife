@@ -54,8 +54,8 @@ describe('SubprojectEditor', () => {
     // original name input should not exist
     expect(document.getElementById('subproject-name-sub1')).toBeNull();
     // click edit icon should trigger onToggleCollapse via onEdit
-    const editBtn = document.querySelector('.subproject-row .edit');
-    fireEvent.click(editBtn);
+    const menuBtn = document.querySelector('.subproject-row .menu-button');
+    fireEvent.click(menuBtn);
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
   });
 

@@ -85,12 +85,22 @@ export default function SubprojectRow({ sub, onEdit, onNameChange }) {
           )}
         </div>
       )}
+
+      {/* hamburger menu on far right */}
       <button
-        className="edit"
-        title="Edit subproject"
+        className="menu-button"
+        title="More options"
         onClick={() => onEdit(sub.id)}
       >
-        <span className="material-icons">edit</span>
+        <span className="material-icons">more_vert</span>
+      </button>
+      {/* hamburger menu triggers edit action for now */}
+      <button
+        className="menu-button"
+        title="More options"
+        onClick={() => onEdit(sub.id)}
+      >
+        <span className="material-icons">more_vert</span>
       </button>
     </div>
   );

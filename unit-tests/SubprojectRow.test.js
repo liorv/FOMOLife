@@ -44,10 +44,10 @@ describe('SubprojectRow', () => {
     expect(screen.getByText('+1')).toBeInTheDocument();
   });
 
-  test('edit button calls callback with id', () => {
+  test('menu button calls callback with id', () => {
     const onEdit = jest.fn();
     render(<SubprojectRow sub={baseSub} onEdit={onEdit} />);
-    fireEvent.click(document.querySelector('.subproject-row .edit'));
+    fireEvent.click(document.querySelector('.subproject-row .menu-button'));
     expect(onEdit).toHaveBeenCalledWith('sub1');
   });
 
