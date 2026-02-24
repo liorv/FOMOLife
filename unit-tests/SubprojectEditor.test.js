@@ -66,6 +66,29 @@ describe('SubprojectEditor', () => {
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
   });
 
+  test('reorder toggle shows drag handles on task rows', async () => {
+    const subWithTasks = { ...defaultSub, tasks: [
+      { id: 't1', text: 'a', done: false, favorite: false, people: [] },
+      { id: 't2', text: 'b', done: false, favorite: false, people: [] },
+    ] };
+    const props = { ...defaultHandlers, sub: { ...subWithTasks, collapsed: false } };
+    render(<SubprojectEditor {...props} />);
+    // no handles initially
+    expect(document.querySelector('.drag-handle')).toBeNull();
+    // click reorder button to enable
+    const reorderBtn = document.querySelector('.reorder-btn');
+    fireEvent.click(reorderBtn);
+    // now handles should appear on each task row
+    await waitFor(() => {
+      expect(document.querySelectorAll('.drag-handle').length).toBe(2);
+    });
+    // toggle off again removes them
+    fireEvent.click(reorderBtn);
+    await waitFor(() => {
+      expect(document.querySelector('.drag-handle')).toBeNull();
+    });
+  });
+
   test('inline editing via row updates text and calls onApplyChange', () => {
     const changed = jest.fn();
     const props = {

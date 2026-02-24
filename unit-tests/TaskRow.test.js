@@ -181,11 +181,31 @@ describe('TaskRow component', () => {
         handleStar={handleStar}
         handleDelete={handleDelete}
         onDragStart={dragStart}
+        showDragHandle={true}
       />
     );
     const handle = container.querySelector('.drag-handle');
+    expect(handle).toBeTruthy();
     fireEvent.dragStart(handle);
     expect(dragStart).toHaveBeenCalledWith('row-1', expect.any(Object));
+  });
+
+  test('drag handle hidden when showDragHandle is false', () => {
+    const { container } = render(
+      <TaskRow
+        item={task}
+        id="row-1"
+        type="tasks"
+        editorTaskId={null}
+        setEditorTaskId={setEditor}
+        handleToggle={handleToggle}
+        handleStar={handleStar}
+        handleDelete={handleDelete}
+        showDragHandle={false}
+      />
+    );
+    const handle = container.querySelector('.drag-handle');
+    expect(handle).toBeNull();
   });
 
   // inline editing has been removed; title remains read-only even when row is open

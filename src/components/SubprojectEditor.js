@@ -27,6 +27,7 @@ export default function SubprojectEditor({
   onCreatePerson,
 }) {
   const collapsed = sub.collapsed;
+  const [reorderMode, setReorderMode] = React.useState(false);
 
   // when collapsed, just render a compact row; edit button will expand
   if (collapsed) {
@@ -35,6 +36,7 @@ export default function SubprojectEditor({
         sub={sub}
         onEdit={onToggleCollapse}
         onNameChange={(newName) => onUpdateText(newName)}
+        onDelete={onDelete}
       />
     );
   }
@@ -60,12 +62,15 @@ export default function SubprojectEditor({
         >
           {sub.text}
         </span>
+        {/* reorder toggle */}
         <button
-          className="delete"
-          onClick={onDelete}
-          title="Delete subproject"
+          className="reorder-btn"
+          title={reorderMode ? "Finish reordering" : "Reorder tasks"}
+          onClick={() => setReorderMode((r) => !r)}
         >
-          <span className="material-icons">close</span>
+          <span className="material-icons">
+            {reorderMode ? "done" : "drag_handle"}
+          </span>
         </button>
       </div>
       <div className="subproject-body">
@@ -111,6 +116,7 @@ export default function SubprojectEditor({
               allPeople={allPeople}
               onOpenPeople={onOpenPeople}
               onCreatePerson={onCreatePerson}
+              showDragHandle={reorderMode}
             />
           </ul>
         </div>

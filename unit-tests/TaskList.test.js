@@ -112,4 +112,51 @@ describe('TaskList component', () => {
     fireEvent.click(screen.getByText('task1'));
     expect(setIdx).toHaveBeenCalledTimes(2);
   });
+
+  test('showDragHandle prop controls visibility of drag handle', () => {
+    // without handle
+    const { container: c1 } = render(
+      <ul className="item-list">
+        <TaskList
+          items={tasks}
+          type="tasks"
+          editorTaskId={null}
+          setEditorTaskId={() => {}}
+          handleToggle={() => {}}
+          handleStar={() => {}}
+          handleDelete={() => {}}
+          onEditorSave={onEditorSave}
+          onEditorUpdate={onEditorUpdate}
+          onEditorClose={onEditorClose}
+          allPeople={allPeople}
+          onOpenPeople={() => {}}
+          onCreatePerson={() => {}}
+          showDragHandle={false}
+        />
+      </ul>
+    );
+    expect(c1.querySelector('.drag-handle')).toBeNull();
+
+    const { container: c2 } = render(
+      <ul className="item-list">
+        <TaskList
+          items={tasks}
+          type="tasks"
+          editorTaskId={null}
+          setEditorTaskId={() => {}}
+          handleToggle={() => {}}
+          handleStar={() => {}}
+          handleDelete={() => {}}
+          onEditorSave={onEditorSave}
+          onEditorUpdate={onEditorUpdate}
+          onEditorClose={onEditorClose}
+          allPeople={allPeople}
+          onOpenPeople={() => {}}
+          onCreatePerson={() => {}}
+          showDragHandle={true}
+        />
+      </ul>
+    );
+    expect(c2.querySelector('.drag-handle')).toBeTruthy();
+  });
 });

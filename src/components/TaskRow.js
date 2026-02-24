@@ -31,6 +31,8 @@ export default function TaskRow({
   onDragOver,
   onDrop,
   onDragEnd,
+  // whether to show the drag handle
+  showDragHandle = false,
 }) {
   const isOpen = editorTaskId === id;
   // determine if due date exists and is in the past and compute days left
@@ -70,7 +72,7 @@ export default function TaskRow({
     >
       {/* left group: drag handle, expand, checkbox, title */}
       <div className="left-group">
-        {type === "tasks" && (
+        {type === "tasks" && showDragHandle && (
           <>
             <span
               className="drag-handle material-icons"
