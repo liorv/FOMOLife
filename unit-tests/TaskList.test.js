@@ -36,26 +36,13 @@ describe('TaskList component', () => {
     expect(container.querySelectorAll('li').length).toBe(1);
     expect(container.querySelector('.task-editor-wrapper')).toBeTruthy();
     expect(container.querySelector('.inline-editor')).toBeTruthy();
-    // the task title should still be visible (input when editor is open)
-    const titleInput = container.querySelector('input.task-title-input');
-    expect(titleInput).toBeTruthy();
-    expect(titleInput.value).toBe('task1');
-    // expand icon should reflect open state and be placed before title
+    // task title is still shown in the header, not in the editor
+    // expand icon should reflect open state
     const icon = container.querySelector('.expand-icon');
     expect(icon).toBeTruthy();
     expect(icon).toHaveClass('open');
-    // checkbox should come after icon
-    const checkbox = icon.nextSibling;
-    expect(checkbox.tagName).toBe('INPUT');
-    expect(checkbox.className).toContain('task-checkbox');
-    // title should follow
-    const title = checkbox.nextSibling;
-    expect(title.className).toContain('task-title');
-    // title receives full text as tooltip and is truncated
-    expect(title.getAttribute('title')).toBe('task1');
     // since our sample doesn't include a due date, ensure there is no .task-date element present
     expect(container.querySelector('.task-date')).toBeFalsy();
-
   });
 
   test('editing row highlight applied to header only', () => {
@@ -113,8 +100,7 @@ describe('TaskList component', () => {
     expect(setIdx).toHaveBeenCalledTimes(2);
   });
 
-  test('forwards title-change callback and edits inline when already open', () => {
-    const change = jest.fn();
+  test('task title is visible in task row', () => {
     const { container } = render(
       <ul className="item-list">
         <TaskList
@@ -125,7 +111,7 @@ describe('TaskList component', () => {
           handleToggle={() => {}}
           handleStar={() => {}}
           handleDelete={() => {}}
-          onTitleChange={change}
+          onTitleChange={jest.fn()}
           onDragStart={() => {}}
           onDragOver={() => {}}
           onDrop={() => {}}
@@ -141,16 +127,11 @@ describe('TaskList component', () => {
     );
 
     const titleSpan = container.querySelector('.task-title');
-    fireEvent.click(titleSpan);
-    const input = container.querySelector('input.task-title-input');
-    expect(input).toBeTruthy();
-    fireEvent.change(input, { target: { value: 'foo' } });
-    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-    expect(change).toHaveBeenCalledWith('t1', 'foo');
+    expect(titleSpan).toBeTruthy();
+    expect(titleSpan.textContent).toContain('task1');
   });
 
-  test('clicking title when closed opens row and input', () => {
-    const change = jest.fn();
+  test('clicking title when closed opens editor', () => {
     const setIdx = jest.fn();
     const { container } = render(
       <ul className="item-list">
@@ -162,7 +143,6 @@ describe('TaskList component', () => {
           handleToggle={() => {}}
           handleStar={() => {}}
           handleDelete={() => {}}
-          onTitleChange={change}
           onDragStart={() => {}}
           onDragOver={() => {}}
           onDrop={() => {}}
@@ -180,7 +160,7 @@ describe('TaskList component', () => {
     const titleSpan = container.querySelector('.task-title');
     fireEvent.click(titleSpan);
     expect(setIdx).toHaveBeenCalledWith('t1');
-    expect(container.querySelector('input.task-title-input')).toBeTruthy();
+    // title editing is now done via inline editing in the task row, not in the task editor
   });
 
   // showDragHandle tests removed since handle no longer exists

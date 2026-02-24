@@ -307,6 +307,28 @@ export default function ProjectEditor({
     setDraggedTask({ subId: null, taskId: null });
   };
 
+  const handleReorderSubprojects = async (draggedSubId, targetSubId) => {
+    const draggedIndex = (local.subprojects || []).findIndex((s) => s.id === draggedSubId);
+    const targetIndex = (local.subprojects || []).findIndex((s) => s.id === targetSubId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Create new array with reordered subprojects
+    const newSubprojects = [...(local.subprojects || [])];
+    const [removed] = newSubprojects.splice(draggedIndex, 1);
+    newSubprojects.splice(targetIndex, 0, removed);
+
+    // Update local state immediately for better UX
+    const updated = {
+      ...local,
+      subprojects: newSubprojects,
+    };
+    setLocal(updated);
+    onApplyChange(updated);
+  };
+
+  const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
+
   return (
     <div className="project-editor" style={{ position: 'relative' }}>
       {/* project editor now owns its own floating add button; caller should
@@ -340,6 +362,8 @@ export default function ProjectEditor({
           autoEdit={newlyAddedSubprojectId === sub.id}
           newlyAddedTaskId={newlyAddedTaskId}
           onClearNewTask={() => setNewlyAddedTaskId(null)}
+          onReorder={handleReorderSubprojects}
+          isDragging={draggedSubprojectId === sub.id}
         />
       ))}
       {/* replicates the FAB formerly living in the global bottom bar */}

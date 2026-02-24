@@ -186,32 +186,33 @@ export default function TaskRow({
       </div>
 
       {/* middle group: date centered */}
-      {item.dueDate && (
-        <div className="date-container">
-          <span
-            className="task-date"
-            style={{
-              color: isPast ? "red" : undefined,
-              fontSize: "0.95em",
-            }}
-          >
-            {/* show full text by default, fall back to short form in tight layouts */}
-            {daysLeft !== null && (
-              <>
-                <span className="full">
-                  {isPast
-                    ? "overdue"
-                    : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
-                </span>
-                <span className="short">{isPast ? "OD" : `${daysLeft}d`}</span>
-              </>
-            )}
-          </span>
-        </div>
-      )}
+      {/* NOTE: Date is now part of right-group to keep spacing consistent and prevent overlap */}
 
-      {/* right group: notify avatars, star, delete */}
+      {/* right group: date, notify avatars, star, delete */}
       <div className="right-group">
+        {item.dueDate && (
+          <div className="date-container">
+            <span
+              className="task-date"
+              style={{
+                color: isPast ? "red" : undefined,
+                fontSize: "0.95em",
+              }}
+            >
+              {/* show full text by default, fall back to short form in tight layouts */}
+              {daysLeft !== null && (
+                <>
+                  <span className="full">
+                    {isPast
+                      ? "overdue"
+                      : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
+                  </span>
+                  <span className="short">{isPast ? "OD" : `${daysLeft}d`}</span>
+                </>
+              )}
+            </span>
+          </div>
+        )}
         {type === "tasks" && (item.people || []).length > 0 && (
           <div
             className="notify-people"

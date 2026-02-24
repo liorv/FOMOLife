@@ -31,14 +31,16 @@ export default function SubprojectEditor({
   autoEdit = false,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
+  onReorder = () => {},
+  isDragging = false,
 }) {
   const collapsed = sub.collapsed;
-  const [showAddBar, setShowAddBar] = useState(false);
-  const [addBarInput, setAddBarInput] = useState("");
-  const addBarRef = useRef(null);
+  const [showAddBar, setShowAddBar] = React.useState(false);
+  const [addBarInput, setAddBarInput] = React.useState("");
+  const addBarRef = React.useRef(null);
 
   // Close AddBar when clicking outside
-  useEffect(() => {
+  React.useEffect(() => {
     if (!showAddBar) return;
 
     const handleClickOutside = (e) => {
@@ -77,6 +79,53 @@ export default function SubprojectEditor({
     setAddBarInput("");
   };
 
+  const handleSubDragStart = (e) => {
+    try {
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("application/json", JSON.stringify({
+          subprojectId: sub.id,
+        }));
+      }
+    } catch (err) {
+      // dataTransfer might not be available in test environment
+    }
+  };
+
+  const handleSubDragOver = (e) => {
+    e.preventDefault();
+    try {
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+    } catch (err) {
+      // dataTransfer might not be available
+    }
+  };
+
+  const handleSubDrop = (e) => {
+    e.preventDefault();
+    // Safely get data, handling cases where dataTransfer is not properly set up
+    let data = "";
+    try {
+      data = e.dataTransfer?.getData("application/json") || "";
+    } catch (err) {
+      // dataTransfer might not be available or might throw
+      return;
+    }
+    
+    if (!data) return;
+    try {
+      const parsed = JSON.parse(data);
+      // Only process if it has a subprojectId (for subproject reordering)
+      if (parsed.subprojectId && parsed.subprojectId !== sub.id) {
+        onReorder(parsed.subprojectId, sub.id);
+      }
+    } catch (err) {
+      // Silently handle parse errors
+    }
+  };
+
   // when collapsed, just render a compact row; edit button will expand
   if (collapsed) {
     return (
@@ -86,12 +135,21 @@ export default function SubprojectEditor({
         onNameChange={(newName) => onUpdateText(newName)}
         onDelete={onDelete}
         autoEdit={autoEdit}
+        onReorder={onReorder}
+        isDragging={isDragging}
       />
     );
   }
 
   return (
-    <div className={"subproject" + (collapsed ? " collapsed" : "")}>
+    <div 
+      className={"subproject" + (collapsed ? " collapsed" : "")}
+      draggable
+      onDragStart={handleSubDragStart}
+      onDragOver={handleSubDragOver}
+      onDrop={handleSubDrop}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
       <div className="subproject-summary">
         <button
           className="collapse-btn"
@@ -198,4 +256,6 @@ SubprojectEditor.propTypes = {
   autoEdit: PropTypes.bool,
   newlyAddedTaskId: PropTypes.string,
   onClearNewTask: PropTypes.func,
+  onReorder: PropTypes.func,
+  isDragging: PropTypes.bool,
 };

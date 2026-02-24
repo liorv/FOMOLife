@@ -761,7 +761,8 @@ body {
 /* main content card */
 .container {
   position: relative; /* allow absolutely-positioned decorative splash */
-  overflow: hidden; /* clip splash to the panel so corner-radius matches */
+  overflow-x: visible; /* allow absolutely positioned project icons to show */
+  overflow-y: auto; /* scroll internally if content exceeds the allotted height */
   flex: 1 1 auto; /* stretch to fill .app-outer remaining space */
   margin: 0;
   background: var(--surface);
@@ -771,7 +772,6 @@ body {
   padding: 0;
   box-sizing: border-box; /* include padding in height computation */
   transition: box-shadow 0.2s;
-  overflow-y: auto; /* scroll internally if content exceeds the allotted height */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1106,11 +1106,13 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  height: 50px;
+  padding: 0 16px;
   background: #fde9f6; /* pale pink */
   border-radius: 0;
   /* bottom border separates summary from body content */
   border-bottom: 1px solid #ddd;
+  box-sizing: border-box; /* ensure height includes padding */
 }
 
 .collapse-btn {
@@ -1263,7 +1265,14 @@ body {
   margin: 0 0px;
   border: none;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible; /* allow absolutely positioned icons (right-group) to remain visible */
+  cursor: grab;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.project-editor .subproject:active {
+  cursor: grabbing;
 }
 
 /* previous separator rule removed so nothing remains between cards */
@@ -1271,6 +1280,7 @@ body {
 .project-editor .subproject .subproject-body {
   padding: 0;
   margin: 0;
+  overflow: visible; /* allow absolutely positioned right-group icons to remain visible */
 }
 
 /* hide body content when collapsed; class is toggled in JS */
@@ -1278,15 +1288,16 @@ body {
   display: none;
 }
 
-/* project-editor tasks should still be able to scroll horizontally when content is wide, but
-   also expand to fill the available container so the right-group can be pushed to the
-   far edge (matching the behavior on the main tasks tab).  `min-width: max-content`
-   ensures we don't shrink smaller than the contents, which is what triggers the
-   overflow-x auto on the parent. */
+/* project-editor tasks should behave like main task rows: responsive with reserved space for right-group */
 .project-editor .task-row {
   flex: 1 1 100%;        /* behave like normal task-row: grow/shrink to container */
-  width: 100%;           /* fill the subproject body width so margin-left:auto works */
-  min-width: max-content; /* still allow overflow horizontally when content is wider */
+  width: 100%;           /* fill the subproject body width */
+  min-width: 0;          /* allow row to shrink below its min-content (matching main task list) */
+  max-width: 100%;       /* never exceed parent width */
+  padding-left: 10px;    /* reserve space for handle */
+  padding-right: 80px;   /* reserve space for right-group icons (star, delete, etc) */
+  overflow: visible;     /* ensure absolutely positioned right-group is never clipped */
+  box-sizing: border-box; /* ensure padding is included in width calculation */
 }
 
 /* compact row representation of a subproject (collapsed editor) */
@@ -1294,23 +1305,65 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  padding-right: 96px; /* reserve space for right-side icons and controls */
+  height: 50px;
+  padding: 0 16px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   border-radius: 4px;
-  transition: box-shadow 0.2s ease;
-  position: relative; /* needed for menu positioning */
-  overflow: visible; /* allow absolutely positioned children (icons) to remain visible */
+  transition: all 0.2s ease;
+  position: relative; /* needed for right-group absolute positioning */
+  overflow: visible; /* allow absolutely positioned children to remain visible */
   box-sizing: border-box; /* include padding in width calculation */
+  cursor: grab;
+  user-select: none;
 }
+
+.subproject-row:active {
+  cursor: grabbing;
+}
+
 .subproject-row:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.16), 0 2x 4px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.12);
 }
 
 .subproject-row:active {
   box-shadow: 0 8px 10px rgba(0,0,0,0.12), 0 3px 14px rgba(0,0,0,0.14);
 }
+
+/* expand/collapse button in subproject row */
+.subproject-expand-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 1.2rem;
+  color: #667;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+}
+
+.subproject-expand-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #202124;
+  border-radius: 4px;
+}
+
+/* right group for subproject row: stats, description, owners, and menu */
+.subproject-right-group {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  z-index: 10;
+}
+
 .subproject-icon,
 .stats-icon,
 .desc-icon {
@@ -1318,8 +1371,8 @@ body {
   color: #616161;
 }
 .subproject-row-title {
-  flex: 0 1 auto; /* allow shrinking but not growing beyond max-width */
-  max-width: 70%; /* cap at 70% of row width to reserve space for right icons */
+  flex: 1 1 0; /* allow to grow/shrink to fill available space */
+  max-width: 70%; /* cap at 70% of row width */
   min-width: 0; /* allow shrinking below content size */
   font-weight: 500;
   font-size: 1rem;
@@ -1407,13 +1460,14 @@ body {
   position: absolute;
   right: 16px;
   top: 100%;
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
   border-radius: 4px;
   display: flex;
   flex-direction: column;
   min-width: 120px;
-  z-index: 10;
+  z-index: 110;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 .subproject-row-menu .menu-item {
   background: none;
@@ -1679,6 +1733,7 @@ body {
 .add-bar .add-btn .material-icons {
   font-size: 24px;
   line-height: 1;
+  color: #d32998;
 }
 .add-bar .add-btn:hover {
   background: #2563eb; /* slightly darker shade for hover */
@@ -1759,91 +1814,328 @@ body {
   box-sizing: border-box;
   justify-content: flex-start;
   align-items: flex-start;
+  overflow: visible; /* allow absolutely positioned child icons to show */
 }
 
+/* Material Design Project Tile with Modern Styling */
 .project-tile {
   position: relative;
   border-radius: 12px;
   background: #fff;
-  box-shadow: var(--elevation-1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  overflow: hidden;
-  /* give some breathing room around contents */
-  padding: 12px;
+  overflow: visible;
   box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  cursor: grab;
+  user-select: none;
 }
-.project-tile .project-strip {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  background-color: var(--project-color, #000);
+
+.project-tile:active {
+  cursor: grabbing;
 }
+
+.project-tile[draggable="true"]:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Hover effect: elevate and enhance shadow (no transform) */
+.project-tile:not([draggable="true"]):hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Header with name and menu */
+.project-tile .project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px 16px;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.project-tile .project-name-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .project-tile .project-name {
-  /* horizontal padding removed because parent now provides it */
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  word-break: break-word;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #202124;
+  flex: 1 1 0;
+  min-width: 0;
 }
-.project-tile .project-progress-container {
-  width: 100%;
-  height: 30px; /* even taller bar */
-  background: #e6e6e6;
-  border-radius: 7px; /* round container so progress is clipped */
-  overflow: hidden;
-  position: relative; /* for centered text */
+
+/* Menu button styled as Material Design icon button */
+.project-tile .project-menu {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 100;
 }
-.project-tile .project-progress {
-  height: 100%;
-  background: var(--project-color, var(--primary));
-  transition: width 0.3s ease;
-  border-radius: 7px 0 0 7px; /* round leading edge */
+
+.project-tile .project-menu-button {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-/* percent label below progress bar; customizable via CSS vars */
-.project-tile .project-percent {
-  text-align: center;
-  color: #000;
-  font-size: var(--project-percent-size, 2rem);
-  font-family: var(--project-percent-font, inherit);
-  font-weight: 600;
-  margin-top: 4px;
+  color: #5f6368;
+  transition: all 0.2s ease;
+  font-size: 0;
+  line-height: 1;
 }
 
-/* previously progress-text inside bar is no longer used but keep for
-   backwards compatibility in case someone styled it */
+.project-tile .project-menu-button:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #202124;
+}
+
+.project-tile .project-menu-button:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.project-tile .project-menu-button .material-icons {
+  font-size: 1.5rem;
+}
+
+/* Dropdown menu */
+.project-tile .project-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
+  min-width: 180px;
+  z-index: 105;
+  overflow: visible;
+  margin-top: 4px;
+  animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.project-tile .menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #202124;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+.project-tile .menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+.project-tile .menu-item:active {
+  background-color: #f1f3f4;
+}
+
+.project-tile .menu-item .material-icons {
+  font-size: 1.2rem;
+  flex: 0 0 auto;
+  color: #5f6368;
+}
+
+.project-tile .menu-arrow {
+  margin-left: auto;
+  font-size: 1.2rem;
+  color: #999;
+  flex: 0 0 auto;
+}
+
+.project-tile .color-menu-item:hover .material-icons {
+  color: #f57c00;
+}
+
+.project-tile .edit-menu-item:hover .material-icons {
+  color: #1f77d1;
+}
+
+.project-tile .delete-menu-item:hover .material-icons {
+  color: #d33b27;
+}
+
+.project-tile .menu-divider {
+  height: 1px;
+  background: #e8eaed;
+  margin: 4px 0;
+}
+
+/* Color Picker Submenu */
+.project-tile .color-picker-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
+  padding: 12px;
+  margin-left: 8px;
+  z-index: 110;
+  animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: fit-content;
+  overflow: visible;
+}
+
+.project-tile .color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 172px;
+}
+
+.project-tile .color-option {
+  width: 36px;
+  height: 36px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  font-size: 0;
+  position: relative;
+}
+
+.project-tile .color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.project-tile .color-option.selected {
+  border-color: #202124;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #202124;
+}
+
+.project-tile .color-option .material-icons {
+  font-size: 1.2rem;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+/* For light colors in the palette, we might need dark text */
+.project-tile .color-option[style*="#FFC107"] .material-icons,
+.project-tile .color-option[style*="#FFA000"] .material-icons,
+.project-tile .color-option[style*="#FF8F00"] .material-icons {
+  color: #202124;
+  text-shadow: none;
+}
+
+/* Main content area */
+.project-tile .project-body {
+  flex: 1 1 0;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.project-tile .project-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.project-tile .project-progress-container {
+  width: 100%;
+  height: 24px;
+  background: #e8eaed;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.project-tile .project-progress {
+  height: 100%;
+  background: linear-gradient(135deg, var(--project-color, #0D47A1) 0%, var(--project-color, #0D47A1) 100%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Optional: Add subtle shine effect on progress bar */
+.project-tile .project-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: none;
+}
+
+/* percent label */
+.project-tile .project-percent {
+  text-align: center;
+  color: #5f6368;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
 .project-tile .project-progress .progress-text {
   display: none;
 }
-.project-tile .project-actions {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 8px;
-  /* keep icons away from tile edges */
-  margin-top: 8px;
+
+/* Footer with accent bar */
+.project-tile .project-footer {
+  height: 4px;
+  width: 100%;
+  background: #e8eaed;
 }
-.project-tile .project-actions .material-icons {
-  cursor: pointer;
-  background: #aaa;
-  color: #fff;
-  border-radius: 50%;
-  padding: 4px;
-  font-size: 1.2rem;
-  line-height: 1;
+
+.project-tile .project-accent-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--project-color, #0D47A1);
+  transition: background-color 0.2s ease;
 }
-.project-tile .material-icons {
-  cursor: pointer;
+
+.project-tile:hover .project-accent-bar {
+  height: 6px;
+  margin-top: -2px;
 }
 
 .item-list li {
@@ -1902,7 +2194,9 @@ body {
   display: flex;
   align-items: center; /* vertically center all row contents */
   gap: 10px;
-  padding: 12px 0 12px 0;
+  height: 50px;
+  padding: 0;
+  box-sizing: border-box; /* ensure height includes padding */
 }
 
 /* ensure TaskRow itself fills available horizontal space inside header */
@@ -1932,7 +2226,7 @@ body {
   display: flex;
   align-items: center;
   flex: 1 1 0; /* grow/shrink to fill available space */
-  max-width: 70%; /* cap title at 70% of row width to ensure icons don't get overlapped */
+  max-width: 80%; /* cap title at 80% of row width to ensure icons don't get overlapped */
   min-width: 0; /* allow shrinking below content size */
   overflow: hidden; /* force respect of max-width boundary */
 }
@@ -1950,7 +2244,9 @@ body {
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;               /* float above title text */
-  /* width will be determined by its contents */
+  display: flex;
+  align-items: center;
+  gap: 8px;                  /* space between date, people, star, and delete */
   flex: none;
 }
 
@@ -2144,7 +2440,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-right: 4px; /* small spacing before star */
+  /* margin removed - spacing now handled by right-group gap */
 }
 
 /* highlight only the header when a task is in editing state */
@@ -2240,7 +2536,7 @@ body {
   list-style: none;
   flex-direction: column;
   gap: 0;
-  padding: 0;
+  padding: 2px 10px !important;
   border-bottom: 1.5px solid #e9f0fb;
   font-size: 1.08rem;
   background: #fff;
@@ -2253,22 +2549,20 @@ body {
 .add-bar-wrapper .add-bar {
   width: 100%;
   margin: 0;
-  padding: 12px 0 12px 0;
+  padding: 12px 12px 12px 12px;
   position: static;
   top: auto;
-  background: transparent;
+  background: #d32998;
   display: flex;
   gap: 10px;
   flex-wrap: nowrap;
   justify-content: center;
   align-items: center;
-  padding-left: 12px;
-  padding-right: 12px;
 }
 
 .add-bar-wrapper .add-bar input {
   flex: 1;
-  padding: 12px 14px;
+  padding: 12px;
   border: 1px solid rgba(60, 64, 67, 0.12);
   border-radius: 8px;
   font-size: 1rem;
@@ -2283,14 +2577,14 @@ body {
 }
 
 .add-bar-wrapper .add-bar .add-btn {
-  background: var(--primary);
-  color: #fff;
+  background: #fde9f6;
+  color: #fde9f6;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 8px 12px !important;
+  padding: 12px;
   border-radius: 8px;
   flex: none;
   height: 44px;
@@ -2298,7 +2592,7 @@ body {
 }
 
 .add-bar-wrapper .add-bar .add-btn:hover {
-  background: #2563eb;
+  background: #fde9f6;
 }
 
 /* Responsive breakpoints for AddBar on smaller screens */

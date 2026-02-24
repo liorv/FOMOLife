@@ -17,7 +17,7 @@ export default function AddBar({
         name={`add-${type || "item"}`}
         value={input}
         onChange={(e) => onInputChange(e.target.value)}
-        placeholder={`Add a new ${type === "people" ? "person" : type.slice(0, -1)}`}
+        placeholder={type === "people" ? "Add a new person" : type === "tasks" ? "Add a new task" : `Add a new ${type}`}
         onKeyDown={(e) => e.key === "Enter" && onAdd()}
       />
       <button className="add-btn" onClick={onAdd} title="Add">

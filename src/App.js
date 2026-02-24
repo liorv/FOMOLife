@@ -251,6 +251,53 @@ function App({ userId } = {}) {
     }));
   };
 
+  const handleProjectColorChange = async (projectId, newColor) => {
+    const project = data.projects.find((p) => p.id === projectId);
+    if (!project) return;
+    await db.update("projects", projectId, { color: newColor }, userId);
+    setData((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) =>
+        p.id === projectId ? { ...p, color: newColor } : p,
+      ),
+    }));
+  };
+
+  const handleReorderProjects = async (draggedProjectId, targetProjectId) => {
+    const draggedIndex = data.projects.findIndex((p) => p.id === draggedProjectId);
+    const targetIndex = data.projects.findIndex((p) => p.id === targetProjectId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Create new array with reordered projects
+    const newProjects = [...data.projects];
+    const [removed] = newProjects.splice(draggedIndex, 1);
+    newProjects.splice(targetIndex, 0, removed);
+
+    // Update local state immediately for better UX
+    setData((prev) => ({
+      ...prev,
+      projects: newProjects,
+    }));
+
+    // Persist the new order to the database
+    // Store order as metadata or just rely on the new order in the array
+    try {
+      await Promise.all(
+        newProjects.map((p, index) =>
+          db.update("projects", p.id, { order: index }, userId)
+        )
+      );
+    } catch (error) {
+      console.error("Failed to save project order:", error);
+      // Revert on error
+      setData((prev) => ({
+        ...prev,
+        projects: data.projects,
+      }));
+    }
+  };
+
   const handleStar = async (id) => {
     if (type !== "tasks") return;
     const task = data.tasks.find((t) => t.id === id);
@@ -527,6 +574,8 @@ function App({ userId } = {}) {
                     project={p}
                     onDelete={() => setConfirmingProjectId(p.id)}
                     onEdit={() => setEditingProjectId(p.id)}
+                    onChangeColor={handleProjectColorChange}
+                    onReorder={handleReorderProjects}
                   />
                 ))}
               </div>

@@ -166,19 +166,6 @@ export default function TaskEditor({
       {!inline && <h2>Edit Task</h2>}
       <div className="editor-columns">
         <div className="left-column">
-          <div className="editor-section title-section">
-            <label htmlFor="task-title" className="desc-label">
-              Title
-            </label>
-            <input
-              id="task-title"
-              type="text"
-              className="task-title-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
           <div className="editor-section date-section">
             <label htmlFor="task-date" className="desc-label">
               Due date
@@ -194,7 +181,7 @@ export default function TaskEditor({
 
           <div className="editor-section desc-section">
             <label htmlFor="task-desc" className="desc-label">
-              Description
+              Notes
             </label>
             <textarea
               id="task-desc"
