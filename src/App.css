@@ -38,6 +38,13 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* desktop: cap height and show a scrollbar so the editor is navigable
+     without relying on the page-level overlay scrollbar */
+  max-height: 65vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  /* ensure the scrollbar track is always visible on desktop */
+  scrollbar-gutter: stable;
 }
 
 /* keep form controls readable on dark background by giving them a light surface */
@@ -701,27 +708,7 @@
   font-size: 0.95rem;
 }
 
-/* Close (X) button at mid/bottom of side editor */
-.editor-close-btn {
-  align-self: center;
-  margin: 18px 0 8px 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
-  border: none;
-  background: transparent; /* start with no visible circle */
-  color: #374151;
-  font-size: 18px;
-  cursor: pointer;
-  box-shadow: none;
-  transition:
-    transform 0.12s,
-    background 0.12s;
-}
-.editor-close-btn:hover {
-  transform: translateY(-2px);
-  background: #f1f5f9; /* light gray filled circle on hover */
-} /* styles retained in case other components reference it */
+
 
 .item-list li .complete {
   background: none;
@@ -756,27 +743,27 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1; /* take all available space in main-layout */
+  min-height: 0; /* prevent default min-height:auto from overflowing the 100vh bound */
 }
 
 /* main content card */
 .container {
   position: relative; /* allow absolutely-positioned decorative splash */
   overflow-x: visible; /* allow absolutely positioned project icons to show */
-  overflow-y: auto; /* scroll internally if content exceeds the allotted height */
+  overflow-y: scroll; /* always show scrollbar so user can scroll through all content */
   flex: 1 1 auto; /* stretch to fill .app-outer remaining space */
-  margin: 0;
+  min-height: 0; /* required: let this flex item constrain to bounds instead of growing to content */
+  margin: 0 0 120px 0; /* bottom margin so scrollbar doesn't get clipped by navbar */
   background: var(--surface);
   border-radius: 0;
   box-shadow: var(--elevation-1);
-  /* removed padding – container touches app-outer edges */
-  padding: 0 0 120px 0; /* bottom padding to prevent overlap with fixed nav bar (bottom-input-bar + tab-nav) */
-  box-sizing: border-box; /* include padding in height computation */
+  padding: 0;
+  box-sizing: border-box;
   transition: box-shadow 0.2s;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  /* min-width removed temporarily */
-  width: 100%; /* ensure it takes full width of its flex space */
+  width: 100%;
 }
 
 /* when viewing the tasks tab we want a little breathing room around
@@ -1069,8 +1056,8 @@ body {
   flex-direction: column;
   gap: 10px;
   overflow-x: auto; /* allow scrolling if a row is too wide */
-  flex: 1 1 auto;  /* fill vertical space in container */
-  overflow-y: auto; /* scroll internally if content is tall */
+  flex: 1 1 auto; /* fill vertical space in container so scrollbar can activate */
+  min-height: 0; /* critical: force flex child to respect bounds, don't grow to content */
   background-color: #f5f5f5; /* light gray background */
   box-sizing: border-box; /* ensure padding is included in width */
 }

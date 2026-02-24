@@ -513,16 +513,6 @@ export default function TaskEditor({
         {/* close right-column */}
       </div>{" "}
       {/* close editor-columns */}
-      <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button
-          className="editor-close-btn"
-          onClick={handleSaveAndClose}
-          title="Save & Close"
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
     </div>
   );
 }

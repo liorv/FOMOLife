@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import SubprojectEditor from "./SubprojectEditor";
 
@@ -35,6 +35,7 @@ export default function ProjectEditor({
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   // track a drag operation so tasks may be reordered within a subproject
   const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
+  const editorContainerRef = useRef(null);
 
   // using a ref instead of state for cooldown avoids triggering updates that
   // cause warnings in tests (setTimeout would update state outside of act).
@@ -84,6 +85,23 @@ export default function ProjectEditor({
         : [],
     });
   }, [project]);
+
+  // Scroll expanded task into view
+  useEffect(() => {
+    if (!editorTaskId || !editorContainerRef.current) return;
+
+    const scrollToExpanded = () => {
+      const expandedElement = editorContainerRef.current?.querySelector(`[data-task-id="${editorTaskId}"]`);
+      if (expandedElement) {
+        // Scroll the task to the top of the visible area so users can see the whole editor
+        setTimeout(() => {
+          expandedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    };
+
+    scrollToExpanded();
+  }, [editorTaskId]);
 
 
 
@@ -330,7 +348,7 @@ export default function ProjectEditor({
   const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
 
   return (
-    <div className="project-editor" style={{ position: 'relative' }}>
+    <div className="project-editor" ref={editorContainerRef} style={{ position: 'relative' }}>
       {/* project editor now owns its own floating add button; caller should
           not render the global bottom input bar when this component is shown */}
       {/* render each subproject using the new reusable component */}

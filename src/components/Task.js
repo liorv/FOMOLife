@@ -22,6 +22,7 @@ export default function Task({
 }) {
   return (
     <li
+      data-task-id={id}
       className={`${item.done ? "done" : ""}${type === "tasks" && editorTaskId === id ? " is-editing" : ""}`}
       draggable={type === "tasks"}
       onDragStart={(e) => {
