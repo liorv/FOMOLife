@@ -361,6 +361,7 @@ describe('App component', () => {
     // project editor container should appear with no pre‑existing subprojects
     const editor = document.querySelector('.project-editor');
     expect(editor).toBeInTheDocument();
+    // expanded editor no longer renders name inputs
     const subInputs = editor.querySelectorAll('.subproject-name-input');
     expect(subInputs.length).toBe(0);
     // once the project editor is shown the global bottom bar is removed
@@ -380,15 +381,17 @@ describe('App component', () => {
     expect(aiBtn.textContent).toContain('AI assisted project design');
     fireEvent.click(manualBtn);
     await waitFor(() => {
-      const unnamedInputs = document.querySelectorAll('.project-editor .subproject-name-input');
-      expect(unnamedInputs.length).toBe(1);
-      expect(unnamedInputs[0].value).toBe('');
+      const rows = document.querySelectorAll('.project-editor .subproject-row');
+      expect(rows.length).toBe(1);
+      // title span inside row should be empty initially
+      const title = rows[0].querySelector('.subproject-row-title span');
+      expect(title && title.textContent).toBe('');
     });
     // clicking fab again shouldn't add another unnamed
     fireEvent.click(fab);
     await waitFor(() => {
-      const unnamedInputs = document.querySelectorAll('.project-editor .subproject-name-input');
-      expect(unnamedInputs.length).toBe(1);
+      const rows = document.querySelectorAll('.project-editor .subproject-row');
+      expect(rows.length).toBe(1);
     });
 
     // the title bar should display a close icon button on the right
@@ -413,8 +416,8 @@ describe('App component', () => {
     // re-open editor and verify unnamed subproject was removed
     const tile2 = screen.getByText('Renamed').closest('.project-tile');
     fireEvent.click(tile2.querySelector('.edit-icon'));
-    const reInputs = document.querySelectorAll('.project-editor .subproject-name-input');
-    expect(reInputs.length).toBe(0);
+    const rowsAfter = document.querySelectorAll('.project-editor .subproject-row');
+    expect(rowsAfter.length).toBe(0);
   });
 
   test('can add subprojects and tasks inside editor', async () => {
@@ -427,7 +430,7 @@ describe('App component', () => {
 
     // no subprojects initially
     expect(
-      document.querySelectorAll('.project-editor .subproject-name-input').length,
+      document.querySelectorAll('.project-editor .subproject-row').length,
     ).toBe(0);
 
     // use FAB to add new subprojects while editing; default name expected
@@ -442,16 +445,15 @@ describe('App component', () => {
     fireEvent.click(manual);
     // second click after the first close will do nothing but simulate rapid taps
     fireEvent.click(manual);
-    let summaryInputs;
+    let rows;
     // first subproject should still be only one
     await waitFor(() => {
-      summaryInputs =
-        document.querySelectorAll('.project-editor .subproject-name-input');
-      expect(summaryInputs.length).toBe(1);
+      rows = document.querySelectorAll('.project-editor .subproject-row');
+      expect(rows.length).toBe(1);
     });
-    // new subproject should start blank with a helpful placeholder
-    expect(summaryInputs[0].value).toBe('');
-    expect(summaryInputs[0].placeholder).toBe('Please name the subproject');
+    // new subproject should start blank
+    const titleSpan = rows[0].querySelector('.subproject-row-title span');
+    expect(titleSpan.textContent).toBe('');
     // icon button should not appear in the subproject header any more
     expect(document.querySelector('.subproject-summary .add-task-btn')).toBeNull();
 
@@ -484,12 +486,11 @@ describe('App component', () => {
     await new Promise((r) => setTimeout(r, 600));
     fireEvent.click(manual);
     await waitFor(() => {
-      summaryInputs =
-        document.querySelectorAll('.project-editor .subproject-name-input');
-      expect(summaryInputs.length).toBe(2);
+      rows = document.querySelectorAll('.project-editor .subproject-row');
+      expect(rows.length).toBe(2);
     });
-    expect(summaryInputs[1].value).toBe('');
-    expect(summaryInputs[1].placeholder).toBe('Please name the subproject');
+    const secondTitle = rows[1].querySelector('.subproject-row-title span');
+    expect(secondTitle.textContent).toBe('');
 
     // each subproject shows an input bar at top for adding tasks
     const newTaskInput = document.querySelector(
@@ -534,8 +535,8 @@ describe('App component', () => {
     fireEvent.click(deleteBtn);
     // wait for removal to propagate
     await waitFor(() => {
-      const remaining = document.querySelectorAll('.project-editor .subproject-name-input');
-      expect(remaining.length).toBe(1);
+      const remainingRows = document.querySelectorAll('.project-editor .subproject-row');
+      expect(remainingRows.length).toBe(1);
     });
 
     // we don't need to interact with the remaining task row; the deletion
