@@ -208,7 +208,7 @@ export default function TaskEditor({
         </div>
         <div className="right-column">
           <div className="editor-section people-section">
-            <label>People to notify</label>
+            <label>Owners</label>
             <div className="people-list task-person-list">
               <div className="task-person-list-header" aria-hidden>
                 <div className="task-person-col name">Name</div>

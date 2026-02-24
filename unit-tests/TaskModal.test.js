@@ -17,6 +17,8 @@ describe('TaskEditor component', () => {
     expect(container.querySelector('.editor-columns .right-column')).toBeTruthy();
     // header text should now be the simplified label
     expect(container.querySelector('.task-person-list-header .methods').textContent).toBe('Notifications');
+    // section label should reflect new terminology
+    expect(container.querySelector('.people-section label').textContent).toBe('Owners');
 
     const titleInput = container.querySelector('input#task-title');
     expect(titleInput).toBeTruthy();
