@@ -53,9 +53,21 @@ describe('App component', () => {
     // our padding helper class so content isn't flush against the edges
     const container = document.querySelector('.container');
     expect(container).toHaveClass('tasks-padding');
+    // since we expect the container to scroll, ensure the CSS uses padding
+    // rather than margin at the bottom (margin prevented track from reaching
+    // the nav area and made clicks ineffective).
+    expect(container.style.marginBottom).toBe('');
+    // the container should have modest bottom padding; the leftover space
+    // to account for the nav is handled by the outer wrapper.
+    expect(container.style.paddingBottom).toBe('60px');
+    // inline style verifies we explicitly enable scrolling on the container
+    expect(container.style.overflow).toBe('auto');
     // input exists; actual width behaviour is enforced by CSS loaded in the
     // browser environment, not jsdom used for tests.
     // title bar with logo should exist above content
+    // outer wrapper should exist; its padding is handled by the stylesheet
+    const outer = document.querySelector('.app-outer');
+    expect(outer).toBeTruthy();
     const title = document.querySelector('.title-bar');
     expect(title).toBeTruthy();
     expect(title.querySelector('img.title-logo')).toBeTruthy();

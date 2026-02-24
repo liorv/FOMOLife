@@ -30,7 +30,10 @@ describe('TaskEditor component', () => {
     expect(dateInput.value).toBe('2025-12-31');
 
     // container should have side-editor class by default
-    expect(container.querySelector('.side-editor')).toBeTruthy();
+    const side = container.querySelector('.side-editor');
+    expect(side).toBeTruthy();
+    // inline style ensures scrolling when content is tall
+    expect(side.style.overflow).toBe('auto');
     // clicking the close icon should save and close
     fireEvent.click(screen.getByTitle('Save & Close'));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ text: 'foo', dueDate: '2025-12-31', description: 'new notes' }));

@@ -348,7 +348,11 @@ export default function ProjectEditor({
   const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
 
   return (
-    <div className="project-editor" ref={editorContainerRef} style={{ position: 'relative' }}>
+    <div
+    className="project-editor"
+    ref={editorContainerRef}
+    style={{ position: 'relative', overflow: 'auto' }}
+  >
       {/* project editor now owns its own floating add button; caller should
           not render the global bottom input bar when this component is shown */}
       {/* render each subproject using the new reusable component */}

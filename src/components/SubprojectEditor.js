@@ -126,31 +126,33 @@ export default function SubprojectEditor({
     }
   };
 
-  // when collapsed, just render a compact row; edit button will expand
-  if (collapsed) {
-    return (
-      <SubprojectRow
-        sub={sub}
-        onEdit={onToggleCollapse}
-        onNameChange={(newName) => onUpdateText(newName)}
-        onDelete={onDelete}
-        autoEdit={autoEdit}
-        onReorder={onReorder}
-        isDragging={isDragging}
-      />
-    );
-  }
+  // always render an outer wrapper so the item never leaves the list when
+  // toggled open/closed.  drag handlers live on this element (rather than the
+  // row component) so they work in both states.
+  const wrapperClass = "subproject" + (collapsed ? " collapsed" : "");
 
   return (
-    <div 
-      className={"subproject" + (collapsed ? " collapsed" : "")}
+    <div
+      className={wrapperClass}
       draggable
       onDragStart={handleSubDragStart}
       onDragOver={handleSubDragOver}
       onDrop={handleSubDrop}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
+      style={{ opacity: isDragging ? 0.5 : 1, overflow: 'visible' }}
     >
-      <div className="subproject-summary">
+      {collapsed ? (
+        <SubprojectRow
+          sub={sub}
+          onEdit={onToggleCollapse}
+          onNameChange={(newName) => onUpdateText(newName)}
+          onDelete={onDelete}
+          autoEdit={autoEdit}
+          isDragging={isDragging}
+          /* drag handled by wrapper */
+        />
+      ) : (
+        <>
+          <div className="subproject-summary">
         <button
           className="collapse-btn"
           onClick={(e) => {
@@ -223,6 +225,8 @@ export default function SubprojectEditor({
           </ul>
         </div>
       </div>
+    </>
+  )}
     </div>
   );
 }

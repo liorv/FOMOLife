@@ -24,6 +24,7 @@
   justify-content: flex-start;
   gap: 16px; /* vertical spacing between sections */
   overflow-x: hidden; /* prevent suggestions or artwork from widening the panel */
+  overflow-y: auto; /* vertical scrollbar when the editor contents exceed panel height */
 }
 
 /* inline version of editor also uses a gap so sections are evenly spaced */
@@ -736,14 +737,20 @@ body {
   min-height: 100vh;
   color: #202124;
   padding-bottom: 0; /* removed buffer — nav handled by layout */
+  /* .app-outer itself doesn't need bottom margin since container now uses
+     padding. */
 }
 
 /* wrapper containing top bar and content, sized between top and bottom chrome */
+/* ensure content always stops above the fixed navigation bar at the
+   bottom; the padding here shrinks the available height for .container so
+   its bottom edge aligns with the top of the tabs. */
 .app-outer {
   display: flex;
   flex-direction: column;
   flex: 1; /* take all available space in main-layout */
   min-height: 0; /* prevent default min-height:auto from overflowing the 100vh bound */
+  padding-bottom: 60px; /* equal to .tabs height */
 }
 
 /* main content card */
@@ -753,7 +760,10 @@ body {
   overflow-y: scroll; /* always show scrollbar so user can scroll through all content */
   flex: 1 1 auto; /* stretch to fill .app-outer remaining space */
   min-height: 0; /* required: let this flex item constrain to bounds instead of growing to content */
-  margin: 0 0 120px 0; /* bottom margin so scrollbar doesn't get clipped by navbar */
+  /* reduce the excess space we reserved previously.  .app-outer now
+     handles leaving room for the nav bar, so only a modest padding is
+     needed here to keep the scrollbar track clickable. */
+  padding-bottom: 60px;
   background: var(--surface);
   border-radius: 0;
   box-shadow: var(--elevation-1);
@@ -1055,7 +1065,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  overflow-x: auto; /* allow scrolling if a row is too wide */
+  /* allow scrolling both vertically (tasks overflow) and horizontally
+     (long rows) -- the panel lives inside a fixed-height container so we
+     must handle our own vertical scroll rather than relying on the page. */
+  overflow: auto;
   flex: 1 1 auto; /* fill vertical space in container so scrollbar can activate */
   min-height: 0; /* critical: force flex child to respect bounds, don't grow to content */
   background-color: #f5f5f5; /* light gray background */
@@ -1259,6 +1272,17 @@ body {
   transition: opacity 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   background: #fff;
+}
+
+/* when a subproject is collapsed we still render the wrapper around the
+   compact row; remove its visual decoration so it doesn't double up with the
+   card styling of .subproject-row. */
+.project-editor .subproject.collapsed {
+  background: transparent;
+  box-shadow: none;
+}
+.project-editor .subproject.collapsed .subproject-row {
+  margin: 0; /* ensure row stretches full width of wrapper */
 }
 
 .project-editor .subproject:active {

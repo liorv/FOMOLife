@@ -161,7 +161,7 @@ export default function TaskEditor({
   const containerClass = inline ? "inline-editor" : "side-editor";
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} style={{ overflow: 'auto' }}>
       {/* title is shown in the task header; inline form does not render its own header */}
       {!inline && <h2>Edit Task</h2>}
       <div className="editor-columns">

@@ -18,6 +18,14 @@ const defaultProps = {
 };
 
 describe('ProjectEditor', () => {
+  test('editor container is scrollable (overflow:auto)', () => {
+    render(<ProjectEditor {...defaultProps} />);
+    const editor = document.querySelector('.project-editor');
+    expect(editor).toBeTruthy();
+    // inline style is applied in component to guarantee scrolling in tests
+    expect(editor.style.overflow).toBe('auto');
+  });
+
   test('fab button shows and hides a menu when clicked', () => {
     render(<ProjectEditor {...defaultProps} />);
 
@@ -146,6 +154,36 @@ describe('ProjectEditor', () => {
     expect(applied.subprojects[0].tasks[1].text).toBe('a');
   });
 
+  test('subprojects can be reordered via drag and drop', async () => {
+    const props = {
+      ...defaultProps,
+      onApplyChange: jest.fn(),
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          { id: 's1', text: 'one', tasks: [], newTaskText: '' },
+          { id: 's2', text: 'two', tasks: [], newTaskText: '' },
+        ],
+      },
+    };
+
+    render(<ProjectEditor {...props} />);
+    const wrappers = document.querySelectorAll('.project-editor .subproject');
+    expect(wrappers.length).toBe(2);
+    expect(wrappers[0].textContent).toContain('one');
+    expect(wrappers[1].textContent).toContain('two');
+    // drag first onto second
+    fireEvent.dragStart(wrappers[0]);
+    fireEvent.dragOver(wrappers[1]);
+    fireEvent.drop(wrappers[1]);
+    await waitFor(() => {
+      const after = document.querySelectorAll('.project-editor .subproject');
+      expect(after[0].textContent).toContain('two');
+      expect(after[1].textContent).toContain('one');
+    });
+    expect(props.onApplyChange).toHaveBeenCalled();
+  });
+
   test('inline title edit in project editor updates state and triggers onApplyChange', async () => {
     const props = {
       ...defaultProps,
@@ -189,5 +227,31 @@ describe('ProjectEditor', () => {
     };
     render(<ProjectEditor {...props} />);
     expect(document.querySelector('.subproject-row')).toBeTruthy();
+  });
+
+  test('subproject stays in list when toggled open and closed', () => {
+    const props = {
+      ...defaultProps,
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          { id: 'sub1', text: 'x', tasks: [], newTaskText: '', collapsed: true },
+        ],
+      },
+    };
+    render(<ProjectEditor {...props} />);
+    // initial collapsed wrapper exists and must not clip its contents
+    const wrapper = document.querySelector('.project-editor .subproject');
+    expect(wrapper).toBeTruthy();
+    expect(wrapper.style.overflow).toBe('visible');
+    expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
+    // toggle open by clicking expand button
+    fireEvent.click(document.querySelector('.subproject-expand-btn'));
+    // wrapper still present, now showing body
+    expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
+    expect(document.querySelector('.project-editor .subproject-body')).toBeTruthy();
+    // collapse again
+    fireEvent.click(document.querySelector('.subproject-expand-btn'));
+    expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
   });
 });

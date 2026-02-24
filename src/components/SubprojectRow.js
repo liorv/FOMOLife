@@ -7,7 +7,6 @@ export default function SubprojectRow({
   onNameChange, 
   onDelete, 
   autoEdit = false, 
-  onReorder = () => {},
   isDragging = false,
 }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -47,60 +46,11 @@ export default function SubprojectRow({
     </div>
   );
 
-  const handleDragStart = (e) => {
-    try {
-      if (e.dataTransfer) {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("application/json", JSON.stringify({
-          subprojectId: sub.id,
-        }));
-      }
-    } catch (err) {
-      // dataTransfer might not be available in test environment
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    try {
-      if (e.dataTransfer) {
-        e.dataTransfer.dropEffect = "move";
-      }
-    } catch (err) {
-      // dataTransfer might not be available
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    // Safely get data, handling cases where dataTransfer is not properly set up
-    let data = "";
-    try {
-      data = e.dataTransfer?.getData("application/json") || "";
-    } catch (err) {
-      // dataTransfer might not be available or might throw
-      return;
-    }
-    
-    if (!data) return;
-    try {
-      const { subprojectId } = JSON.parse(data);
-      if (subprojectId !== sub.id) {
-        onReorder(subprojectId, sub.id);
-      }
-    } catch (err) {
-      // Silently handle parse errors
-    }
-  };
 
   return (
     <div 
       className="subproject-row" 
       role="button"
-      draggable
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
       {/* expand/collapse button */}
@@ -249,6 +199,5 @@ SubprojectRow.propTypes = {
   onNameChange: PropTypes.func,
   onDelete: PropTypes.func,
   autoEdit: PropTypes.bool,
-  onReorder: PropTypes.func,
   isDragging: PropTypes.bool,
 };
