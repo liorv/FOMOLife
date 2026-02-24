@@ -1295,11 +1295,14 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
+  padding-right: 96px; /* reserve space for right-side icons and controls */
   background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   border-radius: 4px;
   transition: box-shadow 0.2s ease;
   position: relative; /* needed for menu positioning */
+  overflow: visible; /* allow absolutely positioned children (icons) to remain visible */
+  box-sizing: border-box; /* include padding in width calculation */
 }
 .subproject-row:hover {
   box-shadow: 0 4px 6px rgba(0,0,0,0.16), 0 2x 4px rgba(0,0,0,0.12);
@@ -1315,7 +1318,9 @@ body {
   color: #616161;
 }
 .subproject-row-title {
-  flex: 1 1 auto;
+  flex: 0 1 auto; /* allow shrinking but not growing beyond max-width */
+  max-width: 70%; /* cap at 70% of row width to reserve space for right icons */
+  min-width: 0; /* allow shrinking below content size */
   font-weight: 500;
   font-size: 1rem;
   color: #212121;
@@ -1324,7 +1329,6 @@ body {
 /* input used when editing the subproject name inline */
 .subproject-row-name-input {
   width: 100%;
-  max-width: 200px;
   font-size: 1rem;
   padding: 2px 4px;
   border: 1px solid #ccc;
@@ -1848,6 +1852,7 @@ body {
   gap: 0;
   padding: 0; /* header handles its own padding */
   border-bottom: 1.5px solid #e9f0fb;
+  overflow: visible; /* allow absolutely positioned children to remain visible */
   font-size: 1.08rem;
   background: #fff;
   border-radius: 10px;
@@ -1911,23 +1916,40 @@ body {
   gap: 6px;
   position: relative; /* needed for absolutely-positioned handle */
   padding-left: 10px; /* reserve space for handle so content doesn't overlap */
+  padding-right: 80px; /* reserve space for right-group icons (star, delete, etc) */
+  overflow: visible; /* ensure absolutely positioned right-group is never clipped */
+  box-sizing: border-box; /* ensure padding is included in width calculation */
 }
 
 /* left, middle, and right groups help with centering the date */
-.left-group,
+.left-group {
+  display: flex;
+  align-items: center;
+  flex: none; /* keep at natural width for expand/checkbox */
+}
+
+.task-title-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0; /* grow/shrink to fill available space */
+  max-width: 70%; /* cap title at 70% of row width to ensure icons don't get overlapped */
+  min-width: 0; /* allow shrinking below content size */
+  overflow: hidden; /* force respect of max-width boundary */
+}
+
 .right-group,
 .date-container {
   display: flex;
   align-items: center;
 }
 
-/* ensure right-group is always visible by taking it out of the flow */
+/* ensure right-group is always visible and positioned relative to its task row */
 .right-group {
   position: absolute;
   right: 4px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 2;               /* float above title text */
+  z-index: 10;               /* float above title text */
   /* width will be determined by its contents */
   flex: none;
 }
@@ -1999,14 +2021,11 @@ body {
 
 .task-row .task-title,
 .task-row .task-title-input {
-  flex: 1 1 0; /* grow and shrink; zero basis lets it compress fully */
-  min-width: 0; /* required so flex items can shrink below content size */
   text-align: left;
-  /* ensure text doesn't run directly up against right icons */
+  /* ensure text doesn't run directly up against right side of wrapper */
   padding-right: 8px;
 }
 
-/* style the inline editing input to match project editor appearance */
 .task-row .task-title-input {
   font-size: 1em;
   padding: 8px 10px;
@@ -2014,6 +2033,8 @@ body {
   border: 1px solid rgba(60, 64, 67, 0.12);
   background: #fbfdff;
   box-sizing: border-box;
+  flex: 1 1 0; /* fill wrapper */
+  min-width: 0;
 }
 
 /* prevent title text from spilling out of the row; use ellipsis when too long */
@@ -2021,19 +2042,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* width is unconstrained by default; the field flexes naturally and
-     padding/right-group ensure icons don't overlap.  the small-screen
-     cap is applied in a media query below. */
-}
-
-/* extra constraint on very narrow viewports */
-@media (max-width: 600px) {
-  .task-row .task-title {
-    max-width: 140px; /* limit the title width to 150px so icons never overlap */
-  }
-  .add-bar input {
-    max-width: 70%; /* allow the add input to shrink more on small screens */
-  }
 }
 
 .task-row .task-date {
@@ -2182,7 +2190,14 @@ body {
 .tile-short { --project-tile-height: 120px; }
 /* editable indicator: tiny pencil icon for inline-editable fields */
 /* overlay positioned absolutely to the right, no layout impact */
-.task-title-container,
+.task-title-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0; /* fill the wrapper */
+  min-width: 0; /* required for flex text truncation */
+}
+
 .subproject-name-container,
 .person-name-container {
   position: relative;
@@ -2216,4 +2231,114 @@ body {
 .person-chip:hover .editable-indicator,
 .task-person-row:hover .editable-indicator {
   opacity: 1;
+}
+
+/* AddBar when displayed as a list item in subproject task list */
+.add-bar-wrapper {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1.5px solid #e9f0fb;
+  font-size: 1.08rem;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  box-shadow: 0 1px 4px #b6c6e61a;
+  width: auto;
+}
+
+.add-bar-wrapper .add-bar {
+  width: 100%;
+  margin: 0;
+  padding: 12px 0 12px 0;
+  position: static;
+  top: auto;
+  background: transparent;
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.add-bar-wrapper .add-bar input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid rgba(60, 64, 67, 0.12);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+  min-width: 100px;
+}
+
+.add-bar-wrapper .add-bar input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
+}
+
+.add-bar-wrapper .add-bar .add-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 8px 12px !important;
+  border-radius: 8px;
+  flex: none;
+  height: 44px;
+  width: 44px;
+}
+
+.add-bar-wrapper .add-bar .add-btn:hover {
+  background: #2563eb;
+}
+
+/* Responsive breakpoints for AddBar on smaller screens */
+@media (max-width: 600px) {
+  .add-bar-wrapper .add-bar {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 8px;
+  }
+  
+  .add-bar-wrapper .add-bar .add-btn {
+    height: 40px;
+    width: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .add-bar-wrapper .add-bar input {
+    max-width: none;
+    flex: 1;
+    min-width: 100px;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+  }
+  
+  .add-bar-wrapper .add-bar {
+    padding-left: 6px;
+    padding-right: 6px;
+    gap: 6px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  
+  .add-bar-wrapper .add-bar .add-btn {
+    height: 36px;
+    width: 36px;
+    padding: 6px 10px !important;
+  }
+  
+  .add-bar-wrapper .add-bar .add-btn .material-icons {
+    font-size: 20px;
+  }
 }

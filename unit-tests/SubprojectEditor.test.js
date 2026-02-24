@@ -78,7 +78,7 @@ describe('SubprojectEditor', () => {
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
   });
 
-test('header add button calls onAddTask and avoids duplicate blank tasks', () => {
+test('header add button shows AddBar and allows adding tasks', async () => {
     const handlers = { ...defaultHandlers, onAddTask: jest.fn() };
     const subWithTasks = { ...defaultSub, tasks: [] };
     const { rerender } = render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
@@ -87,17 +87,66 @@ test('header add button calls onAddTask and avoids duplicate blank tasks', () =>
     expect(addBtn).toBeTruthy();
     expect(addBtn.textContent).toContain('Task');
     expect(addBtn.title).toBe('AddTask');
+    
+    // Click plus button to show AddBar
     fireEvent.click(addBtn);
+    
+    // AddBar should become visible
+    const addBarInput = document.querySelector('.add-bar-wrapper input');
+    expect(addBarInput).toBeTruthy();
+    
+    // Type a task name
+    fireEvent.change(addBarInput, { target: { value: 'My Task' } });
+    
+    // Click add button in AddBar
+    const addBarBtn = document.querySelector('.add-bar-wrapper .add-btn');
+    fireEvent.click(addBarBtn);
+    
+    // onAddTask should be called with the typed text
     expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
-    expect(handlers.onAddTask).toHaveBeenCalledWith("", true);
+    expect(handlers.onAddTask).toHaveBeenCalledWith('My Task');
+  });
 
-    // simulate parent having added an empty task and re-render
-    subWithTasks.tasks = [{ id: 't1', text: '' }];
-    rerender(<SubprojectEditor sub={subWithTasks} {...handlers} />);
+  test('AddBar closes when clicking outside', async () => {
+    const handlers = { ...defaultHandlers };
+    const subWithTasks = { ...defaultSub, tasks: [] };
+    render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
+
+    // Click plus button to show AddBar
+    const addBtn = document.querySelector('.add-task-header-btn');
     fireEvent.click(addBtn);
-    expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
-    // still no additional call; args should remain same
-    expect(handlers.onAddTask).toHaveBeenCalledWith("", true);
+    
+    // AddBar should be visible
+    let addBarInput = document.querySelector('.add-bar-wrapper input');
+    expect(addBarInput).toBeTruthy();
+    
+    // Click outside the AddBar
+    fireEvent.mouseDown(document.body);
+    
+    // AddBar should be hidden
+    addBarInput = document.querySelector('.add-bar-wrapper input');
+    expect(addBarInput).not.toBeTruthy();
+  });
+
+  test('AddBar closes when pressing Escape', async () => {
+    const handlers = { ...defaultHandlers };
+    const subWithTasks = { ...defaultSub, tasks: [] };
+    render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
+
+    // Click plus button to show AddBar
+    const addBtn = document.querySelector('.add-task-header-btn');
+    fireEvent.click(addBtn);
+    
+    // AddBar should be visible
+    let addBarInput = document.querySelector('.add-bar-wrapper input');
+    expect(addBarInput).toBeTruthy();
+    
+    // Press Escape
+    fireEvent.keyDown(document, { key: 'Escape' });
+    
+    // AddBar should be hidden
+    addBarInput = document.querySelector('.add-bar-wrapper input');
+    expect(addBarInput).not.toBeTruthy();
   });
 
 

@@ -143,7 +143,10 @@ export default function TaskRow({
             title={item.done ? "Mark as incomplete" : "Mark as complete"}
           />
         )}
+      </div>
 
+      {/* task title: separate from left-group, with max-width constraint */}
+      <div className="task-title-wrapper">
         {editingTitle ? (
           <input
             className="task-title-input"

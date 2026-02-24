@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import TaskList from "./TaskList";
 import SubprojectRow from "./SubprojectRow";
+import AddBar from "./AddBar";
 
 export default function SubprojectEditor({
   sub,
@@ -32,15 +33,48 @@ export default function SubprojectEditor({
   onClearNewTask = () => {},
 }) {
   const collapsed = sub.collapsed;
-  // helper used by the header + tests; parent already binds the subproject id
-  const addEmptyTask = () => {
-    // don't add another blank if one exists
-    if ((sub.tasks || []).some((t) => !t.text || t.text.trim() === "")) {
-      return;
-    }
-    // ask the parent to create an empty task for us. our helper `addTask`
-    // supports a third `allowBlank` boolean so we can bypass validation.
-    onAddTask("", true);
+  const [showAddBar, setShowAddBar] = useState(false);
+  const [addBarInput, setAddBarInput] = useState("");
+  const addBarRef = useRef(null);
+
+  // Close AddBar when clicking outside
+  useEffect(() => {
+    if (!showAddBar) return;
+
+    const handleClickOutside = (e) => {
+      if (addBarRef.current && !addBarRef.current.contains(e.target)) {
+        setShowAddBar(false);
+        setAddBarInput("");
+      }
+    };
+
+    const handleEscapeKey = (e) => {
+      if (e.key === "Escape") {
+        setShowAddBar(false);
+        setAddBarInput("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [showAddBar]);
+
+  // Open AddBar when plus button is clicked
+  const openAddBar = () => {
+    setShowAddBar(true);
+    setAddBarInput("");
+  };
+
+  // Handle adding task from AddBar
+  const handleAddBarAdd = () => {
+    if (!addBarInput.trim()) return;
+    onAddTask(addBarInput);
+    setAddBarInput("");
   };
 
   // when collapsed, just render a compact row; edit button will expand
@@ -82,7 +116,7 @@ export default function SubprojectEditor({
         <button
           className="add-task-header-btn"
           title="AddTask"
-          onClick={addEmptyTask}
+          onClick={openAddBar}
         >
           <span className="material-icons">add</span>
           <span className="add-task-label">Task</span>
@@ -91,6 +125,18 @@ export default function SubprojectEditor({
       <div className="subproject-body">
         <div className="subproject-tasks">
           <ul className="item-list">
+            {showAddBar && (
+              <li className="add-bar-wrapper" ref={addBarRef}>
+                <AddBar
+                  type="task"
+                  input={addBarInput}
+                  dueDate=""
+                  onInputChange={setAddBarInput}
+                  onDueDateChange={() => {}}
+                  onAdd={handleAddBarAdd}
+                />
+              </li>
+            )}
             <TaskList
               items={sub.tasks || []}
               type="tasks"
