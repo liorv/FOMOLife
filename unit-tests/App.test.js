@@ -542,6 +542,56 @@ describe('App component', () => {
     // itself demonstrates that the hover-visible button can be clicked.
   });
 
+  test('subproject tasks may be reordered while editing a project', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText('Projects'));
+    addProject('ReorderTest');
+    await screen.findByText('ReorderTest');
+    const tile = screen.getByText('ReorderTest').closest('.project-tile');
+    fireEvent.click(tile.querySelector('.edit-icon'));
+
+    // add a subproject and two tasks programmatically via state update
+    const input = document.querySelector('.project-editor .subproject-name-input');
+    // there should be at least one subproject input after adding
+    if (!input) {
+      const fab = document.querySelector('.project-editor > .fab:not(.fab-small)');
+      fireEvent.click(fab);
+      const manual = document.querySelector('.fab-small[title="Add manual subproject"]');
+      fireEvent.click(manual);
+      await waitFor(() => {
+        expect(document.querySelectorAll('.project-editor .subproject-name-input').length).toBe(1);
+      });
+    }
+    // now add two tasks to visible subproject
+    const taskInput = document.querySelector('.project-editor .new-task-input');
+    fireEvent.change(taskInput, { target: { value: 'one' } });
+    fireEvent.keyDown(taskInput, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => {
+      expect(document.querySelectorAll('.project-editor .task-row').length).toBe(1);
+    });
+    fireEvent.change(taskInput, { target: { value: 'two' } });
+    fireEvent.keyDown(taskInput, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => {
+      expect(document.querySelectorAll('.project-editor .task-row').length).toBe(2);
+    });
+
+    const rows = document.querySelectorAll('.project-editor .task-row');
+    expect(rows[0].textContent).toContain('one');
+    expect(rows[1].textContent).toContain('two');
+
+    // simulate drag to reorder same as previous tests
+    const handle = rows[0].querySelector('.drag-handle');
+    fireEvent.dragStart(handle);
+    fireEvent.dragOver(rows[1]);
+    fireEvent.drop(rows[1]);
+
+    await waitFor(() => {
+      const after = document.querySelectorAll('.project-editor .task-row');
+      expect(after[0].textContent).toContain('two');
+      expect(after[1].textContent).toContain('one');
+    });
+  });
+
   test('deleting a project shows confirmation modal and removes when confirmed', async () => {
     render(<App />);
     fireEvent.click(screen.getByText('Projects'));

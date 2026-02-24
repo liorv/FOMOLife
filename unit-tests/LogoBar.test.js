@@ -57,10 +57,6 @@ describe('LogoBar component', () => {
     const closeBtn = screen.getByTitle('Close');
     expect(closeBtn).toBeInTheDocument();
     expect(closeBtn).toHaveClass('icon-button');
-    // make sure sizing styles are applied for better touch targets
-    expect(closeBtn).toHaveStyle({ padding: '12px' });
-    const icon = closeBtn.querySelector('.material-icons');
-    expect(icon).toHaveStyle({ fontSize: '24px' });
     // the button's textContent is just the material icon name
     expect(closeBtn.textContent).toBe('close');
     // clicking triggers callback

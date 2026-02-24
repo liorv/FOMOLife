@@ -163,19 +163,18 @@
   }
 }
 
-/* at very narrow widths, hide the star to avoid crowded buttons */
-@media (max-width: 480px) {
-  .task-row .star {
-    display: none;
-  }
-}
-
 
 /* hide the search bar completely on very narrow viewports */
 @media (max-width: 290px) {
   .title-bar .search-container {
     display: none;
   }
+
+  /* when screen is tiny, remove the date column entirely to save space */
+  .task-date {
+    display: none;
+  }
+
 }
 
 .left-column,
@@ -832,11 +831,6 @@ body {
 }
 
 @media (max-width: 900px) {
-  /* keep logo visible; instead let container scroll horizontally */
-  /* .logo-splash { display: none; } */
-}
-
-@media (max-width: 900px) {
   .main-layout {
     flex-direction: column;
     align-items: stretch;
@@ -862,8 +856,6 @@ body {
     padding: 32px 12px 24px 12px;
   }
 }
-
-/* header removed, styles no longer needed */
 
 .tabs {
   display: flex;
@@ -1335,23 +1327,6 @@ body {
 .task-list {
   list-style: disc inside;
   padding-left: 0;
-}
-.editor-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 18px;
-}
-.editor-actions button {
-  background: #2b6cb0;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 18px;
-  font-size: 1em;
-  cursor: pointer;
-}
-.editor-actions .close {
-  background: #e53e3e;
 }
 /* remove generic column padding for the top title bar so the logo
    sits flush against the left edge of the viewport */
@@ -1866,12 +1841,6 @@ body {
   min-width: 3ch; /* ensure at least '0d' fits */
 }
 
-@media (max-width: 480px) {
-  .date-container {
-    min-width: 2ch;
-  }
-}
-
 /* make buttons center their icon content */
 .task-row button {
   display: flex;
@@ -1907,6 +1876,14 @@ body {
   .task-date .short {
     display: inline;
   }
+
+  .date-container {
+    min-width: 2ch;
+  }
+
+  .task-row .star {
+    display: none;
+  }
 }
 
 .task-row .task-date {
@@ -1934,12 +1911,15 @@ body {
 }
 
 /* extra constraint on very narrow viewports */
-@media (max-width: 400px) {
+@media (max-width: 600px) {
   .task-row .task-title {
-    max-width: 150px; /* limit the title width to 150px so icons never overlap */
-    flex: 0 1 150px; /* enforce a 150px basis so the field itself shrinks to that width */
+    max-width: 140px; /* limit the title width to 150px so icons never overlap */
+  }
+  .add-bar input {
+    max-width: 70%; /* allow the add input to shrink more on small screens */
   }
 }
+
 .task-row .task-date {
   flex: none;
 }

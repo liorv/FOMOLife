@@ -30,6 +30,9 @@ export default function ProjectEditor({
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  // track a drag operation so tasks may be reordered within a subproject
+  const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
+
   // using a ref instead of state for cooldown avoids triggering updates that
   // cause warnings in tests (setTimeout would update state outside of act).
   const addingRef = React.useRef(false);
@@ -205,6 +208,39 @@ export default function ProjectEditor({
     onApplyChange(updated);
   };
 
+  // drag / drop helpers for reordering tasks within a subproject
+  const handleDragStart = (subId) => (taskId, e) => {
+    setDraggedTask({ subId, taskId });
+  };
+
+  const handleDrop = (subId) => (taskId, e) => {
+    const { subId: fromSub, taskId: draggedId } = draggedTask;
+    if (!draggedId || fromSub !== subId || draggedId === taskId) {
+      setDraggedTask({ subId: null, taskId: null });
+      return;
+    }
+    setLocal((prev) => {
+      const subs = (prev.subprojects || []).map((s) => {
+        if (s.id !== subId) return s;
+        const tasks = [...(s.tasks || [])];
+        const fromIdx = tasks.findIndex((t) => t.id === draggedId);
+        const toIdx = tasks.findIndex((t) => t.id === taskId);
+        if (fromIdx === -1 || toIdx === -1) return s;
+        const [moved] = tasks.splice(fromIdx, 1);
+        tasks.splice(toIdx, 0, moved);
+        return { ...s, tasks };
+      });
+      const updated = { ...prev, subprojects: subs };
+      onApplyChange(updated);
+      return updated;
+    });
+    setDraggedTask({ subId: null, taskId: null });
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTask({ subId: null, taskId: null });
+  };
+
   return (
     <div className="project-editor" style={{ position: 'relative' }}>
       {/* project editor now owns its own floating add button; caller should
@@ -280,6 +316,10 @@ export default function ProjectEditor({
                       handleToggle={(taskId) => handleTaskToggle(sub.id, taskId)}
                       handleStar={(taskId) => handleTaskStar(sub.id, taskId)}
                       handleDelete={(taskId) => handleTaskDelete(sub.id, taskId)}
+                      onDragStart={handleDragStart(sub.id)}
+                      onDragOver={() => { /* noop - no extra logic needed */ }}
+                      onDrop={handleDrop(sub.id)}
+                      onDragEnd={handleDragEnd}
                       onEditorSave={handleEditorSave(sub.id)}
                       onEditorUpdate={handleEditorUpdate(sub.id)}
                       onEditorClose={handleEditorClose}

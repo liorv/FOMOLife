@@ -91,4 +91,53 @@ describe('ProjectEditor', () => {
     fireEvent.click(addBtn);
     expect(document.querySelectorAll('.project-editor .task-row').length).toBe(0);
   });
+
+  test('tasks within a subproject can be reordered via drag and drop', async () => {
+    const props = {
+      ...defaultProps,
+      onApplyChange: jest.fn(),
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          {
+            id: 'sub1',
+            text: 'foo',
+            tasks: [
+              { id: 't1', text: 'a', done: false, favorite: false, people: [] },
+              { id: 't2', text: 'b', done: false, favorite: false, people: [] },
+            ],
+            newTaskText: '',
+          },
+        ],
+      },
+    };
+
+    render(<ProjectEditor {...props} />);
+
+    // ensure both task rows are rendered in initial order
+    let rows = document.querySelectorAll('.project-editor .task-row');
+    expect(rows.length).toBe(2);
+    expect(rows[0].textContent).toContain('a');
+    expect(rows[1].textContent).toContain('b');
+
+    // perform drag-reorder: drag first row onto second
+    const handle = rows[0].querySelector('.drag-handle');
+    fireEvent.dragStart(handle);
+    const target = rows[1];
+    fireEvent.dragOver(target);
+    fireEvent.drop(target);
+
+    // after drop, DOM order should update and onApplyChange should be called
+    await screen.findByText('b');
+    await waitFor(() => {
+      const afterRows = document.querySelectorAll('.project-editor .task-row');
+      expect(afterRows[0].textContent).toContain('b');
+      expect(afterRows[1].textContent).toContain('a');
+    });
+
+    expect(props.onApplyChange).toHaveBeenCalled();
+    const applied = props.onApplyChange.mock.calls.pop()[0];
+    expect(applied.subprojects[0].tasks[0].text).toBe('b');
+    expect(applied.subprojects[0].tasks[1].text).toBe('a');
+  });
 });
