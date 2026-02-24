@@ -1,7 +1,9 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-export default function SubprojectRow({ sub, onEdit, onDelete }) {
+export default function SubprojectRow({ sub, onEdit, onNameChange }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draftName, setDraftName] = React.useState(sub.text || "");
   const tasks = sub.tasks || [];
   const count = tasks.length;
   const doneCount = tasks.filter((t) => t.done).length;
@@ -29,7 +31,37 @@ export default function SubprojectRow({ sub, onEdit, onDelete }) {
       </span>
 
       <span className="subproject-row-title" title={sub.text}>
-        {sub.text}
+        {editing ? (
+          <input
+            className="subproject-row-name-input"
+            value={draftName}
+            maxLength={100}
+            onChange={(e) => setDraftName(e.target.value)}
+            onBlur={() => {
+              setEditing(false);
+              if (onNameChange && draftName !== sub.text) {
+                onNameChange(draftName);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.target.blur();
+              }
+            }}
+            autoFocus
+          />
+        ) : (
+          <span
+            onClick={() => {
+              if (onNameChange) {
+                setEditing(true);
+              }
+            }}
+            style={{ cursor: onNameChange ? "text" : "default" }}
+          >
+            {sub.text}
+          </span>
+        )}
       </span>
       <span
         className="subproject-row-stats"
@@ -75,5 +107,5 @@ SubprojectRow.propTypes = {
   }).isRequired,
   onEdit: PropTypes.func.isRequired,
   // deletion is handled via the editor, not row
-  onDelete: PropTypes.func,
+  onNameChange: PropTypes.func,
 };

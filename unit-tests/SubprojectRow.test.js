@@ -26,7 +26,7 @@ describe('SubprojectRow', () => {
 
   test('shows description icon when description present', () => {
     const sub = { ...baseSub, description: 'hello' };
-    render(<SubprojectRow sub={sub} onEdit={jest.fn()} onDelete={jest.fn()} />);
+    render(<SubprojectRow sub={sub} onEdit={jest.fn()} />);
     expect(screen.getByTitle('Has description')).toBeInTheDocument();
   });
 
@@ -49,5 +49,24 @@ describe('SubprojectRow', () => {
     render(<SubprojectRow sub={baseSub} onEdit={onEdit} />);
     fireEvent.click(document.querySelector('.subproject-row .edit'));
     expect(onEdit).toHaveBeenCalledWith('sub1');
+  });
+
+  test('allows inline name editing when callback provided', () => {
+    const onNameChange = jest.fn();
+    render(
+      <SubprojectRow
+        sub={baseSub}
+        onEdit={jest.fn()}
+        onNameChange={onNameChange}
+      />
+    );
+    const titleSpan = screen.getByText('My Sub');
+    fireEvent.click(titleSpan);
+    const input = document.querySelector('.subproject-row-name-input');
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: 'New Name' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.blur(input);
+    expect(onNameChange).toHaveBeenCalledWith('New Name');
   });
 });

@@ -35,10 +35,11 @@ const defaultHandlers = {
 };
 
 describe('SubprojectEditor', () => {
-  test('renders inputs with ids based on subproject id', () => {
+  test('renders inputs with ids based on subproject id and enforces maxlength', () => {
     render(<SubprojectEditor sub={defaultSub} {...defaultHandlers} />);
     const nameInput = document.getElementById('subproject-name-sub1');
     expect(nameInput).toBeInTheDocument();
+    expect(nameInput).toHaveAttribute('maxLength', '100');
     const taskInput = document.getElementById('new-task-sub1');
     expect(taskInput).toBeInTheDocument();
   });
@@ -54,6 +55,32 @@ describe('SubprojectEditor', () => {
     const editBtn = document.querySelector('.subproject-row .edit');
     fireEvent.click(editBtn);
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
+  });
+
+  test('inline editing via row updates text and calls onApplyChange', () => {
+    const changed = jest.fn();
+    const props = {
+      ...defaultHandlers,
+      project: {
+        ...defaultHandlers.project,
+        subprojects: [
+          { id: 'sub1', text: 'foo', tasks: [], newTaskText: '', collapsed: true },
+        ],
+      },
+      onApplyChange: changed,
+    };
+    render(<SubprojectEditor {...props} />);
+    // click the title to start editing
+    const titleSpan = screen.getByText('foo');
+    fireEvent.click(titleSpan);
+    const input = document.querySelector('.subproject-row-name-input');
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: 'bar' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.blur(input);
+    expect(changed).toHaveBeenCalled();
+    const applied = changed.mock.calls.pop()[0];
+    expect(applied.subprojects[0].text).toBe('bar');
   });
 
   test('calls onToggleCollapse when collapse button is clicked', () => {

@@ -1157,7 +1157,11 @@ body {
 }
 
 .subproject-name-input {
-  /* width removed to avoid overflowing flex container; flex rules govern size */
+  /* constrain width to ensure consistent layout
+     default 100px, can grow up to 200px if space allows */
+  flex: none;
+  width: 100px;
+  max-width: 250px;
   box-sizing: border-box;
 }
 /* delete button hover remains subtle: slightly darker background */
@@ -1347,6 +1351,16 @@ body {
   font-weight: 500;
   font-size: 1rem;
   color: #212121;
+}
+
+/* input used when editing the subproject name inline */
+.subproject-row-name-input {
+  width: 100%;
+  max-width: 200px;
+  font-size: 1rem;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 .subproject-row-stats {
   font-size: 0.9em;

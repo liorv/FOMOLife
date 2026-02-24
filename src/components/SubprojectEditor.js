@@ -34,7 +34,7 @@ export default function SubprojectEditor({
       <SubprojectRow
         sub={sub}
         onEdit={onToggleCollapse}
-        onDelete={onDelete}
+        onNameChange={(newName) => onUpdateText(newName)}
       />
     );
   }
@@ -59,6 +59,7 @@ export default function SubprojectEditor({
           className="subproject-name-input"
           name="subproject-name"
           placeholder="Please name the subproject"
+          maxLength={100}
           value={sub.text}
           onChange={(e) => onUpdateText(e.target.value)}
         />
