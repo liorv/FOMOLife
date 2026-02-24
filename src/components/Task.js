@@ -12,7 +12,6 @@ export default function Task({
   handleDelete,
   onTitleChange,
   children,
-  // drag callbacks forwarded from TaskList/App
   onDragStart,
   onDragOver,
   onDrop,
@@ -44,7 +43,6 @@ export default function Task({
         onDragEnd && onDragEnd(id, e);
       }}
     >
-      {/* header area – sits at top of container, now delegated to TaskRow */}
       <div className="task-header">
         <TaskRow
           item={item}

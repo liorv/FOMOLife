@@ -1,5 +1,5 @@
 import React from "react";
-// service icons are provided via public/assets
+
 const logoDiscordUrl = "/assets/logo_discord.png";
 const logoSmsUrl = "/assets/logo_sms.png";
 const logoWhatsappUrl = "/assets/logo_whatsapp.png";

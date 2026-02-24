@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from "react";
 
-// A standalone row representing a single task's primary information.
-// Ordered columns (left→right):
-//   1. expand toggle
-//   2. completion checkbox
-//   3. task string (editable when row is open)
-//   4. date (rendered red when in the past)
-//   5. people to notify (avatars)
-//   6. star toggle
-//   7. delete button
-// Left items expand naturally; the final three are pushed to the right by
-// virtue of a flex container with `margin-left: auto`.
-// Input validation for the title enforces [a-zA-Z0-9 ]+.  The component also
-// accepts `onTitleChange` for inline edits.  Additional task details live
-// in the editor.
-
+/**
+ * A single task row.  Columns (left → right):
+ *   expand toggle | checkbox | title | date | people avatars | star | delete
+ */
 export default function TaskRow({
   item,
   id,
@@ -24,9 +13,7 @@ export default function TaskRow({
   handleToggle,
   handleStar,
   handleDelete,
-  // optional callback for inline title edits
   onTitleChange,
-  // drag-and-drop callbacks (only relevant when `type === 'tasks'`)
   onDragStart,
   onDragOver,
   onDrop,
@@ -77,7 +64,7 @@ export default function TaskRow({
       setEditorTaskId(id);
     }
   };
-  // determine if due date exists and is in the past and compute days left
+  // Compute days until due date
   let isPast = false;
   let daysLeft = null;
   if (item.dueDate) {
@@ -90,7 +77,6 @@ export default function TaskRow({
   }
 
   return (
-    // container flex ensures left/middle/right segments and full width
     <div
       className="task-row"
       draggable={type === "tasks"}
@@ -117,10 +103,8 @@ export default function TaskRow({
         }
       }}
     >
-      {/* left group: expand, checkbox, title */}
+      {/* Left group: expand, checkbox, title */}
       <div className="left-group">
-        {/* expanding is always available for tasks */}
-
         {type === "tasks" && (
           <span
             className={`material-icons expand-icon${isOpen ? " open" : ""}`}
@@ -145,7 +129,7 @@ export default function TaskRow({
         )}
       </div>
 
-      {/* task title: separate from left-group, with max-width constraint */}
+      {/* Title */}
       <div className="task-title-wrapper">
         {editingTitle ? (
           <input
@@ -185,10 +169,7 @@ export default function TaskRow({
         )}
       </div>
 
-      {/* middle group: date centered */}
-      {/* NOTE: Date is now part of right-group to keep spacing consistent and prevent overlap */}
-
-      {/* right group: date, notify avatars, star, delete */}
+      {/* Right group: date, avatars, star, delete */}
       <div className="right-group">
         {item.dueDate && (
           <div className="date-container">

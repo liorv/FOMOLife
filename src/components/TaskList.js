@@ -3,34 +3,30 @@ import Task from "./Task";
 import Person from "./Person";
 import TaskEditor from "./TaskModal";
 
-// TaskList serves as the generic list renderer for both tasks and people.
-// When `type` is "people" we render <Person /> rows and wire the
-// various person-specific callbacks; for everything else we delegate
-// to the existing <Task /> component.  For the tasks list we also have
-// the ability to render an inline editor directly underneath a task
-// row when `editorTaskId` matches the item's id.
+/**
+ * Generic list renderer for tasks and people.
+ * Renders <Person /> for people, <Task /> for everything else.
+ * Inline editor appears beneath the active task.
+ */
 export default function TaskList({
   items = [],
   type,
   editorTaskId,
   setEditorTaskId,
-  handleToggle, // used for task checkbox or person default toggle
+  handleToggle,
   handleStar,
   handleDelete,
   onTitleChange,
-  // drag callbacks for reordering tasks
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd,
-  // task-editor props (only relevant when type === 'tasks')
   onEditorSave,
   onEditorUpdate,
   onEditorClose,
   allPeople = [],
   onOpenPeople = () => {},
   onCreatePerson = () => {},
-  // person-specific props (only used when type === 'people')
   editingPersonId,
   editingPersonName,
   setEditingPersonId,

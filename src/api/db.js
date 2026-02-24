@@ -1,23 +1,7 @@
 import { loadData as rawLoad, saveData as rawSave } from "./storage";
+import generateId from "../utils/generateId";
 
-// default namespace used when no userId is provided
 const DEFAULT_USER = "default";
-
-// generate a UUID; uses the Web Crypto API in browsers and Node 14+ but
-// falls back to a simple polyfill when unavailable.  The exact format is
-// not critical for this mock implementation, but it gives us unique
-// identifiers that look realistic.
-function generateId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // fallback: relatively random hex string
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 // Make sure every object in the dataset has a stable `id` property.  This
 // is invoked on every load so that existing datasets (which previously

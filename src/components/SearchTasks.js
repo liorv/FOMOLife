@@ -1,14 +1,9 @@
 import React from "react";
 
-// SearchTasks handles the task-specific search box and filter pills.  It is
-// rendered only on the tasks tab so there is no need for any "showSearch"
-// flag; consumers simply mount/unmount the component as appropriate.
-//
-// Props:
-//   searchQuery: current text value
-//   onSearchChange: handler(text)
-//   filters: array of "completed"|"overdue"
-//   onToggleFilter: handler(type) — toggles the given filter in parent state
+/**
+ * Task search box with filter pills (Completed / Overdue).
+ * Rendered only on the tasks tab.
+ */
 export default function SearchTasks({
   searchQuery = "",
   onSearchChange = () => {},

@@ -26,7 +26,6 @@ export default function SubprojectEditor({
   allPeople,
   onOpenPeople,
   onCreatePerson,
-  // new callback for inline title edits within tasks
   onTaskTitleChange,
   autoEdit = false,
   newlyAddedTaskId = null,
@@ -34,6 +33,8 @@ export default function SubprojectEditor({
   onReorder = () => {},
   isDragging = false,
 }) {
+  // --- AddBar open/close ---
+
   const collapsed = sub.collapsed;
   const [showAddBar, setShowAddBar] = React.useState(false);
   const [addBarInput, setAddBarInput] = React.useState("");
@@ -78,6 +79,8 @@ export default function SubprojectEditor({
     onAddTask(addBarInput);
     setAddBarInput("");
   };
+
+  // --- Subproject drag/drop ---
 
   const handleSubDragStart = (e) => {
     try {
@@ -126,9 +129,8 @@ export default function SubprojectEditor({
     }
   };
 
-  // always render an outer wrapper so the item never leaves the list when
-  // toggled open/closed.  drag handlers live on this element (rather than the
-  // row component) so they work in both states.
+  // --- Render ---
+
   const wrapperClass = "subproject" + (collapsed ? " collapsed" : "");
 
   return (
@@ -153,80 +155,76 @@ export default function SubprojectEditor({
       ) : (
         <>
           <div className="subproject-summary">
-        <button
-          className="collapse-btn"
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleCollapse();
-          }}
-          title={collapsed ? "Show tasks" : "Hide tasks"}
-        >
-          <span className="material-icons">
-            {collapsed ? "expand_more" : "expand_less"}
-          </span>
-        </button>
-        <span className="material-icons subproject-icon" aria-hidden="true">
-          folder
-        </span>
-        <span
-          className="subproject-name-display"
-          title={sub.text}
-        >
-          {sub.text}
-        </span>
-        {/* spacer pushes menu to the right */}
-        <div style={{ flex: '1 1 auto' }} />
-        <button
-          className="add-task-header-btn"
-          title="AddTask"
-          onClick={openAddBar}
-        >
-          <span className="material-icons">add</span>
-          <span className="add-task-label">Task</span>
-        </button>
-      </div>
-      <div className="subproject-body">
-        <div className="subproject-tasks">
-          <ul className="item-list">
-            {showAddBar && (
-              <li className="add-bar-wrapper" ref={addBarRef}>
-                <AddBar
-                  type="task"
-                  input={addBarInput}
-                  dueDate=""
-                  onInputChange={setAddBarInput}
-                  onDueDateChange={() => {}}
-                  onAdd={handleAddBarAdd}
+            <button
+              className="collapse-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleCollapse();
+              }}
+              title={collapsed ? "Show tasks" : "Hide tasks"}
+            >
+              <span className="material-icons">
+                {collapsed ? "expand_more" : "expand_less"}
+              </span>
+            </button>
+            <span className="material-icons subproject-icon" aria-hidden="true">
+              folder
+            </span>
+            <span className="subproject-name-display" title={sub.text}>
+              {sub.text}
+            </span>
+            <div style={{ flex: '1 1 auto' }} />
+            <button
+              className="add-task-header-btn"
+              title="AddTask"
+              onClick={openAddBar}
+            >
+              <span className="material-icons">add</span>
+              <span className="add-task-label">Task</span>
+            </button>
+          </div>
+          <div className="subproject-body">
+            <div className="subproject-tasks">
+              <ul className="item-list">
+                {showAddBar && (
+                  <li className="add-bar-wrapper" ref={addBarRef}>
+                    <AddBar
+                      type="task"
+                      input={addBarInput}
+                      dueDate=""
+                      onInputChange={setAddBarInput}
+                      onDueDateChange={() => {}}
+                      onAdd={handleAddBarAdd}
+                    />
+                  </li>
+                )}
+                <TaskList
+                  items={sub.tasks || []}
+                  type="tasks"
+                  editorTaskId={editorTaskId}
+                  setEditorTaskId={setEditorTaskId}
+                  handleToggle={handleTaskToggle}
+                  handleStar={handleTaskStar}
+                  handleDelete={handleTaskDelete}
+                  onTitleChange={onTaskTitleChange}
+                  onDragStart={onDragStart}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
+                  onDragEnd={onDragEnd}
+                  onEditorSave={onEditorSave}
+                  onEditorUpdate={onEditorUpdate}
+                  onEditorClose={onEditorClose}
+                  allPeople={allPeople}
+                  onOpenPeople={onOpenPeople}
+                  onCreatePerson={onCreatePerson}
+                  newlyAddedTaskId={newlyAddedTaskId}
+                  onClearNewTask={onClearNewTask}
                 />
-              </li>
-            )}
-            <TaskList
-              items={sub.tasks || []}
-              type="tasks"
-              editorTaskId={editorTaskId}
-              setEditorTaskId={setEditorTaskId}
-              handleToggle={handleTaskToggle}
-              handleStar={handleTaskStar}
-              handleDelete={handleTaskDelete}
-              onTitleChange={onTaskTitleChange}
-              onDragStart={onDragStart}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              onDragEnd={onDragEnd}
-              onEditorSave={onEditorSave}
-              onEditorUpdate={onEditorUpdate}
-              onEditorClose={onEditorClose}
-              allPeople={allPeople}
-              onOpenPeople={onOpenPeople}
-              onCreatePerson={onCreatePerson}
-              newlyAddedTaskId={newlyAddedTaskId}
-              onClearNewTask={onClearNewTask}
-            />
-          </ul>
-        </div>
-      </div>
-    </>
-  )}
+              </ul>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -259,7 +257,7 @@ SubprojectEditor.propTypes = {
   allPeople: PropTypes.array,
   onOpenPeople: PropTypes.func,
   onCreatePerson: PropTypes.func,
-  onTaskTitleChange: PropTypes.func, // optional inline title callback
+  onTaskTitleChange: PropTypes.func,
   autoEdit: PropTypes.bool,
   newlyAddedTaskId: PropTypes.string,
   onClearNewTask: PropTypes.func,

@@ -1,5 +1,5 @@
 // we only need the Node filesystem helpers when the code is
-// executing on the server.  guarding the require calls keeps Webpack
+// executing on the server.  Guarding the require calls keeps Webpack
 // from trying to bundle `fs`/`path` for the client side.
 let fs, path;
 if (typeof window === "undefined") {
@@ -7,13 +7,10 @@ if (typeof window === "undefined") {
   path = require("path");
 }
 
-// Internal constant used when running in the browser
 const STORAGE_KEY = "fomo_life_data";
+const EMPTY_DATA = Object.freeze({ tasks: [], projects: [], dreams: [], people: [] });
 
-// helpers to decide which backing store to talk to.
-// - isServer: running in Node (no window object)
-// - shouldUseLocalStorage: explicitly force the old browser/localStorage
-//   behavior, used during tests so they stay fast and don't hit the API.
+// Environment flags for backing store selection.
 const isServer = typeof window === "undefined";
 const shouldUseLocalStorage = !isServer && process.env.NODE_ENV === "test";
 
@@ -80,60 +77,35 @@ function writeFile(data, userId) {
 export async function loadData(userId) {
   const id = userId || DEFAULT_USER;
 
-  // server-only path
   if (isServer) {
     const fileData = readFile(id);
-    return fileData || { tasks: [], projects: [], dreams: [], people: [] };
+    return fileData || { ...EMPTY_DATA };
   }
 
-  // tests run in jsdom; keep using localStorage rather than trying to hit
-  // the network/FS layer.
   if (shouldUseLocalStorage) {
     const key = STORAGE_KEY + `_${id}`;
     try {
-      return (
-        JSON.parse(localStorage.getItem(key)) || {
-          tasks: [],
-          projects: [],
-          dreams: [],
-          people: [],
-        }
-      );
+      return JSON.parse(localStorage.getItem(key)) || { ...EMPTY_DATA };
     } catch {
-      return { tasks: [], projects: [], dreams: [], people: [] };
+      return { ...EMPTY_DATA };
     }
   }
 
-  // client running normally: hit the API and fall back to localStorage if
-  // the network request fails for any reason.
+  // Client: hit the API, fall back to localStorage on failure.
   try {
     const res = await fetch(`/api/storage?userId=${encodeURIComponent(id)}`);
     if (res.ok) {
-      return (
-        (await res.json()) || {
-          tasks: [],
-          projects: [],
-          dreams: [],
-          people: [],
-        }
-      );
+      return (await res.json()) || { ...EMPTY_DATA };
     }
-  } catch (e) {
-    // ignore and fall through to localStorage fallback
+  } catch {
+    // fall through to localStorage
   }
 
   const key = STORAGE_KEY + `_${id}`;
   try {
-    return (
-      JSON.parse(localStorage.getItem(key)) || {
-        tasks: [],
-        projects: [],
-        dreams: [],
-        people: [],
-      }
-    );
+    return JSON.parse(localStorage.getItem(key)) || { ...EMPTY_DATA };
   } catch {
-    return { tasks: [], projects: [], dreams: [], people: [] };
+    return { ...EMPTY_DATA };
   }
 }
 

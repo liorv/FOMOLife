@@ -1,17 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import SubprojectEditor from "./SubprojectEditor";
-
-function generateId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import generateId from "../utils/generateId";
 
 export default function ProjectEditor({
   project,
@@ -24,28 +14,32 @@ export default function ProjectEditor({
   newlyAddedSubprojectId = null,
   onClearNewSubproject = () => {},
 }) {
+  // --- State ---------------------------------------------------------------
+
   const [local, setLocal] = useState(() => ({
     ...project,
     subprojects: project.subprojects
-      ? project.subprojects.map((s) => ({ ...s, collapsed: s.collapsed !== undefined ? s.collapsed : false, newTaskText: "" }))
+      ? project.subprojects.map((s) => ({
+          ...s,
+          collapsed: s.collapsed !== undefined ? s.collapsed : false,
+          newTaskText: "",
+        }))
       : [],
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState(null);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
-  // track a drag operation so tasks may be reordered within a subproject
   const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
+  const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
   const editorContainerRef = useRef(null);
-
-  // using a ref instead of state for cooldown avoids triggering updates that
-  // cause warnings in tests (setTimeout would update state outside of act).
+  // Ref-based cooldown avoids setState-outside-act warnings in tests.
   const addingRef = React.useRef(false);
-  // hover state for subprojects no longer needed; delete button is always visible
-  const handleSetEditorId = (id) => {
-    setEditorTaskId((prev) => (prev === id ? null : id));
-  };
 
-  // generic update helper for a nested task
+  const handleSetEditorId = (id) =>
+    setEditorTaskId((prev) => (prev === id ? null : id));
+
+  // --- Task helpers (nested inside subprojects) ---------------------------
+
   const updateTask = (subId, taskId, changes) => {
     const updated = {
       ...local,
@@ -104,6 +98,8 @@ export default function ProjectEditor({
   }, [editorTaskId]);
 
 
+
+  // --- Subproject helpers --------------------------------------------------
 
   const deleteSubproject = (id) => {
     const updated = {
@@ -292,12 +288,13 @@ export default function ProjectEditor({
     onApplyChange(updated);
   };
 
-  // drag / drop helpers for reordering tasks within a subproject
-  const handleDragStart = (subId) => (taskId, e) => {
+  // --- Drag / drop (task reordering within a subproject) ------------------
+
+  const handleDragStart = (subId) => (taskId) => {
     setDraggedTask({ subId, taskId });
   };
 
-  const handleDrop = (subId) => (taskId, e) => {
+  const handleDrop = (subId) => (taskId) => {
     const { subId: fromSub, taskId: draggedId } = draggedTask;
     if (!draggedId || fromSub !== subId || draggedId === taskId) {
       setDraggedTask({ subId: null, taskId: null });
@@ -345,17 +342,14 @@ export default function ProjectEditor({
     onApplyChange(updated);
   };
 
-  const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
+  // --- Render --------------------------------------------------------------
 
   return (
     <div
-    className="project-editor"
-    ref={editorContainerRef}
-    style={{ position: 'relative', overflow: 'auto' }}
-  >
-      {/* project editor now owns its own floating add button; caller should
-          not render the global bottom input bar when this component is shown */}
-      {/* render each subproject using the new reusable component */}
+      className="project-editor"
+      ref={editorContainerRef}
+      style={{ position: 'relative', overflow: 'auto' }}
+    >
       {(local.subprojects || []).map((sub) => (
         <SubprojectEditor
           key={sub.id}

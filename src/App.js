@@ -10,28 +10,13 @@ import ConfirmModal from "./components/ConfirmModal";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
 import * as db from "./api/db";
-// PeopleSection has been replaced by TaskList for consistency
-
-// all static images live in public/assets
+import generateId from "./utils/generateId";
 
 const logoUrl = "/assets/logo_fomo.png";
 
-// the legacy storage helpers are no longer used directly; all
-// operations go through `src/api/db.js` which itself wraps the
-// storage layer.  this makes it easy to replace the implementation with
-// a network service in the future.
-
-// helpers used solely within App
-function pickRandomColor() {
-  // simple random hex color; ensures 6 digits
-  return "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0");
-}
-
 function App({ userId } = {}) {
-  // avoid accessing the persistence layer during render so server & client
-  // markup match.  loadData is synchronous today but may become async
-  // later, so we keep it in an effect the same way we did with
-  // `localStorage` previously.
+  // --- State ---------------------------------------------------------------
+
   const [data, setData] = useState({
     tasks: [],
     projects: [],
@@ -41,10 +26,9 @@ function App({ userId } = {}) {
   const [confirmingProjectId, setConfirmingProjectId] = useState(null);
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState(null);
-  // track if a blank subproject is pending additions to avoid races
   const pendingBlankSubRef = useRef(false);
-  
-  // helper to exit editing mode, removing any unnamed subprojects first
+
+  // Exit editing mode, removing any unnamed subprojects first.
   const exitEditor = async () => {
     if (editingProjectId) {
       const project = data.projects.find((p) => p.id === editingProjectId);
@@ -65,14 +49,11 @@ function App({ userId } = {}) {
     }
     setEditingProjectId(null);
   };
-  // state placeholder previously reserved for subproject input; no longer needed
-  // (subproject names start empty and are edited inline)  
 
   const initializedRef = useRef(false);
 
-  // client-only hydration of persisted data.  we call the async db
-  // helper so that identifiers can be added and the same API can be
-  // swapped out for a remote backend later.
+  // --- Data hydration (runs once on mount) --------------------------------
+
   useEffect(() => {
     (async () => {
       const loaded = await db.loadData(userId);
@@ -84,43 +65,23 @@ function App({ userId } = {}) {
   const [input, setInput] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [type, setType] = useState("tasks");
-
   const [editorTaskId, setEditorTaskId] = useState(null);
-  // helper which toggles the editor open/closed when the same task is clicked
-  const handleSetEditorId = (id) => {
+  const handleSetEditorId = (id) =>
     setEditorTaskId((prev) => (prev === id ? null : id));
-  };
   const [editingPersonId, setEditingPersonId] = useState(null);
   const [editingPersonName, setEditingPersonName] = useState("");
-
-  // query for top-bar search; only affects task list
   const [searchQuery, setSearchQuery] = useState("");
-  // active filters: array of 'completed'|'overdue'
   const [filters, setFilters] = useState([]);
-  // drag-and-drop state used while reordering tasks
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
-  // The old "save-on-every-change" effect is no longer strictly
-  // necessary since each handler uses the async db API directly.  We
-  // retain it as a safety net in case something mutates `data` outside
-  // of the helpers.
+  // Safety-net write-through: persists on every state change.
   useEffect(() => {
     if (initializedRef.current) {
-      // don't await; this is just a best-effort write-through
       db.saveData && db.saveData(data, userId);
     }
   }, [data]);
 
-  const generateId = () => {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  };
+  // --- Subproject helpers -------------------------------------------------
 
   const handleAddSubproject = async (name = "") => {
     if (!editingProjectId) return;
@@ -154,6 +115,8 @@ function App({ userId } = {}) {
     }));
   };
 
+  // --- CRUD handlers ------------------------------------------------------
+
   const handleAdd = async () => {
     if (!input.trim()) return;
     if (type === "tasks") {
@@ -172,9 +135,7 @@ function App({ userId } = {}) {
       setDueDate("");
     } else if (type === "people") {
       const name = input.trim();
-      // dedupe by name; this is still done purely in-memory because the
-      // db mock doesn't support querying.  a real backend would enforce
-      // uniqueness server‑side.
+      // Dedupe by name (a real backend would enforce uniqueness server-side).
       if (!data.people.find((p) => p.name === name)) {
         const newPerson = await db.create(
           "people",
@@ -184,7 +145,7 @@ function App({ userId } = {}) {
         setData((prev) => ({ ...prev, people: [...prev.people, newPerson] }));
       }
     } else if (type === "projects") {
-      // choose next unused color by cycling through PROJECT_COLORS in order
+      // Choose next unused color by cycling through PROJECT_COLORS
       const len = (data.projects && data.projects.length) || 0;
       const idx = len % PROJECT_COLORS.length;
       const color = PROJECT_COLORS[idx];
@@ -250,6 +211,8 @@ function App({ userId } = {}) {
       [type]: prev[type].filter((i) => i.id !== id),
     }));
   };
+
+  // --- Project helpers ----------------------------------------------------
 
   const handleProjectColorChange = async (projectId, newColor) => {
     const project = data.projects.find((p) => p.id === projectId);
@@ -334,6 +297,8 @@ function App({ userId } = {}) {
     }));
   };
 
+  // --- Editor helpers -----------------------------------------------------
+
   const handleEditorSave = async (updatedTask) => {
     if (!editorTaskId) return;
     await db.update("tasks", editorTaskId, updatedTask, userId);
@@ -391,9 +356,8 @@ function App({ userId } = {}) {
     setEditingPersonName("");
   };
 
-  // add a named subproject to the currently editing project
-
-  // compute a filtered list based on the search query and the
+  // --- Filtered list computation ------------------------------------------
+  // Compute a filtered list based on the search query and the
   // user-chosen filters.  Completed tasks are hidden by default unless
   // the corresponding pill is active; overdue selection further narrows
   // to items with past due dates. Filters are combined with union logic.
@@ -420,7 +384,7 @@ function App({ userId } = {}) {
     return list;
   })();
 
-  // reset search and active filters when switching away from tasks
+  // Reset search/filters when switching away from tasks
   useEffect(() => {
     if (type !== "tasks") {
       if (searchQuery) {
@@ -432,28 +396,21 @@ function App({ userId } = {}) {
     }
   }, [type]);
 
-  // clear subproject input when switching between projects or leaving edit mode
-
-  // if user navigates away from projects, exit editing mode
+  // Exit project editing when switching to a different tab
   useEffect(() => {
     if (type !== "projects" && editingProjectId) {
       setEditingProjectId(null);
     }
   }, [type, editingProjectId]);
 
-  // drag handlers passed down to TaskList so tasks can be reordered
-  const handleDragStart = (id, e) => {
-    // record which task is currently being dragged
-    setDraggedTaskId(id);
-  };
+  // --- Drag-and-drop reordering -------------------------------------------
 
-  const handleDragOver = (id, e) => {
-    // no action other than preventing default already handled by TaskRow
-  };
+  const handleDragStart = (id) => setDraggedTaskId(id);
+  const handleDragOver = () => {};
+  const handleDragEnd = () => setDraggedTaskId(null);
 
-  const handleDrop = (id, e) => {
+  const handleDrop = (id) => {
     if (!draggedTaskId || draggedTaskId === id) return;
-    // reorder tasks array in state; skip persistence for simplicity
     setData((prev) => {
       const tasks = [...prev.tasks];
       const fromIdx = tasks.findIndex((t) => t.id === draggedTaskId);
@@ -466,8 +423,20 @@ function App({ userId } = {}) {
     setDraggedTaskId(null);
   };
 
-  const handleDragEnd = (id, e) => {
-    setDraggedTaskId(null);
+  // --- Shared person creation callback -----------------------------------
+  // Used by both ProjectEditor and TaskList to create new people inline.
+  const handleCreatePerson = async (person) => {
+    if (data.people.find((p) => p.name === person.name)) return null;
+    const newPerson = await db.create(
+      "people",
+      {
+        name: person.name,
+        methods: person.methods || { discord: false, sms: false, whatsapp: false },
+      },
+      userId,
+    );
+    setData((prev) => ({ ...prev, people: [...prev.people, newPerson] }));
+    return newPerson;
   };
 
   return (
@@ -548,26 +517,7 @@ function App({ userId } = {}) {
                 onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
                 allPeople={data.people}
                 onOpenPeople={() => setType("people")}
-                onCreatePerson={async (person) => {
-                  if (data.people.find((p) => p.name === person.name)) return null;
-                  const newPerson = await db.create(
-                    "people",
-                    {
-                      name: person.name,
-                      methods: person.methods || {
-                        discord: false,
-                        sms: false,
-                        whatsapp: false,
-                      },
-                    },
-                    userId,
-                  );
-                  setData((prev) => ({
-                    ...prev,
-                    people: [...prev.people, newPerson],
-                  }));
-                  return newPerson;
-                }}
+                onCreatePerson={handleCreatePerson}
               />
             ) : (
               <div className="projects-panel">
@@ -625,27 +575,7 @@ function App({ userId } = {}) {
                 onEditorClose={handleEditorClose}
                 allPeople={data.people || []}
                 onOpenPeople={() => setType("people")}
-                onCreatePerson={async (person) => {
-                  // avoid dupes
-                  if (data.people.find((p) => p.name === person.name)) return;
-                  const newPerson = await db.create(
-                    "people",
-                    {
-                      name: person.name,
-                      methods: person.methods || {
-                        discord: false,
-                        sms: false,
-                        whatsapp: false,
-                      },
-                    },
-                    userId,
-                  );
-                  setData((prev) => ({
-                    ...prev,
-                    people: [...prev.people, newPerson],
-                  }));
-                  return newPerson;
-                }}
+                onCreatePerson={handleCreatePerson}
               />
             </ul>
           )}

@@ -15,11 +15,14 @@ export default function TaskEditor({
   onCreatePerson = () => {},
   inline = false,
 }) {
+  // --- State ---------------------------------------------------------------
+
   const [title, setTitle] = useState(task.text || "");
   const [description, setDescription] = useState(task.description || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
-  // merge task-level people with global defaults so people's default notification methods
-  // from the People tab are used unless overridden per-task
+
+  // Merge task-level people with global defaults so people's default
+  // notification methods from the People tab are used unless overridden.
   const initialPeople = (task.people || []).map((p) => {
     const name = typeof p === "string" ? p : p.name || p;
     const taskMethods =
@@ -51,7 +54,7 @@ export default function TaskEditor({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
 
-  // keep a ref to latest editable state so cleanup can persist the most recent changes
+  // Keep a ref to latest editable state so cleanup can persist on unmount
   const latestRef = React.useRef({
     title: task.text || "",
     description: task.description || "",
@@ -90,6 +93,8 @@ export default function TaskEditor({
     };
   }, []);
 
+  // --- People handlers ---------------------------------------------------
+
   const handleAddFromAll = (person) => {
     if (people.find((p) => p.name === person.name)) return;
     setPeople([
@@ -97,6 +102,29 @@ export default function TaskEditor({
       { name: person.name, methods: { ...(person.methods || {}) } },
     ]);
     setSearchQuery("");
+  };
+
+  // Create a new person locally and persist via the parent callback.
+  const handleCreateAndAdd = (name) => {
+    const created = {
+      name,
+      methods: { discord: false, sms: false, whatsapp: false },
+    };
+    setPeople((prev) =>
+      prev.find((p) => p.name === created.name) ? prev : [...prev, created],
+    );
+    setSearchQuery("");
+    setActiveSuggestion(-1);
+    const maybePromise = onCreatePerson(created);
+    if (maybePromise && typeof maybePromise.then === "function") {
+      maybePromise.then((newPerson) => {
+        if (newPerson && newPerson.id) {
+          setPeople((prev) =>
+            prev.map((p) => (p.name === newPerson.name ? newPerson : p)),
+          );
+        }
+      });
+    }
   };
 
   const handleRemovePerson = (name) => {
@@ -112,6 +140,8 @@ export default function TaskEditor({
       ),
     );
   };
+
+  // --- Save / keyboard shortcuts ------------------------------------------
 
   const saveToParent = (closeAfter = false) => {
     // Ensure people saved with methods map
@@ -134,7 +164,7 @@ export default function TaskEditor({
 
   const handleSaveAndClose = () => saveToParent(true);
 
-  // keyboard shortcuts: Esc (close+save when search empty), Ctrl/Cmd+Enter (save & close)
+  // Keyboard shortcuts: Esc → close, Ctrl/Cmd+Enter → save & close
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -156,13 +186,12 @@ export default function TaskEditor({
     return () => window.removeEventListener("keydown", onKey);
   }, [searchQuery, description, people]);
 
-  // `inline` mode will be rendered inside the task list; use a
-  // different class name so styles can be scoped accordingly.
+  // --- Render ---
+
   const containerClass = inline ? "inline-editor" : "side-editor";
 
   return (
     <div className={containerClass} style={{ overflow: 'auto' }}>
-      {/* title is shown in the task header; inline form does not render its own header */}
       {!inline && <h2>Edit Task</h2>}
       <div className="editor-columns">
         <div className="left-column">
@@ -321,81 +350,21 @@ export default function TaskEditor({
                     e.preventDefault();
 
                     if (activeSuggestion >= 0) {
-                      // choose highlighted suggestion
                       if (matches.length > 0) {
-                        const chosen = matches[activeSuggestion];
-                        handleAddFromAll(chosen);
+                        handleAddFromAll(matches[activeSuggestion]);
                       } else {
-                        const created = {
-                          name: q,
-                          methods: {
-                            discord: false,
-                            sms: false,
-                            whatsapp: false,
-                          },
-                        };
-                        setPeople((prev) =>
-                          prev.find((p) => p.name === created.name)
-                            ? prev
-                            : [...prev, created],
-                        );
-                        const maybePromise = onCreatePerson(created);
-                        if (
-                          maybePromise &&
-                          typeof maybePromise.then === "function"
-                        ) {
-                          maybePromise.then((newPerson) => {
-                            if (newPerson && newPerson.id) {
-                              setPeople((prev) =>
-                                prev.map((p) =>
-                                  p.name === newPerson.name ? newPerson : p,
-                                ),
-                              );
-                            }
-                          });
-                        }
-                        setSearchQuery("");
+                        handleCreateAndAdd(q);
                       }
                       setActiveSuggestion(-1);
                       return;
                     }
 
-                    // no highlighted item — fallback to existing behavior
+                    // No highlighted item — match or create
                     const exact = allPeople.find(
                       (p) => p.name.toLowerCase() === q.toLowerCase(),
                     );
                     if (exact) handleAddFromAll(exact);
-                    else {
-                      const created = {
-                        name: q,
-                        methods: {
-                          discord: false,
-                          sms: false,
-                          whatsapp: false,
-                        },
-                      };
-                      setPeople((prev) =>
-                        prev.find((p) => p.name === created.name)
-                          ? prev
-                          : [...prev, created],
-                      );
-                      setSearchQuery("");
-                      const maybePromise = onCreatePerson(created);
-                      if (
-                        maybePromise &&
-                        typeof maybePromise.then === "function"
-                      ) {
-                        maybePromise.then((newPerson) => {
-                          if (newPerson && newPerson.id) {
-                            setPeople((prev) =>
-                              prev.map((p) =>
-                                p.name === newPerson.name ? newPerson : p,
-                              ),
-                            );
-                          }
-                        });
-                      }
-                    }
+                    else handleCreateAndAdd(q);
                   }
                 }}
               />
@@ -460,38 +429,7 @@ export default function TaskEditor({
                       }
                       onMouseEnter={() => setActiveSuggestion(0)}
                       onMouseLeave={() => setActiveSuggestion(-1)}
-                      onClick={() => {
-                        const created = {
-                          name: newName,
-                          methods: {
-                            discord: false,
-                            sms: false,
-                            whatsapp: false,
-                          },
-                        };
-                        setPeople((prev) =>
-                          prev.find((p) => p.name === created.name)
-                            ? prev
-                            : [...prev, created],
-                        );
-                        setSearchQuery("");
-                        setActiveSuggestion(-1);
-                        const maybePromise = onCreatePerson(created);
-                        if (
-                          maybePromise &&
-                          typeof maybePromise.then === "function"
-                        ) {
-                          maybePromise.then((newPerson) => {
-                            if (newPerson && newPerson.id) {
-                              setPeople((prev) =>
-                                prev.map((p) =>
-                                  p.name === newPerson.name ? newPerson : p,
-                                ),
-                              );
-                            }
-                          });
-                        }
-                      }}
+                      onClick={() => handleCreateAndAdd(newName)}
                     >
                       <div className="task-person-col name">
                         <strong>Add “{newName}”</strong>
@@ -505,14 +443,10 @@ export default function TaskEditor({
                     </div>
                   );
                 })()}
-            </div>{" "}
-            {/* close add-person-bar */}
-          </div>{" "}
-          {/* close people-section */}
-        </div>{" "}
-        {/* close right-column */}
-      </div>{" "}
-      {/* close editor-columns */}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

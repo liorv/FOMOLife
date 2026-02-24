@@ -1,9 +1,8 @@
 import React from "react";
 
-// A simple horizontal bar that sits at the top of the app and contains the
-// FOMO logo plus, optionally, a search field.  It is kept dumb so the
-// parent manages the query state and decides when the search box should be
-// shown (currently only on the tasks view).
+/**
+ * Horizontal bar at the top — logo, optional project title, and search slot.
+ */
 export default function LogoBar({
   logoUrl = "/assets/logo_fomo.png",
   title, // when provided, show instead of logo/search
@@ -25,10 +24,6 @@ export default function LogoBar({
       onTitleChange(draftTitle);
     }
   };
-
-  // previously we managed a media-query-driven flag to hide the
-  // projects label at narrow widths.  the design has switched to a
-  // plain close icon, so no responsive logic is needed here.
 
   const handleTitleClick = () => {
     if (onTitleChange) {

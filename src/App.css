@@ -1,701 +1,98 @@
-/* Main layout for side editor */
-.main-layout {
-  display: flex;
-  align-items: stretch;
-  height: 100vh; /* fill screen; fixed nav sits on top without affecting flow */
-  padding: 0; /* no extra buffer */
+/* ============================================================
+   FOMO Life — App.css
+   Organized into logical sections for maintainability.
+
+   TABLE OF CONTENTS
+   1. CSS Custom Properties
+   2. Base / Body
+   3. Main Layout
+   4. Title Bar / Logo Bar
+   5. Container / Content Area
+   6. Tab Navigation
+   7. Bottom Input Bar & Add Bar
+   8. Item List (Tasks, Dreams)
+   9. Task Row
+  10. Task Header & Groups
+  11. Task Editor (Side & Inline)
+  12. Editor Columns & Sections
+  13. People List & Person Chips
+  14. Person Methods / Service Icons
+  15. Search Suggestions & Dropdowns
+  16. Search Bar & Filters
+  17. Projects Panel & Tiles
+  18. Project Tile Menus & Color Picker
+  19. Project Editor
+  20. Subproject (Expanded & Collapsed)
+  21. Subproject Row (Compact)
+  22. FAB (Floating Action Button)
+  23. Confirm Modal
+  24. AddBar Wrapper (Subproject Task List)
+  25. Editable Indicator
+  26. Animations
+  27. Responsive — Tablet (≤900px)
+  28. Responsive — Small (≤640px)
+  29. Responsive — Mobile (≤600px)
+  30. Responsive — Narrow (≤480px)
+  31. Responsive — Tiny (≤290px)
+   ============================================================ */
+
+
+/* ============================================================
+   1. CSS CUSTOM PROPERTIES
+   ============================================================ */
+:root {
+  /* Colors — semantic */
+  --color-primary: #1a73e8;
+  --color-primary-hover: #2563eb;
+  --color-danger: #d32f2f;
+  --color-accent: #d32998;
+  --color-star: #e0b100;
+  --color-star-active: #ffd700;
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-bg: #f1f3f4;
+  --color-bg-light: #f5f5f5;
+  --color-editor-bg: #eef6ff;
+  --color-inline-editor-bg: #e8f4ff;
+  --color-subproject-header: #fde9f6;
+  --color-search-bg: #e8f3ff;
+
+  /* Text */
+  --color-text: #202124;
+  --color-text-muted: #5f6368;
+  --color-text-secondary: #7b8ca7;
+  --color-text-placeholder: #777;
+
+  /* Borders */
+  --color-border: rgba(60, 64, 67, 0.12);
+  --color-border-light: rgba(60, 64, 67, 0.04);
+  --color-border-row: #e9f0fb;
+
+  /* Shadows */
+  --elevation-1: 0 1px 3px rgba(60, 64, 67, 0.08),
+    0 1px 2px rgba(60, 64, 67, 0.12);
+  --elevation-2: 0 4px 8px rgba(60, 64, 67, 0.12),
+    0 2px 4px rgba(60, 64, 67, 0.08);
+
+  /* Spacing */
+  --nav-height: 60px;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-pill: 999px;
 }
-.side-editor {
-  /* min-width removed to allow extreme narrowing during testing */
-  max-width: 420px;
-  /* more visible pale-blue background so the editor clearly stands out */
-  background: #eef6ff;
-  border-left: 1px solid rgba(60, 64, 67, 0.04);
-  /* keep only right-hand rounding; top-left is flush with screen edge */
-  border-radius: 0 12px 12px 0;
-  box-shadow: var(--elevation-1);
-  padding: 28px;
+
+
+/* ============================================================
+   2. BASE / BODY
+   ============================================================ */
+body {
   margin: 0;
-  position: relative;
-  height: 100%; /* fill the available vertical space of main-layout */
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 16px; /* vertical spacing between sections */
-  overflow-x: hidden; /* prevent suggestions or artwork from widening the panel */
-  overflow-y: auto; /* vertical scrollbar when the editor contents exceed panel height */
-}
-
-/* inline version of editor also uses a gap so sections are evenly spaced */
-.inline-editor {
-  /* inline editor matches the soft-blue panel for a cohesive look */
-  background: #e8f4ff;
-  color: #202124;
-  border-radius: 6px;
-  box-shadow: none; /* visually attached to list item */
-  padding: 12px;
-  margin: 0; /* spacing is handled by wrapper */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  /* desktop: cap height and show a scrollbar so the editor is navigable
-     without relying on the page-level overlay scrollbar */
-  max-height: 65vh;
-  overflow-y: auto;
-  scroll-behavior: smooth;
-  /* ensure the scrollbar track is always visible on desktop */
-  scrollbar-gutter: stable;
-}
-
-/* keep form controls readable on dark background by giving them a light surface */
-.inline-editor input,
-.inline-editor textarea,
-.inline-editor .task-title-input,
-.inline-editor .due-date-input,
-.inline-editor .person-chip,
-.inline-editor .task-person-list {
-  background: #ffffff;
-  color: #202124;
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-.inline-editor .desc-label {
-  color: #202124;
-}
-.inline-editor .material-icons {
-  color: inherit;
-}
-.inline-editor .task-description {
-  width: 100%;
-  height: auto;
-  resize: none; /* prevent user resizing */
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 0.95rem;
-  margin-bottom: 12px;
-}
-.editor-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 18px;
-}
-.editor-actions button {
-  background: #2b6cb0;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 18px;
-  font-size: 1em;
-  cursor: pointer;
-}
-.editor-actions .close {
-  background: #e53e3e;
-}
-.task-checkbox {
-  margin-right: 6px;
-  width: 1.1em;
-  height: 1.1em;
-  accent-color: #2b6cb0;
-  cursor: pointer;
-}
-
-
-/* helper layout classes for editor sections */
-.editor-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* ensure textarea inside a section also takes full width */
-.editor-section textarea {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.desc-label {
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-/* two-column layout for task editor */
-.editor-columns {
-  display: flex;
-  gap: 40px; /* extra space between left/right */
-  width: 100%;
-  /* keep columns side-by-side; they will shrink to fit and may overflow if extremely narrow */
-  flex-wrap: wrap; /* allow right column to drop below if necessary */
-  align-items: flex-start; /* ensure both columns top-align so headings line up */
-}
-
-/* responsive: stack the columns vertically on narrow viewports */
-@media (max-width: 640px) {
-  .editor-columns {
-    flex-direction: column;
-  }
-  .left-column,
-  .right-column {
-    flex: 1 1 100%;
-  }
-  /* hide avatars in the task row when there's insufficient space */
-  .task-row .notify-people {
-    display: none;
-  }
-  /* date and star remain visible; short text kicks in at 480px to save space */
-  /* hide date selector in AddBar on narrow screens */
-  .add-bar .due-date-input {
-    display: none;
-  }
-}
-
-
-/* hide the search bar completely on very narrow viewports */
-@media (max-width: 290px) {
-  .title-bar .search-container {
-    display: none;
-  }
-
-  /* when screen is tiny, remove the date column entirely to save space */
-  .task-date {
-    display: none;
-  }
-
-}
-
-.left-column,
-.right-column {
-  flex: 1 1 50%; /* roughly half of available space */
-  min-width: 0; /* allow content to shrink instead of forcing wrap */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-sizing: border-box;
-  /* add inner padding so contents never touch the neighbour column */
-  padding: 0 12px;
-}
-
-/* make all direct children occupy full column width */
-.left-column > *,
-.right-column > * {
-  width: 100%;
-  box-sizing: inherit;
-}
-
-/* normalize label appearance inside editor columns so headings align */
-.editor-columns .editor-section > label {
-  display: block;
-  margin: 0 0 6px 0;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: inherit;
-}
-
-/* ensure expand of right column when space available */
-@media (min-width: 0px) {
-  .editor-columns {
-    flex-wrap: nowrap;
-  }
-}
-
-/* date input styling matches other fields */
-.due-date-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  font-size: 1em;
-  background: #fbfdff;
-}
-
-/* title input inside editor should look like a normal text field */
-.left-column .task-title-input {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  font-size: 1em;
-  box-sizing: border-box;
-}
-
-/* Task editor fixed description box */
-.side-editor .task-description {
-  width: 100%;
-  height: 120px; /* static size */
-  resize: none; /* no manual resize allowed */
-  box-sizing: border-box;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 0.95rem;
-  margin-bottom: 12px;
-}
-
-/* compact header used in inline editor mode */
-.inline-header {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #202124;
-}
-
-/* wrapper around the inline editor when nested inside a task row */
-.task-editor-wrapper {
-  width: 100%;
-  border-top: none; /* remove dividing line */
-  padding-top: 0; /* eliminate top buffer */
-  margin-top: 0; /* eliminate gap above */
-  /* optional collapse animation via max-height */
-  transition: max-height 0.2s ease;
-  overflow: hidden;
-}
-
-/* give the inline editor a little spacing so its background is visible
-   within the list item while keeping the header styling intact */
-.item-list li.editing > .inline-editor,
-.item-list li.editing > .side-editor {
-  padding: 5px;
-}
-
-/* now that the editor is part of the task row we no longer render a
-   separate list item for it – the old .editor-inline class is unused */
-/* default .people-list used for chip layout (task editor & add-bar). */
-.people-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-/* when rendering the full people tab the container also has
-   task-person-list; override to stack rows vertically and
-   disable wrapping so each person occupies its own horizontal
-   row. */
-.people-list.task-person-list {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 0; /* individual rows already manage their own borders/gaps */
-  margin-bottom: 0;
-  /* behave like the task list: shrink to content and allow horizontal scroll when needed */
-  max-width: 100%;
-  overflow-x: auto;
-  align-items: stretch;
-}
-/* in side-editor or inline-editor show people as full-width rows so icon columns align */
-.side-editor .people-list,
-.inline-editor .people-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.side-editor .person-chip,
-.inline-editor .person-chip {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Task editor: render people as table-like rows rather than pill chips */
-.task-person-list {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(60, 64, 67, 0.04);
-  background: transparent;
-  width: 100%;
-  box-sizing: border-box;
-}
-/* use grid layout to guarantee column alignment between header and rows */
-.task-person-list-header,
-.task-person-row {
-  display: grid;
-  grid-template-columns: 1fr 160px;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: transparent;
-}
-.task-person-list-header {
-  color: #6b7280;
-  font-size: 0.85em;
-  border-bottom: 1px solid rgba(60, 64, 67, 0.04);
-}
-.task-person-row + .task-person-row {
-  border-top: 1px solid rgba(60, 64, 67, 0.03);
-}
-.task-person-col {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.task-person-col.name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.task-person-col.methods {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  width: 160px;
-  flex: 0 0 160px;
-}
-
-.person-chip {
-  background: rgba(60, 64, 67, 0.04);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 0.92em;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  /* min-width removed for testing */
-  max-width: 260px;
-}
-.person-chip .person-name {
-  flex: 1 1 auto;
-  min-width: 0;
-} /* let name take remaining space */
-.person-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  width: 160px;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-.person-actions .person-methods-inline {
-  width: 120px;
-  justify-content: flex-end;
-}
-/* in the Task editor show the whole name (allow wrap) */
-.side-editor .person-chip .person-name,
-.inline-editor .person-chip .person-name {
-  font-weight: 600;
-  color: #202124;
-  overflow-wrap: anywhere;
-  white-space: normal; /* allow wrapping at word boundaries */
-  text-overflow: unset;
-  max-width: none; /* let the name use remaining space */
-  word-break: normal;
-}
-.person-chip.small {
-  padding: 4px 8px;
-  font-size: 0.85em;
-  border-radius: 10px;
-}
-.task-people {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: 10px;
-  align-items: center;
-  align-self: flex-start; /* keep avatars at top of row */
-}
-/* avatar initials used on task rows */
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #eef3ff;
-  color: #174ea6;
-  font-weight: 700;
-  font-size: 0.85em;
-  box-shadow: 0 2px 6px #00000008;
-}
-.avatar.small {
-  width: 24px;
-  height: 24px;
-  font-size: 0.75em;
-}
-
-/* expand/collapse indicator next to task title */
-.expand-icon {
-  vertical-align: middle;
-  transition: transform 0.2s ease;
-  width: 24px; /* reserve space so title doesn't shift */
-  flex-shrink: 0;
-  display: inline-flex;
-  justify-content: center;
-}
-.expand-icon.open {
-  transform: rotate(180deg);
-}
-
-.people-count {
-  background: #f1f3f4;
-  color: #5f6368;
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 0.8em;
-}
-.person-chip .person-method {
-  display: none; /* replaced by per-person method icons */
-}
-.person-chip button {
-  background: none;
-  border: none;
-  color: #e53e3e;
-  font-size: 1em;
-  margin-left: 8px;
-  cursor: pointer;
-}
-.add-person-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: center;
-  position: relative;
-  /* allow suggestion-inline to wrap below the input and keep dropdown above decorative art */
-  flex-wrap: wrap;
-  z-index: 60;
-  width: 100%;
-  box-sizing: border-box;
-}
-.add-person-bar input {
-  flex: 1 1 auto;
-  box-sizing: border-box;
-}
-
-.person-methods-inline {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: 8px;
-}
-.method-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    background 0.1s,
-    transform 0.06s,
-    color 0.12s,
-    filter 0.12s,
-    opacity 0.12s;
-  font-size: 18px;
-  filter: grayscale(100%) saturate(0%);
-  opacity: 0.65;
-}
-.method-icon:hover {
-  background: rgba(60, 64, 67, 0.04);
-  transform: translateY(-1px);
-}
-.method-icon.active {
-  background: rgba(26, 115, 232, 0.08);
-  border-color: rgba(26, 115, 232, 0.18);
-  color: var(--primary);
-  box-shadow: 0 4px 8px rgba(26, 115, 232, 0.08);
-  filter: none;
-  opacity: 1;
-}
-.add-person-bar input {
-  flex: 1;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #e6eefc;
-  font-size: 1em;
-  background: #fbfdff;
-}
-.add-person-bar button {
-  background: #2b6cb0;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 1em;
-  cursor: pointer;
-}
-
-/* Notification section removed — methods are now per-person using the icons next to each name */
-
-.person-methods {
-  display: inline-flex;
-  gap: 6px;
-}
-.person-methods .method-btn {
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-weight: 600;
-}
-.person-methods .method-btn.active {
-  box-shadow: inset 0 0 0 2px #dbeafe;
-}
-
-/* per-person inline method icons (horizontal layout; fixed area so same-type icons align vertically) */
-/* Align person icons into consistent columns so all rows line up by
-   service type.  Using grid-auto-flow/auto-columns means the delete icon
-   (fourth child) simply occupies the next column without needing a hardcoded
-   column count, so all icons stay in one row even when more are added. */
-.person-methods-inline {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: min-content;
-  column-gap: 8px;
-  margin-left: 8px;
-  justify-content: flex-end; /* push whole block toward right edge */
-  align-items: center;
-  /* width kept for compatibility but may shrink if fewer icons */
-  width: 148px;
-}
-.person-methods-inline .service-icon {
-  width: 18px;
-  height: 18px;
-  display: block;
-  filter: grayscale(100%) saturate(0%);
-  opacity: 0.6;
-  margin: auto;
-  background: transparent;
-  object-fit: contain;
-}
-.method-icon {
-  line-height: 0;
-}
-.method-icon.active .service-icon {
-  filter: none;
-  opacity: 1;
-}
-.person-methods-inline .method-icon.active .service-icon,
-.person-methods-inline .method-icon.active img.service-icon {
-  filter: none;
-  opacity: 1;
-}
-
-/* per-icon visual centering tweaks (fine adjustments so visible centers align) */
-.service-icon {
-  transform: translateY(0);
-}
-.service-icon.discord-icon {
-  transform: translateY(1px);
-}
-.service-icon.sms-icon {
-  transform: translateY(1px);
-}
-.service-icon.whatsapp-icon {
-  transform: translateY(0);
-}
-
-/* selected (active) sms should be blue like other active icons */
-.method-icon.active .sms-icon {
-  color: var(--primary);
-}
-.method-icon.active .service-icon {
-  filter: none;
-  opacity: 1;
-}
-.person-methods-inline button {
-  padding: 6px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-}
-.person-methods-inline button:hover {
-  background: rgba(60, 64, 67, 0.04);
-}
-
-/* ensure task-editor person chips still layout correctly with horizontal icons */
-.side-editor .person-chip,
-.inline-editor .person-chip {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-}
-.side-editor .person-methods-inline,
-.inline-editor .person-methods-inline {
-  margin-left: 12px;
-}
-
-/* Search suggestions for TaskEditor */
-.search-suggestions {
-  position: static; /* inline with the Task Editor rows */
-  background: transparent;
-  border: none;
-  margin-top: 8px;
-  width: 100%;
-  z-index: 5;
-}
-.suggestion-row {
-  padding: 10px 12px;
-  cursor: pointer;
-}
-.suggestion-row:hover {
-  background: rgba(60, 64, 67, 0.02);
-}
-.suggestion-row.active {
-  background: rgba(26, 115, 232, 0.04);
-}
-
-/* legacy floating dropdown styles (keep available but not used by default) */
-.search-suggestions.dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  width: 100%;
-  background: #fff; /* solid background so decorative splash or icons don't show through */
-  border: 1px solid #eef2ff;
-  box-shadow: 0 6px 20px #00000010;
-  border-radius: 10px;
-  max-height: 220px;
-  overflow-y: auto; /* only vertical scroll */
-  overflow-x: hidden; /* prevent horizontal scrollbars */
-  padding: 6px 0;
-  z-index: 200; /* ensure it renders above splash/art */
-  box-sizing: border-box;
-}
-.search-suggestions.dropdown .task-person-row {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.search-suggestions.dropdown .task-person-row .task-person-col.name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.search-suggestions.dropdown .task-person-row .task-person-col.methods {
-  display: none;
-}
-.task-person-col.methods {
-  flex: 0 0 140px;
-  min-width: 0;
-}
-
-/* Inline suggestion used when there are no matches — looks like a row */
-.suggestion-inline {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid transparent;
-  width: 100%; /* force under the input */
-  box-sizing: border-box;
-  margin-top: 8px;
-}
-.suggestion-inline:hover {
-  background: rgba(60, 64, 67, 0.02);
-}
-.suggestion-inline.active {
-  background: rgba(26, 115, 232, 0.04);
+  font-family: "Roboto", "Segoe UI", Arial, sans-serif;
+  background: var(--color-bg);
+  min-height: 100vh;
+  color: var(--color-text);
+  padding-bottom: 0;
 }
 
 .material-icons {
@@ -703,71 +100,192 @@
   font-size: 18px;
   color: inherit;
 }
-.suggestion-empty {
-  padding: 8px 12px;
-  color: #7b8ca7;
-  font-size: 0.95rem;
-}
 
 
-
-.item-list li .complete {
-  background: none;
-  border: none;
-  color: #38a169;
-  font-size: 1.2em;
-  cursor: pointer;
-  margin-left: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-.item-list li .complete.done {
-  color: #aaa;
-  text-decoration: line-through;
-}
-.item-list li .complete:hover {
-  background: #e6ffed;
+/* ============================================================
+   3. MAIN LAYOUT
+   ============================================================ */
+.main-layout {
+  display: flex;
+  align-items: stretch;
+  height: 100vh;
+  padding: 0;
 }
 
-body {
-  margin: 0;
-  font-family: "Roboto", "Segoe UI", Arial, sans-serif;
-  background: var(--bg);
-  min-height: 100vh;
-  color: #202124;
-  padding-bottom: 0; /* removed buffer — nav handled by layout */
-  /* .app-outer itself doesn't need bottom margin since container now uses
-     padding. */
-}
-
-/* wrapper containing top bar and content, sized between top and bottom chrome */
-/* ensure content always stops above the fixed navigation bar at the
-   bottom; the padding here shrinks the available height for .container so
-   its bottom edge aligns with the top of the tabs. */
+/* Outer wrapper holding top bar + content; fills between logo bar and nav */
 .app-outer {
   display: flex;
   flex-direction: column;
-  flex: 1; /* take all available space in main-layout */
-  min-height: 0; /* prevent default min-height:auto from overflowing the 100vh bound */
-  padding-bottom: 60px; /* equal to .tabs height */
+  flex: 1;
+  min-height: 0;
+  padding-bottom: var(--nav-height);
 }
 
-/* main content card */
+
+/* ============================================================
+   4. TITLE BAR / LOGO BAR
+   ============================================================ */
+.title-bar {
+  width: 100%;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  z-index: 15;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: visible;
+  background: var(--color-surface);
+}
+
+/* Title bar columns — distinct from editor columns */
+.title-bar .left-column,
+.title-bar .right-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.title-bar .left-column {
+  min-width: 140px;
+  justify-content: flex-start;
+  padding-left: 0;
+}
+
+.mid-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mid-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.mid-row.center {
+  justify-content: flex-start;
+}
+
+.title-logo {
+  max-height: 120px;
+  width: auto;
+  margin-left: 0;
+}
+
+/* Project title in logo bar */
+.bar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bar-title-text {
+  cursor: pointer;
+}
+
+.bar-title-input {
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 2px 4px;
+  border: 1px solid rgba(60, 64, 67, 0.3);
+  border-radius: 4px;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+/* Icon buttons (back, close) */
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.close-button .material-icons {
+  font-size: 18px;
+}
+
+.back-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: blue;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.back-circle .material-icons {
+  font-size: 20px;
+}
+
+.check-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: blue;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.check-circle .material-icons {
+  font-size: 24px;
+}
+
+.done-button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.done-button:hover {
+  background: var(--color-primary-hover);
+}
+
+
+/* ============================================================
+   5. CONTAINER / CONTENT AREA
+   ============================================================ */
 .container {
-  position: relative; /* allow absolutely-positioned decorative splash */
-  overflow-x: visible; /* allow absolutely positioned project icons to show */
-  overflow-y: scroll; /* always show scrollbar so user can scroll through all content */
-  flex: 1 1 auto; /* stretch to fill .app-outer remaining space */
-  min-height: 0; /* required: let this flex item constrain to bounds instead of growing to content */
-  /* reduce the excess space we reserved previously.  .app-outer now
-     handles leaving room for the nav bar, so only a modest padding is
-     needed here to keep the scrollbar track clickable. */
-  padding-bottom: 60px;
-  background: var(--surface);
+  position: relative;
+  overflow-x: visible;
+  overflow-y: scroll;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Use explicit longhand to avoid shorthand override conflict */
+  padding-top: 0;
+  padding-right: 0;
+  padding-left: 0;
+  padding-bottom: var(--nav-height);
+  background: var(--color-surface);
   border-radius: 0;
   box-shadow: var(--elevation-1);
-  padding: 0;
   box-sizing: border-box;
   transition: box-shadow 0.2s;
   display: flex;
@@ -776,60 +294,32 @@ body {
   width: 100%;
 }
 
-/* when viewing the tasks tab we want a little breathing room around
-   the task list; apply extra padding on all sides of the main panel */
-
 .container > * {
   position: relative;
   z-index: 1;
 }
 
-/* Decorative, large splash logo that hangs out of the top-left of the container */
+/* Decorative splash logo (currently unused but preserved) */
 .logo-splash {
   position: absolute;
-  top: -4px; /* move down further (~10% of 160px) to show more */
+  top: -4px;
   left: 0;
-  width: 160px; /* 20% smaller than before */
+  width: 160px;
   height: 160px;
   background-repeat: no-repeat;
-  /* center horizontally (avoid right-side cut), shift up vertically to crop top */
   background-position: 50% -25%;
-  background-size: contain; /* ensure whole logo fits horizontally */
-  opacity: 1; /* full-color */
-  pointer-events: none; /* don't intercept clicks */
-  z-index: 0; /* render behind interactive elements but above container bg */
-  filter: none; /* preserve original colors */
-  border-top-left-radius: 12px; /* match container corner */
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
+  background-size: contain;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 0;
+  filter: none;
+  border-top-left-radius: var(--border-radius-lg);
 }
 
-@media (max-width: 900px) {
-  .main-layout {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .container {
-    /* squared-off narrow layout; remove extra top padding */
-    border-radius: 0;
-    min-height: 60vh;
-  }
-  /* adjust sticky offset to match removal above */
-  .add-bar {
-    top: 0;
-  }
-  .side-editor {
-    border-radius: 0 0 18px 18px;
-    margin: 0;
-    position: static;
-    width: 100%;
-    max-width: 100vw;
-    height: auto;
-    min-height: 40vh;
-  }
-}
 
+/* ============================================================
+   6. TAB NAVIGATION
+   ============================================================ */
 .tabs {
   display: flex;
   justify-content: space-around;
@@ -845,6 +335,7 @@ body {
   padding: 8px 0;
   z-index: 100;
 }
+
 .tabs button {
   background: none;
   border: none;
@@ -857,17 +348,24 @@ body {
   align-items: center;
   justify-content: center;
 }
+
 .tabs button.active {
-  color: var(--primary);
+  color: var(--color-primary);
 }
+
 .tabs button .tab-icon {
   font-size: 1.4rem;
   margin-bottom: 2px;
 }
+
 .tabs button:hover:not(.active) {
-  color: var(--primary);
+  color: var(--color-primary);
 }
 
+
+/* ============================================================
+   7. BOTTOM INPUT BAR & ADD BAR
+   ============================================================ */
 .main-layout.editing .bottom-input-bar {
   display: none;
 }
@@ -876,8 +374,8 @@ body {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 60px; /* sit just above the tab nav (which is ~48px high plus padding) */
-  background: var(--surface);
+  bottom: var(--nav-height);
+  background: var(--color-surface);
   padding: 8px 12px;
   display: flex;
   gap: 8px;
@@ -885,256 +383,268 @@ body {
   z-index: 20;
 }
 
-/* title bar across top, holds logo */
-.title-bar {
+.bottom-input-bar .add-bar {
   width: 100%;
-  /* no background or shadow as requested */
+  max-width: none;
+  margin: 0;
   padding: 0;
-  display: grid;
-  /* allocate more width to middle column to let search box stretch */
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  z-index: 15;
-  position: sticky;
-  top: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: visible;
-  background: var(--surface);
+  position: static;
 }
-.left-column,
-.right-column {
+
+.add-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 22px;
+  flex-wrap: nowrap;
+  overflow-x: visible;
+  position: sticky;
+  top: 60px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  z-index: 10;
+}
+
+.add-bar input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  background: #fff;
+  transition: box-shadow 0.12s, border-color 0.12s;
+  box-shadow: inset 0 -1px 0 rgba(60, 64, 67, 0.02);
+}
+
+.add-bar input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
+}
+
+.add-bar .due-date-input {
+  width: auto;
+  min-width: 110px;
+  font-size: 0.98rem;
+  padding: 10px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background: #fff;
+  flex: none;
+}
+
+.add-bar button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 10px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+  transition: box-shadow 0.12s, transform 0.06s;
+  flex: none;
+  min-width: 50px;
+}
+
+.add-bar button:hover {
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.12);
+  transform: translateY(-1px);
+}
+
+.add-bar .add-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
-}
-.left-column {
-  min-width: 140px;
-  justify-content: flex-start;
+  cursor: pointer;
+  padding: 0 !important;
 }
 
-.mid-column {
+.add-bar .add-btn .material-icons {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--color-accent);
+}
+
+.bottom-input-bar .add-bar .add-btn .material-icons {
+  color: #fff;
+}
+
+.add-bar .add-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+
+/* ============================================================
+   8. ITEM LIST (Tasks, Dreams)
+   ============================================================ */
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-width: 0;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
 }
-.mid-row {
+
+.item-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1.5px solid var(--color-border-row);
+  overflow: visible;
+  font-size: 1.08rem;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  box-shadow: 0 1px 4px #b6c6e61a;
+  transition: box-shadow 0.18s, background 0.18s;
+  width: auto;
+}
+
+.item-list li.is-editing {
+  margin-bottom: 0;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 4px 10px #b6c6e61a;
+}
+
+/* Editor panel as sibling list item */
+.item-list li.editor-panel {
+  background: var(--color-inline-editor-bg);
+  color: var(--color-text);
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 6px 18px rgba(36, 50, 70, 0.06);
+  padding: 14px;
+  margin-top: 0;
+  margin-bottom: 10px;
+  border-left: 4px solid #60a5fa;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.item-list li.is-editing + li.editor-panel {
+  margin-top: -8px;
+}
+
+.item-list li.editor-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(36, 50, 70, 0.08);
+}
+
+.item-list li:last-child {
+  border-bottom: none;
+}
+
+.item-list li.done .task-title {
+  text-decoration: line-through;
+  color: #b6b6b6;
+}
+
+.item-list li span {
   flex: 1;
-  display: flex;
-  align-items: center;
-  /* default to start; children can grow if they are flex items */
-  justify-content: flex-start;
-}
-
-/* center row variant used by title-bar search area */
-.mid-row.center {
-  justify-content: flex-start; /* keep left alignment but allow child to grow */
-}
-
-/* wrapper around search-container must take full width provided by mid-row */
-.search-tasks {
-  flex: 1 1 auto;     /* grow to fill the mid-row space */
-  position: relative; /* so pills can be absolutely positioned below */
-}
-
-/* active filters should be slightly smaller and not stretch the row */
-.active-filter {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.8rem;       /* reduce size */
-  padding: 2px 6px;        /* tighter padding */
-}
-
-.active-filters {
-  position: absolute;
-  top: calc(100% + 10px); /* float below search bar with a 10px gap */
-  left: 0;
-  display: flex;
-  gap: 4px;
-  justify-content: flex-start;
-  /* keep pills from expanding the parent height */
-  width: auto;
-}
-
-.title-logo {
-  max-height: 120px; /* twice as big */
-  width: auto;
-  margin-left: 0; /* flush with screen edge */
-}
-
-/* when a title is shown in the logo bar make it prominent */
-.bar-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center; /* ensure back button and text are vertically centered */
-  gap: 4px;
-}
-
-/* text span separate so clicks on button don't trigger edit */
-.bar-title-text {
   cursor: pointer;
+  transition: color 0.2s;
+  font-weight: 500;
+  letter-spacing: -0.5px;
 }
 
-/* input used when editing title inline */
-.bar-title-input {
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding: 2px 4px;
-  border: 1px solid rgba(60,64,67,0.3);
+.item-list li span:hover {
+  color: var(--color-primary-hover);
+}
+
+.item-list li .due-date {
+  font-size: 0.97em;
+  color: var(--color-text-secondary);
+  margin-left: 8px;
+}
+
+.item-list li .star {
+  background: transparent;
+  border: none;
+  color: var(--color-star);
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-left: 4px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.item-list li .star.favorite {
+  color: var(--color-star-active);
+  text-shadow: 0 0 2px rgba(255, 215, 0, 0.6);
+}
+
+.item-list li .star:hover {
+  background: #eee;
+}
+
+.item-list li .delete {
+  background: transparent;
+  color: #333;
+  border: none;
+  outline: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-left: 10px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.item-list li .delete:hover {
+  background: #eee;
+}
+
+.item-list li .complete {
+  background: none;
+  border: none;
+  color: #38a169;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-left: 4px;
+  padding: 2px 6px;
   border-radius: 4px;
-  height: 32px;             /* match back-circle height */
+  transition: background 0.2s;
+}
+
+.item-list li .complete.done {
+  color: #aaa;
+  text-decoration: line-through;
+}
+
+.item-list li .complete:hover {
+  background: #e6ffed;
+}
+
+
+/* ============================================================
+   9. TASK ROW
+   ============================================================ */
+.task-row {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  padding-left: 10px;
+  padding-right: 64px; /* reserve space for right-group icons */
+  overflow: visible;
   box-sizing: border-box;
 }
 
-/* simple icon button used for back arrow */
-.icon-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-}
-
-/* ensure close icon is an appropriate size */
-.close-button .material-icons {
-  font-size: 18px;
-}
-
-
-.back-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: blue; /* blue background */
-  color: #fff; /* white icon */
-  border: none;
-  cursor: pointer;
-}
-.back-circle .material-icons {
-  font-size: 20px;
-}
-
-/* done/check icon in right column when editing project */
-.check-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 8px;
-  width: 56px;      /* match FAB size */
-  height: 56px;
-  border-radius: 50%;
-  background: blue;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-.check-circle .material-icons {
-  font-size: 24px;
-}
-
-/* simple rectangular button used when a project editor wants a text 'Done' */
-.done-button {
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 1rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.done-button:hover {
-  background: #2563eb;
-}
-
-/* project editor layout */
-.project-editor {
-  /* padding: top right bottom left */
-  padding: 10px 10px 0 10px;
-  width: 100%;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  /* allow scrolling both vertically (tasks overflow) and horizontally
-     (long rows) -- the panel lives inside a fixed-height container so we
-     must handle our own vertical scroll rather than relying on the page. */
-  overflow: auto;
-  flex: 1 1 auto; /* fill vertical space in container so scrollbar can activate */
-  min-height: 0; /* critical: force flex child to respect bounds, don't grow to content */
-  background-color: #f5f5f5; /* light gray background */
-  box-sizing: border-box; /* ensure padding is included in width */
-}
-
-/* simple accordion container used when editing projects */
-.project-edit-accordion {
-  padding: 16px;
-  width: 100%;
-  overflow-x: auto; /* permit horizontal scroll of contents */
-}
-.project-edit-accordion details {
-  width: 100%;
-  margin-bottom: 12px;
-  border: 1px solid rgba(0,0,0,0.1);
-  border-radius: 6px;
-  padding: 8px;
-}
-.project-edit-accordion summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-.project-editor .editor-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.project-editor input {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  font-size: 1em;
-}
-
-.subproject-summary {
-  /* header row for subproject editor now uses a pale pink background
-     to differentiate it slightly from the body content */
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 50px;
-  padding: 0 16px;
-  background: #fde9f6; /* pale pink */
-  border-radius: 0;
-  /* no border; flows seamlessly into body */
-  box-sizing: border-box; /* ensure height includes padding */
-}
-
-.collapse-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px;
-  font-size: 1.2rem;
-}
-.subproject-summary input {
-  flex: 1;
-}/* previous inline deletion button for subprojects has been replaced
-     with a hover-visible X icon; styles below replicate task-row's delete
-     button behavior for the summary header. */
-.subproject-summary .delete {
-  /* icon-button style: circle only on hover */
+.task-row .delete {
   background: transparent;
   color: #333;
   border: none;
@@ -1144,403 +654,840 @@ body {
   margin-left: 8px;
   font-size: 1.1rem;
   cursor: pointer;
-  visibility: visible;
-  opacity: 1;
+  transition: background 0.2s;
 }
 
-.subproject-name-input {
-  /* constrain width to ensure consistent layout
-     default 100px, can grow up to 200px if space allows */
-  flex: none;
-  width: 100px;
-  max-width: 250px;
+.task-row .delete:hover {
+  background: #eee;
+}
+
+.task-row button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-row > * {
+  display: flex;
+  align-items: center;
+  align-self: center !important;
+}
+
+.task-checkbox {
+  margin-right: 6px;
+  width: 1.1em;
+  height: 1.1em;
+  accent-color: #2b6cb0;
+  cursor: pointer;
+}
+
+
+/* ============================================================
+  10. TASK HEADER & GROUPS
+   ============================================================ */
+.task-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0;
   box-sizing: border-box;
 }
-/* delete button hover remains subtle: slightly darker background */
-.subproject-summary .delete:hover {
-  background: #eee; /* show pale gray circle on hover */
-}
 
-/* project editor task button and row spacing */
-/* icon button that lives in the subproject summary */
-.subproject-summary .add-task-btn {
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 4px;
-}
-
-.subproject-summary .add-task-btn .material-icons {
-  font-size: 1.25rem;
-  color: #2b6cb0;
-}
-
-/* make sure task list inside project editor is at least full width so
-   right‑hand controls don't wrap or get clipped */
-.project-editor ul.item-list {
-  min-width: 100%;
-}
-
-/* FAB used when editing inside a project */
-.fab {
-  position: fixed;
-  bottom: 80px; /* above tab nav */
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  /* use requested magenta shade */
-  background: #d32998;
-  color: #fff;
+.left-group {
   display: flex;
   align-items: center;
-  justify-content: center;
-  /* subtle, spread shadow rather than harsh border */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  border: none;
-  outline: none;
-  cursor: pointer;
-  z-index: 30;
+  flex: none;
 }
 
-/* small floating menu that opens when the FAB is clicked inside a project editor */
-.fab-menu {
-  position: fixed;
-  /* position the top of the menu a small distance above the main FAB so
-     the buttons are clearly on top rather than overlapping its hit area. */
-  bottom: 150px; /* sit above the bottom input and tab bar */
-  right: 24px;
+.task-title-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 110; /* above the tabs (z-index 100) so it doesn't get clipped */
-}
-
-/* variant used inside fab-menu; inherits color/shadow from regular FAB but
-   does not position itself independently.  position:static ensures the
-   buttons flow inside .fab-menu rather than fixed at the viewport. */
-.fab-small {
-  position: static;
-  /* pill styling rather than circular */
-  padding: 8px 16px;
-  font-size: 1rem;
-  border-radius: 24px;
-  background: #d32998;
-  color: #fff;
-  display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: flex-start; /* icon at left edge */
-  gap: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  border: none;
-  outline: none;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-/* icon inside pill should be appropriately sized */
-.fab-small .material-icons {
-  font-size: 1.2rem;
-}
-
-/* label no longer needs top margin */
-.fab-label {
-  font-size: 0.9rem;
-  line-height: 1;
-  color: #fff;
-}
-.fab:focus {
-  outline: none;
-}
-.fab .material-icons {
-  font-size: 24px;
-}
-
-/* subproject container styling to visually group tasks as part of the
-   subproject card */
-.project-editor .subproject {
-  margin: 0;
-  border-radius: 12px;
+  flex: 1 1 0;
+  max-width: 80%;
+  min-width: 0;
   overflow: hidden;
-  cursor: grab;
-  user-select: none;
-  transition: opacity 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background: #fff;
 }
 
-/* when a subproject is collapsed we still render the wrapper around the
-   compact row; remove its visual decoration so it doesn't double up with the
-   card styling of .subproject-row. */
-.project-editor .subproject.collapsed {
-  background: transparent;
-  box-shadow: none;
-}
-.project-editor .subproject.collapsed .subproject-row {
-  margin: 0; /* ensure row stretches full width of wrapper */
+.task-title-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.project-editor .subproject:active {
-  cursor: grabbing;
+.task-row .task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  padding-right: 8px;
+  line-height: 1;
 }
 
-.project-editor .subproject .subproject-body {
-  padding: 0;
-  margin: 0;
-  overflow: visible; /* allow absolutely positioned right-group icons to remain visible */
+.task-row .task-title-input {
+  font-size: 1em;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background: #fbfdff;
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: left;
+  line-height: 1;
 }
 
-/* hide body content when collapsed; class is toggled in JS */
-.project-editor .subproject.collapsed .subproject-body {
+/* Right group: date, people avatars, star, delete */
+.right-group {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.date-container {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 3ch;
+}
+
+/* Date display */
+.task-date {
+  font-size: 0.95em;
+  margin-left: 12px;
+  text-align: center;
+  white-space: nowrap;
+  flex: none;
+  line-height: 1;
+}
+
+.task-date .short {
   display: none;
 }
 
-/* project-editor tasks should behave like main task rows: responsive with reserved space for right-group */
-.project-editor .task-row {
-  flex: 1 1 100%;        /* behave like normal task-row: grow/shrink to container */
-  width: 100%;           /* fill the subproject body width */
-  min-width: 0;          /* allow row to shrink below its min-content (matching main task list) */
-  max-width: 100%;       /* never exceed parent width */
-  padding-left: 10px;    /* reserve space for handle */
-  padding-right: 80px;   /* reserve space for right-group icons (star, delete, etc) */
-  overflow: visible;     /* ensure absolutely positioned right-group is never clipped */
-  box-sizing: border-box; /* ensure padding is included in width calculation */
-}
-
-/* compact row representation of a subproject (collapsed editor) */
-.subproject-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 50px;
-  padding: 30px 10px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  position: relative; /* needed for right-group absolute positioning */
-  overflow: visible; /* allow absolutely positioned children to remain visible */
-  box-sizing: border-box; /* include padding in width calculation */
-  cursor: grab;
-  user-select: none;
-}
-
-.subproject-row:active {
-  cursor: grabbing;
-}
-
-.subproject-row:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.12);
-}
-
-.subproject-row:active {
-  box-shadow: 0 8px 10px rgba(0,0,0,0.12), 0 3px 14px rgba(0,0,0,0.14);
-}
-
-/* expand/collapse button in subproject row */
-.subproject-expand-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  font-size: 1.2rem;
-  color: #667;
-  transition: all 0.2s ease;
-  flex: 0 0 auto;
-}
-
-.subproject-expand-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: #202124;
-  border-radius: 4px;
-}
-
-/* right group for subproject row: stats, description, owners, and menu */
-.subproject-right-group {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: none;
-  z-index: 10;
-}
-
-.subproject-icon,
-.stats-icon,
-.desc-icon {
-  font-size: 20px;
-  color: #616161;
-}
-.subproject-row-title {
-  flex: 1 1 0; /* allow to grow/shrink to fill available space */
-  max-width: 70%; /* cap at 70% of row width */
-  min-width: 0; /* allow shrinking below content size */
-  font-weight: 500;
-  font-size: 1rem;
-  color: #212121;
-}
-
-/* input used when editing the subproject name inline */
-.subproject-row-name-input {
-  width: 100%;
-  font-size: 1rem;
-  padding: 2px 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-.subproject-row-stats {
-  font-size: 0.9em;
-  color: #555;
+/* People notification avatars */
+.notify-people {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.subproject-row .owners {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.subproject-row .avatar.small {
+
+/* Expand/collapse icon */
+.expand-icon {
+  vertical-align: middle;
+  transition: transform 0.2s ease;
   width: 24px;
-  height: 24px;
-  font-size: 0.75rem;
-  background: #bdbdbd;
-  color: #fff;
-  border-radius: 50%;
+  flex-shrink: 0;
   display: inline-flex;
-  align-items: center;
   justify-content: center;
 }
-.subproject-row .people-count {
-  font-size: 0.8em;
-  color: #757575;
-}
-.subproject-row button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-}
-.subproject-row button:hover {
-  background: rgba(0,0,0,0.04);
+
+.expand-icon.open {
+  transform: rotate(180deg);
 }
 
-/* specific styling for hamburger menu */
-.subproject-row .menu-button {
-  margin-left: auto; /* push to right edge */
+/* Editing state — highlight task header */
+.item-list li.editing .task-header {
+  background: #e0f2ff;
+  background-clip: padding-box;
+  box-shadow: 0 8px 28px rgba(96, 165, 250, 0.07);
+  overflow: visible;
 }
 
-/* button in header to add a new task - now a material-style button with label */
-.add-task-header-btn {
-  background: #d32998;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  padding: 6px 12px;
-  margin-left: 8px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  font-size: 14px;
-}
-.add-task-header-btn .material-icons {
-  font-size: 20px;
-  margin-right: 4px;
-}
-.add-task-header-btn .add-task-label {
-  line-height: 1;
-}
-.add-task-header-btn:hover {
-  background: #3700b3;
+.item-list li.is-editing .task-row,
+.item-list li.is-editing .task-row > *,
+.item-list li.is-editing .right-group {
+  align-items: center !important;
 }
 
-/* (removed duplicate earlier in file) */
+.item-list li.is-editing .notify-people {
+  align-self: center !important;
+  margin-top: 0;
+}
 
-.subproject-row-menu {
-  position: absolute;
-  right: 16px;
-  top: 100%;
-  background: #ffffff;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
+.editing-subtitle {
+  margin-top: 6px;
+  color: #4b5563;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+
+/* ============================================================
+  11. TASK EDITOR (Side & Inline)
+   ============================================================ */
+.side-editor {
+  max-width: 420px;
+  background: var(--color-editor-bg);
+  border-left: 1px solid var(--color-border-light);
+  border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
+  box-shadow: var(--elevation-1);
+  padding: 28px;
+  margin: 0;
+  position: relative;
+  height: 100%;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  min-width: 120px;
-  z-index: 110;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  justify-content: flex-start;
+  gap: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
-.subproject-row-menu .menu-item {
-  background: none;
-  border: none;
-  padding: 8px 12px;
-  text-align: left;
+
+.inline-editor {
+  background: var(--color-inline-editor-bg);
+  color: var(--color-text);
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 65vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+/* Light surface for form controls in editors */
+.inline-editor input,
+.inline-editor textarea,
+.inline-editor .task-title-input,
+.inline-editor .due-date-input,
+.inline-editor .person-chip,
+.inline-editor .task-person-list {
+  background: #ffffff;
+  color: var(--color-text);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.inline-editor .desc-label {
+  color: var(--color-text);
+}
+
+.inline-editor .material-icons {
+  color: inherit;
+}
+
+.inline-editor .task-description {
   width: 100%;
+  height: auto;
+  resize: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 10px;
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.side-editor .task-description {
+  width: 100%;
+  height: 120px;
+  resize: none;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 10px;
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+/* Editor action buttons */
+.editor-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.editor-actions button {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1em;
   cursor: pointer;
+}
+
+.editor-actions .close {
+  background: #e53e3e;
+}
+
+/* Compact header in inline mode */
+.inline-header {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+/* Wrapper around inline editor in task row */
+.task-editor-wrapper {
+  width: 100%;
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+  transition: max-height 0.2s ease;
+  overflow: hidden;
+}
+
+.item-list li.editing > .inline-editor,
+.item-list li.editing > .side-editor {
+  padding: 5px;
+}
+
+
+/* ============================================================
+  12. EDITOR COLUMNS & SECTIONS
+   ============================================================ */
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editor-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.desc-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.editor-columns {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 40px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+/* Editor left/right columns (NOT title-bar columns) */
+.editor-columns .left-column,
+.editor-columns .right-column {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 0 12px;
+}
+
+.editor-columns .left-column > *,
+.editor-columns .right-column > * {
+  width: 100%;
+  box-sizing: inherit;
+}
+
+.editor-columns .editor-section > label {
+  display: block;
+  margin: 0 0 6px 0;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: inherit;
+}
+
+/* Date input */
+.due-date-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  font-size: 1em;
+  background: #fbfdff;
+}
+
+.left-column .task-title-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
+
+/* ============================================================
+  13. PEOPLE LIST & PERSON CHIPS
+   ============================================================ */
+.people-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+/* Vertical list layout for people tab and editor */
+.people-list.task-person-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-bottom: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  align-items: stretch;
+}
+
+.side-editor .people-list,
+.inline-editor .people-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Task person list grid layout */
+.task-person-list {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  background: transparent;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-person-list-header,
+.task-person-row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: transparent;
+}
+
+.task-person-list-header {
+  color: #6b7280;
+  font-size: 0.85em;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.task-person-row + .task-person-row {
+  border-top: 1px solid rgba(60, 64, 67, 0.03);
+}
+
+.task-person-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.task-person-col.name {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.subproject-row-menu .menu-icon {
-  font-size: 18px;
-  color: #616161;
-}
-.subproject-row-menu .menu-item:hover {
-  background: rgba(0,0,0,0.04);
+
+.task-person-col.methods {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 160px;
+  flex: 0 0 160px;
 }
 
-.task-list {
-  list-style: disc inside;
-  padding-left: 0;
+/* Person chip */
+.person-chip {
+  background: rgba(60, 64, 67, 0.04);
+  border-radius: var(--border-radius-pill);
+  padding: 6px 10px;
+  font-size: 0.92em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 260px;
 }
-/* remove generic column padding for the top title bar so the logo
-   sits flush against the left edge of the viewport */
-.title-bar .left-column {
-  padding-left: 0;
+
+.person-chip .person-name {
+  flex: 1 1 auto;
+  min-width: 0;
 }
+
+.person-chip .person-method {
+  display: none;
+}
+
+.person-chip button {
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-size: 1em;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.person-chip.small {
+  padding: 4px 8px;
+  font-size: 0.85em;
+  border-radius: 10px;
+}
+
+/* Person chips in editors */
+.side-editor .person-chip,
+.inline-editor .person-chip {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.side-editor .person-chip .person-name,
+.inline-editor .person-chip .person-name {
+  font-weight: 600;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-overflow: unset;
+  max-width: none;
+  word-break: normal;
+}
+
+/* Person actions (methods + delete) */
+.person-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  width: 160px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.person-actions .person-methods-inline {
+  width: 120px;
+  justify-content: flex-end;
+}
+
+/* Avatar initials */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef3ff;
+  color: #174ea6;
+  font-weight: 700;
+  font-size: 0.85em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.avatar.small {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75em;
+}
+
+.people-count {
+  background: #f1f3f4;
+  color: var(--color-text-muted);
+  border-radius: var(--border-radius-pill);
+  padding: 4px 8px;
+  font-size: 0.8em;
+}
+
+.task-people {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 10px;
+  align-items: center;
+  align-self: flex-start;
+}
+
+/* Add person bar */
+.add-person-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+  position: relative;
+  flex-wrap: wrap;
+  z-index: 60;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.add-person-bar input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid #e6eefc;
+  font-size: 1em;
+  background: #fbfdff;
+  box-sizing: border-box;
+}
+
+.add-person-bar button {
+  background: #2b6cb0;
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 8px 14px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+
+/* ============================================================
+  14. PERSON METHODS / SERVICE ICONS
+   ============================================================ */
+/* Grid layout aligns all service icons into consistent columns */
+.person-methods-inline {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min-content;
+  column-gap: 8px;
+  margin-left: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  width: 148px;
+}
+
+.person-methods-inline button {
+  padding: 6px;
+  border-radius: var(--border-radius);
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.person-methods-inline button:hover {
+  background: rgba(60, 64, 67, 0.04);
+}
+
+/* Method icon (circle button) */
+.method-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.1s, transform 0.06s, color 0.12s, filter 0.12s,
+    opacity 0.12s;
+  font-size: 18px;
+  line-height: 0;
+  filter: grayscale(100%) saturate(0%);
+  opacity: 0.65;
+}
+
+.method-icon:hover {
+  background: rgba(60, 64, 67, 0.04);
+  transform: translateY(-1px);
+}
+
+.method-icon.active {
+  background: rgba(26, 115, 232, 0.08);
+  border-color: rgba(26, 115, 232, 0.18);
+  color: var(--color-primary);
+  box-shadow: 0 4px 8px rgba(26, 115, 232, 0.08);
+  filter: none;
+  opacity: 1;
+}
+
+/* Service icons inside method buttons */
+.service-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  filter: grayscale(100%) saturate(0%);
+  opacity: 0.6;
+  margin: auto;
+  background: transparent;
+  object-fit: contain;
+  transform: translateY(0);
+}
+
+.service-icon.discord-icon {
+  transform: translateY(1px);
+}
+
+.service-icon.sms-icon {
+  transform: translateY(1px);
+}
+
+/* Active state for service icons */
+.method-icon.active .service-icon,
+.person-methods-inline .method-icon.active .service-icon,
+.person-methods-inline .method-icon.active img.service-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.method-icon.active .sms-icon {
+  color: var(--color-primary);
+}
+
+/* Editor-specific method spacing */
+.side-editor .person-methods-inline,
+.inline-editor .person-methods-inline {
+  margin-left: 12px;
+}
+
+/* Legacy person methods (unused but preserved) */
+.person-methods {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.person-methods .method-btn {
+  padding: 6px 8px;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+}
+
+.person-methods .method-btn.active {
+  box-shadow: inset 0 0 0 2px #dbeafe;
+}
+
+
+/* ============================================================
+  15. SEARCH SUGGESTIONS & DROPDOWNS
+   ============================================================ */
+.search-suggestions {
+  position: static;
+  background: transparent;
+  border: none;
+  margin-top: 8px;
+  width: 100%;
+  z-index: 5;
+}
+
+.suggestion-row {
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.suggestion-row:hover {
+  background: rgba(60, 64, 67, 0.02);
+}
+
+.suggestion-row.active {
+  background: rgba(26, 115, 232, 0.04);
+}
+
+/* Floating dropdown variant */
+.search-suggestions.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #eef2ff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+  z-index: 200;
+  box-sizing: border-box;
+}
+
+.search-suggestions.dropdown .task-person-row {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-suggestions.dropdown .task-person-row .task-person-col.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-suggestions.dropdown .task-person-row .task-person-col.methods {
+  display: none;
+}
+
+/* Inline suggestion (no matches — "Add" row) */
+.suggestion-inline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+
+.suggestion-inline:hover {
+  background: rgba(60, 64, 67, 0.02);
+}
+
+.suggestion-inline.active {
+  background: rgba(26, 115, 232, 0.04);
+}
+
+.suggestion-empty {
+  padding: 8px 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+
+/* ============================================================
+  16. SEARCH BAR & FILTERS
+   ============================================================ */
+.search-tasks {
+  flex: 1 1 auto;
+  position: relative;
+}
+
 .search-container {
-  /* let the container expand to fill available space and pass it along */
   flex: 1 1 auto;
   display: flex;
-  justify-content: center; /* inner wrapper handles stretching via width:100% */
-  /* inner wrapper still constrains to mid column via parent grid */
-  /* debug mid-column bg applied on parent via nested selector */
+  justify-content: center;
+  position: relative;
 }
 
-
-/* inner wrapper to constrain the search input width */
 .search-inner {
   width: 100%;
-  /* fill the entire middle column; no maximum so it stretches fully */
-  max-width: none; /* removed earlier 600px cap */
+  max-width: none;
   min-width: 150px;
-  position: relative; /* for icons/popup */
+  position: relative;
 }
 
 .title-search {
   width: 100%;
-  /* left/right padding previously reserved for icons; remove to avoid
-     extra internal whitespace. icons are absolutely positioned so padding
-     is not needed. */
-  /* left padding makes room for search icon */
   padding: 10px 10px 10px 32px;
   font-size: 1rem;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 20px; /* fully rounded corners */
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
   box-sizing: border-box;
-  background: #e8f3ff; /* pale blue background */
-  height: auto; /* let padding drive height */
+  background: var(--color-search-bg);
+  height: auto;
 }
 
 .search-icon {
@@ -1549,35 +1496,28 @@ body {
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.3rem;
-  color: var(--text-muted, #777);
+  color: var(--color-text-placeholder);
   pointer-events: none;
 }
 
-/* filter button inside the search bar */
 .filter-icon {
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.3rem;
-  color: var(--text-muted, #777);
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.2s;
 }
+
 .filter-icon:hover {
-  color: var(--text-muted-hover, #555);
+  color: #555;
 }
 
-/* ensure the popup is positioned relative to the search container so it
-   doesn't affect layout when shown */
-.search-container {
-  position: relative;
-}
-
-/* dropdown that appears when the filter button is clicked */
+/* Filter dropdown popup */
 .filter-popup {
   position: absolute;
-  /* anchor to the right edge of the search-inner element where the icon lives */
   right: 12px;
   top: calc(100% + 4px);
   background: white;
@@ -1590,7 +1530,6 @@ body {
   gap: 6px;
 }
 
-/* pill elements inside the dropdown; different colors per type */
 .filter-pill {
   padding: 4px 10px;
   border-radius: 12px;
@@ -1598,248 +1537,92 @@ body {
   font-size: 0.9rem;
 }
 
-/* confirmation dialog used for irreversible actions */
-.confirm-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.confirm-modal {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 90%;
-  width: 300px;
-  text-align: center;
-  box-shadow: var(--elevation-2);
-}
-
-.confirm-modal .warning-icon {
-  font-size: 3rem;
-  color: var(--danger-color, #d32f2f);
-  display: block;
-  margin: 0 auto 10px;
-}
-
-.confirm-modal .confirm-message {
-  margin-bottom: 16px;
-}
-
-.confirm-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.confirm-btn {
-  background: var(--danger-color, #d32f2f);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cancel-btn {
-  background: #ccc;
-  color: #000;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
 .filter-pill.completed {
-  background: #2b6cb0; /* dark blue */
+  background: #2b6cb0;
   color: white;
 }
+
 .filter-pill.overdue {
-  background: #e53e3e; /* stronger red */
+  background: #e53e3e;
   color: white;
 }
+
 .filter-pill:hover {
   opacity: 0.85;
 }
 
-/* active filter indicator shown next to search field */
+/* Active filter pills */
 .active-filter {
   display: inline-flex;
   align-items: center;
-  margin-left: 8px;
   padding: 2px 8px;
   border-radius: 12px;
   background: #d0e8ff;
   font-size: 0.85rem;
 }
+
 .active-filter.completed {
   background: #2b6cb0;
   color: white;
 }
+
 .active-filter.overdue {
   background: #e53e3e;
   color: white;
 }
+
 .clear-filter {
   margin-left: 6px;
   cursor: pointer;
   font-weight: bold;
 }
 
-/* container for multiple active pills; positions at bottom row */
 .active-filters {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
   display: flex;
   gap: 6px;
-  justify-content: center;
-  /* vertical centering handled by mid-row styles */
+  justify-content: flex-start;
+  width: auto;
 }
 
-/* ensure AddBar inside bottom bar stretches to fill available space */
-.bottom-input-bar .add-bar {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0; /* AddBar defines its own padding */
-  position: static; /* disable sticky behavior when relocated */
-}
 
-.add-bar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 22px;
-  flex-wrap: nowrap; /* never wrap button off screen */
-  overflow-x: visible; /* let outer container handle scrolling instead */
-  position: sticky; /* stay visible at top of list */
-  /* offset below container padding/logo so it never climbs over the graphic */
-  top: 60px;
-  padding: 0 12px;
-  background: var(--surface);
-  z-index: 10;
-}
-
-/* bottom padding ensures content doesn’t slide beneath the fixed nav bar */
-.container {
-  padding-bottom: 0; /* no bottom buffer */
-  margin-bottom: 0; /* keep no gap */
-}
-
-/* plus-button style inside add-bar */
-.add-bar .add-btn {
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  /* override generic padding applied later */
-  padding: 0 !important;
-}
-.add-bar .add-btn .material-icons {
-  font-size: 24px;
-  line-height: 1;
-  color: #d32998;
-}
-.bottom-input-bar .add-bar .add-btn .material-icons {
-  color: #fff; /* white plus sign in task tab */
-}
-.add-bar .add-btn:hover {
-  background: #2563eb; /* slightly darker shade for hover */
-}
-.add-bar input {
-  flex: 1;
-  /* when space is extremely tight we allow the field to collapse
-     almost completely – a single character (≈one short word) is enough
-     for the placeholder and keeps the button visible. */
-  /* temporary removal of min-width to allow collapse */
-  padding: 12px 14px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 8px;
-  font-size: 1rem;
-  background: #fff;
-  transition:
-    box-shadow 0.12s,
-    border-color 0.12s;
-  box-shadow: inset 0 -1px 0 rgba(60, 64, 67, 0.02);
-}
-
-.add-bar input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
-}
-.add-bar .due-date-input {
-  width: auto; /* only take as much space as needed */
-  min-width: 110px;
-  font-size: 0.98rem;
-  padding: 10px 8px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 8px;
-  background: #fff;
-  flex: none;
-}
-.add-bar button {
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
-  transition:
-    box-shadow 0.12s,
-    transform 0.06s;
-  flex: none; /* prevents shrinking */
-  min-width: 50px;
-}
-.add-bar button:hover {
-  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.12);
-  transform: translateY(-1px);
-}
-
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 auto;
-  /* fill the available width and let rows stretch */
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* allow container to shrink when children have large min-content */
-  gap: 8px;
-  align-items: stretch; /* make each child take full width */
-  width: 100%;
-  max-width: 100%;
-}
-
-/* project layout: grid of square tiles */
+/* ============================================================
+  17. PROJECTS PANEL & TILES
+   ============================================================ */
 .projects-panel {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  padding: 16px 16px 200px 16px; /* extra bottom padding for scrolling last tile into view */
+  padding: 16px 16px 200px 16px;
   box-sizing: border-box;
   justify-content: flex-start;
   align-content: flex-start;
-  overflow-y: auto; /* vertical scrollbar when needed */
-  overflow-x: hidden; /* prevent horizontal scroll */
-  background-color: #f5f5f5; /* light gray background */
-  flex: 1; /* grow to fill available height and allow scrolling */
-  min-height: 0; /* allow flex item to shrink below content size */
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-bg-light);
+  flex: 1;
+  min-height: 0;
 }
 
-/* Material Design Project Tile with Modern Styling */
+/* Tile custom property defaults */
+.projects-panel .project-tile {
+  --project-tile-width: 350px;
+  --project-tile-height: 180px;
+}
+
+.tile-large {
+  --project-tile-width: 320px;
+}
+
+.tile-short {
+  --project-tile-height: 120px;
+}
+
 .project-tile {
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--border-radius-lg);
   background: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1858,16 +1641,12 @@ body {
   cursor: grabbing;
 }
 
-.project-tile[draggable="true"]:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* Hover effect: elevate and enhance shadow (no transform) */
+.project-tile[draggable="true"]:hover,
 .project-tile:not([draggable="true"]):hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Header with name and menu */
+/* Tile header */
 .project-tile .project-header {
   display: flex;
   align-items: center;
@@ -1892,12 +1671,100 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #202124;
+  color: var(--color-text);
   flex: 1 1 0;
   min-width: 0;
 }
 
-/* Menu button styled as Material Design icon button */
+/* Tile body and progress */
+.project-tile .project-body {
+  flex: 1 1 0;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.project-tile .project-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.project-tile .project-progress-container {
+  width: 100%;
+  height: 24px;
+  background: #e8eaed;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.project-tile .project-progress {
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    var(--project-color, #0d47a1) 0%,
+    var(--project-color, #0d47a1) 100%
+  );
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-tile .project-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+}
+
+.project-tile .project-percent {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.project-tile .project-progress .progress-text {
+  display: none;
+}
+
+/* Tile footer accent bar */
+.project-tile .project-footer {
+  height: 4px;
+  width: 100%;
+  background: #e8eaed;
+}
+
+.project-tile .project-accent-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--project-color, #0d47a1);
+  transition: background-color 0.2s ease;
+}
+
+.project-tile:hover .project-accent-bar {
+  height: 6px;
+  margin-top: -2px;
+}
+
+
+/* ============================================================
+  18. PROJECT TILE MENUS & COLOR PICKER
+   ============================================================ */
 .project-tile .project-menu {
   position: relative;
   flex: 0 0 auto;
@@ -1913,7 +1780,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5f6368;
+  color: var(--color-text-muted);
   transition: all 0.2s ease;
   font-size: 0;
   line-height: 1;
@@ -1921,7 +1788,7 @@ body {
 
 .project-tile .project-menu-button:hover {
   background: rgba(0, 0, 0, 0.06);
-  color: #202124;
+  color: var(--color-text);
 }
 
 .project-tile .project-menu-button:active {
@@ -1938,7 +1805,7 @@ body {
   top: 100%;
   right: 0;
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
   min-width: 180px;
   z-index: 105;
@@ -1948,35 +1815,12 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* Flip menu vertically if it would go off-screen at bottom */
 .project-tile .project-menu-dropdown[data-flipped-v="true"] {
   top: auto;
   bottom: 100%;
   margin-top: 0;
   margin-bottom: 4px;
   animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .project-tile .menu-item {
@@ -1989,7 +1833,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #202124;
+  color: var(--color-text);
   font-size: 0.95rem;
   font-family: inherit;
   transition: background-color 0.2s ease;
@@ -2008,7 +1852,7 @@ body {
 .project-tile .menu-item .material-icons {
   font-size: 1.2rem;
   flex: 0 0 auto;
-  color: #5f6368;
+  color: var(--color-text-muted);
 }
 
 .project-tile .menu-arrow {
@@ -2036,13 +1880,13 @@ body {
   margin: 4px 0;
 }
 
-/* Color Picker Submenu */
+/* Color picker submenu */
 .project-tile .color-picker-submenu {
   position: absolute;
   left: 100%;
   top: 0;
   background: #fff;
-  border-radius: 8px;
+  border-radius: var(--border-radius);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
   padding: 12px;
   margin-left: 8px;
@@ -2050,136 +1894,14 @@ body {
   animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: fit-content;
   overflow: visible;
-  max-width: calc(100vw - 32px); /* ensure doesn't exceed viewport with margin */
+  max-width: calc(100vw - 32px);
 }
 
-/* Flip color picker to left side if it would go off-screen on right */
 .project-tile .color-picker-submenu[data-flipped="true"] {
   left: auto;
   right: 100%;
   margin-left: 0;
   margin-right: 8px;
-}
-
-/* Mobile Color Picker Modal Overlay */
-.color-picker-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: flex-end;
-  z-index: 9999;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.color-picker-modal {
-  background: #ffffff;
-  border-radius: 16px 16px 0 0;
-  padding: 16px;
-  width: 100%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-@keyframes slideUpModal {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.color-picker-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e8eaed;
-}
-
-.color-picker-modal-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #202124;
-}
-
-.color-picker-modal-close {
-  background: transparent;
-  border: none;
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #5f6368;
-  transition: all 0.2s ease;
-}
-
-.color-picker-modal-close:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: #202124;
-}
-
-.color-picker-modal-close .material-icons {
-  font-size: 1.5rem;
-}
-
-/* Color grid in modal should be centered and larger on mobile */
-.color-picker-modal .color-picker-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  width: 100%;
-  max-width: 320px;
-  margin: 0 auto;
-  justify-content: center;
-}
-
-.color-picker-modal .color-option {
-  width: 48px;
-  height: 48px;
-}
-
-.color-picker-modal .color-option:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.color-picker-modal .color-option.selected {
-  border-color: #202124;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #202124;
-}
-
-.color-picker-modal .color-option .material-icons {
-  font-size: 1.2rem;
-  color: #fff;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
-}
-
-/* For light colors in the modal, we might need dark text */
-.color-picker-modal .color-option[style*="#FFC107"] .material-icons,
-.color-picker-modal .color-option[style*="#FFA000"] .material-icons,
-.color-picker-modal .color-option[style*="#FF8F00"] .material-icons {
-  color: #202124;
-  text-shadow: none;
 }
 
 .project-tile .color-picker-grid {
@@ -2210,8 +1932,8 @@ body {
 }
 
 .project-tile .color-option.selected {
-  border-color: #202124;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #202124;
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-text);
 }
 
 .project-tile .color-option .material-icons {
@@ -2220,252 +1942,853 @@ body {
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
-/* For light colors in the palette, we might need dark text */
+/* Dark text for light amber colors */
 .project-tile .color-option[style*="#FFC107"] .material-icons,
 .project-tile .color-option[style*="#FFA000"] .material-icons,
 .project-tile .color-option[style*="#FF8F00"] .material-icons {
-  color: #202124;
+  color: var(--color-text);
   text-shadow: none;
 }
 
-/* Main content area */
-.project-tile .project-body {
-  flex: 1 1 0;
-  padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 12px;
-}
-
-.project-tile .project-progress-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.project-tile .project-progress-container {
-  width: 100%;
-  height: 24px;
-  background: #e8eaed;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.project-tile .project-progress {
-  height: 100%;
-  background: linear-gradient(135deg, var(--project-color, #0D47A1) 0%, var(--project-color, #0D47A1) 100%);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 12px;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Optional: Add subtle shine effect on progress bar */
-.project-tile .project-progress::after {
-  content: "";
-  position: absolute;
+/* Mobile color picker modal */
+.color-picker-modal-overlay {
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  animation: none;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
 }
 
-/* percent label */
-.project-tile .project-percent {
-  text-align: center;
-  color: #5f6368;
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+.color-picker-modal {
+  background: #ffffff;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.project-tile .project-progress .progress-text {
+.color-picker-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.color-picker-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.color-picker-modal-close {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: all 0.2s ease;
+}
+
+.color-picker-modal-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+}
+
+.color-picker-modal-close .material-icons {
+  font-size: 1.5rem;
+}
+
+.color-picker-modal .color-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.color-picker-modal .color-option {
+  width: 48px;
+  height: 48px;
+}
+
+.color-picker-modal .color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.color-picker-modal .color-option.selected {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-text);
+}
+
+.color-picker-modal .color-option .material-icons {
+  font-size: 1.2rem;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.color-picker-modal .color-option[style*="#FFC107"] .material-icons,
+.color-picker-modal .color-option[style*="#FFA000"] .material-icons,
+.color-picker-modal .color-option[style*="#FF8F00"] .material-icons {
+  color: var(--color-text);
+  text-shadow: none;
+}
+
+
+/* ============================================================
+  19. PROJECT EDITOR
+   ============================================================ */
+.project-editor {
+  padding: 10px 10px 0 10px;
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  background-color: var(--color-bg-light);
+  box-sizing: border-box;
+}
+
+.project-edit-accordion {
+  padding: 16px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.project-edit-accordion details {
+  width: 100%;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.project-edit-accordion summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.project-editor .editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-editor input {
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  font-size: 1em;
+}
+
+.project-editor ul.item-list {
+  min-width: 100%;
+}
+
+/* Project editor task rows match main task row behavior */
+.project-editor .task-row {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-left: 10px;
+  padding-right: 80px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+
+/* ============================================================
+  20. SUBPROJECT (Expanded & Collapsed)
+   ============================================================ */
+.project-editor .subproject {
+  margin: 0;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #fff;
+}
+
+.project-editor .subproject:active {
+  cursor: grabbing;
+}
+
+/* Collapsed subproject: transparent wrapper so card styling comes from row */
+.project-editor .subproject.collapsed {
+  background: transparent;
+  box-shadow: none;
+}
+
+.project-editor .subproject.collapsed .subproject-row {
+  margin: 0;
+}
+
+.project-editor .subproject .subproject-body {
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+}
+
+.project-editor .subproject.collapsed .subproject-body {
   display: none;
 }
 
-/* Footer with accent bar */
-.project-tile .project-footer {
-  height: 4px;
+/* Subproject summary header (expanded) */
+.subproject-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 16px;
+  background: var(--color-subproject-header);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.subproject-summary input {
+  flex: 1;
+}
+
+.subproject-summary .delete {
+  background: transparent;
+  color: #333;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+  padding: 4px;
+  margin-left: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  visibility: visible;
+  opacity: 1;
+}
+
+.subproject-summary .delete:hover {
+  background: #eee;
+}
+
+.subproject-name-input {
+  flex: none;
+  width: 100px;
+  max-width: 250px;
+  box-sizing: border-box;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  font-size: 1.2rem;
+}
+
+/* Add task button in subproject summary */
+.subproject-summary .add-task-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+}
+
+.subproject-summary .add-task-btn .material-icons {
+  font-size: 1.25rem;
+  color: #2b6cb0;
+}
+
+/* Styled add-task button */
+.add-task-header-btn {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  margin-left: 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.add-task-header-btn .material-icons {
+  font-size: 20px;
+  margin-right: 4px;
+}
+
+.add-task-header-btn .add-task-label {
+  line-height: 1;
+}
+
+.add-task-header-btn:hover {
+  background: #3700b3;
+}
+
+
+/* ============================================================
+  21. SUBPROJECT ROW (Compact / Collapsed)
+   ============================================================ */
+.subproject-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 50px;
+  padding: 30px 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
+  box-sizing: border-box;
+  cursor: grab;
+  user-select: none;
+}
+
+.subproject-row:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.subproject-row:active {
+  cursor: grabbing;
+  box-shadow: 0 8px 10px rgba(0, 0, 0, 0.12), 0 3px 14px rgba(0, 0, 0, 0.14);
+}
+
+.subproject-expand-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 1.2rem;
+  color: #667;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+}
+
+.subproject-expand-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+  border-radius: 4px;
+}
+
+.subproject-right-group {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  z-index: 10;
+}
+
+.subproject-icon,
+.stats-icon,
+.desc-icon {
+  font-size: 20px;
+  color: #616161;
+}
+
+.subproject-row-title {
+  flex: 1 1 0;
+  max-width: 70%;
+  min-width: 0;
+  font-weight: 500;
+  font-size: 1rem;
+  color: #212121;
+}
+
+.subproject-row-name-input {
   width: 100%;
-  background: #e8eaed;
+  font-size: 1rem;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
-.project-tile .project-accent-bar {
-  height: 100%;
-  width: 100%;
-  background: var(--project-color, #0D47A1);
-  transition: background-color 0.2s ease;
+.subproject-row-stats {
+  font-size: 0.9em;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.project-tile:hover .project-accent-bar {
-  height: 6px;
-  margin-top: -2px;
+.subproject-row .owners {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.item-list li {
+.subproject-row .avatar.small {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  background: #bdbdbd;
+  color: #fff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subproject-row .people-count {
+  font-size: 0.8em;
+  color: #757575;
+}
+
+.subproject-row button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+}
+
+.subproject-row button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.subproject-row .menu-button {
+  margin-left: auto;
+}
+
+/* Subproject row context menu */
+.subproject-row-menu {
+  position: absolute;
+  right: 16px;
+  top: 100%;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
+  min-width: 120px;
+  z-index: 110;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.subproject-row-menu .menu-item {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subproject-row-menu .menu-icon {
+  font-size: 18px;
+  color: #616161;
+}
+
+.subproject-row-menu .menu-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.task-list {
+  list-style: disc inside;
+  padding-left: 0;
+}
+
+
+/* ============================================================
+  22. FAB (Floating Action Button)
+   ============================================================ */
+.fab {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  z-index: 30;
+}
+
+.fab:focus {
+  outline: none;
+}
+
+.fab .material-icons {
+  font-size: 24px;
+}
+
+/* FAB menu (opens above FAB) */
+.fab-menu {
+  position: fixed;
+  bottom: 150px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 110;
+}
+
+.fab-small {
+  position: static;
+  padding: 8px 16px;
+  font-size: 1rem;
+  border-radius: 24px;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fab-small .material-icons {
+  font-size: 1.2rem;
+}
+
+.fab-label {
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #fff;
+}
+
+
+/* ============================================================
+  23. CONFIRM MODAL
+   ============================================================ */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-modal {
+  background: white;
+  padding: 20px;
+  border-radius: var(--border-radius);
+  max-width: 90%;
+  width: 300px;
+  text-align: center;
+  box-shadow: var(--elevation-2);
+}
+
+.confirm-modal .warning-icon {
+  font-size: 3rem;
+  color: var(--color-danger);
+  display: block;
+  margin: 0 auto 10px;
+}
+
+.confirm-modal .confirm-message {
+  margin-bottom: 16px;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.confirm-btn {
+  background: var(--color-danger);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #ccc;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+
+/* ============================================================
+  24. ADDBAR WRAPPER (Subproject Task List)
+   ============================================================ */
+.add-bar-wrapper {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  flex-direction: column;
   gap: 0;
-  padding: 0; /* header handles its own padding */
-  border-bottom: 1.5px solid #e9f0fb;
-  overflow: visible; /* allow absolutely positioned children to remain visible */
+  padding: 2px 10px !important;
+  border-bottom: 1.5px solid var(--color-border-row);
   font-size: 1.08rem;
   background: #fff;
   border-radius: 10px;
   margin-bottom: 2px;
   box-shadow: 0 1px 4px #b6c6e61a;
-  transition:
-    box-shadow 0.18s,
-    background 0.18s;
   width: auto;
 }
 
-/* when a task is open for editing, let the editor's background show
-   by making the list item itself transparent and removing the shadow/border */
-.item-list li.is-editing {
-  /* header row when editor open should remain visually like other rows */
-  margin-bottom: 0; /* keep list-item spacing handled visually by the editor */
-  border-bottom: none; /* remove dividing line between header and editor */
-  border-radius: 10px 10px 0 0; /* round only top corners so editor can attach */
-  box-shadow: 0 4px 10px #b6c6e61a; /* subtle shadow to match attached panel */
-}
-
-/* editor panel shown as a sibling list item */
-.item-list li.editor-panel {
-  /* Soft blue panel visually attached to the header */
-  background: #e8f4ff;
-  color: #202124;
-  border-radius: 0 0 10px 10px; /* only round bottom corners to attach to header */
-  box-shadow: 0 6px 18px rgba(36, 50, 70, 0.06);
-  padding: 14px;
-  margin-top: 0;
-  margin-bottom: 10px;
-  border-left: 4px solid #60a5fa;
-  transition:
-    transform 120ms ease,
-    box-shadow 120ms ease;
-}
-.item-list li.is-editing + li.editor-panel {
-  /* negate the parent .item-list gap so the editor visually attaches */
-  margin-top: -8px; /* matches .item-list gap: 8px */
-}
-.item-list li.editor-panel:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(36, 50, 70, 0.08);
-}
-
-.task-header {
-  display: flex;
-  align-items: center; /* vertically center all row contents */
-  gap: 10px;
-  height: 50px;
-  padding: 0;
-  box-sizing: border-box; /* ensure height includes padding */
-}
-
-/* ensure TaskRow itself fills available horizontal space inside header */
-.task-row {
-  flex: 1 1 100%; /* let row expand to fill available width */
+.add-bar-wrapper .add-bar {
   width: 100%;
-  min-width: 0;        /* allow row to shrink below its min-content (long unbreakable text) */
-  max-width: 100%;     /* never exceed parent width */
+  margin: 0;
+  padding: 12px;
+  position: static;
+  top: auto;
+  background: var(--color-accent);
   display: flex;
-  align-items: center;
-  gap: 6px;
-  position: relative; /* needed for absolutely-positioned handle */
-  padding-left: 10px; /* reserve space for handle so content doesn't overlap */
-  padding-right: 80px; /* reserve space for right-group icons (star, delete, etc) */
-  overflow: visible; /* ensure absolutely positioned right-group is never clipped */
-  box-sizing: border-box; /* ensure padding is included in width calculation */
-}
-
-/* left, middle, and right groups help with centering the date */
-.left-group {
-  display: flex;
-  align-items: center;
-  flex: none; /* keep at natural width for expand/checkbox */
-}
-
-.task-title-wrapper {
-  display: flex;
-  align-items: center;
-  flex: 1 1 0; /* grow/shrink to fill available space */
-  max-width: 80%; /* cap title at 80% of row width to ensure icons don't get overlapped */
-  min-width: 0; /* allow shrinking below content size */
-  overflow: hidden; /* force respect of max-width boundary */
-}
-
-.right-group,
-.date-container {
-  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: center;
   align-items: center;
 }
 
-/* ensure right-group is always visible and positioned relative to its task row */
-.right-group {
+.add-bar-wrapper .add-bar input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  background: #fff;
+  min-width: 100px;
+}
+
+.add-bar-wrapper .add-bar input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
+}
+
+.add-bar-wrapper .add-bar .add-btn {
+  background: var(--color-subproject-header);
+  color: var(--color-subproject-header);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  flex: none;
+  height: 44px;
+  width: 44px;
+}
+
+.add-bar-wrapper .add-bar .add-btn:hover {
+  background: var(--color-subproject-header);
+}
+
+
+/* ============================================================
+  25. EDITABLE INDICATOR
+   ============================================================ */
+.subproject-name-container,
+.person-name-container {
+  position: relative;
+  display: inline-block;
+}
+
+.editable-indicator {
+  font-size: 0.75rem !important;
+  color: #a0a0a0 !important;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  cursor: pointer !important;
   position: absolute;
-  right: 4px;
+  right: -18px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 10;               /* float above title text */
-  display: flex;
-  align-items: center;
-  gap: 8px;                  /* space between date, people, star, and delete */
-  flex: none;
-}
-
-/* row padding should give title some breathing room so it doesn't run under the icons */
-.task-row {
-  padding-right: 64px; /* slightly larger buffer to accommodate two icons */
-}
-
-/* style for date container: keep it a fixed-size column that can shrink
-   only to the size of the short indicator; title will take remaining space and
-   is allowed to compress first. */
-.date-container {
-  flex: none;
-  display: flex;
-  justify-content: center;
-  min-width: 3ch; /* ensure at least '0d' fits */
-}
-
-/* make buttons center their icon content */
-.task-row button {
-  display: flex;
+  z-index: 10;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-/* make every column contents themselves a flexbox so icons/inputs center within the row */
-.task-row > * {
-  display: flex;
-  align-items: center;
+.task-title-container:hover .editable-indicator,
+.subproject-name-container:hover .editable-indicator,
+.person-name-container:hover .editable-indicator,
+.task-row:hover .editable-indicator,
+.subproject-row:hover .editable-indicator,
+.person-chip:hover .editable-indicator,
+.task-person-row:hover .editable-indicator {
+  opacity: 1;
 }
 
-/* override any leftover align-self rules for row children */
-.task-row > * {
-  align-self: center !important;
+
+/* ============================================================
+  26. ANIMATIONS
+   ============================================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.task-row .task-title,
-.task-row .task-title-input,
-.task-row .task-date {
-  line-height: 1;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* date text: full string normally visible, abbreviated when space is tight */
-.task-date .short {
-  display: none;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+
+/* ============================================================
+  27. RESPONSIVE — Tablet (≤900px)
+   ============================================================ */
+@media (max-width: 900px) {
+  .main-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .container {
+    border-radius: 0;
+    min-height: 60vh;
+  }
+
+  .add-bar {
+    top: 0;
+  }
+
+  .side-editor {
+    border-radius: 0 0 18px 18px;
+    margin: 0;
+    position: static;
+    width: 100%;
+    max-width: 100vw;
+    height: auto;
+    min-height: 40vh;
+  }
+}
+
+
+/* ============================================================
+  28. RESPONSIVE — Small (≤640px)
+   ============================================================ */
+@media (max-width: 640px) {
+  .editor-columns {
+    flex-direction: column;
+  }
+
+  .editor-columns .left-column,
+  .editor-columns .right-column {
+    flex: 1 1 100%;
+  }
+
+  .task-row .notify-people {
+    display: none;
+  }
+
+  .add-bar .due-date-input {
+    display: none;
+  }
+}
+
+
+/* ============================================================
+  29. RESPONSIVE — Mobile (≤600px)
+   ============================================================ */
+@media (max-width: 600px) {
+  .add-bar-wrapper .add-bar {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 8px;
+  }
+
+  .add-bar-wrapper .add-bar .add-btn {
+    height: 40px;
+    width: 40px;
+  }
+}
+
+
+/* ============================================================
+  30. RESPONSIVE — Narrow (≤480px)
+   ============================================================ */
 @media (max-width: 480px) {
   .task-date .full {
     display: none;
   }
+
   .task-date .short {
     display: inline;
   }
@@ -2495,308 +2818,7 @@ body {
   .subproject-row-stats .stat-percent {
     display: none;
   }
-}
 
-.task-row .task-date {
-  text-align: center;
-  white-space: nowrap;
-}
-
-.task-row .task-title,
-.task-row .task-title-input {
-  text-align: left;
-  /* ensure text doesn't run directly up against right side of wrapper */
-  padding-right: 8px;
-}
-
-.task-row .task-title-input {
-  font-size: 1em;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  background: #fbfdff;
-  box-sizing: border-box;
-  flex: 1 1 0; /* fill wrapper */
-  min-width: 0;
-}
-
-/* prevent title text from spilling out of the row; use ellipsis when too long */
-.task-row .task-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.task-row .task-date {
-  flex: none;
-}
-.task-row .expand-icon {
-  flex: none; /* keep toggle at natural size */
-}
-.task-row input.task-checkbox {
-  flex: none;
-}
-.item-list li:last-child {
-  border-bottom: none;
-}
-.item-list li.done .task-title {
-  text-decoration: line-through;
-  color: #b6b6b6;
-}
-.item-list li span {
-  flex: 1;
-  cursor: pointer;
-  transition: color 0.2s;
-  font-weight: 500;
-  letter-spacing: -0.5px;
-  /* align-self reset removed; vertical centering handled by .task-row */
-}
-.item-list li .due-date {
-  font-size: 0.97em;
-  color: #7b8ca7;
-  margin-left: 8px;
-  /* no align-self so it shares row centering */
-}
-.item-list li .star {
-  /* star icon: no circle by default, circle appears on hover */
-  background: transparent;
-  border: none;
-  color: #e0b100;
-  font-size: 1.2em;
-  cursor: pointer;
-  margin-left: 4px;
-  padding: 4px;
-  border-radius: 50%;
-  transition: background 0.2s;
-}
-.item-list li .star.favorite {
-  color: #ffd700;
-  text-shadow: 0 0 2px #ffd70099;
-}
-
-.item-list li span:hover {
-  color: #2563eb;
-}
-
-.item-list li .star:hover {
-  background: #eee; /* circle on hover */
-}
-.item-list li .delete {
-  /* default styling for generic list deletions (projects/people/tasks) */
-  background: transparent;
-  color: #333;
-  border: none;
-  outline: none;
-  font-size: 1.1rem;
-  cursor: pointer;
-  margin-left: 10px;
-  padding: 4px;
-  border-radius: 50%;
-  transition: background 0.2s;
-}
-.item-list li .delete:hover {
-  background: #eee; /* show circle on hover */
-}
-
-/* task rows: delete button permanently visible as circular icon button */
-.task-row .delete {
-  background: transparent;         /* no circle until hover */
-  color: #333;                     /* match subproject X color */
-  border: none;
-  outline: none;
-  border-radius: 50%;
-  padding: 4px;                    /* same hit area as subproject button */
-  margin-left: 8pm;                /* align with subproject spacing */
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.task-row .delete:hover {
-  background: #eee; /* show circle on hover */
-}
-
-
-/* new columns inside task row */
-.task-date {
-  font-size: 0.95em;
-  margin-left: 12px;
-  /* align-self removed so date sits in center like other columns */
-}
-
-.notify-people {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  /* margin removed - spacing now handled by right-group gap */
-}
-
-/* highlight only the header when a task is in editing state */
-.item-list li.editing .task-header {
-  background: #e0f2ff; /* solid pale blue */
-  /* clip to padding so header background doesn't bleed under borders */
-  background-clip: padding-box;
-  /* left accent removed here to avoid duplicate accents — use .editor-panel */
-  box-shadow: 0 8px 28px #60a5fa11;
-  /* allow any visual overflow */
-  overflow: visible;
-}
-
-/* Editing-state alignment: consolidated rules so header content and the
-   right-column controls remain vertically aligned with the title. Keeping
-   these rules together reduces scattered overrides and makes layout
-   behavior easier to reason about. */
-.item-list li.is-editing .task-row,
-.item-list li.is-editing .task-row > *,
-.item-list li.is-editing .right-group {
-  align-items: center !important;
-}
-.item-list li.is-editing .notify-people {
-  align-self: center !important;
-  margin-top: 0;
-}
-
-.editing-subtitle {
-  margin-top: 6px;
-  color: #4b5563;
-  font-size: 0.95rem;
-  word-break: break-word;
-}
-
-/* global default */
-.projects-panel .project-tile {
-  --project-tile-width: 350px;
-  --project-tile-height: 180px;
-}
-
-/* individual override */
-.tile-large { --project-tile-width: 320px; }
-.tile-short { --project-tile-height: 120px; }
-/* editable indicator: tiny pencil icon for inline-editable fields */
-/* overlay positioned absolutely to the right, no layout impact */
-.task-title-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1 1 0; /* fill the wrapper */
-  min-width: 0; /* required for flex text truncation */
-}
-
-.subproject-name-container,
-.person-name-container {
-  position: relative;
-  display: inline-block;
-}
-
-.editable-indicator {
-  font-size: 0.75rem !important;
-  color: #a0a0a0 !important;
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
-  cursor: pointer !important;
-  position: absolute;
-  right: -18px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* show more opaque on hover for better visibility */
-.task-title-container:hover .editable-indicator,
-.subproject-name-container:hover .editable-indicator,
-.person-name-container:hover .editable-indicator,
-.task-row:hover .editable-indicator,
-.subproject-row:hover .editable-indicator,
-.person-chip:hover .editable-indicator,
-.task-person-row:hover .editable-indicator {
-  opacity: 1;
-}
-
-/* AddBar when displayed as a list item in subproject task list */
-.add-bar-wrapper {
-  display: flex;
-  align-items: center;
-  list-style: none;
-  flex-direction: column;
-  gap: 0;
-  padding: 2px 10px !important;
-  border-bottom: 1.5px solid #e9f0fb;
-  font-size: 1.08rem;
-  background: #fff;
-  border-radius: 10px;
-  margin-bottom: 2px;
-  box-shadow: 0 1px 4px #b6c6e61a;
-  width: auto;
-}
-
-.add-bar-wrapper .add-bar {
-  width: 100%;
-  margin: 0;
-  padding: 12px 12px 12px 12px;
-  position: static;
-  top: auto;
-  background: #d32998;
-  display: flex;
-  gap: 10px;
-  flex-wrap: nowrap;
-  justify-content: center;
-  align-items: center;
-}
-
-.add-bar-wrapper .add-bar input {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 8px;
-  font-size: 1rem;
-  background: #fff;
-  min-width: 100px;
-}
-
-.add-bar-wrapper .add-bar input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
-}
-
-.add-bar-wrapper .add-bar .add-btn {
-  background: #fde9f6;
-  color: #fde9f6;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 12px;
-  border-radius: 8px;
-  flex: none;
-  height: 44px;
-  width: 44px;
-}
-
-.add-bar-wrapper .add-bar .add-btn:hover {
-  background: #fde9f6;
-}
-
-/* Responsive breakpoints for AddBar on smaller screens */
-@media (max-width: 600px) {
-  .add-bar-wrapper .add-bar {
-    padding-left: 8px;
-    padding-right: 8px;
-    gap: 8px;
-  }
-  
-  .add-bar-wrapper .add-bar .add-btn {
-    height: 40px;
-    width: 40px;
-  }
-}
-
-@media (max-width: 480px) {
   .add-bar-wrapper .add-bar input {
     max-width: none;
     flex: 1;
@@ -2804,7 +2826,7 @@ body {
     font-size: 0.95rem;
     padding: 10px 12px;
   }
-  
+
   .add-bar-wrapper .add-bar {
     padding-left: 6px;
     padding-right: 6px;
@@ -2812,14 +2834,28 @@ body {
     padding-top: 10px;
     padding-bottom: 10px;
   }
-  
+
   .add-bar-wrapper .add-bar .add-btn {
     height: 36px;
     width: 36px;
     padding: 6px 10px !important;
   }
-  
+
   .add-bar-wrapper .add-bar .add-btn .material-icons {
     font-size: 20px;
+  }
+}
+
+
+/* ============================================================
+  31. RESPONSIVE — Tiny (≤290px)
+   ============================================================ */
+@media (max-width: 290px) {
+  .title-bar .search-container {
+    display: none;
+  }
+
+  .task-date {
+    display: none;
   }
 }
