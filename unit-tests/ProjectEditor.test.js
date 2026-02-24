@@ -140,4 +140,18 @@ describe('ProjectEditor', () => {
     expect(applied.subprojects[0].tasks[0].text).toBe('b');
     expect(applied.subprojects[0].tasks[1].text).toBe('a');
   });
+
+  test('collapsed subproject renders as SubprojectRow', () => {
+    const props = {
+      ...defaultProps,
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          { id: 'sub1', text: 'x', tasks: [], newTaskText: '', collapsed: true },
+        ],
+      },
+    };
+    render(<ProjectEditor {...props} />);
+    expect(document.querySelector('.subproject-row')).toBeTruthy();
+  });
 });
