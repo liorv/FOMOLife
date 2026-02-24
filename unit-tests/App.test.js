@@ -492,23 +492,29 @@ describe('App component', () => {
     const secondTitle = rows[1].querySelector('.subproject-row-title span');
     expect(secondTitle.textContent).toBe('');
 
-    // each subproject shows an input bar at top for adding tasks
-    const newTaskInput = document.querySelector(
-      '.project-editor .subproject-tasks .new-task-input',
-    );
-    expect(newTaskInput).toBeInTheDocument();
-    // add a task via Enter key
-    fireEvent.change(newTaskInput, { target: { value: 'Task1' } });
-    fireEvent.keyDown(newTaskInput, { key: 'Enter', code: 'Enter' });
-    const newTaskInputAfter = document.querySelector(
-      '.project-editor .subproject-tasks .new-task-input',
-    );
-    expect(newTaskInputAfter.value).toBe('');
-    // a new task-row should now exist inside editor (may take a moment)
+    // use header add button to insert a blank task
+    const headerAdd = document.querySelector('.subproject-summary .add-task-header-btn');
+    expect(headerAdd).toBeTruthy();
+    fireEvent.click(headerAdd);
+    // blank task row should appear
     let taskRow;
     await waitFor(() => {
       taskRow = document.querySelector('.project-editor .task-row');
       expect(taskRow).toBeInTheDocument();
+    });
+    // only one unnamed task allowed
+    fireEvent.click(headerAdd);
+    await new Promise((r) => setTimeout(r, 0));
+    const rows = document.querySelectorAll('.project-editor .task-row');
+    expect(rows.length).toBe(1);
+
+    // collapse the entire project editor then reopen to ensure blank task gone
+    const closeBtn = screen.getByTitle('Close');
+    fireEvent.click(closeBtn);
+    await waitFor(() => {
+      const tile = screen.getByText('E').closest('.project-tile');
+      fireEvent.click(tile.querySelector('.edit-icon'));
+      expect(document.querySelectorAll('.project-editor .task-row').length).toBe(0);
     });
 
     // only one subproject may be expanded at once
@@ -526,13 +532,14 @@ describe('App component', () => {
     fireEvent.click(secondCollapse);
     expect(subs[0].classList.contains('collapsed')).toBe(true);
     expect(subs[1].classList.contains('collapsed')).toBe(false);
-    // delete button is always visible with circular background
-    const deleteBtns = document.querySelectorAll('.project-editor .subproject .delete');
-    expect(deleteBtns.length).toBeGreaterThanOrEqual(2);
-    const deleteBtn = deleteBtns[0]; // target the first subproject for removal
-    expect(deleteBtn).toBeInTheDocument();
-    // button exists in DOM; clicking it should remove the subproject
-    fireEvent.click(deleteBtn);
+    // deletion now happens via the menu on each row
+    const firstRow = subs[0];
+    const menuBtn = firstRow.querySelector('.menu-button');
+    expect(menuBtn).toBeTruthy();
+    fireEvent.click(menuBtn);
+    const deleteItem = firstRow.querySelector('.delete-item');
+    expect(deleteItem).toBeTruthy();
+    fireEvent.click(deleteItem);
     // wait for removal to propagate
     await waitFor(() => {
       const remainingRows = document.querySelectorAll('.project-editor .subproject-row');
