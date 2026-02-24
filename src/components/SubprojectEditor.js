@@ -102,7 +102,6 @@ export default function SubprojectEditor({
               allPeople={allPeople}
               onOpenPeople={onOpenPeople}
               onCreatePerson={onCreatePerson}
-              showDragHandle={true}
             />
           </ul>
         </div>

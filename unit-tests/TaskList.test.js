@@ -101,9 +101,9 @@ describe('TaskList component', () => {
       </ul>
     );
 
-    // simulate dragstart on the handle to ensure callback runs
-    const handleElem = document.querySelector('.drag-handle');
-    fireEvent.dragStart(handleElem);
+    // simulate dragstart on the row to ensure callback runs
+    const rowElem = document.querySelector('.task-row');
+    fireEvent.dragStart(rowElem);
     expect(dragStart).toHaveBeenCalledWith('t1', expect.any(Object));
 
     fireEvent.click(screen.getByText('task1'));
@@ -113,50 +113,6 @@ describe('TaskList component', () => {
     expect(setIdx).toHaveBeenCalledTimes(2);
   });
 
-  test('showDragHandle prop controls visibility of drag handle', () => {
-    // without handle
-    const { container: c1 } = render(
-      <ul className="item-list">
-        <TaskList
-          items={tasks}
-          type="tasks"
-          editorTaskId={null}
-          setEditorTaskId={() => {}}
-          handleToggle={() => {}}
-          handleStar={() => {}}
-          handleDelete={() => {}}
-          onEditorSave={onEditorSave}
-          onEditorUpdate={onEditorUpdate}
-          onEditorClose={onEditorClose}
-          allPeople={allPeople}
-          onOpenPeople={() => {}}
-          onCreatePerson={() => {}}
-          showDragHandle={false}
-        />
-      </ul>
-    );
-    expect(c1.querySelector('.drag-handle')).toBeNull();
+  // showDragHandle tests removed since handle no longer exists
 
-    const { container: c2 } = render(
-      <ul className="item-list">
-        <TaskList
-          items={tasks}
-          type="tasks"
-          editorTaskId={null}
-          setEditorTaskId={() => {}}
-          handleToggle={() => {}}
-          handleStar={() => {}}
-          handleDelete={() => {}}
-          onEditorSave={onEditorSave}
-          onEditorUpdate={onEditorUpdate}
-          onEditorClose={onEditorClose}
-          allPeople={allPeople}
-          onOpenPeople={() => {}}
-          onCreatePerson={() => {}}
-          showDragHandle={true}
-        />
-      </ul>
-    );
-    expect(c2.querySelector('.drag-handle')).toBeTruthy();
-  });
 });

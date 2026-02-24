@@ -31,8 +31,6 @@ export default function TaskRow({
   onDragOver,
   onDrop,
   onDragEnd,
-  // whether to show the drag handle
-  showDragHandle = false,
 }) {
   const isOpen = editorTaskId === id;
   // determine if due date exists and is in the past and compute days left
@@ -52,6 +50,11 @@ export default function TaskRow({
     <div
       className="task-row"
       draggable={type === "tasks"}
+      onDragStart={(e) => {
+        if (type === "tasks") {
+          onDragStart && onDragStart(id, e);
+        }
+      }}
       onDragOver={(e) => {
         if (type === "tasks") {
           e.preventDefault();
@@ -70,30 +73,19 @@ export default function TaskRow({
         }
       }}
     >
-      {/* left group: drag handle, expand, checkbox, title */}
+      {/* left group: expand, checkbox, title */}
       <div className="left-group">
-        {type === "tasks" && showDragHandle && (
-          <>
-            <span
-              className="drag-handle material-icons"
-              title="Drag to reorder"
-              aria-hidden="true"
-              draggable={true}
-              onDragStart={(e) => {
-                onDragStart && onDragStart(id, e);
-              }}
-            >
-              drag_handle
-            </span>{/* no whitespace between handle and expand icon */}
-            <span
-              className={`material-icons expand-icon${isOpen ? " open" : ""}`}
-              onClick={() => setEditorTaskId(id)}
-              title={isOpen ? " Collapse editor" : "Expand editor"}
-              aria-hidden="true"
-            >
-              {isOpen ? "expand_more" : "chevron_right"}
-            </span>
-          </>
+        {/* expanding is always available for tasks */}
+
+        {type === "tasks" && (
+          <span
+            className={`material-icons expand-icon${isOpen ? " open" : ""}`}
+            onClick={() => setEditorTaskId(id)}
+            title={isOpen ? " Collapse editor" : "Expand editor"}
+            aria-hidden="true"
+          >
+            {isOpen ? "expand_more" : "chevron_right"}
+          </span>
         )}
 
         {type === "tasks" && (

@@ -318,8 +318,8 @@ describe('App component', () => {
     expect(rowsBefore[1].textContent).toContain('second');
 
     // simulate dragging the first row onto the second
-    const dragHandle = rowsBefore[0].querySelector('.drag-handle');
-    fireEvent.dragStart(dragHandle);
+    const sourceRow = rowsBefore[0];
+    fireEvent.dragStart(sourceRow);
     const targetRow = rowsBefore[1];
     fireEvent.dragOver(targetRow);
     fireEvent.drop(targetRow);
@@ -467,8 +467,7 @@ describe('App component', () => {
     expect(rows[1].textContent).toContain('two');
 
     // simulate drag to reorder same as previous tests
-    const handle = rows[0].querySelector('.drag-handle');
-    fireEvent.dragStart(handle);
+    fireEvent.dragStart(rows[0]);
     fireEvent.dragOver(rows[1]);
     fireEvent.drop(rows[1]);
 

@@ -93,23 +93,6 @@
   cursor: pointer;
 }
 
-/* drag handle icon styling for sortable tasks */
-.drag-handle {
-  cursor: grab;
-  position: absolute; /* remove from flex flow */
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  margin: 0;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  color: rgba(0, 0, 0, 0.6);
-  font-size: 1.2em; /* ensure consistent icon size */
-}
-.drag-handle:active {
-  cursor: grabbing;
-}
 
 /* helper layout classes for editor sections */
 .editor-section {
@@ -1172,27 +1155,6 @@ body {
 .subproject-summary .delete:hover {
   background: #eee; /* show pale gray circle on hover */
 }
-.add-task-row {
-  display: flex;
-  gap: 8px;
-  /* no vertical margin so the component's bottom edge doesn't grow
-     inside the subproject card */
-  margin: 0;
-}
-.add-task-row .new-task-input {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid rgba(60, 64, 67, 0.12);
-  border-radius: 6px;
-}
-.add-task-row .add-task-btn {
-  background: #2b6cb0;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
 
 /* project editor task button and row spacing */
 /* icon button that lives in the subproject summary */
@@ -1409,6 +1371,19 @@ body {
 /* specific styling for hamburger menu */
 .subproject-row .menu-button {
   margin-left: auto; /* push to right edge */
+}
+
+/* button in header to add a new task */
+.add-task-header-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-left: 8px;
+  border-radius: 50%;
+}
+.add-task-header-btn:hover {
+  background: rgba(0,0,0,0.04);
 }
 
 .subproject-row-menu {
@@ -1922,7 +1897,7 @@ body {
   align-items: center;
   gap: 6px;
   position: relative; /* needed for absolutely-positioned handle */
-  padding-left: 20px; /* reserve space for handle so content doesn't overlap */
+  padding-left: 10px; /* reserve space for handle so content doesn't overlap */
 }
 
 /* left, middle, and right groups help with centering the date */

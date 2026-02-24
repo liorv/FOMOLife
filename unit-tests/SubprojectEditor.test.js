@@ -111,8 +111,8 @@ test('header add button calls onAddTask and avoids duplicate blank tasks', () =>
     // verify two rows rendered
     expect(document.querySelectorAll('.task-row').length).toBe(2);
     const rows = document.querySelectorAll('.task-row');
-    const handle = rows[0].querySelector('.drag-handle');
-    fireEvent.dragStart(handle);
+    // start drag on the row itself
+    fireEvent.dragStart(rows[0]);
     fireEvent.dragOver(rows[1]);
     fireEvent.drop(rows[1]);
     // because handlers are mocks, just make sure drop handler called

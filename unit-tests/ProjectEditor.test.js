@@ -125,8 +125,7 @@ describe('ProjectEditor', () => {
     expect(rows[1].textContent).toContain('b');
 
     // perform drag-reorder: drag first row onto second
-    const handle = rows[0].querySelector('.drag-handle');
-    fireEvent.dragStart(handle);
+    fireEvent.dragStart(rows[0]);
     const target = rows[1];
     fireEvent.dragOver(target);
     fireEvent.drop(target);

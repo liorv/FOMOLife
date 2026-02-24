@@ -22,8 +22,6 @@ export default function TaskList({
   onDragOver,
   onDrop,
   onDragEnd,
-  // when true show drag handles on task rows
-  showDragHandle = false,
   // task-editor props (only relevant when type === 'tasks')
   onEditorSave,
   onEditorUpdate,
@@ -83,7 +81,6 @@ export default function TaskList({
             onDragOver={onDragOver}
             onDrop={onDrop}
             onDragEnd={onDragEnd}
-            showDragHandle={showDragHandle}
           />
         );
 
@@ -118,7 +115,6 @@ export default function TaskList({
               onDragOver={onDragOver}
               onDrop={onDrop}
               onDragEnd={onDragEnd}
-              showDragHandle={showDragHandle}
             >
               {editor}
             </Task>

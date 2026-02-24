@@ -34,29 +34,20 @@ describe('TaskRow component', () => {
       />
     );
 
-    // order: drag handle -> expand icon -> checkbox -> title inside left-group
+    // left-group should contain expand icon, checkbox, and title in order
     const left = container.querySelector('.left-group');
-    const dragHandle = left.querySelector('.drag-handle');
-    expect(dragHandle).toBeTruthy();
-    expect(dragHandle.textContent).toBe('drag_handle');
-    // draggable attribute should be present on handle
-    expect(dragHandle.getAttribute('draggable')).toBe('true');
-    // there should be no extra right margin (icon only)
-    
+    const icon = left.querySelector('.expand-icon');
+    expect(icon).toBeTruthy();
+    const checkbox = icon.nextSibling;
+    expect(checkbox.tagName).toBe('INPUT');
+    const title = checkbox.nextSibling;
+    expect(title.textContent).toBe('row task');
 
     // title span should include the full text as a tooltip
     const titleSpan = container.querySelector('.task-title');
     expect(titleSpan.getAttribute('title')).toBe('row task');
     // style should truncate with ellipsis (nowrap)
 
-    const icon = left.querySelector('.expand-icon');
-    expect(icon).toBeTruthy();
-    // collapsed icon should face right
-    expect(icon.textContent).toBe('chevron_right');
-    const checkbox = icon.nextSibling;
-    expect(checkbox.tagName).toBe('INPUT');
-    const title = checkbox.nextSibling;
-    expect(title.textContent).toBe('row task');
     // days-left should live within the date-container and be centered
     const dateContainer = container.querySelector('.date-container');
     expect(dateContainer).toBeTruthy();
@@ -168,7 +159,7 @@ describe('TaskRow component', () => {
     expect(leftgroup.querySelector('.expand-icon').textContent).toBe('expand_more');
   });
 
-  test('drag handle invokes provided callback', () => {
+  test('dragging row invokes provided callback', () => {
     const dragStart = jest.fn();
     const { container } = render(
       <TaskRow
@@ -181,32 +172,16 @@ describe('TaskRow component', () => {
         handleStar={handleStar}
         handleDelete={handleDelete}
         onDragStart={dragStart}
-        showDragHandle={true}
       />
     );
-    const handle = container.querySelector('.drag-handle');
-    expect(handle).toBeTruthy();
-    fireEvent.dragStart(handle);
+    const row = container.querySelector('.task-row');
+    expect(row).toBeTruthy();
+    fireEvent.dragStart(row);
     expect(dragStart).toHaveBeenCalledWith('row-1', expect.any(Object));
   });
 
-  test('drag handle hidden when showDragHandle is false', () => {
-    const { container } = render(
-      <TaskRow
-        item={task}
-        id="row-1"
-        type="tasks"
-        editorTaskId={null}
-        setEditorTaskId={setEditor}
-        handleToggle={handleToggle}
-        handleStar={handleStar}
-        handleDelete={handleDelete}
-        showDragHandle={false}
-      />
-    );
-    const handle = container.querySelector('.drag-handle');
-    expect(handle).toBeNull();
-  });
+  // inline editing has been removed; title remains read-only even when row is open
+
 
   // inline editing has been removed; title remains read-only even when row is open
 });
