@@ -1343,18 +1343,6 @@ body {
   box-shadow: 0 4px 6px rgba(0,0,0,0.16), 0 2x 4px rgba(0,0,0,0.12);
 }
 
-/* reorder button in subproject editor summary */
-.reorder-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  margin-left: 8px; /* separate from menu */
-}
-.reorder-btn:hover {
-  background: rgba(0,0,0,0.04);
-}
 .subproject-row:active {
   box-shadow: 0 8px 10px rgba(0,0,0,0.12), 0 3px 14px rgba(0,0,0,0.14);
 }

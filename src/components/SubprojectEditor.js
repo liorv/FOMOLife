@@ -27,7 +27,6 @@ export default function SubprojectEditor({
   onCreatePerson,
 }) {
   const collapsed = sub.collapsed;
-  const [reorderMode, setReorderMode] = React.useState(false);
 
   // when collapsed, just render a compact row; edit button will expand
   if (collapsed) {
@@ -62,18 +61,8 @@ export default function SubprojectEditor({
         >
           {sub.text}
         </span>
-        {/* spacer pushes buttons to right */}
+        {/* spacer pushes menu to the right */}
         <div style={{ flex: '1 1 auto' }} />
-        {/* reorder toggle on right */}
-        <button
-          className="reorder-btn"
-          title={reorderMode ? "Finish reordering" : "Reorder tasks"}
-          onClick={() => setReorderMode((r) => !r)}
-        >
-          <span className="material-icons">
-            {reorderMode ? "done" : "drag_handle"}
-          </span>
-        </button>
       </div>
       <div className="subproject-body">
         <div className="subproject-tasks">
@@ -118,7 +107,7 @@ export default function SubprojectEditor({
               allPeople={allPeople}
               onOpenPeople={onOpenPeople}
               onCreatePerson={onCreatePerson}
-              showDragHandle={reorderMode}
+              showDragHandle={true}
             />
           </ul>
         </div>
