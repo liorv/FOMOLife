@@ -116,8 +116,21 @@ export default function ProjectEditor({
         return { ...s, collapsed: true };
       }),
     };
-    setLocal(updated);
-    onApplyChange(updated);
+    // if we're collapsing the requested subproject, strip any unnamed tasks
+    const cleaned = {
+      ...updated,
+      subprojects: updated.subprojects.map((s) => {
+        if (s.id === id && s.collapsed) {
+          return {
+            ...s,
+            tasks: (s.tasks || []).filter((t) => t.text && t.text.trim() !== ""),
+          };
+        }
+        return s;
+      }),
+    };
+    setLocal(cleaned);
+    onApplyChange(cleaned);
   };
 
   const updateSubNewTask = (id, text) => {
@@ -130,9 +143,10 @@ export default function ProjectEditor({
     setLocal(updated);
   };
 
-  const addTask = (subId, text = "") => {
-    // prevent creating tasks with no name (or only whitespace)
-    if (!text || text.trim() === "") {
+  const addTask = (subId, text = "", allowBlank = false) => {
+    // prevent creating tasks with no name (or only whitespace) unless caller
+    // explicitly asked for a blank placeholder.
+    if ((!text || text.trim() === "") && !allowBlank) {
       return;
     }
 
@@ -256,7 +270,7 @@ export default function ProjectEditor({
           onUpdateText={(text) => updateSubText(sub.id, text)}
           onToggleCollapse={() => toggleSubCollapse(sub.id)}
           onUpdateNewTask={(text) => updateSubNewTask(sub.id, text)}
-          onAddTask={(text) => addTask(sub.id, text)}
+          onAddTask={(text, allowBlank) => addTask(sub.id, text, allowBlank)}
           handleTaskToggle={(taskId) => handleTaskToggle(sub.id, taskId)}
           handleTaskStar={(taskId) => handleTaskStar(sub.id, taskId)}
           handleTaskDelete={(taskId) => handleTaskDelete(sub.id, taskId)}

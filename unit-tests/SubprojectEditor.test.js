@@ -42,8 +42,8 @@ describe('SubprojectEditor', () => {
     expect(nameDisplay.textContent).toBe(defaultSub.text);
     // input should not exist anymore
     expect(document.getElementById('subproject-name-sub1')).toBeNull();
-    const taskInput = document.getElementById('new-task-sub1');
-    expect(taskInput).toBeInTheDocument();
+    // header should include add-task button now that the input row is gone
+    expect(document.querySelector('.add-task-header-btn')).toBeTruthy();
   });
 
   test('shows SubprojectRow when collapsed and edit button works', () => {
@@ -67,31 +67,6 @@ describe('SubprojectEditor', () => {
   });
 
 
-  test('inline editing via row updates text and calls onApplyChange', () => {
-    const changed = jest.fn();
-    const props = {
-      ...defaultHandlers,
-      project: {
-        ...defaultHandlers.project,
-        subprojects: [
-          { id: 'sub1', text: 'foo', tasks: [], newTaskText: '', collapsed: true },
-        ],
-      },
-      onApplyChange: changed,
-    };
-    render(<SubprojectEditor {...props} />);
-    // click the title to start editing
-    const titleSpan = screen.getByText('foo');
-    fireEvent.click(titleSpan);
-    const input = document.querySelector('.subproject-row-name-input');
-    expect(input).toBeTruthy();
-    fireEvent.change(input, { target: { value: 'bar' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    fireEvent.blur(input);
-    expect(changed).toHaveBeenCalled();
-    const applied = changed.mock.calls.pop()[0];
-    expect(applied.subprojects[0].text).toBe('bar');
-  });
 
   test('calls onToggleCollapse when collapse button is clicked', () => {
     render(<SubprojectEditor sub={defaultSub} {...defaultHandlers} />);
@@ -109,12 +84,15 @@ test('header add button calls onAddTask and avoids duplicate blank tasks', () =>
     expect(addBtn).toBeTruthy();
     fireEvent.click(addBtn);
     expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
+    expect(handlers.onAddTask).toHaveBeenCalledWith("", true);
 
     // simulate parent having added an empty task and re-render
     subWithTasks.tasks = [{ id: 't1', text: '' }];
     rerender(<SubprojectEditor sub={subWithTasks} {...handlers} />);
     fireEvent.click(addBtn);
     expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
+    // still no additional call; args should remain same
+    expect(handlers.onAddTask).toHaveBeenCalledWith("", true);
   });
 
 

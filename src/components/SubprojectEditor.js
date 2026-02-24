@@ -33,9 +33,9 @@ export default function SubprojectEditor({
     if ((sub.tasks || []).some((t) => !t.text || t.text.trim() === "")) {
       return;
     }
-    // ask the parent to create an empty task for us; the first argument is
-    // the task text, not the subproject id, because ProjectEditor already
-    // wrapped this function with the appropriate sub id.
+    // ask the parent to create an empty task for us. our helper `addTask`
+    // supports a third `allowBlank` boolean so we can bypass validation.
+    onAddTask("", true);
   };
 
   // when collapsed, just render a compact row; edit button will expand

@@ -64,9 +64,11 @@ describe('ProjectEditor', () => {
       },
     };
     render(<ProjectEditor {...props} />);
-    // the subproject name input should have an id based on the subproject id
-    const nameInput = document.getElementById('subproject-name-sub1');
-    expect(nameInput).toBeInTheDocument();
+    // previously this test ensured there was an input, but the value now
+    // lives inside the SubprojectEditor/Row component.  simply verify the
+    // collapsed row renders its title text instead.
+    const title = screen.getByText('foo');
+    expect(title).toBeInTheDocument();
   });
 
 
