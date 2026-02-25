@@ -4,21 +4,21 @@ import React from "react";
  * Horizontal bar at the top — logo, optional project title, and search slot.
  *
  * Optional auth props:
- *   user       – Supabase User object; when provided a small avatar / email
- *                chip is rendered in the right column.
- *   onSignOut  – called when the user clicks the sign-out button.
+ *   user       – Supabase User object; when provided a Google-style avatar
+ *                button is rendered in the right column. Clicking it opens
+ *                a dropdown with the user's name/email and a Sign out option.
+ *   onSignOut  – called when the user clicks Sign out in the dropdown.
  */
 export default function LogoBar({
   logoUrl = "/assets/logo_fomo.png",
-  title, // when provided, show instead of logo/search
-  onBack, // invoked when back button is pressed
-  onLogoClick, // invoked when logo is clicked (e.g. act as back nav)
-  onTitleChange, // optional callback when title is edited inline
-  user, // authenticated Supabase user (optional)
-  onSignOut, // sign-out callback (optional)
+  title,
+  onBack,
+  onLogoClick,
+  onTitleChange,
+  user,
+  onSignOut,
   children,
 }) {
-  // Derive a short display name from the user's identity
   const displayName =
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
@@ -28,8 +28,23 @@ export default function LogoBar({
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
     null;
+
   const [editing, setEditing] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState(title || "");
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuRef = React.useRef(null);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
 
   React.useEffect(() => {
     setDraftTitle(title || "");
@@ -43,15 +58,12 @@ export default function LogoBar({
   };
 
   const handleTitleClick = () => {
-    if (onTitleChange) {
-      setEditing(true);
-    }
+    if (onTitleChange) setEditing(true);
   };
 
   return (
     <div className="title-bar">
       <div className="left-column">
-        {/* logo always shown, even when a title is present */}
         <img
           src={logoUrl}
           alt="FOMO logo"
@@ -72,9 +84,7 @@ export default function LogoBar({
                   value={draftTitle}
                   onChange={(e) => setDraftTitle(e.target.value)}
                   onBlur={finishEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") finishEdit();
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") finishEdit(); }}
                   autoFocus
                 />
               ) : (
@@ -96,33 +106,68 @@ export default function LogoBar({
             aria-label="Close"
             style={{ padding: '12px' }}
           >
-            <span className="material-icons" style={{ fontSize: '48px' }}>
-              close
-            </span>
+            <span className="material-icons" style={{ fontSize: '48px' }}>close</span>
           </button>
         )}
         {user && onSignOut && !onBack && (
-          <div className="logobar-user" title={user.email}>
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={displayName || "User"}
-                className="logobar-avatar"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <span className="logobar-avatar logobar-avatar--initials">
-                {(displayName || "?")[0].toUpperCase()}
-              </span>
-            )}
+          <div className="logobar-user" ref={menuRef}>
+            {/* Avatar button */}
             <button
-              className="logobar-signout-btn"
-              onClick={onSignOut}
-              title="Sign out"
-              aria-label="Sign out"
+              className="logobar-avatar-btn"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Account menu"
+              aria-expanded={menuOpen}
             >
-              <span className="material-icons" style={{ fontSize: '20px' }}>logout</span>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName || "User"}
+                  className="logobar-avatar"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="logobar-avatar logobar-avatar--initials">
+                  {(displayName || "?")[0].toUpperCase()}
+                </span>
+              )}
             </button>
+
+            {/* Dropdown menu */}
+            {menuOpen && (
+              <div className="logobar-menu" role="menu">
+                {/* User identity header */}
+                <div className="logobar-menu-header">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={displayName || "User"}
+                      className="logobar-menu-avatar"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="logobar-menu-avatar logobar-avatar--initials">
+                      {(displayName || "?")[0].toUpperCase()}
+                    </span>
+                  )}
+                  <div className="logobar-menu-identity">
+                    {displayName && <span className="logobar-menu-name">{displayName}</span>}
+                    <span className="logobar-menu-email">{user.email}</span>
+                  </div>
+                </div>
+
+                <div className="logobar-menu-divider" />
+
+                {/* Sign out */}
+                <button
+                  className="logobar-menu-item"
+                  role="menuitem"
+                  onClick={() => { setMenuOpen(false); onSignOut(); }}
+                >
+                  <span className="material-icons logobar-menu-item-icon">logout</span>
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

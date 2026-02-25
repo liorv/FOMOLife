@@ -111,6 +111,10 @@ export function AuthProvider({ children }) {
       provider: providerId,
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+          // Always show the account chooser so users can switch accounts
+          prompt: 'select_account',
+        },
       },
     });
     if (error) {
