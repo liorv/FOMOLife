@@ -340,6 +340,7 @@ export default function ProjectEditor({
       return;
     }
 
+    let updated = null;
     setLocal((prev) => {
       // If dropping on same subproject and same task, do nothing
       if (fromSub === subId && draggedId === taskId) {
@@ -387,8 +388,7 @@ export default function ProjectEditor({
           tasks: toSubTasks,
         };
 
-        const updated = { ...prev, subprojects: newSubprojects };
-        onApplyChange(updated);
+        updated = { ...prev, subprojects: newSubprojects };
         return updated;
       }
 
@@ -403,10 +403,12 @@ export default function ProjectEditor({
         tasks.splice(toIdx, 0, moved);
         return { ...s, tasks };
       });
-      const updated = { ...prev, subprojects: subs };
-      onApplyChange(updated);
+      updated = { ...prev, subprojects: subs };
       return updated;
     });
+    if (updated) {
+      onApplyChange(updated);
+    }
     setDraggedTask({ subId: null, taskId: null });
     setDragOverSubprojectId(null);
   };
@@ -420,6 +422,7 @@ export default function ProjectEditor({
       return;
     }
 
+    let updated = null;
     setLocal((prev) => {
       const fromSubIdx = (prev.subprojects || []).findIndex((s) => s.id === fromSub);
       const toSubIdx = (prev.subprojects || []).findIndex((s) => s.id === subId);
@@ -452,13 +455,15 @@ export default function ProjectEditor({
         tasks: toSubTasks,
       };
 
-      const updated = { ...prev, subprojects: newSubprojects };
-      onApplyChange(updated);
+      updated = { ...prev, subprojects: newSubprojects };
       return updated;
     });
+    if (updated) {
+      onApplyChange(updated);
+    }
     setDraggedTask({ subId: null, taskId: null });
     setDragOverSubprojectId(null);
-  };;
+  };
 
   const handleDragEnd = () => {
     setDraggedTask({ subId: null, taskId: null });
