@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PROVIDERS, useAuth } from "../contexts/AuthContext";
-import "./LoginPage.css";
+import styles from "./LoginPage.module.css";
 
 const logoUrl = "/assets/logo_fomo.png";
 
@@ -34,21 +34,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
+    <div className={styles["login-page"]}>
+      <div className={styles["login-card"]}>
         {/* Branding */}
-        <img src={logoUrl} alt="FOMO Life logo" className="login-logo" />
-        <h1 className="login-title">FOMO Life</h1>
-        <p className="login-subtitle">
+        <img src={logoUrl} alt="FOMO Life logo" className={styles["login-logo"]} />
+        <h1 className={styles["login-title"]}>FOMO Life</h1>
+        <p className={styles["login-subtitle"]}>
           Sign in to manage your tasks and projects
         </p>
 
         {/* Provider buttons */}
-        <div className="login-providers">
+        <div className={styles["login-providers"]}>
           {enabledProviders.map((provider) => (
             <button
               key={provider.id}
-              className={`login-provider-btn login-provider-btn--${provider.id}`}
+              className={`${styles["login-provider-btn"]} ${styles[`login-provider-btn--${provider.id}`] || ""}`}
               onClick={() => handleSignIn(provider)}
               disabled={loadingProvider !== null}
               aria-label={provider.label}
@@ -57,11 +57,11 @@ export default function LoginPage() {
                 <img
                   src={provider.iconSrc}
                   alt=""
-                  className="login-provider-icon"
+                  className={styles["login-provider-icon"]}
                   aria-hidden="true"
                 />
               )}
-              <span className="login-provider-label">
+              <span className={styles["login-provider-label"]}>
                 {loadingProvider === provider.id
                   ? "Redirecting…"
                   : provider.label}
@@ -70,9 +70,9 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {error && <p className="login-error">{error}</p>}
+        {error && <p className={styles["login-error"]}>{error}</p>}
 
-        <p className="login-fine-print">
+        <p className={styles["login-fine-print"]}>
           Your data is private and only accessible with your account.
           <br />
           New users are set up automatically — no registration needed.
