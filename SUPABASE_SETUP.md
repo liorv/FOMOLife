@@ -82,8 +82,8 @@ vercel --prod
 ## Credentials
 
 - **Project URL**: `https://paiczvbfstfvibijeivw.supabase.co`
-- **Anon Key**: `sb_publishable_5y9VVpd5McCdj-9ZAidUfw_nTqAcz8o`
-- **Service Role Key**: `sb_secret_-WZhXqP7Wb372irqWerFQA_41diohED`
+- **Anon Key**: *(find in Supabase → Project Settings → API → anon public)*
+- **Service Role Key**: *(find in Supabase → Project Settings → API → service_role — keep secret, never commit)*
 
 ## Data Structure
 

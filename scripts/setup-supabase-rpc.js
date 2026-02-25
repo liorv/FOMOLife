@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
-const SUPABASE_URL = "https://paiczvbfstfvibijeivw.supabase.co";
-const SERVICE_ROLE_KEY = "sb_secret_-WZhXqP7Wb372irqWerFQA_41diohED";
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://paiczvbfstfvibijeivw.supabase.co";
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; // set via env var, never hardcode
 
 // Read SQL file
 const sqlFile = path.join(__dirname, "..", "supabase_setup.sql");

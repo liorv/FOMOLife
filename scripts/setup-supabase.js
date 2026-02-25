@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
-const supabaseUrl = "https://paiczvbfstfvibijeivw.supabase.co";
-const serviceRoleKey = "sb_secret_-WZhXqP7Wb372irqWerFQA_41diohED";
+const supabaseUrl = process.env.SUPABASE_URL || "https://paiczvbfstfvibijeivw.supabase.co";
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; // set via env var, never hardcode
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
