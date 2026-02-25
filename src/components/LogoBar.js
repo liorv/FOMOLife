@@ -157,14 +157,24 @@ export default function LogoBar({
 
                 <div className="logobar-menu-divider" />
 
-                {/* Sign out */}
+                {/* Sign out — soft: auto-reconnect next visit */}
                 <button
                   className="logobar-menu-item"
                   role="menuitem"
-                  onClick={() => { setMenuOpen(false); onSignOut(); }}
+                  onClick={() => { setMenuOpen(false); onSignOut("soft"); }}
                 >
                   <span className="material-icons logobar-menu-item-icon">logout</span>
                   Sign out
+                </button>
+
+                {/* Switch account — hard: force account chooser next visit */}
+                <button
+                  className="logobar-menu-item"
+                  role="menuitem"
+                  onClick={() => { setMenuOpen(false); onSignOut("hard"); }}
+                >
+                  <span className="material-icons logobar-menu-item-icon">manage_accounts</span>
+                  Switch account
                 </button>
               </div>
             )}

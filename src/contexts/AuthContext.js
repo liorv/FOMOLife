@@ -64,6 +64,8 @@ export const PROVIDERS = [
   },
 ];
 
+const PROMPT_KEY = "fomo_next_auth_prompt";
+
 // ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
@@ -76,21 +78,19 @@ const AuthContext = createContext(null);
  *   user             – shorthand for session?.user
  *   loading          – true until the initial session check resolves
  *   signInWithProvider(providerId) – kicks off OAuth redirect flow
- *   signOut()        – clears the session and returns user to login screen
+ *   signOut(mode)    – 'soft' clears session but auto-reconnects next visit;
+ *                      'hard' (default) forces the account chooser next time
  */
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get current session (may exist from a previous visit via stored cookie/token)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Stay in sync with any auth state changes (sign-in redirect, token
-    // refresh, sign-out from another tab, etc.)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -101,20 +101,18 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  /**
-   * Initiate an OAuth sign-in flow for the given provider ID.
-   * After the OAuth redirect the provider sends the user back to
-   * window.location.origin, where Supabase picks up the token automatically.
-   */
   async function signInWithProvider(providerId) {
+    // Read prompt preference set by the last sign-out
+    const storedPrompt = localStorage.getItem(PROMPT_KEY);
+    // Default to 'select_account' if no preference stored (first visit / hard logout)
+    const prompt = storedPrompt === "auto" ? "none" : "select_account";
+    localStorage.removeItem(PROMPT_KEY);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: providerId,
       options: {
         redirectTo: window.location.origin,
-        queryParams: {
-          // Always show the account chooser so users can switch accounts
-          prompt: 'select_account',
-        },
+        queryParams: { prompt },
       },
     });
     if (error) {
@@ -123,10 +121,20 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function signOut() {
+  /**
+   * Sign out.
+   * @param {'soft'|'hard'} mode
+   *   soft – session cleared; next visit auto-reconnects the same Google account
+   *   hard – session cleared; next visit shows the Google account chooser
+   */
+  async function signOut(mode = "hard") {
+    if (mode === "soft") {
+      localStorage.setItem(PROMPT_KEY, "auto");
+    } else {
+      localStorage.removeItem(PROMPT_KEY);
+    }
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Sign-out error:", error.message);
-    // onAuthStateChange will fire and set session → null
   }
 
   const value = {
