@@ -12,6 +12,7 @@ import UndoSnackBar from "./components/UndoSnackBar";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
 import * as db from "./api/db";
+import { initSupabaseTables } from "./api/supabaseInit";
 import generateId from "./utils/generateId";
 
 const logoUrl = "/assets/logo_fomo.png";
@@ -103,6 +104,9 @@ function App({ userId } = {}) {
 
   useEffect(() => {
     (async () => {
+      // Initialize Supabase tables if they don't exist
+      await initSupabaseTables();
+      
       const loaded = await db.loadData(userId);
       // Ensure all projects have project-level tasks subproject
       if (loaded.projects) {

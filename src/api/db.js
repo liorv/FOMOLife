@@ -1,4 +1,4 @@
-import { loadData as rawLoad, saveData as rawSave } from "./storage";
+import { loadData as rawLoad, saveData as rawSave } from "./supabaseStorage";
 import generateId from "../utils/generateId";
 
 const DEFAULT_USER = "default";
