@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 import TaskList from "./components/TaskList";
 import TabNav from "./components/TabNav";
 import AddBar from "./components/AddBar";
@@ -16,6 +17,7 @@ const logoUrl = "/assets/logo_fomo.png";
 
 function App({ userId } = {}) {
   // --- State ---------------------------------------------------------------
+  const router = useRouter();
 
   const [data, setData] = useState({
     tasks: [],
@@ -120,6 +122,39 @@ function App({ userId } = {}) {
       db.saveData && db.saveData(data, userId);
     }
   }, [data]);
+
+  // Sync tab state with URL query parameter
+  useEffect(() => {
+    if (router.isReady && router.query.tab) {
+      const tabFromUrl = router.query.tab;
+      if (["tasks", "projects", "dreams", "people"].includes(tabFromUrl)) {
+        setType(tabFromUrl);
+      }
+    }
+  }, [router.isReady, router.query.tab]);
+
+  // Listen to route changes (including back button)
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const tabFromUrl = router.query.tab;
+      if (tabFromUrl && ["tasks", "projects", "dreams", "people"].includes(tabFromUrl)) {
+        setType(tabFromUrl);
+      }
+    };
+
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [router]);
+
+  // Update URL when user clicks a tab button
+  const handleTabChange = (newTab) => {
+    router.push({ pathname: "/", query: { tab: newTab } }, undefined, { shallow: true });
+  };
+
+  // Get the active tab from URL (source of truth), with fallback to state
+  const activeTab = router.isReady && router.query.tab ? router.query.tab : type;
 
   // --- Subproject helpers -------------------------------------------------
 
@@ -635,7 +670,7 @@ function App({ userId } = {}) {
           />
         </div>
       )}
-      <TabNav active={type} onChange={setType} />
+      <TabNav active={activeTab} onChange={handleTabChange} />
       {confirmingProjectId && (
         <ConfirmModal
           message="Are you sure you want to delete this project? This action cannot be undone."

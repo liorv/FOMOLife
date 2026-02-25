@@ -82,14 +82,15 @@ export default function ProjectTile({
   // Close modal when clicking overlay (but not the modal itself)
   useEffect(() => {
     function handleOverlayClick(event) {
-      if (event.target.classList.contains("color-picker-modal-overlay")) {
+      // Only close if clicking on the overlay background itself (has the data attribute)
+      if (event.target.hasAttribute("data-color-picker-overlay")) {
         setShowColorPicker(false);
       }
     }
 
     if (showColorPicker && window.innerWidth < 768) {
-      document.addEventListener("mousedown", handleOverlayClick);
-      return () => document.removeEventListener("mousedown", handleOverlayClick);
+      document.addEventListener("click", handleOverlayClick);
+      return () => document.removeEventListener("click", handleOverlayClick);
     }
   }, [showColorPicker]);
 
@@ -346,7 +347,7 @@ export default function ProjectTile({
 
       {/* Mobile color picker modal - rendered at document root to avoid scroll clipping */}
       {showColorPicker && window.innerWidth < 768 && ReactDOM.createPortal(
-        <div className="color-picker-modal-overlay">
+        <div className="color-picker-modal-overlay" data-color-picker-overlay>
           <div className="color-picker-modal">
             <div className="color-picker-modal-header">
               <h3>Choose Color</h3>
@@ -365,7 +366,16 @@ export default function ProjectTile({
                   className={`color-option ${c === color ? "selected" : ""}`}
                   style={{ backgroundColor: c }}
                   title={`Change to ${c}`}
-                  onClick={() => handleColorChange(c)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleColorChange(c);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleColorChange(c);
+                  }}
                   aria-label={`Color ${c}`}
                 >
                   {c === color && (

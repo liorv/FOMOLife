@@ -80,14 +80,15 @@ export default function SubprojectRow({
   // Close modal when clicking overlay (mobile)
   React.useEffect(() => {
     function handleOverlayClick(event) {
-      if (event.target.classList.contains("color-picker-modal-overlay")) {
+      // Only close if clicking on the overlay background itself (has the data attribute)
+      if (event.target.hasAttribute("data-color-picker-overlay")) {
         setShowColorPicker(false);
       }
     }
 
     if (showColorPicker && window.innerWidth < 768) {
-      document.addEventListener("mousedown", handleOverlayClick);
-      return () => document.removeEventListener("mousedown", handleOverlayClick);
+      document.addEventListener("click", handleOverlayClick);
+      return () => document.removeEventListener("click", handleOverlayClick);
     }
   }, [showColorPicker]);
 
@@ -324,7 +325,14 @@ export default function SubprojectRow({
                         className={`color-option ${c === sub.color ? "selected" : ""}`}
                         style={{ backgroundColor: c }}
                         title={`Set color to ${c}`}
-                        onClick={() => {
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          onColorChange(sub.id, c);
+                          setShowColorPicker(false);
+                          setMenuOpen(false);
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
                           onColorChange(sub.id, c);
                           setShowColorPicker(false);
                           setMenuOpen(false);
@@ -375,7 +383,7 @@ export default function SubprojectRow({
 
       {/* Mobile color picker modal - rendered at document root to avoid scroll clipping */}
       {showColorPicker && !sub.isProjectLevel && onColorChange && window.innerWidth < 768 && ReactDOM.createPortal(
-        <div className="color-picker-modal-overlay">
+        <div className="color-picker-modal-overlay" data-color-picker-overlay>
           <div className="color-picker-modal">
             <div className="color-picker-modal-header">
               <h3>Choose Color</h3>
@@ -394,7 +402,16 @@ export default function SubprojectRow({
                   className={`color-option ${c === sub.color ? "selected" : ""}`}
                   style={{ backgroundColor: c }}
                   title={`Set color to ${c}`}
-                  onClick={() => {
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onColorChange(sub.id, c);
+                    setShowColorPicker(false);
+                    setMenuOpen(false);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onColorChange(sub.id, c);
                     setShowColorPicker(false);
                     setMenuOpen(false);
