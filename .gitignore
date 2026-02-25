@@ -11,3 +11,8 @@ coverage/
 data/
 .vercel
 .env*.local
+
+# GCP OAuth credentials — never commit these
+GCP.json
+google.json
+client_secret*.json

@@ -2,6 +2,11 @@ import React from "react";
 
 /**
  * Horizontal bar at the top — logo, optional project title, and search slot.
+ *
+ * Optional auth props:
+ *   user       – Supabase User object; when provided a small avatar / email
+ *                chip is rendered in the right column.
+ *   onSignOut  – called when the user clicks the sign-out button.
  */
 export default function LogoBar({
   logoUrl = "/assets/logo_fomo.png",
@@ -9,8 +14,20 @@ export default function LogoBar({
   onBack, // invoked when back button is pressed
   onLogoClick, // invoked when logo is clicked (e.g. act as back nav)
   onTitleChange, // optional callback when title is edited inline
+  user, // authenticated Supabase user (optional)
+  onSignOut, // sign-out callback (optional)
   children,
 }) {
+  // Derive a short display name from the user's identity
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    null;
+  const avatarUrl =
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture ||
+    null;
   const [editing, setEditing] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState(title || "");
 
@@ -83,6 +100,30 @@ export default function LogoBar({
               close
             </span>
           </button>
+        )}
+        {user && onSignOut && !onBack && (
+          <div className="logobar-user" title={user.email}>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName || "User"}
+                className="logobar-avatar"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="logobar-avatar logobar-avatar--initials">
+                {(displayName || "?")[0].toUpperCase()}
+              </span>
+            )}
+            <button
+              className="logobar-signout-btn"
+              onClick={onSignOut}
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <span className="material-icons" style={{ fontSize: '20px' }}>logout</span>
+            </button>
+          </div>
         )}
       </div>
     </div>

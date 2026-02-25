@@ -17,7 +17,7 @@ import generateId from "./utils/generateId";
 
 const logoUrl = "/assets/logo_fomo.png";
 
-function App({ userId } = {}) {
+function App({ userId, authUser, onSignOut } = {}) {
   // --- State ---------------------------------------------------------------
   const router = useRouter();
 
@@ -643,6 +643,8 @@ function App({ userId } = {}) {
                 }
               : undefined
           }
+          user={authUser}
+          onSignOut={onSignOut}
         >
           {type === "tasks" && !editingProjectId && (
             <SearchTasks

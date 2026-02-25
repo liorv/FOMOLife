@@ -218,6 +218,52 @@ body {
   font-size: 18px;
 }
 
+/* ---- User avatar + sign-out button in LogoBar ---- */
+.logobar-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+}
+
+.logobar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--color-border, rgba(60,64,67,0.2));
+  flex-shrink: 0;
+}
+
+.logobar-avatar--initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary, #1a73e8);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: default;
+}
+
+.logobar-signout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  padding: 5px;
+  cursor: pointer;
+  color: var(--color-text-muted, #5f6368);
+  transition: background 0.15s, color 0.15s;
+}
+
+.logobar-signout-btn:hover {
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--color-primary, #1a73e8);
+}
+
 .back-circle {
   display: inline-flex;
   align-items: center;
