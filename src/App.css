@@ -48,6 +48,8 @@
   --color-accent: #d32998;
   --color-star: #e0b100;
   --color-star-active: #ffd700;
+  --color-google-btn-fg: #0d47a1;
+  --color-google-btn-bg: #f2f6fc;
 
   /* Surfaces */
   --color-surface: #ffffff;
@@ -55,7 +57,7 @@
   --color-bg-light: #f5f5f5;
   --color-editor-bg: #eef6ff;
   --color-inline-editor-bg: #e8f4ff;
-  --color-subproject-header: #f0c4e0;
+  --color-subproject-header: #f2f6fc;
   --color-search-bg: #e8f3ff;
 
   /* Text */
@@ -2223,7 +2225,7 @@ body {
 
 /* Styled add-task button */
 .add-task-header-btn {
-  background: var(--color-accent);
+  background: var(--color-google-btn-fg);
   color: #fff;
   border: none;
   cursor: pointer;

@@ -14,8 +14,9 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
-// restricted palette: darker blues, grays, and golds only
+// restricted palette: darker blues, grays, golds, and dark complementary colors
 const DEFAULT_COLORS = [
+  "#D32F2F", // dark red
   "#0D47A1", // dark blue
   "#1976D2", // medium blue
   "#3F51B5", // indigo
@@ -28,6 +29,9 @@ const DEFAULT_COLORS = [
   "#FFA000", // dark amber
   "#FF8F00", // darker gold
   "#795548", // brown (dark)
+  "#7B1FA2", // dark purple
+  "#00796B", // dark teal
+  "#F57F17", // dark orange
 ];
 
 export const PROJECT_COLORS = DEFAULT_COLORS;

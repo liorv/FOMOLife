@@ -13,6 +13,7 @@ export default function ProjectEditor({
   onBack = () => {},
   newlyAddedSubprojectId = null,
   onClearNewSubproject = () => {},
+  onSubprojectDeleted = () => {},
 }) {
   // --- State ---------------------------------------------------------------
 
@@ -114,6 +115,10 @@ export default function ProjectEditor({
     };
     setLocal(updated);
     onApplyChange(updated);
+    // Trigger callback for undo snack bar
+    if (subproject) {
+      onSubprojectDeleted(subproject);
+    }
   };
 
   const updateSubText = (id, text) => {

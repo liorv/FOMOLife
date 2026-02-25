@@ -8,6 +8,7 @@ import SearchTasks from "./components/SearchTasks";
 import ProjectTile, { PROJECT_COLORS } from "./components/ProjectTile";
 import ProjectEditor from "./components/ProjectEditor";
 import ConfirmModal from "./components/ConfirmModal";
+import UndoSnackBar from "./components/UndoSnackBar";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
 import * as db from "./api/db";
@@ -29,6 +30,14 @@ function App({ userId } = {}) {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState(null);
   const pendingBlankSubRef = useRef(false);
+
+  // Undo snack bar state
+  const [undoSnackBar, setUndoSnackBar] = useState({
+    isOpen: false,
+    message: "",
+    type: null, // 'project-created', 'project-deleted', 'subproject-created', 'subproject-deleted'
+    actionData: null, // stores project/subproject data needed for undo
+  });
 
   // Exit editing mode, removing any unnamed subprojects first.
   const exitEditor = async () => {
@@ -188,6 +197,92 @@ function App({ userId } = {}) {
         pr.id === editingProjectId ? { ...pr, subprojects: updatedSubs } : pr,
       ),
     }));
+  };
+
+  // --- Subproject deletion handler -----------------------------------------
+
+  const handleSubprojectDeleted = (deletedSubproject) => {
+    // Show undo snack bar for subproject deletion
+    setUndoSnackBar({
+      isOpen: true,
+      message: `Subproject "${deletedSubproject.text}" deleted`,
+      type: "subproject-deleted",
+      actionData: {
+        projectId: editingProjectId,
+        subproject: deletedSubproject,
+      },
+    });
+  };
+
+  // --- Undo handlers -------------------------------------------------------
+
+  const handleUndoAction = async () => {
+    if (!undoSnackBar.actionData) {
+      setUndoSnackBar({ ...undoSnackBar, isOpen: false });
+      return;
+    }
+
+    try {
+      if (undoSnackBar.type === "project-created") {
+        // Remove the created project
+        const { projectId } = undoSnackBar.actionData;
+        await db.remove("projects", projectId, userId);
+        setData((prev) => ({
+          ...prev,
+          projects: prev.projects.filter((p) => p.id !== projectId),
+        }));
+        // If we were editing this project, exit editing mode
+        if (editingProjectId === projectId) {
+          setEditingProjectId(null);
+        }
+      } else if (undoSnackBar.type === "project-deleted") {
+        // Restore the deleted project
+        const { project } = undoSnackBar.actionData;
+        await db.update("projects", project.id, project, userId);
+        setData((prev) => ({
+          ...prev,
+          projects: [...prev.projects, project],
+        }));
+      } else if (undoSnackBar.type === "subproject-created") {
+        // Remove the created subproject
+        const { projectId, subprojectId } = undoSnackBar.actionData;
+        const project = data.projects.find((p) => p.id === projectId);
+        if (project) {
+          const updatedSubs = project.subprojects.filter(
+            (s) => s.id !== subprojectId
+          );
+          await db.update("projects", projectId, { subprojects: updatedSubs }, userId);
+          setData((prev) => ({
+            ...prev,
+            projects: prev.projects.map((p) =>
+              p.id === projectId ? { ...p, subprojects: updatedSubs } : p
+            ),
+          }));
+          if (newlyAddedSubprojectId === subprojectId) {
+            setNewlyAddedSubprojectId(null);
+          }
+        }
+      } else if (undoSnackBar.type === "subproject-deleted") {
+        // Restore the deleted subproject
+        const { projectId, subproject } = undoSnackBar.actionData;
+        const project = data.projects.find((p) => p.id === projectId);
+        if (project) {
+          const updatedSubs = [...(project.subprojects || []), subproject];
+          await db.update("projects", projectId, { subprojects: updatedSubs }, userId);
+          setData((prev) => ({
+            ...prev,
+            projects: prev.projects.map((p) =>
+              p.id === projectId ? { ...p, subprojects: updatedSubs } : p
+            ),
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error undoing action:", error);
+    }
+
+    // Close snack bar
+    setUndoSnackBar({ ...undoSnackBar, isOpen: false });
   };
 
   // --- CRUD handlers ------------------------------------------------------
@@ -591,6 +686,7 @@ function App({ userId } = {}) {
                 allPeople={data.people}
                 onOpenPeople={() => setType("people")}
                 onCreatePerson={handleCreatePerson}
+                onSubprojectDeleted={handleSubprojectDeleted}
               />
             ) : (
               <div className="projects-panel">
@@ -675,12 +771,34 @@ function App({ userId } = {}) {
         <ConfirmModal
           message="Are you sure you want to delete this project? This action cannot be undone."
           onConfirm={async () => {
-            await handleDelete(confirmingProjectId);
+            // Get the project data before deleting
+            const projectToDelete = data.projects.find(
+              (p) => p.id === confirmingProjectId
+            );
+            if (projectToDelete) {
+              // Delete the project
+              await handleDelete(confirmingProjectId);
+              // Show undo snack bar
+              setUndoSnackBar({
+                isOpen: true,
+                message: `Project "${projectToDelete.text}" deleted`,
+                type: "project-deleted",
+                actionData: { project: projectToDelete },
+              });
+            }
             setConfirmingProjectId(null);
           }}
           onCancel={() => setConfirmingProjectId(null)}
         />
       )}
+      <UndoSnackBar
+        isOpen={undoSnackBar.isOpen}
+        message={undoSnackBar.message}
+        onUndo={handleUndoAction}
+        onDismiss={() =>
+          setUndoSnackBar((prev) => ({ ...prev, isOpen: false }))
+        }
+      />
     </div>
   );
 }

@@ -1,0 +1,109 @@
+/* Undo Snack Bar Styles */
+.undo-snack-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #323232;
+  color: white;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  min-width: 300px;
+  max-width: 90%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  animation: slideUp 0.3s ease-in-out;
+}
+
+@keyframes slideUp {
+  from {
+    bottom: -100px;
+    opacity: 0;
+  }
+  to {
+    bottom: 60px;
+    opacity: 1;
+  }
+}
+
+.snack-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.snack-message {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.snack-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.snack-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.undo-button {
+  background-color: #1976d2;
+  color: white;
+}
+
+.undo-button:hover {
+  background-color: #1565c0;
+  transform: scale(1.02);
+}
+
+.undo-button:active {
+  transform: scale(0.98);
+}
+
+.dismiss-button {
+  background-color: #555555;
+  color: white;
+}
+
+.dismiss-button:hover {
+  background-color: #666666;
+  transform: scale(1.02);
+}
+
+.dismiss-button:active {
+  transform: scale(0.98);
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 600px) {
+  .undo-snack-bar {
+    min-width: auto;
+    max-width: 95%;
+    left: 2.5%;
+    right: 2.5%;
+    transform: translateX(0);
+  }
+
+  .snack-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .snack-button {
+    flex: 1;
+    min-width: auto;
+  }
+}
