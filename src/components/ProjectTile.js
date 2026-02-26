@@ -330,7 +330,7 @@ export default function ProjectTile({
               </svg>
               <div className="progress-text">
                 <div className="progress-percent">{progress}%</div>
-                <div className="progress-label">Complete</div>
+                {/* label removed per design; remaining CSS kept for potential future use */}
               </div>
             </div>
           </div>

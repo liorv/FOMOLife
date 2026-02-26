@@ -43,6 +43,21 @@ describe('LogoBar component', () => {
     expect(onLogo).toHaveBeenCalled();
   });
 
+  test('avatar button is rendered in right column when user present', () => {
+    setMatchMedia(window.innerWidth || 800);
+    const user = { email: 'test@example.com', user_metadata: { full_name: 'Test User' } };
+    const signOut = jest.fn();
+    render(<LogoBar user={user} onSignOut={signOut} />);
+    const avatarBtn = screen.getByLabelText('Account menu');
+    expect(avatarBtn).toBeInTheDocument();
+    // it should be inside the right-column element
+    const rightCol = avatarBtn.closest('.right-column');
+    expect(rightCol).toBeInTheDocument();
+    // ensure it's not accidentally in mid-column
+    const midCol = avatarBtn.closest('.mid-column');
+    expect(midCol).toBeNull();
+  });
+
   test('shows title and back button when editing', async () => {
     setMatchMedia(window.innerWidth || 800);
     const back = jest.fn();

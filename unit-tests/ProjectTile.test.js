@@ -27,10 +27,25 @@ describe('ProjectTile component', () => {
     const bar = screen.getByTestId('project-progress');
     expect(bar).toBeTruthy();
     expect(bar).toHaveStyle('width: 42%');
+
+    // progress visualization should be present (CSS handles sizing)
+    const circle = tileEl.querySelector('.progress-circle');
+    expect(circle).toBeTruthy();
+
+    const psec = tileEl.querySelector('.project-progress-section');
+    expect(psec).toBeTruthy();
     
     const percentLabel = screen.getByTestId('project-percent');
     expect(percentLabel).toBeInTheDocument();
     expect(percentLabel.textContent.includes('42')).toBe(true);
+
+    // ensure the old "Complete" text has been removed
+    expect(screen.queryByText('Complete')).toBeNull();
+    expect(tileEl.querySelector('.progress-label')).toBeNull();
+
+    // stats box should be present (visual positioning is covered by CSS)
+    const stats = tileEl.querySelector('.project-stats');
+    expect(stats).toBeTruthy();
     
     percentLabel.style.setProperty('--project-percent-size', '1rem');
     percentLabel.style.setProperty('--project-percent-font', 'Courier New');

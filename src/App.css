@@ -1788,6 +1788,7 @@ body {
 
 /* Outer wrapper: fills the .container flex space */
 .projects-dashboard {
+  position: relative; /* for absolute home-bg watermark */
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -1923,15 +1924,7 @@ body {
   flex-direction: column;
 }
 
-/* ── Home view (tile grid + background) ────────────────────── */
-.dashboard-home {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  position: relative;
-  overflow: hidden;
-}
+/* note: .dashboard-home class was removed from markup; no styles needed */
 
 /* Watermark-style background message */
 .dashboard-home-bg {
@@ -1974,7 +1967,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
-  padding: 12px 16px 12px;
+  padding: 0; /* no spacing around grid */
   align-content: start;
 }
 
@@ -2300,10 +2293,18 @@ body {
 
 /* Progress visualization */
 .project-progress-section {
+  /* absolutely center the visualization inside the tile */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  width: 120px;  /* match circle dimensions */
+  height: 120px;
+  flex: none;     /* do not flex in normal flow */
+  pointer-events: none; /* allow clicks to pass through */
 }
 
 .progress-visualization {
@@ -2314,6 +2315,11 @@ body {
   position: relative;
   width: 120px;
   height: 120px;
+  flex: none;           /* don't stretch or shrink when tile resizes */
+  min-width: 120px;
+  min-height: 120px;
+  max-width: 120px;
+  max-height: 120px;
 }
 
 .progress-svg {
@@ -2360,11 +2366,23 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* Stats section */
+/* Stats section: badge runs along left edge, vertically centered.  It
+   sits flush against the tile boundary; only its inner (right) corners are
+   rounded so that the left edge aligns exactly with the tile’s edge. */
 .project-stats {
   display: flex;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  /* nudge left so only left edge protrudes */
+  transform: translate(-8px, -50%);
   justify-content: center;
   align-items: center;
+  /* ensure it extends inward only and not round the left side */
+  border-radius: 0 16px 16px 0;
+  overflow: hidden; /* keep rounding confined */
+  padding: 0; /* remove any default spacing from earlier padding example */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4); /* dark shadow for prominence */
 }
 
 .stat-item {
@@ -2374,6 +2392,8 @@ body {
   gap: 4px;
   padding: 12px 20px;
   background: rgba(255, 255, 255, 0.6);
+  /* keep corners rounded on inner side of tile, outer left corners are clipped
+     by .project-stats border-radius */
   border-radius: 16px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -4257,11 +4277,15 @@ body {
   33. DASHBOARD STYLES
    ============================================================ */
 
-/* Dashboard container */
+/* Dashboard container: fill the flex space provided by .container
+   (should sit between logo bar and bottom nav).  Avoid using viewport
+   height so the nav can remain visible. */
 .projects-dashboard {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex: 1 1 auto;
+  width: 100%; /* take entire horizontal space */
+  min-height: 0; /* allow parent flex to control height */
   background: var(--color-bg);
   overflow: hidden; /* Prevent dashboard from scrolling */
 }
@@ -4271,9 +4295,15 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* default padding used elsewhere; removed when inside projects dashboard */
   padding: 24px;
   overflow-y: auto; /* Allow vertical scrolling in dashboard body */
   overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+/* projects dashboard uses full-bleed body with no inner padding */
+.projects-dashboard > .dashboard-body {
+  padding: 0;
 }
 
 .dashboard-content {
@@ -4283,16 +4313,7 @@ body {
   width: 100%;
 }
 
-/* Dashboard home (project tiles view) */
-.dashboard-home {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  padding: 40px 20px;
-}
+/* previously .dashboard-home styles; container no longer exists */
 
 /* Background watermark */
 .dashboard-home-bg {
@@ -4342,11 +4363,12 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
-  justify-content: center;
+  /* align tiles to left instead of centering */
+  justify-content: flex-start;
   align-items: flex-start;
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
+  margin: 0; /* remove auto centering to keep grid flush to left */
+  padding: 0; /* eliminate outer spacing */
   z-index: 2;
   position: relative;
 }
@@ -4367,7 +4389,7 @@ body {
 @media (max-width: 1200px) {
   .dashboard-tiles-grid {
     gap: 20px;
-    padding: 16px;
+    padding: 0;
   }
   
   .dashboard-tile-wrapper {
@@ -4379,7 +4401,7 @@ body {
 @media (max-width: 768px) {
   .dashboard-tiles-grid {
     gap: 16px;
-    padding: 12px;
+    padding: 0;
   }
   
   .dashboard-tile-wrapper {
@@ -4396,7 +4418,7 @@ body {
   
   .dashboard-tiles-grid {
     gap: 12px;
-    padding: 8px;
+    padding: 0;
   }
   
   .dashboard-tile-wrapper {

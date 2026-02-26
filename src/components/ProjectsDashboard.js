@@ -142,62 +142,60 @@ export default function ProjectsDashboard({
 
   return (
     <div className={`projects-dashboard${selectedProject ? " dashboard--has-project" : ""}`}>
-
-      {/* ── Main body: full-width content ── */}
-      <div className="dashboard-body">
-        <div className="dashboard-content">
-          {selectedProject ? (
-            <>
-              {/* Sticky project header with inline-editable title */}
-              <div className="dashboard-project-header">
+      {selectedProject ? (
+        /* ── Main body: full-width content for selected project ── */
+        <div className="dashboard-body">
+          <div className="dashboard-content">
+            {/* Sticky project header with inline-editable title */}
+            <div className="dashboard-project-header">
+              <button
+                className="dashboard-back-btn"
+                onClick={handleBack}
+                title="Back to projects"
+                aria-label="Back to projects"
+              >
+                <span className="material-icons">arrow_back_ios</span>
+              </button>
+              <span
+                className="dashboard-project-dot-lg"
+                style={{ background: selectedProject.color || "#1a73e8" }}
+              />
+              <h2
+                className="dashboard-project-title"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  const newText = e.currentTarget.textContent.trim();
+                  if (newText && newText !== selectedProject.text) {
+                    onTitleChange(selectedProject.id, newText);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  }
+                }}
+              >
+                {selectedProject.text}
+              </h2>
+              <div className="dashboard-project-actions">
                 <button
-                  className="dashboard-back-btn"
-                  onClick={handleBack}
-                  title="Back to projects"
-                  aria-label="Back to projects"
+                  title="Delete project"
+                  className="dashboard-project-delete"
+                  onClick={() => onDeleteProject(selectedProject.id)}
                 >
-                  <span className="material-icons">arrow_back_ios</span>
+                  <span className="material-icons">delete</span>
                 </button>
-                <span
-                  className="dashboard-project-dot-lg"
-                  style={{ background: selectedProject.color || "#1a73e8" }}
-                />
-                <h2
-                  className="dashboard-project-title"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => {
-                    const newText = e.currentTarget.textContent.trim();
-                    if (newText && newText !== selectedProject.text) {
-                      onTitleChange(selectedProject.id, newText);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                    }
-                  }}
-                >
-                  {selectedProject.text}
-                </h2>
-                <div className="dashboard-project-actions">
-                  <button
-                    title="Delete project"
-                    className="dashboard-project-delete"
-                    onClick={() => onDeleteProject(selectedProject.id)}
-                  >
-                    <span className="material-icons">delete</span>
-                  </button>
-                </div>
               </div>
+            </div>
 
-              {/* Summary chips — contextual to selected project */}
-              <div className="dashboard-summary">
-                <SummaryCard
-                  icon="folder_copy"
-                  label="Sub-Projects"
-                  value={`${completedSubprojects} / ${scopedSubprojects.length}`}
+            {/* Summary chips — contextual to selected project */}
+            <div className="dashboard-summary">
+              <SummaryCard
+                icon="folder_copy"
+                label="Sub-Projects"
+                value={`${completedSubprojects} / ${scopedSubprojects.length}`}
                 />
                 <SummaryCard
                   icon="task_alt"
@@ -247,10 +245,11 @@ export default function ProjectsDashboard({
                 onSubprojectDeleted={onSubprojectDeleted}
                 taskFilter={activeFilter}
               />
-            </>
+            </div>
+          </div>
           ) : (
-            /* ── Home: background message + tile grid ── */
-            <div className="dashboard-home">
+            /* ── Home: watermark + direct grid ── */
+            <>
               {/* Subtle background watermark */}
               <div className="dashboard-home-bg">
                 <span className="material-icons dashboard-home-bg__icon">folder_open</span>
@@ -296,10 +295,8 @@ export default function ProjectsDashboard({
                   ))}
                 </div>
               )}
-            </div>
+            </>
           )}
-        </div>
-      </div>
 
       {/* ── FAB — New Project or Add Sub-project ── */}
       {!selectedProject ? (
