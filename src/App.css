@@ -2152,15 +2152,16 @@ body {
    ============================================================ */
 .projects-panel {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  padding: 32px 24px 220px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  padding: 36px 20px 220px;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--color-bg-light);
   flex: 1;
   min-height: 0;
+  justify-items: center;
 }
 
 /* Tile custom property defaults */
@@ -2173,15 +2174,17 @@ body {
   min-height: 220px;
   position: relative;
   border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
-  border: 1px solid rgba(13, 28, 67, 0.08);
-  box-shadow: 0 16px 24px rgba(15, 23, 42, 0.08);
+  background: radial-gradient(circle at 120% -10%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f5f7fb 100%);
+  border: 1px solid rgba(13, 28, 67, 0.12);
+  box-shadow: 0 24px 32px rgba(9, 15, 36, 0.15);
   display: flex;
   flex-direction: column;
   cursor: grab;
   user-select: none;
   box-sizing: border-box;
   overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .project-tile:active {
@@ -2189,7 +2192,8 @@ body {
 }
 
 .project-tile:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 28px 40px rgba(7, 11, 29, 0.2);
 }
 
 /* Tile header */
@@ -2199,6 +2203,12 @@ body {
   justify-content: space-between;
   padding: 16px;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.7);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
 }
 
 .project-tile .project-name-wrapper {
@@ -2215,9 +2225,23 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text);
+  letter-spacing: 0.02em;
 }
 
 /* Decorative accent stripe */
+.project-tile::before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  right: -32px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(250, 250, 255, 0.7), transparent 60%);
+  transform: rotate(45deg);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .project-tile::after {
   content: "";
   position: absolute;
@@ -3545,6 +3569,27 @@ body {
 
   .task-date {
     display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .projects-panel {
+    padding: 18px 12px 140px;
+    gap: 16px;
+  }
+
+  .project-tile {
+    min-height: 200px;
+    border-radius: 16px;
+  }
+
+  .project-tile .project-header {
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .project-tile .project-body {
+    padding: 0 12px 12px;
   }
 }
 
