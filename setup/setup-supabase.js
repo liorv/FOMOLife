@@ -2,14 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://paiczvbfstfvibijeivw.supabase.co";
+const supabaseUrl = process.env.SUPABASE_URL;
+if (!supabaseUrl) { console.error("❌  SUPABASE_URL env var is required"); process.exit(1); }
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; // set via env var, never hardcode
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 async function runSQL() {
   try {
-    const sqlFile = path.join(__dirname, "supabase_setup.sql");
+    const sqlFile = path.join(__dirname, "supabase_setup.sql"); // setup/supabase_setup.sql
     const sql = fs.readFileSync(sqlFile, "utf-8");
 
     // Split SQL by statements and filter out comments and empty lines

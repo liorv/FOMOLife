@@ -2,11 +2,12 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://paiczvbfstfvibijeivw.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) { console.error("❌  SUPABASE_URL env var is required"); process.exit(1); }
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""; // set via env var, never hardcode
 
 // Read SQL file
-const sqlFile = path.join(__dirname, "..", "supabase_setup.sql");
+const sqlFile = path.join(__dirname, "supabase_setup.sql");
 const sqlContent = fs.readFileSync(sqlFile, "utf-8");
 
 // Split into statements
@@ -25,7 +26,7 @@ async function executeSQL(sql, index) {
     const data = JSON.stringify({ query: sql });
 
     const options = {
-      hostname: "paiczvbfstfvibijeivw.supabase.co",
+      hostname: new URL(SUPABASE_URL).hostname,
       port: 443,
       path: "/rest/v1/",
       method: "POST",

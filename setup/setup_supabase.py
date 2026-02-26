@@ -3,7 +3,10 @@ import os
 from pathlib import Path
 
 # Supabase PostgreSQL connection details
-SUPABASE_HOST = "paiczvbfstfvibijeivw.supabase.co"
+SUPABASE_HOST = os.environ.get("SUPABASE_HOST")
+if not SUPABASE_HOST:
+    print("ERROR: SUPABASE_HOST environment variable not set")
+    exit(1)
 SUPABASE_PORT = 5432
 SUPABASE_DB = "postgres"
 SUPABASE_USER = "postgres"
@@ -30,7 +33,7 @@ try:
     print("[OK] Connected!\n")
     
     # Read SQL file
-    sql_file = Path(__file__).parent.parent / "supabase_setup.sql"
+    sql_file = Path(__file__).parent / "supabase_setup.sql"
     with open(sql_file, "r") as f:
         sql_content = f.read()
     

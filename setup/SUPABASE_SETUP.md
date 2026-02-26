@@ -12,7 +12,7 @@
 ### 1. Create the Database Tables
 
 1. Go to [Supabase Dashboard](https://app.supabase.com)
-2. Select your project: `paiczvbfstfvibijeivw`
+2. Select your project
 3. Navigate to **SQL Editor** (left sidebar)
 4. Click **New Query**
 5. Copy the entire content from `supabase_setup.sql` in this project
@@ -81,7 +81,7 @@ vercel --prod
 
 ## Credentials
 
-- **Project URL**: `https://paiczvbfstfvibijeivw.supabase.co`
+- **Project URL**: *(find in Supabase → Project Settings → API → Project URL)*
 - **Anon Key**: *(find in Supabase → Project Settings → API → anon public)*
 - **Service Role Key**: *(find in Supabase → Project Settings → API → service_role — keep secret, never commit)*
 

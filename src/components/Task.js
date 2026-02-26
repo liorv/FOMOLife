@@ -25,6 +25,15 @@ export default function Task({
       className={`${item.done ? "done" : ""}${type === "tasks" && editorTaskId === id ? " is-editing" : ""}`}
       draggable={type === "tasks"}
       onDragStart={(e) => {
+        // Stop bubbling so the SubprojectEditor wrapper's onDragStart
+        // doesn't overwrite dataTransfer with { subprojectId }.
+        e.stopPropagation();
+        try {
+          e.dataTransfer.setData(
+            "application/json",
+            JSON.stringify({ taskId: id })
+          );
+        } catch (_) {}
         onDragStart && onDragStart(id, e);
       }}
       onDragOver={(e) => {
@@ -36,6 +45,9 @@ export default function Task({
       onDrop={(e) => {
         if (type === "tasks") {
           e.preventDefault();
+          // Stop bubbling so the SubprojectEditor wrapper's onDrop
+          // doesn't also fire and cause a double-move.
+          e.stopPropagation();
           onDrop && onDrop(id, e);
         }
       }}

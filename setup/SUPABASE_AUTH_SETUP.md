@@ -18,8 +18,7 @@ and secure the database so each user can only see their own data.
    ```
    https://<YOUR-SUPABASE-PROJECT-REF>.supabase.co/auth/v1/callback
    ```
-   (Replace `<YOUR-SUPABASE-PROJECT-REF>` with your actual project ref, e.g.
-   `paiczvbfstfvibijeivw`.)
+   (Replace `<YOUR-SUPABASE-PROJECT-REF>` with your actual project ref, found in Supabase → Settings → General.)
 5. Save and note the **Client ID** and **Client Secret**.
 
 ### 1b. Configure Supabase

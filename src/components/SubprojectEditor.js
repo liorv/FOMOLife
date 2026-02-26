@@ -114,21 +114,24 @@ export default function SubprojectEditor({
 
   const handleSubDrop = (e) => {
     e.preventDefault();
-    // Safely get data, handling cases where dataTransfer is not properly set up
     let data = "";
     try {
       data = e.dataTransfer?.getData("application/json") || "";
     } catch (err) {
-      // dataTransfer might not be available or might throw
       return;
     }
-    
+
     if (!data) return;
     try {
       const parsed = JSON.parse(data);
-      // Only process if it has a subprojectId (for subproject reordering)
       if (parsed.subprojectId && parsed.subprojectId !== sub.id) {
+        // ── Subproject reorder ─────────────────────────────────
         onReorder(parsed.subprojectId, sub.id);
+      } else if (parsed.taskId) {
+        // ── Task dropped onto a subproject header / tile ───────
+        // Delegate to the same handler used by collapsed-tile drops
+        // so the task is moved into this subproject.
+        if (onDropOnSubprojectTile) onDropOnSubprojectTile(e);
       }
     } catch (err) {
       // Silently handle parse errors

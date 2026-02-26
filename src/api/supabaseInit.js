@@ -52,7 +52,7 @@ SUPABASE MANUAL TABLE SETUP REQUIRED
 The app is ready but needs you to manually create the database table.
 This is a one-time setup:
 
-1. Go to: https://app.supabase.com/project/paiczvbfstfvibijeivw
+1. Go to: https://app.supabase.com (open your project)
 
 2. Click the "SQL Editor" tab on the left sidebar
 

@@ -4,7 +4,7 @@ The PostgreSQL direct connection is blocked by your network/firewall. Here's the
 
 ## 1. Go to Supabase Dashboard
 
-Visit: https://app.supabase.com/project/paiczvbfstfvibijeivw
+Visit: https://app.supabase.com (open your project)
 
 ## 2. Open SQL Editor
 
