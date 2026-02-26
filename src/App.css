@@ -2385,58 +2385,26 @@ body {
   animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.project-tile .menu-item {
-  width: 100%;
-  padding: 12px 16px;
-  background: transparent;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--color-text);
-  font-size: 0.95rem;
-  font-family: inherit;
-  transition: background-color 0.2s ease;
-  position: relative;
-  white-space: nowrap;
-}
-
-.project-tile .menu-item:hover {
-  background-color: #f8f9fa;
-}
-
-.project-tile .menu-item:active {
-  background-color: #f1f3f4;
-}
-
-.project-tile .menu-item .material-icons {
-  font-size: 1.2rem;
-  flex: 0 0 auto;
-  color: var(--color-text-muted);
-}
-
-.project-tile .menu-arrow {
+.project-menu-dropdown .menu-arrow {
   margin-left: auto;
   font-size: 1.2rem;
   color: #999;
   flex: 0 0 auto;
 }
 
-.project-tile .color-menu-item:hover .material-icons {
+.project-menu-dropdown .color-menu-item:hover .material-icons {
   color: #f57c00;
 }
 
-.project-tile .edit-menu-item:hover .material-icons {
+.project-menu-dropdown .edit-menu-item:hover .material-icons {
   color: #1f77d1;
 }
 
-.project-tile .delete-menu-item:hover .material-icons {
+.project-menu-dropdown .delete-menu-item:hover .material-icons {
   color: #d33b27;
 }
 
-.project-tile .menu-divider {
+.project-menu-dropdown .menu-divider {
   height: 1px;
   background: #e8eaed;
   margin: 4px 0;
@@ -3016,7 +2984,7 @@ body {
   animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.subproject-row .project-menu-dropdown .menu-item {
+.project-menu-dropdown .menu-item {
   width: 100%;
   padding: 12px 16px;
   background: transparent;
@@ -3034,43 +3002,30 @@ body {
   white-space: nowrap;
 }
 
-.subproject-row .project-menu-dropdown .menu-item:hover {
+.project-menu-dropdown .menu-item:hover {
   background-color: #f8f9fa;
 }
 
-.subproject-row .project-menu-dropdown .menu-item:active {
+.project-menu-dropdown .menu-item:active {
   background-color: #f1f3f4;
 }
 
-.subproject-row .project-menu-dropdown .menu-item .material-icons {
+.project-menu-dropdown .menu-item .material-icons {
   font-size: 1.2rem;
   flex: 0 0 auto;
   color: var(--color-text-muted);
 }
 
-.subproject-row .menu-arrow {
-  margin-left: auto;
-  font-size: 1.2rem;
-  color: #999;
-  flex: 0 0 auto;
-}
-
-.subproject-row .color-menu-item:hover .material-icons {
+.project-menu-dropdown .color-menu-item:hover .material-icons {
   color: #f57c00;
 }
 
-.subproject-row .edit-menu-item:hover .material-icons {
+.project-menu-dropdown .edit-menu-item:hover .material-icons {
   color: #1f77d1;
 }
 
-.subproject-row .delete-menu-item:hover .material-icons {
+.project-menu-dropdown .delete-menu-item:hover .material-icons {
   color: #d33b27;
-}
-
-.subproject-row .menu-divider {
-  height: 1px;
-  background: #e8eaed;
-  margin: 4px 0;
 }
 
 .subproject-row .color-picker-submenu {
