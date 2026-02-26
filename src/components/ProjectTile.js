@@ -119,7 +119,7 @@ export default function ProjectTile({
       const top = isBottomCutOff
         ? buttonRect.top - dropdownRect.height - 4
         : buttonRect.bottom + 4;
-      const left = buttonRect.right - dropdownRect.width;
+      const left = buttonRect.left;
 
       setDropdownStyle({ top: `${top}px`, left: `${left}px` });
     };

@@ -21,6 +21,7 @@ export default function SubprojectRow({
   const [showColorPicker, setShowColorPicker] = React.useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = React.useState(false);
   const [colorPickerFlipped, setColorPickerFlipped] = React.useState(false);
+  const [dropdownStyle, setDropdownStyle] = React.useState({});
   const menuRef = React.useRef(null);
   const dropdownRef = React.useRef(null);
   const colorPickerRef = React.useRef(null);
@@ -84,27 +85,33 @@ export default function SubprojectRow({
       }
     }
 
-    if (showColorPicker && window.innerWidth < 768) {
+    if (showColorPicker) {
       document.addEventListener("click", handleOverlayClick);
       return () => document.removeEventListener("click", handleOverlayClick);
     }
   }, [showColorPicker]);
 
-  // Detect viewport boundaries and adjust menu positioning
-  React.useEffect(() => {
-    if (!menuOpen || !dropdownRef.current) return;
+  // Position the dropdown in a fixed portal and update on resize/scroll
+  React.useLayoutEffect(() => {
+    if (!menuOpen) return;
 
-    const adjustMenuPosition = () => {
-      const dropdown = dropdownRef.current;
-      if (!dropdown) return;
-
-      const rect = dropdown.getBoundingClientRect();
+    const updatePosition = () => {
+      if (!menuRef.current || !dropdownRef.current) return;
+      const buttonRect = menuRef.current.getBoundingClientRect();
+      const dropdownRect = dropdownRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
       const threshold = viewportWidth < 768 ? 20 : 10;
 
-      const isBottomCutOff = rect.bottom > viewportHeight - threshold;
+      const isBottomCutOff = buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
       setMenuFlippedVertically(isBottomCutOff);
+
+      const top = isBottomCutOff
+        ? buttonRect.top - dropdownRect.height - 4
+        : buttonRect.bottom + 4;
+      const left = buttonRect.left;
+
+      setDropdownStyle({ top: `${top}px`, left: `${left}px` });
 
       if (colorPickerRef.current) {
         const colorPickerRect = colorPickerRef.current.getBoundingClientRect();
@@ -114,17 +121,12 @@ export default function SubprojectRow({
       }
     };
 
-    adjustMenuPosition();
-    window.addEventListener("resize", adjustMenuPosition);
-    const raf1 = requestAnimationFrame(adjustMenuPosition);
-    const raf2 = requestAnimationFrame(() => {
-      setTimeout(adjustMenuPosition, 50);
-    });
-
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
     return () => {
-      window.removeEventListener("resize", adjustMenuPosition);
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
   }, [menuOpen]);
 
@@ -253,6 +255,11 @@ export default function SubprojectRow({
               className="project-menu-dropdown"
               ref={dropdownRef}
               data-flipped-v={menuFlippedVertically ? "true" : "false"}
+              style={{
+                position: "fixed",
+                ...dropdownStyle,
+                zIndex: 1001,
+              }}
             >
               {!sub.isProjectLevel && onColorChange && (
                 <button
@@ -336,8 +343,8 @@ export default function SubprojectRow({
         </div>
       )}
 
-      {/* Mobile color picker modal - rendered at document root to avoid scroll clipping */}
-      {showColorPicker && !sub.isProjectLevel && onColorChange && window.innerWidth < 768 && ReactDOM.createPortal(
+      {/* Color picker modal - rendered at document root to avoid scroll clipping */}
+      {showColorPicker && !sub.isProjectLevel && onColorChange && ReactDOM.createPortal(
         <div className="color-picker-modal-overlay" data-color-picker-overlay>
           <div className="color-picker-modal">
             <div className="color-picker-modal-header">
