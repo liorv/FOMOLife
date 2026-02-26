@@ -1,5 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
+
+// avoid complaints about CSS modules during tests
+jest.mock('../src/components/UndoSnackBar.module.css', () => ({}));
+
 import App from '../src/App';
 import { PROJECT_COLORS } from '../src/components/ProjectTile';
 
@@ -101,6 +105,13 @@ describe('App component', () => {
     const reinput = document.querySelector('.title-search');
     expect(reinput).toBeTruthy();
     expect(reinput.value).toBe('');
+
+    // switch to projects view; the search bar should occupy the majority of the mid-row
+    fireEvent.click(screen.getByText('Projects'));
+    const projBar = document.querySelector('.projects-search-bar');
+    expect(projBar).toBeInTheDocument();
+    // inline style ensures it takes 75% of the container
+    expect(projBar).toHaveStyle('width: 75%');
 
     // the item should have been persisted with a generated id
     const { getAll } = require('../src/api/db');

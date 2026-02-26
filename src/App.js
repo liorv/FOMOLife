@@ -708,10 +708,12 @@ function App({ userId, authUser, onSignOut } = {}) {
             />
           )}
           {type === "projects" && (
-            <div className="projects-search-bar">
+            <div className="projects-search-bar" style={{ width: '75%' }}>
               <span className="material-icons">search</span>
               <input
                 type="text"
+                id="projects-search"
+                name="projectsSearch"
                 placeholder="Search projects..."
                 value={projectSearch}
                 onChange={(e) => setProjectSearch(e.target.value)}

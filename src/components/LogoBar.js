@@ -62,7 +62,7 @@ export default function LogoBar({
   };
 
   return (
-    <div className="title-bar">
+    <div className="title-bar" style={{ columnGap: '10px' }}>
       <div className="left-column">
         <img
           src={logoUrl}
@@ -71,7 +71,7 @@ export default function LogoBar({
           {...(onLogoClick ? { onClick: onLogoClick, style: { cursor: 'pointer' } } : {})}
         />
       </div>
-      <div className="mid-column">
+      <div className="mid-column" style={{ minWidth: 0, overflow: 'hidden' }}>
         <div className="mid-row top" />
         <div className="mid-row center">
           {title ? (

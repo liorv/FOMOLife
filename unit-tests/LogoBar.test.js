@@ -32,6 +32,10 @@ describe('LogoBar component', () => {
     // there should be no search input or filter icons
     expect(screen.queryByPlaceholderText('Search tasks…')).toBeNull();
     expect(document.querySelector('.filter-icon')).toBeNull();
+
+    // check that the title bar has the expected gap between columns
+    const titleBar = document.querySelector('.title-bar');
+    expect(titleBar).toHaveStyle('column-gap: 10px');
   });
 
   test('logo can act as navigation when onLogoClick provided', () => {
@@ -56,6 +60,25 @@ describe('LogoBar component', () => {
     // ensure it's not accidentally in mid-column
     const midCol = avatarBtn.closest('.mid-column');
     expect(midCol).toBeNull();
+  });
+
+  test('middle column and search container are allowed to shrink so they won\'t overlap fixed sides', () => {
+    setMatchMedia(window.innerWidth || 800);
+    // render a dummy child that mimics the search bar container
+    render(
+      <LogoBar>
+        <div className="search-container">dummy</div>
+      </LogoBar>
+    );
+    const mid = document.querySelector('.mid-column');
+    expect(mid).toBeInTheDocument();
+    // our inline style should enforce the shrinkable behavior
+    expect(mid).toHaveStyle('min-width: 0');
+    expect(mid).toHaveStyle('overflow: hidden');
+
+    const search = document.querySelector('.search-container');
+    expect(search).toBeInTheDocument();
+    // CSS ensures this class can shrink; inline styles aren't applied here
   });
 
   test('shows title and back button when editing', async () => {
