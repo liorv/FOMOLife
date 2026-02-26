@@ -2246,7 +2246,7 @@ body {
 }
 
 .project-tile .project-progress-container {
-  width: 100%;
+  width: 90%;
   height: 24px;
   background: #e8eaed;
   border-radius: 12px;
@@ -3509,6 +3509,10 @@ body {
   30. RESPONSIVE — Narrow (≤480px)
    ============================================================ */
 @media (max-width: 480px) {
+  .project-tile {
+    min-width: unset;
+  }
+
   .task-date .full {
     display: none;
   }
