@@ -61,6 +61,7 @@ export default function ProjectTile({
   const menuRef = useRef(null);
   const dragRef = useRef(null);
   const dropdownRef = useRef(null);
+  const colorPickerRef = useRef(null);
 
   const color = useMemo(() => {
     if (project.color) return project.color;
@@ -73,33 +74,22 @@ export default function ProjectTile({
     function handleClickOutside(event) {
       const clickedInsideMenu =
         (menuRef.current && menuRef.current.contains(event.target)) ||
-        (dropdownRef.current && dropdownRef.current.contains(event.target));
+        (dropdownRef.current && dropdownRef.current.contains(event.target)) ||
+        (colorPickerRef.current && colorPickerRef.current.contains(event.target));
       if (!clickedInsideMenu) {
         setMenuOpen(false);
         setShowColorPicker(false);
       }
     }
 
-    if (menuOpen) {
+    if (menuOpen || showColorPicker) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [menuOpen]);
+  }, [menuOpen, showColorPicker]);
 
   // Close modal when clicking overlay (but not the modal itself)
-  useEffect(() => {
-    function handleOverlayClick(event) {
-      // Only close if clicking on the overlay background itself (has the data attribute)
-      if (event.target.hasAttribute("data-color-picker-overlay")) {
-        setShowColorPicker(false);
-      }
-    }
-
-    if (showColorPicker) {
-      document.addEventListener("click", handleOverlayClick);
-      return () => document.removeEventListener("click", handleOverlayClick);
-    }
-  }, [showColorPicker]);
+  // Removed document listener - using React onClick instead for better event handling
 
   // Position the dropdown in a fixed portal and update on resize/scroll
   useLayoutEffect(() => {
@@ -119,7 +109,19 @@ export default function ProjectTile({
       const top = isBottomCutOff
         ? buttonRect.top - dropdownRect.height - 4
         : buttonRect.bottom + 4;
-      const left = buttonRect.left;
+
+      // Calculate the left position
+      // Start with left-aligned to button
+      let left = buttonRect.left;
+
+      // Check if dropdown would overflow right side of viewport
+      if (left + dropdownRect.width > viewportWidth - threshold) {
+        // Right-align the dropdown with the button instead
+        left = buttonRect.right - dropdownRect.width;
+      }
+
+      // Ensure the dropdown doesn't go off the left edge either
+      left = Math.max(threshold, left);
 
       setDropdownStyle({ top: `${top}px`, left: `${left}px` });
     };
@@ -248,6 +250,7 @@ export default function ProjectTile({
                 style={{
                   position: "fixed",
                   ...dropdownStyle,
+                  right: "auto",
                   zIndex: 1001,
                 }}
               >
@@ -287,14 +290,27 @@ export default function ProjectTile({
 
       {/* Color picker modal - rendered at document root to avoid scroll clipping */}
       {showColorPicker && ReactDOM.createPortal(
-        <div className="color-picker-modal-overlay" data-color-picker-overlay>
-          <div className="color-picker-modal">
+        <div 
+          className="color-picker-modal-overlay"
+          onClick={(e) => {
+            // Only close if clicking directly on the overlay background
+            if (e.target === e.currentTarget) {
+              setShowColorPicker(false);
+            }
+          }}
+        >
+          <div 
+            className="color-picker-modal"
+            ref={colorPickerRef}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="color-picker-modal-header">
               <h3>Choose Color</h3>
               <button
                 className="color-picker-modal-close"
                 onClick={() => setShowColorPicker(false)}
                 aria-label="Close color picker"
+                type="button"
               >
                 <span className="material-icons">close</span>
               </button>
@@ -306,16 +322,8 @@ export default function ProjectTile({
                   className={`color-option ${c === color ? "selected" : ""}`}
                   style={{ backgroundColor: c }}
                   title={`Change to ${c}`}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleColorChange(c);
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleColorChange(c);
-                  }}
+                  type="button"
+                  onClick={() => handleColorChange(c)}
                   aria-label={`Color ${c}`}
                 >
                   {c === color && (

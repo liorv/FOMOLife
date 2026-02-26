@@ -20,7 +20,6 @@ export default function SubprojectRow({
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [showColorPicker, setShowColorPicker] = React.useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = React.useState(false);
-  const [colorPickerFlipped, setColorPickerFlipped] = React.useState(false);
   const [dropdownStyle, setDropdownStyle] = React.useState({});
   const menuRef = React.useRef(null);
   const dropdownRef = React.useRef(null);
@@ -64,32 +63,24 @@ export default function SubprojectRow({
   // Close menu when clicking outside
   React.useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      const clickedInsideMenu =
+        (menuRef.current && menuRef.current.contains(event.target)) ||
+        (dropdownRef.current && dropdownRef.current.contains(event.target)) ||
+        (colorPickerRef.current && colorPickerRef.current.contains(event.target));
+      if (!clickedInsideMenu) {
         setMenuOpen(false);
         setShowColorPicker(false);
       }
     }
 
-    if (menuOpen) {
+    if (menuOpen || showColorPicker) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [menuOpen]);
+  }, [menuOpen, showColorPicker]);
 
   // Close modal when clicking overlay (mobile)
-  React.useEffect(() => {
-    function handleOverlayClick(event) {
-      // Only close if clicking on the overlay background itself (has the data attribute)
-      if (event.target.hasAttribute("data-color-picker-overlay")) {
-        setShowColorPicker(false);
-      }
-    }
-
-    if (showColorPicker) {
-      document.addEventListener("click", handleOverlayClick);
-      return () => document.removeEventListener("click", handleOverlayClick);
-    }
-  }, [showColorPicker]);
+  // Removed document listener - using React onClick instead for better event handling
 
   // Position the dropdown in a fixed portal and update on resize/scroll
   React.useLayoutEffect(() => {
@@ -109,16 +100,21 @@ export default function SubprojectRow({
       const top = isBottomCutOff
         ? buttonRect.top - dropdownRect.height - 4
         : buttonRect.bottom + 4;
-      const left = buttonRect.left;
+
+      // Calculate the left position
+      // Start with left-aligned to button
+      let left = buttonRect.left;
+
+      // Check if dropdown would overflow right side of viewport
+      if (left + dropdownRect.width > viewportWidth - threshold) {
+        // Right-align the dropdown with the button instead
+        left = buttonRect.right - dropdownRect.width;
+      }
+
+      // Ensure the dropdown doesn't go off the left edge either
+      left = Math.max(threshold, left);
 
       setDropdownStyle({ top: `${top}px`, left: `${left}px` });
-
-      if (colorPickerRef.current) {
-        const colorPickerRect = colorPickerRef.current.getBoundingClientRect();
-        const isRightCutOff = colorPickerRect.right > viewportWidth - threshold;
-        const isLeftCutOff = colorPickerRect.left < threshold;
-        setColorPickerFlipped(isRightCutOff && !isLeftCutOff);
-      }
     };
 
     updatePosition();
@@ -129,35 +125,6 @@ export default function SubprojectRow({
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [menuOpen]);
-
-  // Additional effect to adjust color picker when it opens
-  React.useEffect(() => {
-    if (!showColorPicker || !colorPickerRef.current) return;
-
-    const checkColorPickerPosition = () => {
-      const colorPicker = colorPickerRef.current;
-      if (!colorPicker) return;
-
-      const rect = colorPicker.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const threshold = viewportWidth < 768 ? 20 : 10;
-
-      const isRightCutOff = rect.right > viewportWidth - threshold;
-      const isLeftCutOff = rect.left < threshold;
-      setColorPickerFlipped(isRightCutOff && !isLeftCutOff);
-    };
-
-    checkColorPickerPosition();
-    const raf1 = requestAnimationFrame(checkColorPickerPosition);
-    const raf2 = requestAnimationFrame(() => {
-      setTimeout(checkColorPickerPosition, 50);
-    });
-
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [showColorPicker]);
 
 
   return (
@@ -251,16 +218,18 @@ export default function SubprojectRow({
             <span className="material-icons">more_vert</span>
           </button>
           {menuOpen && (
-            <div
-              className="project-menu-dropdown"
-              ref={dropdownRef}
-              data-flipped-v={menuFlippedVertically ? "true" : "false"}
-              style={{
-                position: "fixed",
-                ...dropdownStyle,
-                zIndex: 1001,
-              }}
-            >
+            ReactDOM.createPortal(
+              <div
+                className="project-menu-dropdown"
+                ref={dropdownRef}
+                data-flipped-v={menuFlippedVertically ? "true" : "false"}
+                style={{
+                  position: "fixed",
+                  ...dropdownStyle,
+                  right: "auto",
+                  zIndex: 1001,
+                }}
+              >
               {!sub.isProjectLevel && onColorChange && (
                 <button
                   className="menu-item color-menu-item"
@@ -271,43 +240,6 @@ export default function SubprojectRow({
                   <span>Color</span>
                   <span className="menu-arrow">›</span>
                 </button>
-              )}
-
-              {/* On desktop, show color picker as submenu; on mobile it's a modal */}
-              {showColorPicker && !sub.isProjectLevel && onColorChange && window.innerWidth >= 768 && (
-                <div
-                  className="color-picker-submenu"
-                  ref={colorPickerRef}
-                  data-flipped={colorPickerFlipped ? "true" : "false"}
-                >
-                  <div className="color-picker-grid">
-                    {PROJECT_COLORS.map((c) => (
-                      <button
-                        key={c}
-                        className={`color-option ${c === sub.color ? "selected" : ""}`}
-                        style={{ backgroundColor: c }}
-                        title={`Set color to ${c}`}
-                        onTouchEnd={(e) => {
-                          e.preventDefault();
-                          onColorChange(sub.id, c);
-                          setShowColorPicker(false);
-                          setMenuOpen(false);
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onColorChange(sub.id, c);
-                          setShowColorPicker(false);
-                          setMenuOpen(false);
-                        }}
-                        aria-label={`Color ${c}`}
-                      >
-                        {c === sub.color && (
-                          <span className="material-icons">check</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               )}
 
               <div className="menu-divider" />
@@ -338,21 +270,36 @@ export default function SubprojectRow({
                   <span>Delete</span>
                 </button>
               )}
-            </div>
-          )}
+            </div>,
+            document.body
+          )
+        )}
         </div>
       )}
 
       {/* Color picker modal - rendered at document root to avoid scroll clipping */}
       {showColorPicker && !sub.isProjectLevel && onColorChange && ReactDOM.createPortal(
-        <div className="color-picker-modal-overlay" data-color-picker-overlay>
-          <div className="color-picker-modal">
+        <div 
+          className="color-picker-modal-overlay"
+          onClick={(e) => {
+            // Only close if clicking directly on the overlay background
+            if (e.target === e.currentTarget) {
+              setShowColorPicker(false);
+            }
+          }}
+        >
+          <div 
+            className="color-picker-modal"
+            ref={colorPickerRef}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="color-picker-modal-header">
               <h3>Choose Color</h3>
               <button
                 className="color-picker-modal-close"
                 onClick={() => setShowColorPicker(false)}
                 aria-label="Close color picker"
+                type="button"
               >
                 <span className="material-icons">close</span>
               </button>
@@ -364,16 +311,8 @@ export default function SubprojectRow({
                   className={`color-option ${c === sub.color ? "selected" : ""}`}
                   style={{ backgroundColor: c }}
                   title={`Set color to ${c}`}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onColorChange(sub.id, c);
-                    setShowColorPicker(false);
-                    setMenuOpen(false);
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                  type="button"
+                  onClick={() => {
                     onColorChange(sub.id, c);
                     setShowColorPicker(false);
                     setMenuOpen(false);
