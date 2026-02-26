@@ -60,10 +60,10 @@ describe('SubprojectEditor', () => {
     const menuBtn = document.querySelector('.subproject-row .menu-button');
     fireEvent.click(menuBtn);
     // choose the "Edit" menu item
-    const editItem = document.querySelector('.subproject-row-menu .edit-item');
+    const editItem = document.querySelector('.project-menu-dropdown .edit-menu-item');
     expect(editItem).toBeTruthy();
     // delete item should also exist
-    const deleteItem = document.querySelector('.subproject-row-menu .delete-item');
+    const deleteItem = document.querySelector('.project-menu-dropdown .delete-menu-item');
     expect(deleteItem).toBeTruthy();
     fireEvent.click(editItem);
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();

@@ -131,11 +131,13 @@ export default function SubprojectRow({
     <div 
       className="subproject-row" 
       role="button"
+      onClick={() => onEdit(sub.id)}
       style={{ 
         opacity: isDragging ? 0.5 : 1,
         backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : (sub.color ? `${sub.color}15` : 'white'),
         borderLeft: isDragOverSubprojectTile ? '3px solid #1a73e8' : 'none',
         transition: 'all 0.2s ease',
+        cursor: 'pointer',
       }}
       onDragOver={(e) => {
         e.preventDefault();
@@ -154,6 +156,7 @@ export default function SubprojectRow({
         className="subproject-expand-btn"
         onClick={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           onEdit(sub.id);
         }}
         title="Expand to edit"
@@ -206,7 +209,8 @@ export default function SubprojectRow({
           <button
             className="menu-button"
             title="More options"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               // Dispatch event to close all other menus
               const event = new CustomEvent("closeAllSubprojectMenus", {
                 detail: { subprojectId: sub.id },
@@ -222,6 +226,7 @@ export default function SubprojectRow({
               <div
                 className="project-menu-dropdown"
                 ref={dropdownRef}
+                onClick={(e) => e.stopPropagation()}
                 data-flipped-v={menuFlippedVertically ? "true" : "false"}
                 style={{
                   position: "fixed",
@@ -282,6 +287,7 @@ export default function SubprojectRow({
         <div 
           className="color-picker-modal-overlay"
           onClick={(e) => {
+            e.stopPropagation();
             // Only close if clicking directly on the overlay background
             if (e.target === e.currentTarget) {
               setShowColorPicker(false);

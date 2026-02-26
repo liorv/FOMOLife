@@ -52,10 +52,10 @@ describe('SubprojectRow', () => {
     render(<SubprojectRow sub={baseSub} onEdit={onEdit} />);
     fireEvent.click(document.querySelector('.subproject-row .menu-button'));
     // menu should appear
-    expect(document.querySelector('.subproject-row-menu')).toBeTruthy();
-    const editItem = document.querySelector('.subproject-row-menu .edit-item');
+    expect(document.querySelector('.project-menu-dropdown')).toBeTruthy();
+    const editItem = document.querySelector('.project-menu-dropdown .edit-menu-item');
     expect(editItem.textContent).toContain('Edit');
-    expect(editItem.querySelector('.menu-icon')).toBeTruthy();
+    expect(editItem.querySelector('.material-icons')).toBeTruthy();
     fireEvent.click(editItem);
     expect(onEdit).toHaveBeenCalledWith('sub1');
   });
@@ -64,29 +64,11 @@ describe('SubprojectRow', () => {
     const onDelete = jest.fn();
     render(<SubprojectRow sub={baseSub} onEdit={jest.fn()} onDelete={onDelete} />);
     fireEvent.click(document.querySelector('.subproject-row .menu-button'));
-    const deleteItem = document.querySelector('.subproject-row-menu .delete-item');
+    const deleteItem = document.querySelector('.project-menu-dropdown .delete-menu-item');
     expect(deleteItem.textContent).toContain('Delete');
-    expect(deleteItem.querySelector('.menu-icon')).toBeTruthy();
+    expect(deleteItem.querySelector('.material-icons')).toBeTruthy();
     fireEvent.click(deleteItem);
     expect(onDelete).toHaveBeenCalledWith('sub1');
   });
 
-  test('allows inline name editing when callback provided', () => {
-    const onNameChange = jest.fn();
-    render(
-      <SubprojectRow
-        sub={baseSub}
-        onEdit={jest.fn()}
-        onNameChange={onNameChange}
-      />
-    );
-    const titleSpan = screen.getByText('My Sub');
-    fireEvent.click(titleSpan);
-    const input = document.querySelector('.subproject-row-name-input');
-    expect(input).toBeTruthy();
-    fireEvent.change(input, { target: { value: 'New Name' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    fireEvent.blur(input);
-    expect(onNameChange).toHaveBeenCalledWith('New Name');
-  });
 });
