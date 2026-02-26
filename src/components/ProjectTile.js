@@ -49,15 +49,12 @@ export default function ProjectTile({
   isDragging = false,
 }) {
   const progress = useMemo(() => {
-    // Use provided progress if available, otherwise calculate from tasks
-    if (project.progress !== undefined) {
-      return project.progress;
-    }
-    
+    // Derive progress solely from tasks; ignore any stored project.progress value.
     const allTasks = (project.subprojects || []).flatMap((s) => s.tasks || []);
     if (allTasks.length === 0) return 0;
+
     return Math.round((allTasks.filter((t) => t.done).length / allTasks.length) * 100);
-  }, [project.subprojects, project.progress]);
+  }, [project.subprojects]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -191,6 +188,7 @@ export default function ProjectTile({
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
+
 
   const handleDrop = (e) => {
     e.preventDefault();

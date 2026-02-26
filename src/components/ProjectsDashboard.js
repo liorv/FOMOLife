@@ -274,7 +274,7 @@ export default function ProjectsDashboard({
               {visibleProjects.length === 0 && projectSearch ? (
                 <p className="sidebar-no-results">No matches for &ldquo;{projectSearch}&rdquo;</p>
               ) : (
-                <div className="dashboard-tiles-grid">
+                <div className="dashboard-tiles-grid" style={{ justifyContent: 'center', margin: '10px auto 0 auto' }}>
                   {visibleProjects.map((p) => (
                     <div
                       key={p.id}

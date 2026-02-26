@@ -11,6 +11,7 @@ describe('ProjectTile component', () => {
   };
 
   test('renders name and uses provided color and progress', () => {
+    // with no tasks, progress should show zero even if project.progress supplied
     render(
       <ProjectTile project={baseProject} />
     );
@@ -26,7 +27,7 @@ describe('ProjectTile component', () => {
     expect(container).toBeTruthy();
     const bar = screen.getByTestId('project-progress');
     expect(bar).toBeTruthy();
-    expect(bar).toHaveStyle('width: 42%');
+    expect(bar).toHaveStyle('width: 0%');
 
     // progress visualization should be present (CSS handles sizing)
     const circle = tileEl.querySelector('.progress-circle');
@@ -34,10 +35,17 @@ describe('ProjectTile component', () => {
 
     const psec = tileEl.querySelector('.project-progress-section');
     expect(psec).toBeTruthy();
+    // verify percent text is present and larger than default by checking css class
+    const percent = tileEl.querySelector('.progress-percent');
+    expect(percent).toBeTruthy();
+
+    // progress-text should exist as fixed container for the number
+    const ptext = tileEl.querySelector('.progress-text');
+    expect(ptext).toBeTruthy();
     
     const percentLabel = screen.getByTestId('project-percent');
     expect(percentLabel).toBeInTheDocument();
-    expect(percentLabel.textContent.includes('42')).toBe(true);
+    expect(percentLabel.textContent.includes('0')).toBe(true);
 
     // ensure the old "Complete" text has been removed
     expect(screen.queryByText('Complete')).toBeNull();
@@ -155,5 +163,35 @@ describe('ProjectTile component', () => {
     expect(tile).toHaveStyle('width: var(--project-tile-width, 150px)');
     expect(tile).toHaveStyle('height: var(--project-tile-height, 100px)');
   });
+
+  test('calculates progress from completed vs total tasks in subprojects', () => {
+    const proj = {
+      id: 'p4',
+      text: 'Tasks Test',
+      subprojects: [
+        { tasks: [{ done: true }, { done: false }] },
+        { tasks: [{ done: true }] },
+      ],
+    };
+    render(<ProjectTile project={proj} />);
+    const percentLabel = screen.getByTestId('project-percent');
+    // there are 3 tasks total, 2 done -> 67% rounded (rounded to nearest integer)
+    expect(percentLabel.textContent).toContain('67');
+  });
+
+  test('shows 0% when there are no tasks even if project.progress provided', () => {
+    const proj = {
+      id: 'p5',
+      text: 'Empty',
+      progress: 50, // should still be ignored since no tasks
+      subprojects: [
+        { tasks: [] },
+      ],
+    };
+    render(<ProjectTile project={proj} />);
+    const percentLabel = screen.getByTestId('project-percent');
+    expect(percentLabel.textContent).toContain('0');
+  });
+
 });
 

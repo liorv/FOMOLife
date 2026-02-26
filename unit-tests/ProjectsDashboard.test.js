@@ -38,5 +38,8 @@ describe('ProjectsDashboard layout', () => {
     const grid = wrapper.querySelector('.dashboard-tiles-grid');
     expect(grid).toBeInTheDocument();
     expect(wrapper.contains(grid)).toBe(true);
+    // inline style should reflect centering behaviour
+    expect(grid).toHaveStyle('justify-content: center');
+    expect(grid).toHaveStyle('margin: 10px auto 0 auto');
   });
 });

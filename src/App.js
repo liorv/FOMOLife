@@ -714,8 +714,8 @@ function App({ userId, authUser, onSignOut } = {}) {
           {/* decorative splash removed; logo now shown in title bar */}
 
           {type === "projects" && (
-            <div className="projects-search-container">
-              <div className="projects-search-bar" style={{ width: '50%' }}>
+            <div className="projects-search-container" style={{ width: '50%' }}>
+              <div className="projects-search-bar">
                 <span className="material-icons">search</span>
                 <input
                   type="text"
