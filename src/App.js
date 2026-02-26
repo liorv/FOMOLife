@@ -5,9 +5,9 @@ import TabNav from "./components/TabNav";
 import AddBar from "./components/AddBar";
 import LogoBar from "./components/LogoBar";
 import SearchTasks from "./components/SearchTasks";
-import ProjectTile, { PROJECT_COLORS } from "./components/ProjectTile";
-import ProjectEditor from "./components/ProjectEditor";
+import { PROJECT_COLORS } from "./components/ProjectTile";
 import ConfirmModal from "./components/ConfirmModal";
+import ProjectsDashboard from "./components/ProjectsDashboard";
 import UndoSnackBar from "./components/UndoSnackBar";
 // persistence API; currently backed by localStorage or file but will
 // eventually become a network service capable of scaling to many users.
@@ -128,6 +128,7 @@ function App({ userId, authUser, onSignOut } = {}) {
   const [editingPersonName, setEditingPersonName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState([]);
+  const [projectSearch, setProjectSearch] = useState("");
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
   // Safety-net write-through: persists on every state change.
@@ -191,7 +192,7 @@ function App({ userId, authUser, onSignOut } = {}) {
       id: generateId(),
       text: (name || "").trim(),
       tasks: [],
-      collapsed: true,
+      collapsed: false, // start expanded so user can immediately name it
     };
     const updatedSubs = [...(project.subprojects || []), newSub];
     await db.update("projects", editingProjectId, { subprojects: updatedSubs }, userId);
@@ -200,6 +201,52 @@ function App({ userId, authUser, onSignOut } = {}) {
       ...prev,
       projects: prev.projects.map((pr) =>
         pr.id === editingProjectId ? { ...pr, subprojects: updatedSubs } : pr,
+      ),
+    }));
+  };
+
+  // --- Project-level handlers for new dashboard ----------------------------
+
+  const handleAddProject = async (text = "New Project") => {
+    // Guard: if caller accidentally passed an event object, use the default name
+    if (!text || typeof text !== "string") text = "New Project";
+    const len = (data.projects && data.projects.length) || 0;
+    const idx = len % PROJECT_COLORS.length;
+    const color = PROJECT_COLORS[idx];
+    const newProject = await db.create(
+      "projects",
+      { text, color, progress: 0 },
+      userId,
+    );
+    const projectWithLevel = ensureProjectLevelTasks(newProject);
+    await db.update("projects", newProject.id, { subprojects: projectWithLevel.subprojects }, userId);
+    setData((prev) => ({ ...prev, projects: [...prev.projects, projectWithLevel] }));
+    setEditingProjectId(newProject.id);
+  };
+
+  const handleProjectApplyChange = (projectId, updated) => {
+    if (updated.subprojects) {
+      const hasBlank = updated.subprojects.some(
+        (s) => !s.text || s.text.trim() === ""
+      );
+      pendingBlankSubRef.current = hasBlank;
+    }
+    db.update("projects", projectId, updated, userId);
+    setData((prev) => ({
+      ...prev,
+      projects: prev.projects.map((pr) =>
+        pr.id === projectId ? { ...pr, ...updated } : pr,
+      ),
+    }));
+  };
+
+  const handleProjectTitleChange = (projectId, newText) => {
+    if (!newText || !newText.trim()) return;
+    db.update("projects", projectId, { text: newText }, userId);
+    setData((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) =>
+        p.id === projectId ? { ...p, text: newText } : p,
       ),
     }));
   };
@@ -635,7 +682,7 @@ function App({ userId, authUser, onSignOut } = {}) {
   };
 
   return (
-    <div className={`main-layout${editingProjectId ? ' editing' : ''}`}>
+    <div className="main-layout">
       {/* outer wrapper holds the top bar and container and fills available vertical space */}
       <div className="app-outer">
         {/* title/logo bar component */}
@@ -643,28 +690,6 @@ function App({ userId, authUser, onSignOut } = {}) {
             we're on tasks tab */}
         <LogoBar
           logoUrl={logoUrl}
-          title={
-            editingProjectId &&
-            type === "projects" &&
-            data.projects.find((p) => p.id === editingProjectId)?.text
-          }
-          onBack={editingProjectId && type === "projects" ? exitEditor : undefined}
-          onLogoClick={editingProjectId && type === "projects" ? exitEditor : undefined}
-          onTitleChange={
-            editingProjectId
-              ? (newText) => {
-                  const id = editingProjectId;
-                  // update persistent storage and in-memory state
-                  db.update('projects', id, { text: newText }, userId);
-                  setData((prev) => ({
-                    ...prev,
-                    projects: prev.projects.map((p) =>
-                      p.id === id ? { ...p, text: newText } : p,
-                    ),
-                  }));
-                }
-              : undefined
-          }
           user={authUser}
           onSignOut={onSignOut}
         >
@@ -682,6 +707,27 @@ function App({ userId, authUser, onSignOut } = {}) {
               }}
             />
           )}
+          {type === "projects" && (
+            <div className="projects-search-bar">
+              <span className="material-icons">search</span>
+              <input
+                type="text"
+                placeholder="Search projects\u2026"
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                aria-label="Search projects"
+              />
+              {projectSearch && (
+                <button
+                  className="projects-search-clear"
+                  onClick={() => setProjectSearch("")}
+                  aria-label="Clear search"
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              )}
+            </div>
+          )}
         </LogoBar>
         <div
           className={`container ${type === 'tasks' ? 'tasks-padding' : ''}`}
@@ -689,47 +735,25 @@ function App({ userId, authUser, onSignOut } = {}) {
           {/* decorative splash removed; logo now shown in title bar */}
 
           {type === "projects" ? (
-            editingProjectId && data.projects.find((p) => p.id === editingProjectId) ? (
-              <ProjectEditor
-                project={data.projects.find((p) => p.id === editingProjectId)}
-                onApplyChange={(updated) => {
-                  // if any unnamed subprojects removed or named, clear pending flag
-                  if (updated.subprojects) {
-                    const hasBlank = updated.subprojects.some(
-                      (s) => !s.text || s.text.trim() === ""
-                    );
-                    pendingBlankSubRef.current = hasBlank;
-                  }
-                  db.update("projects", editingProjectId, updated, userId);
-                  setData((prev) => ({
-                    ...prev,
-                    projects: prev.projects.map((pr) =>
-                      pr.id === editingProjectId ? { ...pr, ...updated } : pr,
-                    ),
-                  }));
-                }}
-                onAddSubproject={handleAddSubproject}
-                newlyAddedSubprojectId={newlyAddedSubprojectId}
-                onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
-                allPeople={data.people}
-                onOpenPeople={() => setType("people")}
-                onCreatePerson={handleCreatePerson}
-                onSubprojectDeleted={handleSubprojectDeleted}
-              />
-            ) : (
-              <div className="projects-panel">
-                {data.projects.map((p) => (
-                  <ProjectTile
-                    key={p.id}
-                    project={p}
-                    onDelete={() => setConfirmingProjectId(p.id)}
-                    onEdit={() => setEditingProjectId(p.id)}
-                    onChangeColor={handleProjectColorChange}
-                    onReorder={handleReorderProjects}
-                  />
-                ))}
-              </div>
-            )
+            <ProjectsDashboard
+              projects={data.projects}
+              people={data.people}
+              selectedProjectId={editingProjectId}
+              onSelectProject={setEditingProjectId}
+              onApplyChange={handleProjectApplyChange}
+              onAddSubproject={handleAddSubproject}
+              newlyAddedSubprojectId={newlyAddedSubprojectId}
+              onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
+              onSubprojectDeleted={handleSubprojectDeleted}
+              onColorChange={handleProjectColorChange}
+              onReorder={handleReorderProjects}
+              onDeleteProject={(id) => setConfirmingProjectId(id)}
+              onAddProject={handleAddProject}
+              onOpenPeople={() => setType("people")}
+              onCreatePerson={handleCreatePerson}
+              onTitleChange={handleProjectTitleChange}
+              projectSearch={projectSearch}
+            />
           ) : type === "people" ? (
             <ContactsPage
               contacts={data.people}
@@ -776,7 +800,7 @@ function App({ userId, authUser, onSignOut } = {}) {
       {/* when a project is being edited we no longer render the global
           bottom bar; the editor component is responsible for its own
           "add subproject" button. */}
-      {!editingProjectId && type !== "people" && (
+      {type !== "people" && type !== "projects" && (
         <div className="bottom-input-bar">
           <AddBar
             type={type}
@@ -800,6 +824,10 @@ function App({ userId, authUser, onSignOut } = {}) {
             if (projectToDelete) {
               // Delete the project
               await handleDelete(confirmingProjectId);
+              // Clear selection if the deleted project was selected
+              if (editingProjectId === confirmingProjectId) {
+                setEditingProjectId(null);
+              }
               // Show undo snack bar
               setUndoSnackBar({
                 isOpen: true,

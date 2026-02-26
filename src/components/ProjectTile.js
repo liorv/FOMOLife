@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
 
@@ -48,15 +48,17 @@ export default function ProjectTile({
   onReorder = () => {},
   isDragging = false,
 }) {
-  const [progress] = useState(() => {
-    if (typeof project.progress === "number") return project.progress;
-    return Math.floor(Math.random() * 40) + 30;
-  });
+  const progress = useMemo(() => {
+    const allTasks = (project.subprojects || []).flatMap((s) => s.tasks || []);
+    if (allTasks.length === 0) return 0;
+    return Math.round((allTasks.filter((t) => t.done).length / allTasks.length) * 100);
+  }, [project.subprojects]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
   const [colorPickerFlipped, setColorPickerFlipped] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState({});
   const menuRef = useRef(null);
   const dragRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -68,10 +70,13 @@ export default function ProjectTile({
     return DEFAULT_COLORS[idx];
   }, [project.id, project.text, project.color]);
 
-  // Close menu when clicking outside
+  // Close menu when clicking outside (including portal dropdown)
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      const clickedInsideMenu =
+        (menuRef.current && menuRef.current.contains(event.target)) ||
+        (dropdownRef.current && dropdownRef.current.contains(event.target));
+      if (!clickedInsideMenu) {
         setMenuOpen(false);
         setShowColorPicker(false);
       }
@@ -98,26 +103,28 @@ export default function ProjectTile({
     }
   }, [showColorPicker]);
 
-  // Detect viewport boundaries and adjust menu positioning
-  useEffect(() => {
-    if (!menuOpen || !dropdownRef.current) return;
+  // Position the dropdown in a fixed portal and update on resize/scroll
+  useLayoutEffect(() => {
+    if (!menuOpen) return;
 
-    const adjustMenuPosition = () => {
-      const dropdown = dropdownRef.current;
-      if (!dropdown) return;
-
-      const rect = dropdown.getBoundingClientRect();
+    const updatePosition = () => {
+      if (!menuRef.current || !dropdownRef.current) return;
+      const buttonRect = menuRef.current.getBoundingClientRect();
+      const dropdownRect = dropdownRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
-      
-      // Much more aggressive threshold on mobile (< 768px width)
       const threshold = viewportWidth < 768 ? 20 : 10;
 
-      // Check if menu is cut off at bottom
-      const isBottomCutOff = rect.bottom > viewportHeight - threshold;
+      const isBottomCutOff = buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
       setMenuFlippedVertically(isBottomCutOff);
 
-      // Check if color picker is cut off on right
+      const top = isBottomCutOff
+        ? buttonRect.top - dropdownRect.height - 4
+        : buttonRect.bottom + 4;
+      const left = buttonRect.right - dropdownRect.width;
+
+      setDropdownStyle({ top: `${top}px`, left: `${left}px` });
+
       if (colorPickerRef.current) {
         const colorPickerRect = colorPickerRef.current.getBoundingClientRect();
         const isRightCutOff = colorPickerRect.right > viewportWidth - threshold;
@@ -126,19 +133,12 @@ export default function ProjectTile({
       }
     };
 
-    // Check immediately and on window resize
-    adjustMenuPosition();
-    window.addEventListener("resize", adjustMenuPosition);
-    // Use multiple animation frames to ensure DOM is fully settled
-    const raf1 = requestAnimationFrame(adjustMenuPosition);
-    const raf2 = requestAnimationFrame(() => {
-      setTimeout(adjustMenuPosition, 50);
-    });
-
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
     return () => {
-      window.removeEventListener("resize", adjustMenuPosition);
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
   }, [menuOpen]);
 
@@ -255,6 +255,7 @@ export default function ProjectTile({
         height: heightStr,
         "--project-color": color,
         opacity: isDragging ? 0.5 : 1,
+        zIndex: menuOpen || showColorPicker ? 999 : undefined,
       }}
       data-testid="project-tile"
       ref={dragRef}
@@ -268,11 +269,12 @@ export default function ProjectTile({
         <div className="project-name-wrapper">
           <div className="project-name">{project.text || project.name}</div>
         </div>
-        <div className="project-menu" ref={menuRef}>
+        <div className="project-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <button
             className="project-menu-button"
             title="More options"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               // Dispatch event to close all other menus
               const event = new CustomEvent("closeAllMenus", {
                 detail: { projectId: project.id },
@@ -284,12 +286,18 @@ export default function ProjectTile({
           >
             <span className="material-icons">more_vert</span>
           </button>
-          {menuOpen && (
-            <div
-              className="project-menu-dropdown"
-              ref={dropdownRef}
-              data-flipped-v={menuFlippedVertically ? "true" : "false"}
-            >
+          {menuOpen &&
+            ReactDOM.createPortal(
+              <div
+                className="project-menu-dropdown"
+                ref={dropdownRef}
+                data-flipped-v={menuFlippedVertically ? "true" : "false"}
+                style={{
+                  position: "fixed",
+                  ...dropdownStyle,
+                  zIndex: 1001,
+                }}
+              >
               <button
                 className="menu-item color-menu-item"
                 onClick={() => setShowColorPicker(!showColorPicker)}
@@ -344,7 +352,8 @@ export default function ProjectTile({
                 <span className="material-icons">delete</span>
                 <span>Delete</span>
               </button>
-            </div>
+            </div>,
+              document.body
           )}
         </div>
       </div>

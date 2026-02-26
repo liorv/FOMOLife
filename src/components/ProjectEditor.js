@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
 import SubprojectEditor from "./SubprojectEditor";
+import TaskList from "./TaskList";
 import generateId from "../utils/generateId";
 
 export default function ProjectEditor({
@@ -14,6 +15,7 @@ export default function ProjectEditor({
   newlyAddedSubprojectId = null,
   onClearNewSubproject = () => {},
   onSubprojectDeleted = () => {},
+  taskFilter = null,
 }) {
   // --- State ---------------------------------------------------------------
 
@@ -29,7 +31,6 @@ export default function ProjectEditor({
   }));
   const [editorTaskId, setEditorTaskId] = useState(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState(null);
-  const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
   const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState(null);
@@ -197,6 +198,26 @@ export default function ProjectEditor({
   };
 
   const toggleSubCollapse = (id) => {
+    const subToToggle = (local.subprojects || []).find((s) => s.id === id);
+
+    // If currently expanded (about to collapse) and it's empty — delete it silently
+    if (subToToggle && !subToToggle.collapsed && !subToToggle.isProjectLevel) {
+      const hasName = subToToggle.text && subToToggle.text.trim() !== "";
+      const hasTasks = (subToToggle.tasks || []).filter((t) => t.text && t.text.trim() !== "").length > 0;
+      if (!hasName && !hasTasks) {
+        const updated = {
+          ...local,
+          subprojects: (local.subprojects || []).filter((s) => s.id !== id),
+        };
+        setLocal(updated);
+        onApplyChange(updated);
+        if (id === newlyAddedSubprojectId) {
+          onClearNewSubproject();
+        }
+        return;
+      }
+    }
+
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {
@@ -211,15 +232,23 @@ export default function ProjectEditor({
     // if we're collapsing the requested subproject, strip any unnamed tasks
     const cleaned = {
       ...updated,
-      subprojects: updated.subprojects.map((s) => {
-        if (s.id === id && s.collapsed) {
-          return {
-            ...s,
-            tasks: (s.tasks || []).filter((t) => t.text && t.text.trim() !== ""),
-          };
-        }
-        return s;
-      }),
+      subprojects: updated.subprojects
+        .map((s) => {
+          if (s.id === id && s.collapsed) {
+            return {
+              ...s,
+              tasks: (s.tasks || []).filter((t) => t.text && t.text.trim() !== ""),
+            };
+          }
+          return s;
+        })
+        // discard any unnamed taskless sub-projects that got force-collapsed
+        .filter((s) => {
+          if (s.isProjectLevel || !s.collapsed) return true;
+          const hasName = s.text && s.text.trim() !== "";
+          const hasTasks = (s.tasks || []).filter((t) => t.text && t.text.trim() !== "").length > 0;
+          return hasName || hasTasks;
+        }),
     };
     setLocal(cleaned);
     onApplyChange(cleaned);
@@ -501,6 +530,33 @@ export default function ProjectEditor({
     onApplyChange(updated);
   };
 
+  // --- Flat filter view helpers ------------------------------------------
+
+  const filteredFlatTasks = useMemo(() => {
+    if (!taskFilter) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const inSeven = new Date(today);
+    inSeven.setDate(today.getDate() + 7);
+    return (local.subprojects || []).flatMap((sub) =>
+      (sub.tasks || [])
+        .filter((t) => {
+          if (taskFilter === "starred") return (t.starred || t.favorite) && !t.done;
+          if (taskFilter === "overdue") return !t.done && t.dueDate && new Date(t.dueDate) < today;
+          if (taskFilter === "upcoming") {
+            if (t.done || !t.dueDate) return false;
+            const d = new Date(t.dueDate);
+            return d >= today && d <= inSeven;
+          }
+          return true;
+        })
+        .map((t) => ({ ...t, _subId: sub.id }))
+    );
+  }, [local.subprojects, taskFilter]);
+
+  const findSubIdForTask = (taskId) =>
+    filteredFlatTasks.find((t) => t.id === taskId)?._subId;
+
   // --- Render --------------------------------------------------------------
 
   return (
@@ -509,6 +565,62 @@ export default function ProjectEditor({
       ref={editorContainerRef}
       style={{ position: 'relative', overflow: 'auto' }}
     >
+      {taskFilter ? (
+        /* ── Flat filter view: replaces subproject list ───────────────────── */
+        <div className="filter-flat-view">
+          {filteredFlatTasks.length === 0 ? (
+            <p className="filter-flat-empty">No {taskFilter} tasks found.</p>
+          ) : (
+            <ul className="item-list">
+              <TaskList
+                items={filteredFlatTasks}
+                type="tasks"
+                editorTaskId={editorTaskId}
+                setEditorTaskId={handleSetEditorId}
+                handleToggle={(taskId) => {
+                  const sid = findSubIdForTask(taskId);
+                  if (sid) handleTaskToggle(sid, taskId);
+                }}
+                handleStar={(taskId) => {
+                  const sid = findSubIdForTask(taskId);
+                  if (sid) handleTaskStar(sid, taskId);
+                }}
+                handleDelete={(taskId) => {
+                  const sid = findSubIdForTask(taskId);
+                  if (sid) handleTaskDelete(sid, taskId);
+                }}
+                onTitleChange={(taskId, text) => {
+                  const sid = findSubIdForTask(taskId);
+                  if (sid) updateTask(sid, taskId, { text });
+                }}
+                onDragStart={() => {}}
+                onDragOver={() => {}}
+                onDrop={() => {}}
+                onDragEnd={() => {}}
+                onEditorSave={async (updatedTask) => {
+                  const sid = (local.subprojects || []).find((s) =>
+                    (s.tasks || []).some((t) => t.id === editorTaskId)
+                  )?.id;
+                  if (sid) updateTask(sid, editorTaskId, updatedTask);
+                  setEditorTaskId(null);
+                }}
+                onEditorUpdate={async (updatedTask) => {
+                  const sid = (local.subprojects || []).find((s) =>
+                    (s.tasks || []).some((t) => t.id === editorTaskId)
+                  )?.id;
+                  if (sid) updateTask(sid, editorTaskId, updatedTask);
+                }}
+                onEditorClose={handleEditorClose}
+                allPeople={allPeople}
+                onOpenPeople={onOpenPeople}
+                onCreatePerson={onCreatePerson}
+              />
+            </ul>
+          )}
+        </div>
+      ) : (
+        /* ── Normal subproject view ──────────────────────────────────────── */
+        <>
       {(local.subprojects || []).map((sub) => (
         <SubprojectEditor
           key={sub.id}
@@ -547,45 +659,9 @@ export default function ProjectEditor({
           isDragging={draggedSubprojectId === sub.id}
         />
       ))}
-      {/* replicates the FAB formerly living in the global bottom bar */}
-      <button
-        className="fab"
-        onClick={() => setFabMenuOpen(!fabMenuOpen)}
-        title={fabMenuOpen ? "Close menu" : "Add subproject"}
-      >
-        <span className="material-icons">{fabMenuOpen ? "close" : "add"}</span>
-      </button>
-      {fabMenuOpen && (
-        <div className="fab-menu" role="menu">
-          <button
-            className="fab-small"
-            onClick={() => {
-              setFabMenuOpen(false);
-            }}
-            title="AI assisted subproject"
-          >
-            <span className="material-icons">auto_awesome</span>
-            <span className="fab-label">AI assisted project design</span>
-          </button>
-          <button
-            className="fab-small"
-            onClick={() => {
-              if (!addingRef.current) {
-                addingRef.current = true;
-                onAddSubproject("");
-                setFabMenuOpen(false);
-                setTimeout(() => {
-                  addingRef.current = false;
-                }, 500);
-              }
-            }}
-            title="Add manual subproject"
-          >
-            <span className="material-icons">edit</span>
-            <span className="fab-label">Add subproject</span>
-          </button>
-        </div>
+        </>
       )}
+      {/* replicates the FAB formerly living in the global bottom bar */}
     </div>
   );
 }

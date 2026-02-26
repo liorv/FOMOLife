@@ -18,8 +18,6 @@ export default function SubprojectRow({
   isDragging = false,
 }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [draftName, setDraftName] = React.useState(sub.text || "");
-  const [editing, setEditing] = React.useState(autoEdit && (!sub.text || sub.text.trim() === ""));
   const [showColorPicker, setShowColorPicker] = React.useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = React.useState(false);
   const [colorPickerFlipped, setColorPickerFlipped] = React.useState(false);
@@ -203,51 +201,8 @@ export default function SubprojectRow({
         {sub.isProjectLevel ? "assignment_turned_in" : "folder"}
       </span>
 
-      <span className="subproject-row-title" title={sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
-        {editing && !sub.isProjectLevel ? (
-          <input
-            className="subproject-row-name-input"
-            value={draftName}
-            maxLength={100}
-            onChange={(e) => setDraftName(e.target.value)}
-            onBlur={() => {
-              setEditing(false);
-              if (onNameChange && draftName !== sub.text) {
-                onNameChange(draftName);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.target.blur();
-              }
-            }}
-            autoFocus
-          />
-        ) : (
-          <div className="subproject-name-container">
-            <span
-              onClick={() => {
-                if (onNameChange && !sub.isProjectLevel) {
-                  setEditing(true);
-                }
-              }}
-              style={{ cursor: onNameChange && !sub.isProjectLevel ? "text" : "default" }}
-            >
-              {sub.text}
-            </span>
-            {onNameChange && !sub.isProjectLevel && (
-              <span
-                className="material-icons editable-indicator"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditing(true);
-                }}
-              >
-                edit
-              </span>
-            )}
-          </div>
-        )}
+      <span className="subproject-row-title" title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
+        <span>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
       </span>
 
       {/* Right group: stats, description icon, owners, and menu button */}

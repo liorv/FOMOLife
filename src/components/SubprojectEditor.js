@@ -38,10 +38,33 @@ export default function SubprojectEditor({
   onClearNewTask = () => {},
   onReorder = () => {},
   isDragging = false,
+  taskFilter = null,
 }) {
+  // Apply filter to the task list if one is active
+  const visibleTasks = React.useMemo(() => {
+    if (!taskFilter) return sub.tasks || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const inSeven = new Date(today);
+    inSeven.setDate(today.getDate() + 7);
+    return (sub.tasks || []).filter((t) => {
+      if (taskFilter === "starred") return (t.starred || t.favorite) && !t.done;
+      if (taskFilter === "overdue") return !t.done && t.dueDate && new Date(t.dueDate) < today;
+      if (taskFilter === "upcoming") {
+        if (t.done || !t.dueDate) return false;
+        const d = new Date(t.dueDate);
+        return d >= today && d <= inSeven;
+      }
+      return true;
+    });
+  }, [sub.tasks, taskFilter]);
   // --- AddBar open/close ---
 
   const collapsed = sub.collapsed;
+  const [editingName, setEditingName] = React.useState(
+    () => autoEdit && (!sub.text || sub.text.trim() === "")
+  );
+  const [draftName, setDraftName] = React.useState(sub.text || "");
   const [showAddBar, setShowAddBar] = React.useState(false);
   const [addBarInput, setAddBarInput] = React.useState("");
   const addBarRef = React.useRef(null);
@@ -212,12 +235,38 @@ export default function SubprojectEditor({
             >
               {sub.isProjectLevel ? "assignment_turned_in" : "folder"}
             </span>
-            <span 
-              className="subproject-name-display" 
-              title={sub.text}
-            >
-              {sub.text}
-            </span>
+            {!sub.isProjectLevel && editingName ? (
+              <input
+                className="subproject-name-input-expanded"
+                value={draftName}
+                maxLength={100}
+                autoFocus
+                onChange={(e) => setDraftName(e.target.value)}
+                onBlur={() => {
+                  setEditingName(false);
+                  onUpdateText(draftName);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.target.blur();
+                }}
+              />
+            ) : (
+              <span
+                className="subproject-name-display"
+                title={sub.isProjectLevel ? "Tasks" : sub.text}
+              >
+                {sub.isProjectLevel ? "Tasks" : sub.text}
+              </span>
+            )}
+            {!sub.isProjectLevel && !editingName && (
+              <button
+                className="subproject-name-edit-btn"
+                onClick={() => { setDraftName(sub.text || ""); setEditingName(true); }}
+                title="Rename sub-project"
+              >
+                <span className="material-icons">edit</span>
+              </button>
+            )}
             <div style={{ flex: '1 1 auto' }} />
             <button
               className="add-task-header-btn"
@@ -244,7 +293,7 @@ export default function SubprojectEditor({
                   </li>
                 )}
                 <TaskList
-                  items={sub.tasks || []}
+                  items={visibleTasks}
                   type="tasks"
                   editorTaskId={editorTaskId}
                   setEditorTaskId={setEditorTaskId}

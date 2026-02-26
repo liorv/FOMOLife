@@ -64,16 +64,19 @@ export default function TaskRow({
       setEditorTaskId(id);
     }
   };
-  // Compute days until due date
+  // Compute days until due date.
+  // Parse the date string as LOCAL midnight (not UTC) so that "2026-02-26"
+  // means Feb 26 at 00:00 in the user's timezone, matching filter logic.
   let isPast = false;
   let daysLeft = null;
   if (item.dueDate) {
-    const due = new Date(item.dueDate);
-    const now = new Date();
-    // difference in full days (ceiling so any partial day counts as 1)
+    const [y, m, d] = item.dueDate.split("-").map(Number);
+    const due = new Date(y, m - 1, d); // local midnight of due date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);        // local midnight of today
     const msPerDay = 24 * 60 * 60 * 1000;
-    daysLeft = Math.ceil((due - now) / msPerDay);
-    isPast = daysLeft <= 0;
+    daysLeft = Math.round((due - today) / msPerDay);
+    isPast = daysLeft < 0; // strictly before today
   }
 
   return (
