@@ -3187,3 +3187,449 @@ body {
     display: none;
   }
 }
+
+
+/* ============================================================
+  32. CONTACTS TAB
+   ============================================================ */
+
+/* Page wrapper */
+.contacts-page {
+  padding: 16px 0 80px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Header row: title + "Add Contact" button */
+.contacts-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+/* "Add Contact" / "Cancel" toggle button */
+.add-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.18);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.add-contact-btn:hover {
+  background: #1558b0;
+  box-shadow: 0 3px 10px rgba(26, 115, 232, 0.25);
+}
+.add-contact-btn.cancel {
+  background: #e8edf4;
+  color: #4a5568;
+  box-shadow: none;
+}
+.add-contact-btn.cancel:hover {
+  background: #dde3ed;
+}
+
+/* Add-contact form card */
+.add-contact-form {
+  background: #f7f9fc;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  padding: 20px 20px 16px;
+  margin-bottom: 24px;
+  animation: slideDown 0.18s ease;
+}
+
+/* Two-column form fields (stack on mobile) */
+.add-contact-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 500px) {
+  .add-contact-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Individual field */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4a5568;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.form-field-hint {
+  font-weight: 400;
+  text-transform: none;
+  color: #8a9abf;
+  font-size: 0.78rem;
+}
+
+.contact-field-input {
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.97rem;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.contact-field-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+/* "Add & Copy Invite Link" button */
+.invite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.18);
+  transition: background 0.15s;
+  margin-bottom: 10px;
+}
+.invite-btn:hover:not(:disabled) {
+  background: #1558b0;
+}
+.invite-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.invite-btn .material-icons {
+  font-size: 1.1rem;
+}
+
+/* Hint text below invite button */
+.invite-hint {
+  font-size: 0.82rem;
+  color: #7b8ca7;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* "Link copied!" confirmation banner */
+.invite-copied-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #e6f4ea;
+  border: 1.5px solid #34a853;
+  border-radius: 10px;
+  color: #1e7e34;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  animation: slideDown 0.15s ease;
+}
+.invite-copied-banner .material-icons {
+  color: #34a853;
+  font-size: 1.2rem;
+}
+
+/* Empty-state */
+.contacts-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: #8a9abf;
+}
+.contacts-empty-icon {
+  font-size: 3rem !important;
+  display: block;
+  margin-bottom: 12px;
+  color: #c6d0e4;
+}
+.contacts-empty p {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #5a6a85;
+}
+.contacts-empty-sub {
+  font-size: 0.88rem !important;
+  font-weight: 400 !important;
+  color: #8a9abf !important;
+}
+
+/* Contact list */
+.contacts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Individual contact card */
+.contact-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(180, 200, 230, 0.10);
+  transition: box-shadow 0.15s;
+}
+.contact-card:hover {
+  box-shadow: 0 3px 12px rgba(26, 115, 232, 0.10);
+}
+
+/* Avatar circle */
+.contact-avatar {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.contact-avatar.active {
+  background: #34a853;
+}
+
+/* Name + login info area */
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-name {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.contact-name strong {
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: #1a2031;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* Hide edit pencil by default, show on hover */
+.contact-name .editable-indicator {
+  position: static;
+  transform: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-size: 0.85rem !important;
+  color: #8a9abf !important;
+  cursor: pointer;
+}
+.contact-card:hover .contact-name .editable-indicator {
+  opacity: 1;
+}
+
+.contact-login {
+  font-size: 0.82rem;
+  color: #7b8ca7;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+/* Status badge */
+.contact-meta {
+  flex-shrink: 0;
+}
+
+.contact-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.contact-status.pending {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffb74d;
+}
+.contact-status.active {
+  background: #e6f4ea;
+  color: #1e7e34;
+  border: 1px solid #81c995;
+}
+
+/* Icon button (copy link etc.) */
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #7b8ca7;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-icon:hover {
+  background: #e8edf4;
+  color: var(--color-accent);
+}
+.btn-icon .material-icons {
+  font-size: 1.1rem;
+}
+
+/* Contact actions: copy link + delete */
+.contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Delete button on contact cards — matches task-row .delete */
+.contact-card .delete {
+  background: transparent;
+  color: #333;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+  padding: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.contact-card .delete:hover {
+  background: #eee;
+}
+
+/* Remove button in TaskModal owners list — matches task-row .delete */
+.remove-btn {
+  background: transparent;
+  color: #333;
+  border: none;
+  outline: none;
+  border-radius: 50%;
+  padding: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.remove-btn:hover {
+  background: #eee;
+}
+
+/* Inline edit form inside a contact card */
+.contact-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.contact-edit-input {
+  padding: 7px 10px;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+  min-width: 100px;
+  max-width: 180px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.08);
+}
+.contact-edit-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Small utility buttons (Save / Cancel in edit mode) */
+.btn-small {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-border);
+  background: #fff;
+  color: #4a5568;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn-small:hover {
+  background: #f0f2f5;
+}
+.btn-small.primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+.btn-small.primary:hover {
+  background: #1558b0;
+  border-color: #1558b0;
+}
+
+/* ── Owner row in TaskModal (no notification columns) ── */
+.owner-avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.task-person-col.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}

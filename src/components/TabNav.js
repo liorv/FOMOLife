@@ -4,7 +4,7 @@ const tabs = [
   { key: "tasks", label: "Tasks", icon: "check_circle" },
   { key: "projects", label: "Projects", icon: "folder" },
   { key: "dreams", label: "Dreams", icon: "lightbulb" },
-  { key: "people", label: "People", icon: "people" },
+  { key: "people", label: "Contacts", icon: "contacts" },
 ];
 
 export default function TabNav({ active, onChange }) {

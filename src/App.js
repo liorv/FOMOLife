@@ -14,6 +14,7 @@ import UndoSnackBar from "./components/UndoSnackBar";
 import * as db from "./api/db";
 import { initSupabaseTables } from "./api/supabaseInit";
 import generateId from "./utils/generateId";
+import ContactsPage from "./components/ContactsPage";
 
 const logoUrl = "/assets/logo_fomo.png";
 
@@ -604,12 +605,33 @@ function App({ userId, authUser, onSignOut } = {}) {
       "people",
       {
         name: person.name,
-        methods: person.methods || { discord: false, sms: false, whatsapp: false },
+        login: person.login || "",
+        status: person.status || "none",
+        inviteToken: person.inviteToken || null,
       },
       userId,
     );
     setData((prev) => ({ ...prev, people: [...prev.people, newPerson] }));
     return newPerson;
+  };
+
+  // --- Contacts tab: add contact with nickname + login identifier --------
+  const handleAddContact = async (contactData) => {
+    // Guard against duplicate nicknames (server would also enforce this).
+    if (data.people.find((p) => p.name === contactData.name)) return;
+    const newContact = await db.create("people", contactData, userId);
+    setData((prev) => ({ ...prev, people: [...prev.people, newContact] }));
+  };
+
+  // --- Contacts tab: generate invite token for an existing contact ------
+  const handleGenerateInvite = async (id, token) => {
+    await db.update("people", id, { inviteToken: token, status: "invited" }, userId);
+    setData((prev) => ({
+      ...prev,
+      people: prev.people.map((p) =>
+        p.id === id ? { ...p, inviteToken: token, status: "invited" } : p
+      ),
+    }));
   };
 
   return (
@@ -709,27 +731,21 @@ function App({ userId, authUser, onSignOut } = {}) {
               </div>
             )
           ) : type === "people" ? (
-            <div className="people-list task-person-list">
-              <div className="task-person-list-header" aria-hidden>
-                <div className="task-person-col name">Name</div>
-                <div className="task-person-col methods">Notifications</div>
-              </div>
-              <TaskList
-                items={data.people}
-                type="people"
-                editingPersonId={editingPersonId}
-                editingPersonName={editingPersonName}
-                setEditingPersonId={setEditingPersonId}
-                setEditingPersonName={setEditingPersonName}
-                onSaveEdit={handleSavePersonEdit}
-                onCancelEdit={() => {
-                  setEditingPersonId(null);
-                  setEditingPersonName("");
-                }}
-                handleTogglePersonDefault={handleTogglePersonDefault}
-                handleDelete={handleDelete}
-              />
-            </div>
+            <ContactsPage
+              contacts={data.people}
+              onAdd={handleAddContact}
+              onDelete={handleDelete}
+              onGenerateInvite={handleGenerateInvite}
+              editingPersonId={editingPersonId}
+              editingPersonName={editingPersonName}
+              setEditingPersonId={setEditingPersonId}
+              setEditingPersonName={setEditingPersonName}
+              onSaveEdit={handleSavePersonEdit}
+              onCancelEdit={() => {
+                setEditingPersonId(null);
+                setEditingPersonName("");
+              }}
+            />
           ) : (
             <ul className="item-list">
               <TaskList
@@ -760,7 +776,7 @@ function App({ userId, authUser, onSignOut } = {}) {
       {/* when a project is being edited we no longer render the global
           bottom bar; the editor component is responsible for its own
           "add subproject" button. */}
-      {!editingProjectId && (
+      {!editingProjectId && type !== "people" && (
         <div className="bottom-input-bar">
           <AddBar
             type={type}

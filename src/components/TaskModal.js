@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-// logos are served from public/assets; no webpack import needed
-const logoDiscordUrl = "/assets/logo_discord.png";
-const logoSmsUrl = "/assets/logo_sms.png";
-const logoWhatsappUrl = "/assets/logo_whatsapp.png";
-
 export default function TaskEditor({
   task,
   onSave,
@@ -21,35 +16,10 @@ export default function TaskEditor({
   const [description, setDescription] = useState(task.description || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
 
-  // Merge task-level people with global defaults so people's default
-  // notification methods from the People tab are used unless overridden.
-  const initialPeople = (task.people || []).map((p) => {
-    const name = typeof p === "string" ? p : p.name || p;
-    const taskMethods =
-      typeof p === "object" && p.methods
-        ? { ...p.methods }
-        : typeof p === "object" && p.method
-          ? {
-              discord: p.method === "discord",
-              sms: p.method === "sms",
-              whatsapp: p.method === "whatsapp",
-            }
-          : null;
-    const global = allPeople.find((g) => g.name === name);
-    const mergedMethods =
-      taskMethods ||
-      (global
-        ? { ...(global.methods || {}) }
-        : { discord: false, sms: false, whatsapp: false });
-    return {
-      name,
-      methods: {
-        discord: !!mergedMethods.discord,
-        sms: !!mergedMethods.sms,
-        whatsapp: !!mergedMethods.whatsapp,
-      },
-    };
-  });
+  // People assigned to this task – stored simply as [{name}].
+  const initialPeople = (task.people || []).map((p) => ({
+    name: typeof p === "string" ? p : p.name || p,
+  }));
   const [people, setPeople] = useState(initialPeople);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
@@ -79,10 +49,7 @@ export default function TaskEditor({
         dueDate: latestDate,
         people: latestPeople,
       } = latestRef.current;
-      const normalized = latestPeople.map((p) => ({
-        name: p.name,
-        methods: p.methods || { discord: false, sms: false, whatsapp: false },
-      }));
+      const normalized = latestPeople.map((p) => ({ name: p.name }));
       onUpdateTask({
         ...task,
         text: latestTitle,
@@ -97,19 +64,13 @@ export default function TaskEditor({
 
   const handleAddFromAll = (person) => {
     if (people.find((p) => p.name === person.name)) return;
-    setPeople([
-      ...people,
-      { name: person.name, methods: { ...(person.methods || {}) } },
-    ]);
+    setPeople([...people, { name: person.name }]);
     setSearchQuery("");
   };
 
   // Create a new person locally and persist via the parent callback.
   const handleCreateAndAdd = (name) => {
-    const created = {
-      name,
-      methods: { discord: false, sms: false, whatsapp: false },
-    };
+    const created = { name };
     setPeople((prev) =>
       prev.find((p) => p.name === created.name) ? prev : [...prev, created],
     );
@@ -120,7 +81,7 @@ export default function TaskEditor({
       maybePromise.then((newPerson) => {
         if (newPerson && newPerson.id) {
           setPeople((prev) =>
-            prev.map((p) => (p.name === newPerson.name ? newPerson : p)),
+            prev.map((p) => (p.name === newPerson.name ? { name: newPerson.name } : p)),
           );
         }
       });
@@ -131,24 +92,10 @@ export default function TaskEditor({
     setPeople(people.filter((person) => person.name !== name));
   };
 
-  const handleTogglePersonMethod = (name, method) => {
-    setPeople((prev) =>
-      prev.map((p) =>
-        p.name === name
-          ? { ...p, methods: { ...p.methods, [method]: !p.methods[method] } }
-          : p,
-      ),
-    );
-  };
-
   // --- Save / keyboard shortcuts ------------------------------------------
 
   const saveToParent = (closeAfter = false) => {
-    // Ensure people saved with methods map
-    const normalizedPeople = people.map((p) => ({
-      name: p.name,
-      methods: p.methods || { discord: false, sms: false, whatsapp: false },
-    }));
+    const normalizedPeople = people.map((p) => ({ name: p.name }));
     const updated = {
       ...task,
       text: title,
@@ -156,9 +103,7 @@ export default function TaskEditor({
       people: normalizedPeople,
       dueDate: dueDate || null,
     };
-    // persist without closing
     onUpdateTask(updated);
-    // if caller requested a full save+close, call onSave (parent will close)
     if (closeAfter) onSave(updated);
   };
 
@@ -226,75 +171,27 @@ export default function TaskEditor({
           <div className="editor-section people-section">
             <label>Owners</label>
             <div className="people-list task-person-list">
-              <div className="task-person-list-header" aria-hidden>
-                <div className="task-person-col name">Name</div>
-                <div className="task-person-col methods">Notifications</div>
-              </div>
               {people.map((p) => (
                 <div key={p.name} className="task-person-row">
                   <div className="task-person-col name">
+                    <div className="owner-avatar">
+                      {(p.name || "?")
+                        .split(" ")
+                        .map((s) => s[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
+                    </div>
                     <strong className="person-name">{p.name}</strong>
                   </div>
-                  <div className="task-person-col methods">
-                    {/* icons for each person: discord, sms, whatsapp, and remove.
-                   grid layout (see CSS) ensures every column lines up, including the
-                   close/delete icon which lives in the last column. */}
-                    <div className="person-methods-inline">
-                      <button
-                        className={
-                          p.methods.discord
-                            ? "method-icon active"
-                            : "method-icon"
-                        }
-                        onClick={() =>
-                          handleTogglePersonMethod(p.name, "discord")
-                        }
-                        title="Discord"
-                      >
-                        <img
-                          src={logoDiscordUrl}
-                          alt="Discord"
-                          className="service-icon discord-icon"
-                        />
-                      </button>
-                      <button
-                        className={
-                          p.methods.sms ? "method-icon active" : "method-icon"
-                        }
-                        onClick={() => handleTogglePersonMethod(p.name, "sms")}
-                        title="SMS"
-                      >
-                        <img
-                          src={logoSmsUrl}
-                          alt="SMS"
-                          className="service-icon sms-icon"
-                        />
-                      </button>
-                      <button
-                        className={
-                          p.methods.whatsapp
-                            ? "method-icon active"
-                            : "method-icon"
-                        }
-                        onClick={() =>
-                          handleTogglePersonMethod(p.name, "whatsapp")
-                        }
-                        title="WhatsApp"
-                      >
-                        <img
-                          src={logoWhatsappUrl}
-                          alt="WhatsApp"
-                          className="service-icon whatsapp-icon"
-                        />
-                      </button>
-                      <button
-                        className="remove-btn"
-                        onClick={() => handleRemovePerson(p.name)}
-                        aria-label={`Remove ${p.name}`}
-                      >
-                        <span className="material-icons">close</span>
-                      </button>
-                    </div>
+                  <div className="task-person-col actions">
+                    <button
+                      className="remove-btn"
+                      onClick={() => handleRemovePerson(p.name)}
+                      aria-label={`Remove ${p.name}`}
+                    >
+                      <span className="material-icons">close</span>
+                    </button>
                   </div>
                 </div>
               ))}
