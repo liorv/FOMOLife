@@ -2154,10 +2154,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  padding: 16px 16px 200px 16px;
+  padding: 16px;
   box-sizing: border-box;
-  justify-content: flex-start;
-  align-content: flex-start;
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--color-bg-light);
@@ -2167,35 +2165,29 @@ body {
 
 /* Tile custom property defaults */
 .projects-panel .project-tile {
-  --project-tile-width: 200px;
-  --project-tile-height: 180px;
+  --project-tile-width: 300px;
+  --project-tile-height: auto;
 }
 
 .project-tile {
+  width: 300px;
   position: relative;
-  border-radius: var(--border-radius-lg);
+  border-radius: 8px;
   background: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  overflow: visible;
-  box-sizing: border-box;
-  min-width: 0;
-  width: 100%;
   cursor: grab;
   user-select: none;
-  isolation: isolate;
+  box-sizing: border-box;
 }
 
 .project-tile:active {
   cursor: grabbing;
 }
 
-.project-tile[draggable="true"]:hover,
-.project-tile:not([draggable="true"]):hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+.project-tile:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
 
 /* Tile header */
@@ -2203,84 +2195,52 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 12px 16px;
+  padding: 16px;
   gap: 8px;
-  position: relative;
-  z-index: 1;
 }
 
 .project-tile .project-name-wrapper {
   display: flex;
   align-items: center;
-  flex: 1 1 0;
+  flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 
 .project-tile .project-name {
   font-size: 1.1rem;
   font-weight: 600;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-text);
-  width: 75vw;
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 /* Tile body and progress */
 .project-tile .project-body {
-  flex: 1 1 0;
-  padding: 0 16px;
+  padding: 0 16px 16px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 12px;
 }
 
 .project-tile .project-progress-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .project-tile .project-progress-container {
-  width: 90%;
+  width: 100%;
   height: 24px;
   background: #e8eaed;
   border-radius: 12px;
   overflow: hidden;
-  position: relative;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .project-tile .project-progress {
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    var(--project-color, #0d47a1) 0%,
-    var(--project-color, #0d47a1) 100%
-  );
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 12px;
-  position: relative;
-  overflow: hidden;
-}
-
-.project-tile .project-progress::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: var(--project-color, #0d47a1);
+  transition: width 0.3s ease;
 }
 
 .project-tile .project-percent {
@@ -2288,30 +2248,12 @@ body {
   color: var(--color-text-muted);
   font-size: 1.8rem;
   font-weight: 700;
-  letter-spacing: -0.5px;
 }
 
-.project-tile .project-progress .progress-text {
-  display: none;
-}
-
-/* Tile footer accent bar */
+/* Tile footer */
 .project-tile .project-footer {
-  height: 4px;
-  width: 100%;
-  background: #e8eaed;
-}
-
-.project-tile .project-accent-bar {
-  height: 100%;
-  width: 100%;
+  height: 3px;
   background: var(--project-color, #0d47a1);
-  transition: background-color 0.2s ease;
-}
-
-.project-tile:hover .project-accent-bar {
-  height: 6px;
-  margin-top: -2px;
 }
 
 

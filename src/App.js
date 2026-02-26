@@ -712,7 +712,7 @@ function App({ userId, authUser, onSignOut } = {}) {
               <span className="material-icons">search</span>
               <input
                 type="text"
-                placeholder="Search projects\u2026"
+                placeholder="Search projects..."
                 value={projectSearch}
                 onChange={(e) => setProjectSearch(e.target.value)}
                 aria-label="Search projects"
