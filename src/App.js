@@ -715,7 +715,7 @@ function App({ userId, authUser, onSignOut } = {}) {
 
           {type === "projects" && (
             <div className="projects-search-container">
-              <div className="projects-search-bar" style={{ width: '75%' }}>
+              <div className="projects-search-bar" style={{ width: '50%' }}>
                 <span className="material-icons">search</span>
                 <input
                   type="text"

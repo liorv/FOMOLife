@@ -119,7 +119,7 @@ describe('App component', () => {
     expect(projBar).toBeInTheDocument();
     // the bar itself should be white inside
     expect(projBar).toHaveStyle('background: white');
-    expect(projBar).toHaveStyle('width: 75%');
+    expect(projBar).toHaveStyle('width: 50%');
 
     // the item should have been persisted with a generated id
     const { getAll } = require('../src/api/db');
