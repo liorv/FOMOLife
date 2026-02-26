@@ -707,34 +707,37 @@ function App({ userId, authUser, onSignOut } = {}) {
               }}
             />
           )}
-          {type === "projects" && (
-            <div className="projects-search-bar" style={{ width: '75%' }}>
-              <span className="material-icons">search</span>
-              <input
-                type="text"
-                id="projects-search"
-                name="projectsSearch"
-                placeholder="Search projects..."
-                value={projectSearch}
-                onChange={(e) => setProjectSearch(e.target.value)}
-                aria-label="Search projects"
-              />
-              {projectSearch && (
-                <button
-                  className="projects-search-clear"
-                  onClick={() => setProjectSearch("")}
-                  aria-label="Clear search"
-                >
-                  <span className="material-icons">close</span>
-                </button>
-              )}
-            </div>
-          )}
         </LogoBar>
         <div
           className={`container ${type === 'tasks' ? 'tasks-padding' : ''}`}
         >
           {/* decorative splash removed; logo now shown in title bar */}
+
+          {type === "projects" && (
+            <div className="projects-search-container">
+              <div className="projects-search-bar" style={{ width: '75%' }}>
+                <span className="material-icons">search</span>
+                <input
+                  type="text"
+                  id="projects-search"
+                  name="projectsSearch"
+                  placeholder="Search projects..."
+                  value={projectSearch}
+                  onChange={(e) => setProjectSearch(e.target.value)}
+                  aria-label="Search projects"
+                />
+                {projectSearch && (
+                  <button
+                    className="projects-search-clear"
+                    onClick={() => setProjectSearch("")}
+                    aria-label="Clear search"
+                  >
+                    <span className="material-icons">close</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {type === "projects" ? (
             <ProjectsDashboard

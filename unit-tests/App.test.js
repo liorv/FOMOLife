@@ -106,11 +106,19 @@ describe('App component', () => {
     expect(reinput).toBeTruthy();
     expect(reinput.value).toBe('');
 
-    // switch to projects view; the search bar should occupy the majority of the mid-row
+    // switch to projects view; the search bar should appear in the container
     fireEvent.click(screen.getByText('Projects'));
-    const projBar = document.querySelector('.projects-search-bar');
+    const wrapper = document.querySelector('.projects-search-container');
+    expect(wrapper).toBeInTheDocument();
+    expect(container.contains(wrapper)).toBe(true);
+    // wrapper should have pale gray background and center its child
+    expect(wrapper).toHaveStyle('background: var(--color-bg-light)');
+    expect(wrapper).toHaveStyle('display: flex');
+    expect(wrapper).toHaveStyle('justify-content: center');
+    const projBar = wrapper.querySelector('.projects-search-bar');
     expect(projBar).toBeInTheDocument();
-    // inline style ensures it takes 75% of the container
+    // the bar itself should be white inside
+    expect(projBar).toHaveStyle('background: white');
     expect(projBar).toHaveStyle('width: 75%');
 
     // the item should have been persisted with a generated id

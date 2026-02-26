@@ -1756,11 +1756,18 @@ body {
 /* Project search bar — rendered inside LogoBar's center slot.  It should
    fill the entire middle row when present, so we give it 100% width and
    remove any artificial max constraint. */
+.projects-search-container {
+  background: var(--color-bg-light);
+  display: flex;
+  justify-content: center;
+  padding: 10px 0; /* some vertical breathing room */
+}
+
 .projects-search-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-bg);
+  background: white; /* interior of the bar stays white */
   border: 1px solid var(--color-border);
   border-radius: 20px;
   padding: 6px 14px;
@@ -4393,12 +4400,12 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
-  /* align tiles to left instead of centering */
-  justify-content: flex-start;
+  /* center the tiles container horizontally within its parent */
+  justify-content: center;
   align-items: flex-start;
-  /* remove any width constraint; will be explicitly set when needed */
+  /* allow the grid to shrink below parent width; the parent sets full size */
   max-width: none;
-  margin: 0; /* remove auto centering to keep grid flush to left */
+  margin: 0 auto; /* auto margins will center the flex container if it has a width */
   padding: 0; /* eliminate outer spacing */
   z-index: 2;
   position: relative;
