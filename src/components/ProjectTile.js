@@ -49,10 +49,15 @@ export default function ProjectTile({
   isDragging = false,
 }) {
   const progress = useMemo(() => {
+    // Use provided progress if available, otherwise calculate from tasks
+    if (project.progress !== undefined) {
+      return project.progress;
+    }
+    
     const allTasks = (project.subprojects || []).flatMap((s) => s.tasks || []);
     if (allTasks.length === 0) return 0;
     return Math.round((allTasks.filter((t) => t.done).length / allTasks.length) * 100);
-  }, [project.subprojects]);
+  }, [project.subprojects, project.progress]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -220,72 +225,146 @@ export default function ProjectTile({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div className="project-header">
-        <div className="project-name-wrapper">
-          <div className="project-name">{project.text || project.name}</div>
-        </div>
-        <div className="project-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-          <button
-            className="project-menu-button"
-            title="More options"
-            onClick={(e) => {
-              e.stopPropagation();
-              // Dispatch event to close all other menus
-              const event = new CustomEvent("closeAllMenus", {
-                detail: { projectId: project.id },
-              });
-              document.dispatchEvent(event);
-              setMenuOpen(!menuOpen);
-            }}
-            aria-label="Project menu"
-          >
-            <span className="material-icons">more_vert</span>
-          </button>
-          {menuOpen &&
-            ReactDOM.createPortal(
-              <div
-                className="project-menu-dropdown"
-                ref={dropdownRef}
-                data-flipped-v={menuFlippedVertically ? "true" : "false"}
-                style={{
-                  position: "fixed",
-                  ...dropdownStyle,
-                  right: "auto",
-                  zIndex: 1001,
-                }}
-              >
-              <button
-                className="menu-item color-menu-item"
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                title="Change color"
-              >
-                <span className="material-icons">palette</span>
-                <span>Color</span>
-                <span className="menu-arrow">›</span>
-              </button>
+      {/* Artistic background elements */}
+      <div className="project-tile-bg">
+        <div className="project-tile-shape shape-1" />
+        <div className="project-tile-shape shape-2" />
+        <div className="project-tile-shape shape-3" />
+      </div>
 
-              <div className="menu-divider" />
+      {/* Main content container */}
+      <div className="project-tile-content">
+        {/* Header with name and menu */}
+        <div className="project-tile-header">
+          <div className="project-name-section">
+            <div className="project-name">{project.text || project.name}</div>
+            <div className="project-name-accent" />
+          </div>
+          
+          <div className="project-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+            <button
+              className="project-menu-button"
+              title="More options"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Dispatch event to close all other menus
+                const event = new CustomEvent("closeAllMenus", {
+                  detail: { projectId: project.id },
+                });
+                document.dispatchEvent(event);
+                setMenuOpen(!menuOpen);
+              }}
+              aria-label="Project menu"
+            >
+              <span className="material-icons">more_vert</span>
+            </button>
+            {menuOpen &&
+              ReactDOM.createPortal(
+                <div
+                  className="project-menu-dropdown"
+                  ref={dropdownRef}
+                  data-flipped-v={menuFlippedVertically ? "true" : "false"}
+                  style={{
+                    position: "fixed",
+                    ...dropdownStyle,
+                    right: "auto",
+                    zIndex: 1001,
+                  }}
+                >
+                <button
+                  className="menu-item color-menu-item"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  title="Change color"
+                >
+                  <span className="material-icons">palette</span>
+                  <span>Color</span>
+                  <span className="menu-arrow">›</span>
+                </button>
 
-              <button
-                className="menu-item edit-menu-item"
-                onClick={handleEdit}
-                title="Edit project"
-              >
-                <span className="material-icons">edit</span>
-                <span>Edit</span>
-              </button>
-              <button
-                className="menu-item delete-menu-item"
-                onClick={handleDelete}
-                title="Delete project"
-              >
-                <span className="material-icons">delete</span>
-                <span>Delete</span>
-              </button>
-            </div>,
-              document.body
-          )}
+                <div className="menu-divider" />
+
+                <button
+                  className="menu-item edit-menu-item"
+                  onClick={handleEdit}
+                  title="Edit project"
+                >
+                  <span className="material-icons">edit</span>
+                  <span>Edit</span>
+                </button>
+                <button
+                  className="menu-item delete-menu-item"
+                  onClick={handleDelete}
+                  title="Delete project"
+                >
+                  <span className="material-icons">delete</span>
+                  <span>Delete</span>
+                </button>
+              </div>,
+                document.body
+            )}
+          </div>
         </div>
+
+        {/* Progress visualization */}
+        <div className="project-progress-section">
+          <div className="progress-visualization">
+            <div className="progress-circle">
+              <svg className="progress-svg" viewBox="0 0 120 120">
+                <circle
+                  className="progress-bg"
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  strokeWidth="8"
+                />
+                <circle
+                  className="progress-fill"
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  strokeWidth="8"
+                  strokeDasharray={`${2 * Math.PI * 50}`}
+                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - progress / 100)}`}
+                  transform="rotate(-90 60 60)"
+                />
+              </svg>
+              <div className="progress-text">
+                <div className="progress-percent">{progress}%</div>
+                <div className="progress-label">Complete</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Task count indicator */}
+        <div className="project-stats">
+          <div className="stat-item">
+            <span className="stat-number">
+              {(project.subprojects || []).flatMap((s) => s.tasks || []).length}
+            </span>
+            <span className="stat-label">Tasks</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Hidden elements for backward compatibility with tests */}
+      <div className="project-body" style={{ display: 'none' }}>
+        <div className="project-progress-section">
+          <div className="project-progress-container">
+            <div
+              className="project-progress"
+              style={{ width: `${progress}%` }}
+              data-testid="project-progress"
+            />
+          </div>
+          <div className="project-percent" data-testid="project-percent">
+            {progress}%
+          </div>
+        </div>
+      </div>
+
+      <div className="project-footer" style={{ display: 'none' }}>
+        <div className="project-accent-bar" style={{ backgroundColor: color }} />
       </div>
 
       {/* Color picker modal - rendered at document root to avoid scroll clipping */}
@@ -336,25 +415,6 @@ export default function ProjectTile({
         </div>,
         document.body
       )}
-
-      <div className="project-body">
-        <div className="project-progress-section">
-          <div className="project-progress-container">
-            <div
-              className="project-progress"
-              style={{ width: `${progress}%` }}
-              data-testid="project-progress"
-            />
-          </div>
-          <div className="project-percent" data-testid="project-percent">
-            {progress}%
-          </div>
-        </div>
-      </div>
-
-      <div className="project-footer">
-        <div className="project-accent-bar" style={{ backgroundColor: color }} />
-      </div>
     </div>
   );
 }

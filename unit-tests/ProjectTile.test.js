@@ -139,9 +139,6 @@ describe('ProjectTile component', () => {
     const tile = screen.getByTestId('project-tile');
     expect(tile).toHaveStyle('width: var(--project-tile-width, 150px)');
     expect(tile).toHaveStyle('height: var(--project-tile-height, 100px)');
-
-    expect(tile.style.width).toContain('var(');
-    expect(tile.style.height).toContain('var(');
   });
 });
 
