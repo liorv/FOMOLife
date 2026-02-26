@@ -57,12 +57,10 @@ export default function ProjectTile({
   const [menuOpen, setMenuOpen] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
-  const [colorPickerFlipped, setColorPickerFlipped] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
   const menuRef = useRef(null);
   const dragRef = useRef(null);
   const dropdownRef = useRef(null);
-  const colorPickerRef = useRef(null);
 
   const color = useMemo(() => {
     if (project.color) return project.color;
@@ -97,7 +95,7 @@ export default function ProjectTile({
       }
     }
 
-    if (showColorPicker && window.innerWidth < 768) {
+    if (showColorPicker) {
       document.addEventListener("click", handleOverlayClick);
       return () => document.removeEventListener("click", handleOverlayClick);
     }
@@ -124,13 +122,6 @@ export default function ProjectTile({
       const left = buttonRect.right - dropdownRect.width;
 
       setDropdownStyle({ top: `${top}px`, left: `${left}px` });
-
-      if (colorPickerRef.current) {
-        const colorPickerRect = colorPickerRef.current.getBoundingClientRect();
-        const isRightCutOff = colorPickerRect.right > viewportWidth - threshold;
-        const isLeftCutOff = colorPickerRect.left < threshold;
-        setColorPickerFlipped(isRightCutOff && !isLeftCutOff);
-      }
     };
 
     updatePosition();
@@ -141,44 +132,6 @@ export default function ProjectTile({
       window.removeEventListener("scroll", updatePosition, true);
     };
   }, [menuOpen]);
-
-  // Additional effect to adjust color picker when it opens
-  useEffect(() => {
-    if (!showColorPicker || !colorPickerRef.current) return;
-
-    const checkColorPickerPosition = () => {
-      const colorPicker = colorPickerRef.current;
-      if (!colorPicker) return;
-
-      const rect = colorPicker.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      // Much more aggressive threshold on mobile (< 768px width)
-      const threshold = viewportWidth < 768 ? 20 : 10;
-      
-      // Check if color picker is cut off on right or left
-      const isRightCutOff = rect.right > viewportWidth - threshold;
-      const isLeftCutOff = rect.left < threshold;
-      
-      // Also check vertical (bottom cutoff)
-      const isBottomCutOff = rect.bottom > viewportHeight - threshold;
-      
-      setColorPickerFlipped(isRightCutOff && !isLeftCutOff);
-    };
-
-    // Use multiple animation frames to ensure DOM is fully settled
-    checkColorPickerPosition();
-    const raf1 = requestAnimationFrame(checkColorPickerPosition);
-    const raf2 = requestAnimationFrame(() => {
-      setTimeout(checkColorPickerPosition, 50);
-    });
-    
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [showColorPicker]);
 
   // Listen for global menu close events to prevent multiple menus from being open
   useEffect(() => {
@@ -308,32 +261,6 @@ export default function ProjectTile({
                 <span className="menu-arrow">›</span>
               </button>
 
-              {/* On desktop, show color picker as submenu; on mobile it's a modal */}
-              {showColorPicker && window.innerWidth >= 768 && (
-                <div
-                  className="color-picker-submenu"
-                  ref={colorPickerRef}
-                  data-flipped={colorPickerFlipped ? "true" : "false"}
-                >
-                  <div className="color-picker-grid">
-                    {DEFAULT_COLORS.map((c) => (
-                      <button
-                        key={c}
-                        className={`color-option ${c === color ? "selected" : ""}`}
-                        style={{ backgroundColor: c }}
-                        title={`Change to ${c}`}
-                        onClick={() => handleColorChange(c)}
-                        aria-label={`Color ${c}`}
-                      >
-                        {c === color && (
-                          <span className="material-icons">check</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="menu-divider" />
 
               <button
@@ -358,8 +285,8 @@ export default function ProjectTile({
         </div>
       </div>
 
-      {/* Mobile color picker modal - rendered at document root to avoid scroll clipping */}
-      {showColorPicker && window.innerWidth < 768 && ReactDOM.createPortal(
+      {/* Color picker modal - rendered at document root to avoid scroll clipping */}
+      {showColorPicker && ReactDOM.createPortal(
         <div className="color-picker-modal-overlay" data-color-picker-overlay>
           <div className="color-picker-modal">
             <div className="color-picker-modal-header">
