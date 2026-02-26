@@ -99,6 +99,8 @@ describe('App component', () => {
     fireEvent.click(screen.getByText('People'));
     // the padding helper class should be removed when leaving tasks
     expect(container).not.toHaveClass('tasks-padding');
+    // container background should be pale gray now
+    expect(container).toHaveStyle('background: var(--color-bg-light)');
     expect(document.querySelector('.title-search')).toBeNull();
     // back to tasks should restore it, but it should be cleared
     fireEvent.click(screen.getByText('Tasks'));
@@ -111,15 +113,15 @@ describe('App component', () => {
     const wrapper = document.querySelector('.projects-search-container');
     expect(wrapper).toBeInTheDocument();
     expect(container.contains(wrapper)).toBe(true);
-    // wrapper should have pale gray background and center its child
+    // wrapper should have pale gray background, be centered, and width 50%
     expect(wrapper).toHaveStyle('background: var(--color-bg-light)');
     expect(wrapper).toHaveStyle('display: flex');
     expect(wrapper).toHaveStyle('justify-content: center');
+    expect(wrapper).toHaveStyle('width: 50%');
     const projBar = wrapper.querySelector('.projects-search-bar');
     expect(projBar).toBeInTheDocument();
-    // the bar itself should be white inside
+    // the bar itself should be white inside and fill the container
     expect(projBar).toHaveStyle('background: white');
-    expect(projBar).toHaveStyle('width: 50%');
 
     // the item should have been persisted with a generated id
     const { getAll } = require('../src/api/db');

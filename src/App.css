@@ -446,7 +446,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   padding: 0;
-  background: var(--color-surface);
+  background: var(--color-bg-light);
   border-radius: 0;
   box-shadow: var(--elevation-1);
   box-sizing: border-box;
@@ -1761,6 +1761,8 @@ body {
   display: flex;
   justify-content: center;
   padding: 10px 0; /* some vertical breathing room */
+  width: 50%; /* container itself sits at half width of its parent */
+  margin: 0 auto; /* center the container */
 }
 
 .projects-search-bar {
@@ -1772,7 +1774,7 @@ body {
   border-radius: 20px;
   padding: 6px 14px;
   flex: 1;
-  width: 50%;           /* occupy 50% of its container */
+  /* remove explicit width; it will fill the container */
   max-width: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
