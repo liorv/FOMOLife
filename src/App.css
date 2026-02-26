@@ -2171,6 +2171,7 @@ body {
 
 .project-tile {
   width: 300px;
+  flex-shrink: 0;
   position: relative;
   border-radius: 8px;
   background: #fff;
