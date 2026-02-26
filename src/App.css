@@ -3451,10 +3451,6 @@ body {
   30. RESPONSIVE — Narrow (≤480px)
    ============================================================ */
 @media (max-width: 480px) {
-  .project-tile {
-    min-width: unset;
-  }
-
   .task-date .full {
     display: none;
   }
