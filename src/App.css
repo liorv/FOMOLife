@@ -3116,9 +3116,14 @@ body {
 }
 
 .subproject-row-title {
+  display: flex;
   flex: 1 1 0;
-  max-width: 70%;
+  /* limit to 70% of viewport width so it doesn't take entire row on narrow screens */
+  max-width: 70vw;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-weight: 500;
   font-size: 1rem;
   color: #212121;
@@ -3539,7 +3544,7 @@ body {
   position: static;
   top: auto;
   background: var(--color-surface);
-  padding: 0;
+  padding: 10px 50px 0px;
   margin-bottom: 0;
 }
 
