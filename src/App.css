@@ -2987,8 +2987,8 @@ body {
   background: #fff; /* keep content white for readability */
   border: none;
   border-radius: 6px;
-  /* animated height/padding/margin when toggling; slower for clarity */
-  transition: max-height 0.6s ease, padding 0.6s ease, margin 0.6s ease;
+  /* animated height/padding/margin when toggling; prolong duration for visible effect */
+  transition: max-height 1.2s ease-out, padding 1.2s ease-out, margin 1.2s ease-out;
   max-height: 0;
   padding: 0;
   margin: 0;
