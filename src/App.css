@@ -2887,14 +2887,40 @@ body {
 /* compact task rows for expanded subprojects
    ------------------------------------------------------------
    make them look more like table rows: tighter spacing, smaller font,
-   horizontal separators, no tile-like padding.
+   thinner separators, reduced height, no tile-like padding. also strip the
+   surrounding <li> "tiles" that are applied globally so rows flow
+   together without margins, radius, or shadows.
 */
+.subproject .item-list li {
+  /* remove tile chrome */
+  background: transparent;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+  padding: 0 1px; /* preserve minimal horizontal gap from parent rules */
+  border-bottom: 1px solid var(--color-border-row);
+}
+
 .subproject .task-row {
   gap: 4px;
   padding-left: 8px;
   padding-right: 60px; /* still leave room for right controls */
   font-size: 0.9rem;
   background: transparent;
+}
+
+/* shrink header height and spacing inside subproject tasks */
+.subproject .task-header {
+  height: 36px;
+  gap: 6px;
+}
+.subproject .task-checkbox {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 4px;
+}
+.subproject .task-row button {
+  padding: 2px;
 }
 
 .subproject .task-row .task-title {
