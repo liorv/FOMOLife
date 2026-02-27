@@ -2987,22 +2987,13 @@ body {
   background: #fff; /* keep content white for readability */
   border: none;
   border-radius: 6px;
-  /* animated height/padding/margin when toggling; prolong duration for visible effect */
+  /* animated height/padding/margin when toggling; actual values set by JS */
   transition: max-height 1.2s ease-out, padding 1.2s ease-out, margin 1.2s ease-out;
   max-height: 0;
   padding: 0;
   margin: 0;
 }
 
-.project-editor .subproject.expanded .subproject-body {
-  max-height: 1000px; /* large enough to contain content */
-  padding: 8px 0 12px 0;
-  margin: 8px 0;
-}
-
-.project-editor .subproject.collapsed .subproject-body {
-  display: none;
-}
 
 /* wrapper receives shadow when subproject is open */
 .project-editor .subproject.expanded {
