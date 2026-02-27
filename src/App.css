@@ -2987,8 +2987,10 @@ body {
   margin: 8px 0; /* uniform top/bottom spacing */
   overflow: visible;
   background: #fff; /* keep content white for readability */
-  border: 1px solid var(--color-border-row);
+  /* remove border; rely on shadow for separation */
+  border: none;
   border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .project-editor .subproject.collapsed .subproject-body {
@@ -3004,7 +3006,7 @@ body {
   padding: 0 16px;
   background: var(--color-surface);
   color: var(--color-text);
-  border-bottom: 1px solid var(--color-border-row);
+  /* no border bottom to create clean panel look */
   border-radius: 6px 6px 0 0;
   box-sizing: border-box;
 }

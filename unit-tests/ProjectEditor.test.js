@@ -93,6 +93,12 @@ describe('ProjectEditor', () => {
     };
     render(<ProjectEditor {...props} />);
 
+    // verify expanded body has inline background and shadow styles
+    const body = document.querySelector('.project-editor .subproject-body');
+    expect(body).toBeTruthy();
+    expect(body.style.backgroundColor).toBeDefined();
+    expect(body.style.boxShadow).toBe('0 2px 8px rgba(0,0,0,0.1)');
+
     // floating action button should not be present in the project editor
     const fab = document.querySelector('.project-editor > .fab:not(.fab-small)');
     expect(fab).toBeNull();
