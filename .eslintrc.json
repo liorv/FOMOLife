@@ -4,6 +4,78 @@
   "plugins": ["react"],
   "settings": { "react": { "version": "detect" } },
   "parserOptions": { "ecmaVersion": 12, "sourceType": "module", "ecmaFeatures": { "jsx": true } },
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "ecmaVersion": 2021,
+        "sourceType": "module",
+        "ecmaFeatures": { "jsx": true }
+      },
+      "rules": {
+        "react/react-in-jsx-scope": "off",
+        "no-undef": "off",
+        "no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["apps/**/*.{js,jsx,ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "apps/*",
+                  "../apps/*",
+                  "../../apps/*",
+                  "../../../apps/*",
+                  "../../../../apps/*"
+                ],
+                "message": "Apps cannot import from other apps. Move shared code into packages/* and import via @myorg/* exports."
+              },
+              {
+                "group": [
+                  "@myorg/*/src/*",
+                  "@myorg/*/dist/*",
+                  "@myorg/*/lib/*",
+                  "@myorg/*/internal/*",
+                  "packages/*/src/*",
+                  "packages/*/dist/*",
+                  "packages/*/lib/*"
+                ],
+                "message": "Do not deep-import package internals. Use public exports from @myorg/<package> only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/**/*.{js,jsx,ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "apps/*",
+                  "../apps/*",
+                  "../../apps/*",
+                  "../../../apps/*",
+                  "../../../../apps/*"
+                ],
+                "message": "Shared packages cannot import from apps. Keep packages framework-agnostic and app-independent."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "rules": {
     "no-restricted-syntax": [
       "error",

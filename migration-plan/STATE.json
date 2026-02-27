@@ -1,0 +1,74 @@
+{
+  "planName": "migration-dash-plan",
+  "lastUpdated": "2026-02-27",
+  "currentStepId": "STEP-10",
+  "summary": "STEP-09 completed: app-scoped Vercel config and deployment runbook added; local Vercel-mirrored install/build checks pass.",
+  "steps": [
+    {
+      "id": "STEP-01",
+      "title": "Verify monorepo bootstrap",
+      "status": "done",
+      "file": "01-verify-monorepo-bootstrap.md"
+    },
+    {
+      "id": "STEP-02",
+      "title": "Harden shared package skeletons",
+      "status": "done",
+      "file": "02-harden-shared-packages.md"
+    },
+    {
+      "id": "STEP-03",
+      "title": "Verify contacts app scaffold",
+      "status": "done",
+      "file": "03-verify-contacts-scaffold.md"
+    },
+    {
+      "id": "STEP-04",
+      "title": "Extract contacts domain contracts and utilities",
+      "status": "done",
+      "file": "04-extract-contacts-domain.md"
+    },
+    {
+      "id": "STEP-05",
+      "title": "Migrate contacts UI and isolate CSS",
+      "status": "done",
+      "file": "05-migrate-contacts-ui-css-modules.md"
+    },
+    {
+      "id": "STEP-06",
+      "title": "Wire contacts data and auth boundaries",
+      "status": "done",
+      "file": "06-wire-contacts-data-auth.md"
+    },
+    {
+      "id": "STEP-07",
+      "title": "Enforce strict cross-app boundaries",
+      "status": "done",
+      "file": "07-enforce-strict-boundaries.md"
+    },
+    {
+      "id": "STEP-08",
+      "title": "Harden Turbo pipelines and filters",
+      "status": "done",
+      "file": "08-harden-turbo-pipelines.md"
+    },
+    {
+      "id": "STEP-09",
+      "title": "Configure independent Vercel projects",
+      "status": "done",
+      "file": "09-configure-vercel-projects.md"
+    },
+    {
+      "id": "STEP-10",
+      "title": "Template for next tab extraction",
+      "status": "next",
+      "file": "10-next-tab-template.md"
+    },
+    {
+      "id": "STEP-11",
+      "title": "Split legacy giant CSS safely",
+      "status": "todo",
+      "file": "11-split-legacy-giant-css.md"
+    }
+  ]
+}

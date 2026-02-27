@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Person from "./Person";
 import generateId from "../utils/generateId";
+import { createInviteLink } from "@myorg/utils";
 
 /**
  * ContactsPage — full UI for the Contacts tab.
@@ -47,7 +48,7 @@ export default function ContactsPage({
     // Copy invite link immediately (must be inside the event handler for
     // browser clipboard security).
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const link = `${origin}/invite?token=${inviteToken}`;
+    const link = createInviteLink(origin, inviteToken);
     navigator.clipboard.writeText(link).then(() => {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 3000);

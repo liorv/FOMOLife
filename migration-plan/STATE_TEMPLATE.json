@@ -1,0 +1,9 @@
+{
+  "howToUpdate": [
+    "Mark the step you just finished as done.",
+    "Move exactly one future step to next.",
+    "Update lastUpdated date and summary.",
+    "Commit STATE.json together with migration changes."
+  ],
+  "validStatuses": ["done", "next", "todo", "blocked"]
+}

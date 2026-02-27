@@ -1,0 +1,18 @@
+.ui-btn {
+  border: 1px solid var(--ui-border, currentColor);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.ui-btn--primary {
+  background: var(--ui-primary-bg, currentColor);
+  color: var(--ui-primary-fg, inherit);
+}
+
+.ui-btn--secondary {
+  background: var(--ui-secondary-bg, transparent);
+  color: var(--ui-secondary-fg, inherit);
+}

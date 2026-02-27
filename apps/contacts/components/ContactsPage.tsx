@@ -1,0 +1,161 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import type { ContactsApiClient } from '@myorg/api-client';
+import { createInviteLink, isNonEmptyString } from '@myorg/utils';
+import type { Contact } from '@myorg/types';
+import { ContactCard } from './ContactCard';
+import { createContactsApiClient } from '@/lib/client/contactsApi';
+import { getContactsClientEnv } from '@/lib/env.client';
+import styles from './ContactsPage.module.css';
+
+function generateToken(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+}
+
+type Props = {
+  canManage: boolean;
+};
+
+export default function ContactsPage({ canManage }: Props) {
+  const clientEnv = useMemo(() => getContactsClientEnv(), []);
+  const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
+
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const loaded = await apiClient.listContacts();
+        if (active) {
+          setContacts(loaded);
+        }
+      } catch (error) {
+        if (active) {
+          setErrorMessage(error instanceof Error ? error.message : 'Failed to load contacts');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [apiClient]);
+
+  const addContact = async () => {
+    if (!isNonEmptyString(nickname)) return;
+
+    const inviteToken = generateToken();
+    const contact: Contact = {
+      id: '',
+      name: nickname.trim(),
+      status: 'invited',
+      inviteToken,
+      login: '',
+    };
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const link = createInviteLink(origin, inviteToken);
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this invite link and share it:', link);
+    }
+
+    const created = await apiClient.createContact({
+      name: contact.name,
+      ...(contact.login ? { login: contact.login } : {}),
+      inviteToken: contact.inviteToken ?? null,
+    });
+
+    setContacts((prev) => [...prev, created]);
+    setNickname('');
+    setShowForm(false);
+  };
+
+  return (
+    <main className={styles.page}>
+      <section className={styles.shell}>
+        <header className={styles.header}>
+          <div>
+            <h1 className={styles.title}>Contacts</h1>
+            <p className={styles.subtitle}>Invite collaborators and manage your trusted people list in {clientEnv.appName}.</p>
+          </div>
+          <button className={styles.addToggle} onClick={() => setShowForm((v) => !v)} disabled={!canManage}>
+            {showForm ? 'Cancel' : 'Add Contact'}
+          </button>
+        </header>
+
+        {!canManage ? <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div> : null}
+
+        {loading ? <div className={styles.notice}>Loading contacts…</div> : null}
+
+        {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
+
+        {showForm ? (
+          <section className={styles.form}>
+            <label className={styles.fieldLabel} htmlFor="contact-name">Nickname</label>
+            <input
+              id="contact-name"
+              className={styles.fieldInput}
+              value={nickname}
+              onChange={(event) => setNickname(event.target.value)}
+              placeholder="e.g. Alex"
+            />
+            <button className={styles.primaryBtn} onClick={addContact} disabled={!isNonEmptyString(nickname)}>
+              Add & Copy Invite Link
+            </button>
+            <p className={styles.hint}>A unique invite link is copied to clipboard for immediate sharing.</p>
+          </section>
+        ) : null}
+
+        {copied ? <div className={styles.banner}>Invite link copied to clipboard.</div> : null}
+
+        {contacts.length === 0 ? (
+          <div className={styles.empty}>No contacts yet. Add someone to start collaborating.</div>
+        ) : (
+          <ul className={styles.list}>
+            {contacts.map((contact) => (
+              <ContactCard
+                key={contact.id}
+                contact={contact}
+                onDelete={async (id) => {
+                  await apiClient.deleteContact(id);
+                  setContacts((prev) => prev.filter((item) => item.id !== id));
+                }}
+                onRename={async (id, name) => {
+                  if (!isNonEmptyString(name)) return;
+                  const updated = await apiClient.updateContact(id, { name: name.trim() });
+                  setContacts((prev) => prev.map((item) => (item.id === id ? updated : item)));
+                }}
+                onGenerateInvite={async (id, token) => {
+                  const updated = await apiClient.updateContact(id, { inviteToken: token, status: 'invited' });
+                  setContacts((prev) => prev.map((item) => (item.id === id ? updated : item)));
+                }}
+                readOnly={!canManage}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}

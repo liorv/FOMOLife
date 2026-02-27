@@ -1,0 +1,4 @@
+
+> @myorg/api-client@0.0.0 typecheck C:\Users\mylig\Github\FOMO Life\packages\api-client
+> tsc -p tsconfig.json --noEmit
+

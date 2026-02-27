@@ -1,0 +1,122 @@
+.page {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 24px;
+}
+
+.shell {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.addToggle {
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: #fff;
+  border-radius: 10px;
+  height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.form {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  color: #334155;
+}
+
+.fieldInput {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  padding: 0 10px;
+}
+
+.primaryBtn {
+  border: 1px solid #1e3a8a;
+  background: #1e3a8a;
+  color: #fff;
+  border-radius: 10px;
+  height: 38px;
+  padding: 0 12px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.banner {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.empty {
+  border: 1px dashed rgba(15, 23, 42, 0.2);
+  border-radius: 12px;
+  background: #fff;
+  padding: 20px;
+  color: #64748b;
+}
+
+.notice {
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #334155;
+}
+
+.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}

@@ -1,0 +1,4 @@
+
+> @myorg/utils@0.0.0 build C:\Users\mylig\Github\FOMO Life\packages\utils
+> tsc -p tsconfig.json
+

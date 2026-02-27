@@ -1,0 +1,20 @@
+{
+  "name": "contacts",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build",
+    "start": "next start --port 3002",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@myorg/api-client": "workspace:*",
+    "@myorg/types": "workspace:*",
+    "@myorg/utils": "workspace:*",
+    "next": "latest",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

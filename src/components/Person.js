@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import generateId from "../utils/generateId";
+import { createInviteLink } from "@myorg/utils";
 
 /**
  * ContactCard — renders a single contact in the Contacts tab.
@@ -36,7 +37,7 @@ export default function Person({
 
   const copyLink = (token) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const link = `${origin}/invite?token=${token}`;
+    const link = createInviteLink(origin, token);
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);

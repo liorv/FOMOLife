@@ -1,6 +1,9 @@
 module.exports = {
   testEnvironment: 'jsdom',
   moduleDirectories: ['node_modules', '<rootDir>'],
+  moduleNameMapper: {
+    '^@myorg/utils$': '<rootDir>/packages/utils/dist/index.js',
+  },
   setupFilesAfterEnv: ['@testing-library/jest-dom'],
   globalSetup: '<rootDir>/unit-tests/globalSetup.js',
   globalTeardown: '<rootDir>/unit-tests/globalTeardown.js',

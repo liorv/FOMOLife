@@ -1,0 +1,4 @@
+
+> @myorg/ui@0.0.0 build C:\Users\mylig\Github\FOMO Life\packages\ui
+> tsc -p tsconfig.json && node ./scripts/copy-css.mjs
+
