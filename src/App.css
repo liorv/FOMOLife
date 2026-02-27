@@ -1628,14 +1628,6 @@ body {
 }
 
 
-/* ============================================================
-  16. SEARCH BAR & FILTERS
-   ============================================================ */
-.search-tasks {
-  flex: 1 1 auto;
-  position: relative;
-}
-
 .search-container {
   flex: 1 1 auto;
   display: flex;

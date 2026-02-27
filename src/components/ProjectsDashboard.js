@@ -37,6 +37,7 @@ SummaryCard.propTypes = {
   onClick: PropTypes.func,
   active: PropTypes.bool,
   clickable: PropTypes.bool,
+  clickable: PropTypes.bool,
 };
 
 // ─── Main dashboard component ─────────────────────────────────────────────────
