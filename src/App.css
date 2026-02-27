@@ -2987,10 +2987,10 @@ body {
   margin: 8px 0; /* uniform top/bottom spacing */
   overflow: visible;
   background: #fff; /* keep content white for readability */
-  /* remove border; rely on shadow for separation */
+  /* no border or shadow so bottom edge blends with background */
   border: none;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: none;
 }
 
 .project-editor .subproject.collapsed .subproject-body {
