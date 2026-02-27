@@ -1,8 +1,8 @@
 {
   "planName": "migration-dash-plan",
   "lastUpdated": "2026-02-27",
-  "currentStepId": "STEP-13",
-  "summary": "STEP-13 completed: apps/tasks extracted with isolated CSS Modules and filtered lint/test/build passing.",
+  "currentStepId": "STEP-14",
+  "summary": "STEP-14 completed: legacy root tab runtime retired; extracted apps validated via filtered lint/test/build.",
   "steps": [
     {
       "id": "STEP-01",
@@ -81,6 +81,12 @@
       "title": "Extract tasks into dedicated app",
       "status": "done",
       "file": "13-extract-tasks-app.md"
+    },
+    {
+      "id": "STEP-14",
+      "title": "Retire legacy root tab runtime and finalize boundaries",
+      "status": "done",
+      "file": "14-retire-legacy-root-tabs.md"
     }
   ]
 }

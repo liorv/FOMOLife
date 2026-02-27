@@ -17,6 +17,7 @@ This directory contains **ordered, one-step-at-a-time instruction files** for co
 11. STEP-11 — Decompose legacy giant CSS safely
 12. STEP-12 — Extract projects into dedicated app (already done)
 13. STEP-13 — Extract tasks into dedicated app (already done)
+14. STEP-14 — Retire legacy root tab runtime and finalize boundaries (completed)
 
 ## How to use with any smart LLM
 
