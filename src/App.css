@@ -4327,11 +4327,16 @@ body {
   padding: 0;
 }
 
+/* by default dashboard content fills available space; no artificial max-width so it stretches to its container */
 .dashboard-content {
   flex: 1;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
+}
+
+/* when rendering the projects dashboard we want a full‑width layout with no centering truncation */
+.projects-dashboard .dashboard-content {
+  max-width: none;
+  margin: 0;
 }
 
 /* previously .dashboard-home styles; container no longer exists */
