@@ -1,84 +1,87 @@
-# Vercel Projects Setup (Monorepo)
+# Vercel Projects Setup (Final)
 
-This repo deploys each app as an independent Vercel project.
-
-## Project naming convention (required)
-
-Use this format for all app projects:
-
-- `fomo-life-{appname}`
-
-Examples:
+This monorepo is deployed as four independent Vercel projects:
 
 - `fomo-life-contacts`
 - `fomo-life-projects`
 - `fomo-life-tasks`
+- `fomo-life` (legacy root shell + `/?tab=...` redirects)
 
-## Contacts project (current app)
+## Project mapping
 
-Create one Vercel project with these settings:
-
-- Project name: `fomo-life-contacts`
+### `fomo-life-contacts`
 - Root Directory: `apps/contacts`
-- Framework Preset: `Next.js`
+- Framework: Next.js
 - Install Command: `pnpm install --frozen-lockfile`
 - Build Command: `pnpm --filter contacts build`
-- Output Directory: _(leave default for Next.js)_
-- Node.js Version: use Vercel default for your Next version
+- Canonical URL: https://fomo-life-contacts.vercel.app
 
-## Environment variables (contacts project only)
+### `fomo-life-projects`
+- Root Directory: `apps/projects`
+- Framework: Next.js
+- Install Command: `pnpm install --frozen-lockfile`
+- Build Command: `pnpm --filter projects build`
+- Canonical URL: https://fomo-life-projects.vercel.app
 
-Set these in Vercel project settings:
+### `fomo-life-tasks`
+- Root Directory: `apps/tasks`
+- Framework: Next.js
+- Install Command: `pnpm install --frozen-lockfile`
+- Build Command: `pnpm --filter tasks build`
+- Canonical URL: https://fomo-life-tasks.vercel.app
 
-- `NEXT_PUBLIC_APP_NAME=FOMO Life Contacts`
-- `CONTACTS_AUTH_MODE=none` (or `mock-cookie`)
-- `CONTACTS_DEFAULT_USER_ID=local-user`
+### `fomo-life` (legacy root)
+- Root Directory: repository root
+- Framework: Next.js
+- Install Command: `pnpm install --frozen-lockfile`
+- Build Command: `next build`
+- Canonical URL: https://fomo-life.vercel.app
 
-Notes:
+## Environment variable model
 
-- Keep these env vars isolated to `fomo-life-contacts`; do not share with future apps unless intended.
-- `NEXT_PUBLIC_*` vars are exposed client-side; do not place secrets there.
-- For `mock-cookie` auth mode, requests require `contacts_session` cookie.
+Cross-app URL vars (required where relevant):
+- `NEXT_PUBLIC_CONTACTS_APP_URL=https://fomo-life-contacts.vercel.app`
+- `NEXT_PUBLIC_PROJECTS_APP_URL=https://fomo-life-projects.vercel.app`
+- `NEXT_PUBLIC_TASKS_APP_URL=https://fomo-life-tasks.vercel.app`
 
-## Domain mapping
+Per-app auth vars:
+- contacts: `CONTACTS_AUTH_MODE`, `CONTACTS_DEFAULT_USER_ID`
+- projects: `PROJECTS_AUTH_MODE`, `PROJECTS_DEFAULT_USER_ID`
+- tasks: `TASKS_AUTH_MODE`, `TASKS_DEFAULT_USER_ID`
 
-Recommended:
+Root shell auth vars:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-- Production: `contacts.your-domain.com`
-- Preview: Vercel default preview domain per branch
-
-Alternative single-domain path strategy:
-
-- Use reverse proxy at edge to map `/contacts` to contacts project.
-- Keep direct project domain available for debugging.
-
-## Local commands mirroring Vercel
-
-From repo root:
-
-- `pnpm install --frozen-lockfile`
-- `pnpm --filter contacts typecheck`
-- `pnpm --filter contacts build`
-
-Optional filtered turbo parity:
-
-- `pnpm turbo build --filter=contacts`
-
-## Manual project creation steps (UI)
-
-1. Vercel Dashboard → Add New Project.
-2. Select this Git repository.
-3. Set Root Directory to `apps/contacts`.
-4. Set Install/Build commands as above.
-5. Add env vars for Preview + Production.
-6. Deploy.
-
-## CLI alternative
+## Deployment runbook
 
 From repository root:
 
-1. `vercel link` (choose/create project `fomo-life-contacts`).
-2. `vercel --prod`.
-3. In project settings, confirm root dir is `apps/contacts`.
+1. Validate changes:
+   - `pnpm turbo lint --filter=contacts --filter=projects --filter=tasks`
+   - `pnpm turbo test --filter=contacts --filter=projects --filter=tasks`
+   - `pnpm turbo build --filter=contacts --filter=projects --filter=tasks`
+2. Deploy projects:
+   - `vercel link --project fomo-life-contacts --yes && vercel --prod --yes`
+   - `vercel link --project fomo-life-projects --yes && vercel --prod --yes`
+   - `vercel link --project fomo-life-tasks --yes && vercel --prod --yes`
+   - `vercel link --project fomo-life --yes && vercel --prod --yes`
+3. Verify aliases are updated and healthy.
 
-If root dir is not configurable from your current CLI flow, use the dashboard once and then continue via CLI.
+## Legacy route compatibility
+
+The root shell preserves old entry points and redirects:
+- `/?tab=projects` → projects app
+- `/?tab=tasks` → tasks app
+- `/?tab=people` → contacts app
+- `/?tab=dreams` → tasks app
+
+## Rollback runbook
+
+For any incident:
+1. Identify failed app deployment in Vercel.
+2. Reassign alias to last healthy deployment.
+3. Re-check smoke endpoints/UI:
+   - root redirect paths above
+   - `/api/contacts`, `/api/projects`, `/api/tasks`
+4. Patch and redeploy with full validation gates.

@@ -1,5 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import '../src/index.css';
 import '../src/App.css';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
@@ -13,6 +14,13 @@ import { supabase } from '../src/api/supabaseClient';
  */
 function AuthGate({ Component, pageProps }) {
   const { session, loading, signOut } = useAuth();
+  const router = useRouter();
+  const legacyTab = Array.isArray(router.query.tab) ? router.query.tab[0] : router.query.tab;
+  const allowLegacyTabRedirect = router.isReady && typeof legacyTab === 'string' && legacyTab.length > 0;
+
+  if (allowLegacyTabRedirect) {
+    return <Component {...pageProps} />;
+  }
 
   if (loading) {
     // Minimal loading state — avoids flash of the login screen on refresh

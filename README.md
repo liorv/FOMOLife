@@ -1,103 +1,135 @@
-FOMO Life — Developer notes
+# FOMO Life Monorepo
 
-Images & asset handling
------------------------
+This repository is fully migrated to a multi-app monorepo architecture.
 
-Static images now live under `public/assets` and are served directly by Next.js.
-Raw `<img>` tags are acceptable for most use cases; for optional fallback or
-troubleshooting you may choose to wrap them manually in a short component or
-add an `onError` handler.
+## Architecture
 
-### Image guidelines
+Apps:
+- `apps/contacts` — contacts management app
+- `apps/projects` — projects app
+- `apps/tasks` — tasks app
+- `pages/*` + `src/*` — legacy root shell kept for compatibility and tab handoff redirects
 
-- Use `<img src="/assets/..." alt="..." />` for static files.
-- If you need a fallback, add `onError={e => { e.currentTarget.src = '/assets/placeholder.png'; }}`
-  or similar.
+Shared packages:
+- `packages/types` — shared domain contracts
+- `packages/utils` — shared utilities
+- `packages/api-client` — shared API client wrappers
+- `packages/ui` — shared UI primitives (for future consolidation)
 
-(The former SmartImage helper has been removed.)
+Boundary rule:
+- Apps do not import from other apps.
+- Cross-app sharing happens only through `packages/*` exports.
 
-### Developer tools
+## Production URLs
 
-- `npm run find-imgs` locates raw `<img` tags that need conversion.
-- `npm run verify-assets` checks that all referenced local image files exist and
-  are non-empty.
-- ESLint is configured to warn about plain `<img>` usage; run `npm run lint`.
+Canonical app URLs:
+- Contacts: https://fomo-life-contacts.vercel.app
+- Projects: https://fomo-life-projects.vercel.app
+- Tasks: https://fomo-life-tasks.vercel.app
+- Legacy root shell: https://fomo-life.vercel.app
 
-These measures help prevent broken images and make asset refs predictable in
-both development and production.
+Legacy compatibility redirects (root shell):
+- `https://fomo-life.vercel.app/?tab=people` → contacts app
+- `https://fomo-life.vercel.app/?tab=projects` → projects app
+- `https://fomo-life.vercel.app/?tab=tasks` → tasks app
+- `https://fomo-life.vercel.app/?tab=dreams` → tasks app (legacy alias)
 
+## Local development runbook
 
-PR checklist (recommended)
---------------------------
-- [ ] Replace any new `<img>` JSX with `SmartImage`.
-- [ ] Run `npm run find-imgs` and verify no unintended `<img>` remain.
-- [ ] Run `npm run verify-assets` and `npm test` locally before opening PR.
+Prerequisites:
+- Node.js 20+
+- `pnpm` (workspace package manager)
 
-Why this matters
------------------
-One inconsistent import shape or a missing asset can cause a broken-image icon in users' browsers even when the dev server is serving the file correctly. The `SmartImage` + `assetResolver` + CI checks dramatically reduce the chance of regressions and make failures easy to diagnose.
+Install:
+- `pnpm install --frozen-lockfile`
 
-If you want, I can also add an automated codemod to convert remaining `<img>` tags to `SmartImage` across the codebase.
+Run all apps (Turbo):
+- `pnpm dev:mono`
 
+Run a single app:
+- `pnpm --filter contacts dev`
+- `pnpm --filter projects dev`
+- `pnpm --filter tasks dev`
 
-## Persistence & data APIs
+Validation gates:
+- `pnpm turbo lint --filter=contacts --filter=projects --filter=tasks`
+- `pnpm turbo test --filter=contacts --filter=projects --filter=tasks`
+- `pnpm turbo build --filter=contacts --filter=projects --filter=tasks`
 
-A lightweight persistence layer now lives in `src/api/storage.js`.
-Instead of interacting with `localStorage` directly, application code
-imports helpers from `src/api/db.js` that wrap the storage layer.  The
-`db` API exposes familiar CRUD-style async methods (`getAll`,
-`create`, `update`, `remove`) and automatically adds a unique GUID to
-every task, project, dream and person.  State mutations throughout the
-app call these APIs directly so every change is written through
-immediately; the client never has to "save" manually.  On the client these calls no longer hit `localStorage` directly; they
-are forwarded to an internal HTTP endpoint (`/api/storage`) which itself
-executes the same helpers server‑side and writes into the `data/` folder.
-This makes every browser mutation persist to disk today and means the
-front‑end is already talking to a network API – you can switch that
-endpoint to a real backend in the future with zero client changes.  A
-fallback to `localStorage` is retained during Jest tests (and if the
-network is unreachable), so unit tests remain fast and offline
-behaviour is still sensible.  When the modules run purely on the server
-(e.g. during tests or in scripts) they still operate on a JSON file
-under `data/`, mimicking a real database and simplifying later
-migration.
+## Deployment runbook (preview + production)
 
-GUIDs are stable even if arrays are reordered, which enables the UI to
-refer to items by id rather than array index and makes scaling to
-millions of users (or syncing across devices) much more practical.
+All projects deploy independently on Vercel.
 
-The persistence layer now supports **per‑user namespaces**.  Callers
-can pass an optional `userId` argument to every `db.*` method (and the
-lower‑level `storage` helpers) and the data will be stored under a
-separate key/file.  This makes it trivial to run the same code for
-different accounts without data leakage.  Unit tests (`storage.test.js`
-and `db.test.js`) exercise the namespace behaviour and ensure that
-operations remain isolated.
+Recommended release flow:
+1. Merge approved changes to `main`.
+2. Run local/CI validation gates.
+3. Trigger production deploy per project:
+   - `vercel link --project fomo-life-contacts --yes && vercel --prod --yes`
+   - `vercel link --project fomo-life-projects --yes && vercel --prod --yes`
+   - `vercel link --project fomo-life-tasks --yes && vercel --prod --yes`
+   - `vercel link --project fomo-life --yes && vercel --prod --yes`
+4. Verify aliases are live and healthy.
 
-## UI Development & Accessibility Tips
+Notes:
+- Root project `vercel.json` uses `pnpm install --frozen-lockfile` to support workspace deps.
+- Each app has isolated runtime env and auth mode settings.
 
-To keep the app maintainable and accessible, please follow these guidelines when
-adding or changing interactive UI:
+## Environment variable management
 
-- **Avoid interactive elements inside `<summary>`.**  Browsers and
-  assistive technologies handle focus oddly when a `<summary>` contains
-  other controls.  Wrap collapsible headers in plain `<div>`s and toggle
-  visibility with a class (e.g. `.collapsed`) instead.  See
-  `src/components/ProjectEditor.js` for the recent refactor.
+Cross-app URL vars (set for each extracted app and root shell as needed):
+- `NEXT_PUBLIC_CONTACTS_APP_URL`
+- `NEXT_PUBLIC_PROJECTS_APP_URL`
+- `NEXT_PUBLIC_TASKS_APP_URL`
 
-- **Mind the stacking context.**  Floating buttons and menus should stack
-  predictably.  The tab bar uses `z-index: 100`, modals use `1000`; any
-  temporary dropdowns should sit in between (e.g. `.fab-menu { z-index:
-  110; }`).  Centralize such rules in `src/App.css`.
+Per-app auth/runtime vars:
+- Contacts: `CONTACTS_AUTH_MODE`, `CONTACTS_DEFAULT_USER_ID`
+- Projects: `PROJECTS_AUTH_MODE`, `PROJECTS_DEFAULT_USER_ID`
+- Tasks: `TASKS_AUTH_MODE`, `TASKS_DEFAULT_USER_ID`
 
-- **Write robust tests for stateful UI.**  Always query fresh DOM elements
-  before interacting and use `waitFor` when state updates asynchronously.
-  Simulate real user pacing when elements disable themselves (`isAdding`);
-  a short `setTimeout` in tests helps avoid flakiness.
+Useful commands:
+- `vercel env ls production`
+- `vercel env add <NAME> production --value "<VALUE>" --force --yes`
 
-- **Use proper ARIA roles.**  Add `role="menu"` or similar when a group
-  of buttons behaves like a menu.  Keep an eye on `eslint-plugin-jsx-a11y`
-  warnings; they often catch issues early.
+Important:
+- `NEXT_PUBLIC_*` variables are public at runtime.
+- Never store secrets in `NEXT_PUBLIC_*` variables.
 
-These tips are now part of the project documentation so future changes
-avoid the pitfalls we just fixed.
+## Rollback and incident response
+
+If a production issue is detected:
+1. Identify impacted app(s) and deployment URL in Vercel.
+2. Roll back alias to a previous healthy deployment from Vercel dashboard.
+3. Confirm health:
+   - app home page returns expected UI
+   - app API endpoint returns 200 (`/api/contacts`, `/api/projects`, `/api/tasks`)
+   - root legacy tab redirects still resolve correctly
+4. If issue is root shell only, prioritize restoring redirect continuity from `/?tab=...` URLs.
+5. Create follow-up fix and redeploy with the same validation gates.
+
+## Migration parity evidence (final)
+
+Build/test evidence:
+- `pnpm turbo lint --filter=contacts --filter=projects --filter=tasks` passed
+- `pnpm turbo test --filter=contacts --filter=projects --filter=tasks` passed
+- `pnpm turbo build --filter=contacts --filter=projects --filter=tasks` passed
+
+Production smoke evidence:
+- Contacts/Projects/Tasks pages load and show expected primary controls.
+- API endpoints are healthy:
+  - `https://fomo-life-contacts.vercel.app/api/contacts`
+  - `https://fomo-life-projects.vercel.app/api/projects`
+  - `https://fomo-life-tasks.vercel.app/api/tasks`
+- Legacy root tab redirects verified:
+  - `projects`, `tasks`, `people`, `dreams` all resolve to expected app URLs.
+
+Known limitations:
+- No dedicated Playwright/Cypress E2E suite is currently checked into this repository.
+- Smoke parity was validated via scripted browser checks and manual sanity confirmation.
+
+## Migration plan status
+
+Migration execution is complete.
+See:
+- `migration-plan/STATE.json`
+- `migration-plan/README.md`
+- `migration-plan/VERCEL_PROJECTS.md`

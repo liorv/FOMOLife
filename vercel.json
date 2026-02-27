@@ -1,5 +1,5 @@
 {
   "buildCommand": "next build",
   "devCommand": "next dev",
-  "installCommand": "npm install"
+  "installCommand": "pnpm install --frozen-lockfile"
 }
