@@ -2982,19 +2982,32 @@ body {
 }
 
 .project-editor .subproject .subproject-body {
-  /* container around tasks when expanded */
-  padding: 8px 0 12px 0;
-  margin: 8px 0; /* uniform top/bottom spacing */
-  overflow: visible;
+  /* container around tasks when expanded/collapsed */
+  overflow: hidden;
   background: #fff; /* keep content white for readability */
-  /* no border or shadow so bottom edge blends with background */
   border: none;
   border-radius: 6px;
-  box-shadow: none;
+  /* animated height/padding/margin when toggling; slower for clarity */
+  transition: max-height 0.6s ease, padding 0.6s ease, margin 0.6s ease;
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.project-editor .subproject.expanded .subproject-body {
+  max-height: 1000px; /* large enough to contain content */
+  padding: 8px 0 12px 0;
+  margin: 8px 0;
 }
 
 .project-editor .subproject.collapsed .subproject-body {
   display: none;
+}
+
+/* wrapper receives shadow when subproject is open */
+.project-editor .subproject.expanded {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 6px;
 }
 
 /* inline renaming inputs */
@@ -3752,20 +3765,6 @@ body {
   }
 
   .subproject-row-stats {
-    font-size: 0.8em;
-    gap: 3px;
-    min-width: fit-content;
-  }
-
-  .subproject-row-stats .stats-icon {
-    font-size: 1.1em;
-  }
-
-  .subproject-row-stats .task-label {
-    display: none;
-  }
-
-  .subproject-row-stats .stat-percent {
     display: none;
   }
 
