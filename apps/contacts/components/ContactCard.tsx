@@ -92,9 +92,17 @@ export function ContactCard({ contact, onDelete, onRename, onGenerateInvite, rea
           <>
             <div className={styles.nameRow}>
               <span className={styles.name}>{contact.name}</span>
-              <button className={styles.editBtn} onClick={() => setEditing(true)} aria-label="Edit nickname" disabled={readOnly}>
-                Edit
-              </button>
+              <span
+                className={`material-icons ${styles.editableIndicator}`}
+                title="Edit nickname"
+                onClick={() => {
+                  if (readOnly) return;
+                  setEditing(true);
+                }}
+                aria-hidden="true"
+              >
+                edit
+              </span>
             </div>
             {contact.login ? <p className={styles.login}>{contact.login}</p> : null}
           </>
@@ -106,15 +114,30 @@ export function ContactCard({ contact, onDelete, onRename, onGenerateInvite, rea
 
       <div className={styles.actions}>
         {contact.inviteToken ? (
-          <button className={styles.iconBtn} onClick={() => copyInvite(contact.inviteToken as string)}>
-            {copied ? 'Copied' : 'Copy link'}
+          <button
+            className={styles.iconBtn}
+            onClick={() => copyInvite(contact.inviteToken as string)}
+            aria-label={copied ? 'Copied invite link' : 'Copy invite link'}
+            title={copied ? 'Copied invite link' : 'Copy invite link'}
+          >
+            <span className={`material-icons ${styles.iconGlyph}`} aria-hidden="true">
+              {copied ? 'check' : 'link'}
+            </span>
           </button>
         ) : !isActive ? (
-          <button className={styles.iconBtn} onClick={handleGenerateInvite} disabled={readOnly}>Generate link</button>
+          <button
+            className={styles.iconBtn}
+            onClick={handleGenerateInvite}
+            disabled={readOnly}
+            aria-label="Generate invite link"
+            title="Generate invite link"
+          >
+            <span className={`material-icons ${styles.iconGlyph}`} aria-hidden="true">add_link</span>
+          </button>
         ) : null}
 
-        <button className={styles.deleteBtn} onClick={() => onDelete(contact.id)} aria-label="Remove contact" disabled={readOnly}>
-          Remove
+        <button className={styles.deleteBtn} onClick={() => onDelete(contact.id)} aria-label="Remove contact" title="Remove contact" disabled={readOnly}>
+          <span className={`material-icons ${styles.iconGlyph}`} aria-hidden="true">close</span>
         </button>
       </div>
     </li>

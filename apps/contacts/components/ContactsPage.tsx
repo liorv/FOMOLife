@@ -95,11 +95,16 @@ export default function ContactsPage({ canManage }: Props) {
     <main className={styles.page}>
       <section className={styles.shell}>
         <header className={styles.header}>
-          <div>
-            <h1 className={styles.title}>Contacts</h1>
-            <p className={styles.subtitle}>Invite collaborators and manage your trusted people list in {clientEnv.appName}.</p>
-          </div>
-          <button className={styles.addToggle} onClick={() => setShowForm((v) => !v)} disabled={!canManage}>
+          <button
+            className={`${styles.addToggle} ${showForm ? styles.addToggleCancel : ''}`.trim()}
+            onClick={() => setShowForm((v) => !v)}
+            disabled={!canManage}
+            aria-label={showForm ? 'Cancel add contact' : 'Add contact'}
+            title={showForm ? 'Cancel add contact' : 'Add contact'}
+          >
+            <span className={`material-icons ${styles.iconGlyph}`} aria-hidden="true">
+              {showForm ? 'close' : 'person_add'}
+            </span>
             {showForm ? 'Cancel' : 'Add Contact'}
           </button>
         </header>
@@ -112,25 +117,41 @@ export default function ContactsPage({ canManage }: Props) {
 
         {showForm ? (
           <section className={styles.form}>
-            <label className={styles.fieldLabel} htmlFor="contact-name">Nickname</label>
-            <input
-              id="contact-name"
-              className={styles.fieldInput}
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-              placeholder="e.g. Alex"
-            />
+            <div className={styles.formFields}>
+              <div className={styles.fieldWrap}>
+                <label className={styles.fieldLabel} htmlFor="contact-name">Nickname</label>
+                <input
+                  id="contact-name"
+                  className={styles.fieldInput}
+                  value={nickname}
+                  onChange={(event) => setNickname(event.target.value)}
+                  placeholder="e.g. Alex"
+                />
+              </div>
+            </div>
             <button className={styles.primaryBtn} onClick={addContact} disabled={!isNonEmptyString(nickname)}>
+              <span className={`material-icons ${styles.primaryIcon}`} aria-hidden="true">link</span>
               Add & Copy Invite Link
             </button>
-            <p className={styles.hint}>A unique invite link is copied to clipboard for immediate sharing.</p>
+            <p className={styles.hint}>
+              A unique invite link is copied to your clipboard. Share it however you like — whoever follows it and signs in is automatically connected to you.
+            </p>
           </section>
         ) : null}
 
-        {copied ? <div className={styles.banner}>Invite link copied to clipboard.</div> : null}
+        {copied ? (
+          <div className={styles.banner}>
+            <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
+            Invite link copied to clipboard!
+          </div>
+        ) : null}
 
         {contacts.length === 0 ? (
-          <div className={styles.empty}>No contacts yet. Add someone to start collaborating.</div>
+          <div className={styles.empty}>
+            <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people</span>
+            <p>No contacts yet.</p>
+            <p className={styles.emptySub}>Add someone to start collaborating on tasks together.</p>
+          </div>
         ) : (
           <ul className={styles.list}>
             {contacts.map((contact) => (
