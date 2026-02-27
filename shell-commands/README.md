@@ -1,6 +1,6 @@
-# shell-commands
+# shell-commands (PowerShell)
 
-Helper shell scripts for common monorepo operations: start, stop, build, and ship.
+PowerShell scripts for common monorepo operations: start, stop, build, and ship.
 
 ## Apps and ports
 
@@ -10,35 +10,36 @@ Helper shell scripts for common monorepo operations: start, stop, build, and shi
 
 ## Start
 
-- `./shell-commands/start-contacts.sh`
-- `./shell-commands/start-projects.sh`
-- `./shell-commands/start-tasks.sh`
-- `./shell-commands/start-all.sh`
+- `./shell-commands/start-contacts.ps1`
+- `./shell-commands/start-projects.ps1`
+- `./shell-commands/start-tasks.ps1`
+- `./shell-commands/start-all.ps1`
+- alias: `./shell-commands/run-tasks.ps1`
 
 ## Stop
 
-- `./shell-commands/stop-contacts.sh`
-- `./shell-commands/stop-projects.sh`
-- `./shell-commands/stop-tasks.sh`
-- `./shell-commands/stop-all.sh`
+- `./shell-commands/stop-contacts.ps1`
+- `./shell-commands/stop-projects.ps1`
+- `./shell-commands/stop-tasks.ps1`
+- `./shell-commands/stop-all.ps1`
 
 ## Build
 
-- `./shell-commands/build-contacts.sh`
-- `./shell-commands/build-projects.sh`
-- `./shell-commands/build-tasks.sh`
-- `./shell-commands/build-all.sh`
+- `./shell-commands/build-contacts.ps1`
+- `./shell-commands/build-projects.ps1`
+- `./shell-commands/build-tasks.ps1`
+- `./shell-commands/build-all.ps1`
 
 ## Ship (Vercel production)
 
-- `./shell-commands/ship-contacts.sh`
-- `./shell-commands/ship-projects.sh`
-- `./shell-commands/ship-tasks.sh`
-- `./shell-commands/ship-all.sh`
+- `./shell-commands/ship-contacts.ps1`
+- `./shell-commands/ship-projects.ps1`
+- `./shell-commands/ship-tasks.ps1`
+- `./shell-commands/ship-all.ps1`
 
 ## Notes
 
-- These scripts run from repo root automatically.
+- Scripts run from repo root automatically.
 - `ship-*` scripts require Vercel CLI auth (`vercel login`).
-- On Windows PowerShell, run with Git Bash/WSL, or use:
-  - `bash ./shell-commands/start-contacts.sh`
+- If script execution is restricted, run once in your terminal session:
+  - `Set-ExecutionPolicy -Scope Process Bypass`
