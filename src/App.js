@@ -129,6 +129,13 @@ function App({ userId, authUser, onSignOut } = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState([]);
   const handleToggleFilter = (type) => {
+    // if called with null, clear all filters (summary cards use this to toggle off)
+    if (type === null) {
+      setFilters([]);
+      return;
+    }
+    // ignore invalid inputs
+    if (!type || typeof type !== "string") return;
     setFilters((prev) =>
       prev.includes(type) ? prev.filter((f) => f !== type) : [...prev, type],
     );

@@ -88,4 +88,48 @@ describe('ProjectsDashboard layout', () => {
     const overdueIcon2 = container.querySelector('.dashboard-card__icon');
     expect(getComputedStyle(overdueIcon2).color).toBe(getComputedStyle(document.documentElement).getPropertyValue('--color-danger'));
   });
+
+  it('starred summary card toggles filter on and off via null sentinel', () => {
+    const onToggle = jest.fn();
+    const project = { id: 'p1', text: 'foo', subprojects: [] };
+    const { container, rerender } = render(
+      <ProjectsDashboard
+        projects={[project]}
+        people={[]}
+        selectedProjectId="p1"
+        filters={[]}
+        onSelectProject={() => {}}
+        onApplyChange={() => {}}
+        onAddSubproject={() => {}}
+        onReorder={() => {}}
+        onDeleteProject={() => {}}
+        onAddProject={() => {}}
+        onTitleChange={() => {}}
+        onToggleFilter={onToggle}
+      />
+    );
+    const starCard = container.querySelector('.dashboard-card--star');
+    expect(starCard).toBeInTheDocument();
+    fireEvent.click(starCard);
+    expect(onToggle).toHaveBeenCalledWith('starred');
+    // simulate card toggling again when already active
+    rerender(
+      <ProjectsDashboard
+        projects={[project]}
+        people={[]}
+        selectedProjectId="p1"
+        filters={['starred']}
+        onSelectProject={() => {}}
+        onApplyChange={() => {}}
+        onAddSubproject={() => {}}
+        onReorder={() => {}}
+        onDeleteProject={() => {}}
+        onAddProject={() => {}}
+        onTitleChange={() => {}}
+        onToggleFilter={onToggle}
+      />
+    );
+    fireEvent.click(container.querySelector('.dashboard-card--star'));
+    expect(onToggle).toHaveBeenCalledWith(null);
+  });
 });

@@ -1686,8 +1686,11 @@ body {
 /* Filter dropdown popup */
 .filter-popup {
   position: absolute;
-  left: 0;
-  right: auto;
+  /* anchor to the right side of the container so the popup appears
+     directly beneath the filter icon regardless of parent width.  inline
+     styles may override this with the same values. */
+  right: 12px;
+  left: auto;
   top: calc(100% + 4px);
   background: white;
   border: 1px solid #ccc;
@@ -1768,11 +1771,14 @@ body {
 
 .active-filters {
   position: absolute;
-  top: calc(100% + 10px);
+  /* align with bottom of the search box inside its container; 4px gap
+     mirrors other popups */
+  top: calc(100% + 4px);
   left: 0;
   display: flex;
   gap: 6px;
   justify-content: flex-start;
+  /* allow pills to grow but don't force full width */
   width: auto;
 }
 

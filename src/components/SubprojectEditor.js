@@ -110,7 +110,37 @@ export default function SubprojectEditor({
 
   // --- Render ---
 
-  const wrapperClass = "subproject" + (collapsed ? " collapsed" : "");
+  const wrapperClass =
+    "subproject" +
+    (collapsed ? " collapsed" : "") +
+    (!collapsed ? " expanded" : "");
+  const bodyRef = React.useRef(null);
+
+  // adjust max-height/padding/margin based on collapsed state for animation
+  React.useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (!collapsed) {
+      // expand: measure content and animate to that height
+      const height = el.scrollHeight;
+      el.style.maxHeight = height + "px";
+      el.style.padding = "8px 0 12px 0";
+      el.style.margin = "8px 0";
+    } else {
+      // collapse: set to current height, then shrink to 0 on next tick
+      const height = el.scrollHeight;
+      el.style.maxHeight = height + "px";
+      el.style.padding = "8px 0 12px 0";
+      el.style.margin = "8px 0";
+      // force a layout so the above styles take effect immediately
+      void el.offsetHeight;
+      setTimeout(() => {
+        el.style.maxHeight = "0";
+        el.style.padding = "0";
+        el.style.margin = "0";
+      }, 0);
+    }
+  }, [collapsed, visibleTasks]);
 
   // focus input when subproject expands
   React.useEffect(() => {
@@ -136,83 +166,64 @@ export default function SubprojectEditor({
         transition: 'all 0.2s ease',
       }}
     >
-      {collapsed ? (
-        <SubprojectRow
-          sub={sub}
-          project={project}
-          onEdit={onToggleCollapse}
-          onNameChange={(newName) => onUpdateText(newName)}
-          onColorChange={(id, color) => onUpdateColor(color)}
-          onDelete={onDelete}
-          onDragOverSubprojectTile={onDragOverSubprojectTile}
-          onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
-          onDropOnSubprojectTile={onDropOnSubprojectTile}
-          isDragOverSubprojectTile={isDragOverSubprojectTile}
-          autoEdit={autoEdit}
-          isDragging={isDragging}
-          /* drag handled by wrapper */
-        />
-      ) : (
-        <>
-          <SubprojectRow
-            sub={sub}
-            project={project}
-            onEdit={onToggleCollapse}
-            onNameChange={(newName) => onUpdateText(newName)}
-            onColorChange={(id, color) => onUpdateColor(color)}
-            onDelete={onDelete}
-            onDragOverSubprojectTile={onDragOverSubprojectTile}
-            onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
-            onDropOnSubprojectTile={onDropOnSubprojectTile}
-            isDragOverSubprojectTile={isDragOverSubprojectTile}
-            autoEdit={autoEdit}
-            isDragging={isDragging}
-            expanded={true}
-          />
-          <div className="subproject-body">
-            <div className="subproject-tasks">
-              <ul className="item-list">
-                <TaskList
-                  items={visibleTasks}
-                  type="tasks"
-                  editorTaskId={editorTaskId}
-                  setEditorTaskId={setEditorTaskId}
-                  handleToggle={handleTaskToggle}
-                  handleStar={handleTaskStar}
-                  handleDelete={handleTaskDelete}
-                  onTitleChange={onTaskTitleChange}
-                  onDragStart={onDragStart}
-                  onDragOver={onDragOver}
-                  onDrop={onDrop}
-                  onDragEnd={onDragEnd}
-                  onEditorSave={onEditorSave}
-                  onEditorUpdate={onEditorUpdate}
-                  onEditorClose={onEditorClose}
-                  allPeople={allPeople}
-                  onOpenPeople={onOpenPeople}
-                  onCreatePerson={onCreatePerson}
-                  newlyAddedTaskId={newlyAddedTaskId}
-                  onClearNewTask={onClearNewTask}
-                />
-              </ul>
-              {/* add-bar appears as last row when expanded; handles its own state */}
-              <div className="add-bar-wrapper" ref={addBarRef}>
-                <AddBar
-                  type="tasks"
-                  input={newTaskText}
-                  onInputChange={setNewTaskText}
-                  onAdd={() => {
-                    if (newTaskText.trim() !== "") {
-                      onAddTask(newTaskText, false);
-                      setNewTaskText("");
-                    }
-                  }}
-                />
-              </div>
-            </div>
+      {/* header row is always present; expanded prop toggles collapse icon */}
+      <SubprojectRow
+        sub={sub}
+        project={project}
+        onEdit={onToggleCollapse}
+        onNameChange={(newName) => onUpdateText(newName)}
+        onColorChange={(id, color) => onUpdateColor(color)}
+        onDelete={onDelete}
+        onDragOverSubprojectTile={onDragOverSubprojectTile}
+        onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
+        onDropOnSubprojectTile={onDropOnSubprojectTile}
+        isDragOverSubprojectTile={isDragOverSubprojectTile}
+        autoEdit={autoEdit}
+        isDragging={isDragging}
+        expanded={!collapsed}
+      />
+      <div className="subproject-body" ref={bodyRef}>
+        <div className="subproject-tasks">
+          <ul className="item-list">
+            <TaskList
+              items={visibleTasks}
+              type="tasks"
+              editorTaskId={editorTaskId}
+              setEditorTaskId={setEditorTaskId}
+              handleToggle={handleTaskToggle}
+              handleStar={handleTaskStar}
+              handleDelete={handleTaskDelete}
+              onTitleChange={onTaskTitleChange}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
+              onEditorSave={onEditorSave}
+              onEditorUpdate={onEditorUpdate}
+              onEditorClose={onEditorClose}
+              allPeople={allPeople}
+              onOpenPeople={onOpenPeople}
+              onCreatePerson={onCreatePerson}
+              newlyAddedTaskId={newlyAddedTaskId}
+              onClearNewTask={onClearNewTask}
+            />
+          </ul>
+          {/* add-bar appears as last row when expanded; handles its own state */}
+          <div className="add-bar-wrapper" ref={addBarRef}>
+            <AddBar
+              type="tasks"
+              input={newTaskText}
+              onInputChange={setNewTaskText}
+              onAdd={() => {
+                if (newTaskText.trim() !== "") {
+                  onAddTask(newTaskText, false);
+                  setNewTaskText("");
+                }
+              }}
+            />
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

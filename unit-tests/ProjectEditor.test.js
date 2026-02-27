@@ -93,12 +93,12 @@ describe('ProjectEditor', () => {
     };
     render(<ProjectEditor {...props} />);
 
-    // verify expanded body has inline background and shadow styles
-    const body = document.querySelector('.project-editor .subproject-body');
-    expect(body).toBeTruthy();
-    expect(body.style.backgroundColor).toBeDefined();
-    // no box-shadow is applied now (was removed to eliminate grey line)
-    expect(body.style.boxShadow).toBe('');
+    // verify wrapper has background (inline) and CSS shadow
+    const wrapper = document.querySelector('.project-editor .subproject');
+    expect(wrapper).toBeTruthy();
+    expect(wrapper.style.backgroundColor).toBeDefined();
+    // JSDOM doesn't reflect CSS shadows, just confirm 'expanded' class exists
+    expect(wrapper.classList.contains('expanded')).toBe(true);
 
     // floating action button should not be present in the project editor
     const fab = document.querySelector('.project-editor > .fab:not(.fab-small)');

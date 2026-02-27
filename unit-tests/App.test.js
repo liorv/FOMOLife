@@ -149,6 +149,8 @@ describe('App component', () => {
     fireEvent.click(filterButton);
     let popup = document.querySelector('.filter-popup');
     expect(popup).toBeTruthy();
+    // positioning should be anchored near the icon
+    expect(popup).toHaveStyle('right: 12px');
     // popup is placed within the inner wrapper
     expect(popup.parentElement).toHaveClass('search-inner');
     const pills = popup.querySelectorAll('.filter-pill');
@@ -162,6 +164,11 @@ describe('App component', () => {
     let activeEls = document.querySelectorAll('.active-filter');
     expect(activeEls.length).toBe(1);
     expect(activeEls[0].textContent).toContain('Completed');
+    // ensure the pill container is correctly placed under the search box
+    const activeContainer = activeEls[0].parentElement;
+    expect(activeContainer).toHaveClass('active-filters');
+    expect(activeContainer.parentElement).toHaveClass('search-container');
+    expect(activeContainer).toHaveStyle('top: calc(100% + 4px)');
 
     // now also select the overdue pill to verify multi-selection works
     fireEvent.click(filterButton);
@@ -416,6 +423,16 @@ describe('App component', () => {
     const pills = popup.querySelectorAll('.filter-pill');
     const labels = Array.from(pills).map((p) => p.textContent);
     expect(labels).toEqual(expect.arrayContaining(['Starred','Upcoming','Completed']));
+    // clicking the starred summary card should apply and then clear the filter
+    const starSummary = document.querySelector('.dashboard-card--star');
+    expect(starSummary).toBeTruthy();
+    fireEvent.click(starSummary);
+    const active = document.querySelector('.active-filter');
+    expect(active).toBeTruthy();
+    expect(active.textContent).toContain('Starred');
+    // second click clears it
+    fireEvent.click(starSummary);
+    expect(document.querySelector('.active-filter')).toBeNull();
     // expanded editor no longer renders name inputs
     const subInputs = editor.querySelectorAll('.subproject-name-input');
     expect(subInputs.length).toBe(0);
