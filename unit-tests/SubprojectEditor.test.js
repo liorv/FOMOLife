@@ -99,7 +99,7 @@ describe('SubprojectEditor', () => {
 
 
 
-  test('collapsed subproject rows are not styled as tiles and row background is white', () => {
+  test('collapsed subproject rows are not styled as tiles and appear as surface header', () => {
     // render with one task so we can inspect the li and row
     const handlers = { ...defaultHandlers, onAddTask: jest.fn() };
     const subWithTask = { ...defaultSub, tasks: [{ id: 'foo', text: 'bar' }] };
@@ -110,8 +110,9 @@ describe('SubprojectEditor', () => {
     expect(li.getAttribute('style')).toBeNull();
     const row = document.querySelector('.subproject .task-row');
     expect(row).toBeTruthy();
-    // background color is governed by stylesheet; jsdom does not reflect it,
-    // so we skip asserting on the computed value.
+    // visually the row now uses the surface header color but we can't inspect
+    // that reliably in jsdom; just ensure no inline style remains.
+    expect(row.getAttribute('style')).toBeNull();
   });
 
   test('user can add tasks via the inline add-bar', () => {
