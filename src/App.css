@@ -2884,6 +2884,39 @@ body {
 }
 
 
+/* compact task rows for expanded subprojects
+   ------------------------------------------------------------
+   make them look more like table rows: tighter spacing, smaller font,
+   horizontal separators, no tile-like padding.
+*/
+.subproject .task-row {
+  gap: 4px;
+  padding-left: 8px;
+  padding-right: 60px; /* still leave room for right controls */
+  font-size: 0.9rem;
+  background: transparent;
+}
+
+.subproject .task-row .task-title {
+  font-size: 0.95rem;
+}
+
+/* add separator line between rows */
+.subproject .task-row + .task-row {
+  border-top: 1px solid var(--color-border-row);
+}
+
+/* keep drag handle icon a little smaller */
+.subproject .task-row .material-icons.expand-icon {
+  font-size: 1.1rem;
+}
+
+/* ensure checkbox and buttons remain properly sized */
+.subproject .task-row .task-checkbox,
+.subproject .task-row button {
+  padding: 2px;
+}
+
 /* ============================================================
   20. SUBPROJECT (Expanded & Collapsed)
    ============================================================ */

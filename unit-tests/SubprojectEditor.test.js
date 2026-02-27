@@ -127,9 +127,9 @@ describe('SubprojectEditor', () => {
       <SubprojectEditor sub={subWithTasks} {...defaultHandlers} />
     );
 
-    // verify two rows rendered
-    expect(document.querySelectorAll('.task-row').length).toBe(2);
-    const rows = document.querySelectorAll('.task-row');
+    // verify two rows rendered, and that they live inside the .subproject container
+    const rows = document.querySelectorAll('.subproject .task-row');
+    expect(rows.length).toBe(2);
     // start drag on the row itself
     fireEvent.dragStart(rows[0]);
     fireEvent.dragOver(rows[1]);
