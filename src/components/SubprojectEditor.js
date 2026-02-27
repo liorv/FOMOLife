@@ -133,7 +133,8 @@ export default function SubprojectEditor({
       style={{ 
         opacity: isDragging ? 0.5 : 1, 
         overflow: 'visible',
-        backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
+        /* keep white background by default; only tint when dragging-over */
+        backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : '#fff',
         borderLeft: isDragOverSubprojectTile ? '3px solid #1a73e8' : 'none',
         transition: 'all 0.2s ease',
       }}
