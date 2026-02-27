@@ -1698,6 +1698,16 @@ body {
   font-size: 0.9rem;
 }
 
+.filter-pill.starred {
+  background: var(--color-star);
+  color: white;
+}
+
+.filter-pill.upcoming {
+  background: var(--color-primary);
+  color: white;
+}
+
 .filter-pill.completed {
   background: #2b6cb0;
   color: white;
@@ -1720,6 +1730,16 @@ body {
   border-radius: 12px;
   background: #d0e8ff;
   font-size: 0.85rem;
+}
+
+.active-filter.starred {
+  background: var(--color-star);
+  color: white;
+}
+
+.active-filter.upcoming {
+  background: var(--color-primary);
+  color: white;
 }
 
 .active-filter.completed {
@@ -3465,34 +3485,22 @@ body {
 /* ============================================================
   24. ADDBAR WRAPPER (Subproject Task List)
    ============================================================ */
+/* wrapper exists primarily to ensure full width within the subproject
+   container.  visual styling should be minimal so the input looks identical
+   to other rows. */
 .add-bar-wrapper {
-  display: flex;
-  align-items: center;
-  list-style: none;
-  flex-direction: column;
-  gap: 0;
-  padding: 2px 10px !important;
-  border-bottom: 1.5px solid var(--color-border-row);
-  font-size: 1.08rem;
-  background: #fff;
-  border-radius: 10px;
-  margin-bottom: 2px;
-  box-shadow: 0 1px 4px #b6c6e61a;
-  width: auto;
+  width: 100%;
+  padding: 0;
 }
 
+/* Ensure the AddBar inside the wrapper behaves like the normal global
+   add-bar; override anything aggressive from the old styles. */
 .add-bar-wrapper .add-bar {
-  width: 100%;
-  margin: 0;
-  padding: 12px;
   position: static;
   top: auto;
-  background: var(--color-accent);
-  display: flex;
-  gap: 10px;
-  flex-wrap: nowrap;
-  justify-content: center;
-  align-items: center;
+  background: var(--color-surface);
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .add-bar-wrapper .add-bar input {

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import TaskList from "./TaskList";
 import SubprojectRow from "./SubprojectRow";
+import AddBar from "./AddBar";
+import { applyFilters } from "../utils/taskFilters";
 
 export default function SubprojectEditor({
   sub,
@@ -36,26 +38,13 @@ export default function SubprojectEditor({
   onClearNewTask = () => {},
   onReorder = () => {},
   isDragging = false,
-  taskFilter = null,
+  taskFilters = [],
 }) {
   // Apply filter to the task list if one is active
   const visibleTasks = React.useMemo(() => {
-    if (!taskFilter) return sub.tasks || [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const inSeven = new Date(today);
-    inSeven.setDate(today.getDate() + 7);
-    return (sub.tasks || []).filter((t) => {
-      if (taskFilter === "starred") return (t.starred || t.favorite) && !t.done;
-      if (taskFilter === "overdue") return !t.done && t.dueDate && new Date(t.dueDate) < today;
-      if (taskFilter === "upcoming") {
-        if (t.done || !t.dueDate) return false;
-        const d = new Date(t.dueDate);
-        return d >= today && d <= inSeven;
-      }
-      return true;
-    });
-  }, [sub.tasks, taskFilter]);
+    // filters do not consider searchQuery in this component; helper is still usable
+    return applyFilters(sub.tasks || [], taskFilters, "");
+  }, [sub.tasks, JSON.stringify(taskFilters)]);
   // --- AddBar open/close ---
 
   const collapsed = sub.collapsed;
@@ -63,6 +52,12 @@ export default function SubprojectEditor({
     () => autoEdit && (!sub.text || sub.text.trim() === "")
   );
   const [draftName, setDraftName] = React.useState(sub.text || "");
+
+  // local state for the inline add-bar that appears when subproject is
+  // expanded; users can type a task and hit enter or press the button to
+  // create it.  this replaces the previous floating-action approach.
+  const [newTaskText, setNewTaskText] = React.useState("");
+  const addBarRef = React.useRef(null);
 
   // --- Subproject drag/drop ---
 
@@ -120,6 +115,14 @@ export default function SubprojectEditor({
 
   const wrapperClass = "subproject" + (collapsed ? " collapsed" : "");
 
+  // focus input when subproject expands
+  React.useEffect(() => {
+    if (!collapsed && addBarRef.current) {
+      const input = addBarRef.current.querySelector('input');
+      if (input) input.focus();
+    }
+  }, [collapsed]);
+
   return (
     <div
       className={wrapperClass}
@@ -155,6 +158,19 @@ export default function SubprojectEditor({
         <>
           <div 
             className="subproject-summary"
+            onClick={(e) => {
+              // Clicking anywhere on the header (other than the collapse button or pencil edit)
+              // should toggle collapse when the subproject is expanded. Ignore clicks on
+              // the collapse toggle itself or the rename (pencil) button so they behave
+              // independently.
+              if (
+                e.target.closest('.collapse-btn') ||
+                e.target.closest('.subproject-name-edit-btn')
+              ) {
+                return;
+              }
+              onToggleCollapse();
+            }}
             onDragOver={(e) => {
               e.preventDefault();
               if (onDragOverSubprojectTile) onDragOverSubprojectTile();
@@ -250,6 +266,20 @@ export default function SubprojectEditor({
                   onClearNewTask={onClearNewTask}
                 />
               </ul>
+              {/* add-bar appears as last row when expanded; handles its own state */}
+              <div className="add-bar-wrapper" ref={addBarRef}>
+                <AddBar
+                  type="tasks"
+                  input={newTaskText}
+                  onInputChange={setNewTaskText}
+                  onAdd={() => {
+                    if (newTaskText.trim() !== "") {
+                      onAddTask(newTaskText, false);
+                      setNewTaskText("");
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </>
@@ -289,5 +319,6 @@ SubprojectEditor.propTypes = {
   newlyAddedTaskId: PropTypes.string,
   onClearNewTask: PropTypes.func,
   onReorder: PropTypes.func,
+  taskFilters: PropTypes.array,
   isDragging: PropTypes.bool,
 };

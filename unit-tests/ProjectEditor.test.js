@@ -46,7 +46,7 @@ describe('ProjectEditor', () => {
     expect(menu.classList.contains('fab-menu')).toBe(true);
 
     // the two submenu buttons should be present
-    const aiBtn = screen.getByTitle('AI assisted subproject');
+    const aiBtn = screen.getByTitle('AI assisted project design');
     const manualBtn = screen.getByTitle('Add manual subproject');
     expect(aiBtn).toBeInTheDocument();
     expect(manualBtn).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('ProjectEditor', () => {
   });
 
 
-  test('when a subproject is expanded the FAB adds a new task', () => {
+  test('when a subproject is expanded the FAB is hidden', () => {
     const props = {
       ...defaultProps,
       project: {
@@ -93,21 +93,9 @@ describe('ProjectEditor', () => {
     };
     render(<ProjectEditor {...props} />);
 
-    // title should reflect context-aware mode
-    const fab = screen.getByTitle('Add task');
-    expect(fab).toBeInTheDocument();
-
-    // clicking should add a task instead of opening a menu
-    fireEvent.click(fab);
-    expect(document.querySelector('.fab-menu')).toBeNull();
-    expect(props.onApplyChange).toHaveBeenCalled();
-    const updated = props.onApplyChange.mock.calls[0][0];
-    expect(updated.subprojects[0].tasks.length).toBe(1);
-
-    // clicking again should add a second task (not a second subproject)
-    fireEvent.click(fab);
-    const updated2 = props.onApplyChange.mock.calls[1][0];
-    expect(updated2.subprojects[0].tasks.length).toBe(2);
+    // floating action button should not be present in the project editor
+    const fab = document.querySelector('.project-editor > .fab:not(.fab-small)');
+    expect(fab).toBeNull();
   });
 
   test('tasks within a subproject can be reordered via drag and drop', async () => {
@@ -192,12 +180,38 @@ describe('ProjectEditor', () => {
       },
       onApplyChange: jest.fn(),
     };
-    render(<ProjectEditor {...props} searchQuery="foo" taskFilter="starred" />);
+    render(<ProjectEditor {...props} searchQuery="foo" taskFilters={["starred"]} />);
     // only the starred task matching query should appear
     expect(document.querySelector('.filter-flat-view')).toBeTruthy();
     const rows = document.querySelectorAll('.project-editor .task-row');
     expect(rows.length).toBe(1);
     expect(rows[0].textContent).toContain('foo');
+  });
+
+  test('multiple filters intersect correctly in flat view', () => {
+    const props2 = {
+      ...defaultProps,
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          {
+            id: 's1',
+            text: 'sub',
+            tasks: [
+              { id: 't1', text: 'foo', done: true, favorite: false, dueDate: '2020-01-01', people: [] },
+              { id: 't2', text: 'bar', done: true, favorite: false, dueDate: null, people: [] },
+            ],
+          },
+        ],
+      },
+      onApplyChange: jest.fn(),
+    };
+    // apply both completed and overdue filters -> only t1 should remain
+    render(<ProjectEditor {...props2} taskFilters={["completed","overdue"]} />);
+    expect(document.querySelector('.filter-flat-view')).toBeTruthy();
+    const rows2 = document.querySelectorAll('.project-editor .task-row');
+    expect(rows2.length).toBe(1);
+    expect(rows2[0].textContent).toContain('foo');
   });
 
   test('subprojects can be reordered via drag and drop', async () => {

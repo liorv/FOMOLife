@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import SubprojectEditor from "./SubprojectEditor";
 import TaskList from "./TaskList";
 import generateId from "../utils/generateId";
+import { applyFilters } from "../utils/taskFilters";
 
 export default function ProjectEditor({
   project,
@@ -15,7 +16,7 @@ export default function ProjectEditor({
   newlyAddedSubprojectId = null,
   onClearNewSubproject = () => {},
   onSubprojectDeleted = () => {},
-  taskFilter = null,
+  taskFilters = [], // array of active filters
   searchQuery = "",
 }) {
   // --- State ---------------------------------------------------------------
@@ -409,8 +410,8 @@ export default function ProjectEditor({
       return;
     }
 
-    let updated = null;
     setLocal((prev) => {
+      let updated = null;
       // If dropping on same subproject and same task, do nothing
       if (fromSub === subId && draggedId === taskId) {
         return prev;
@@ -458,6 +459,8 @@ export default function ProjectEditor({
         };
 
         updated = { ...prev, subprojects: newSubprojects };
+        // call callback immediately while we have access to updated
+        onApplyChange(updated);
         return updated;
       }
 
@@ -473,11 +476,11 @@ export default function ProjectEditor({
         return { ...s, tasks };
       });
       updated = { ...prev, subprojects: subs };
+      onApplyChange(updated);
       return updated;
     });
-    if (updated) {
-      onApplyChange(updated);
-    }
+    // debug note: log updated variable is useless now since update happens inside
+    // setLocal callback
     setDraggedTask({ subId: null, taskId: null });
     setDragOverSubprojectId(null);
   };
@@ -568,37 +571,30 @@ export default function ProjectEditor({
   // --- Flat filter view helpers ------------------------------------------
 
   const filteredFlatTasks = useMemo(() => {
-    const q = searchQuery ? searchQuery.trim().toLowerCase() : "";
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const inSeven = new Date(today);
-    inSeven.setDate(today.getDate() + 7);
-
-    return (local.subprojects || []).flatMap((sub) =>
-      (sub.tasks || [])
-        .filter((t) => {
-          // text query filter
-          if (q && !(t.text || "").toLowerCase().includes(q)) {
-            return false;
-          }
-          // taskFilter filter (may be null)
-          if (taskFilter) {
-            if (taskFilter === "starred") return (t.starred || t.favorite) && !t.done;
-            if (taskFilter === "overdue") return !t.done && t.dueDate && new Date(t.dueDate) < today;
-            if (taskFilter === "upcoming") {
-              if (t.done || !t.dueDate) return false;
-              const d = new Date(t.dueDate);
-              return d >= today && d <= inSeven;
-            }
-          }
-          return true;
-        })
-        .map((t) => ({ ...t, _subId: sub.id }))
+    // flatten and then apply the shared filter helper, which also handles
+    // searchQuery
+    const flat = (local.subprojects || []).flatMap((sub) =>
+      (sub.tasks || []).map((t) => ({ ...t, _subId: sub.id }))
     );
-  }, [local.subprojects, taskFilter, searchQuery]);
+    return applyFilters(flat, taskFilters, searchQuery);
+  }, [local.subprojects, JSON.stringify(taskFilters), searchQuery]);
 
   const findSubIdForTask = (taskId) =>
     filteredFlatTasks.find((t) => t.id === taskId)?._subId;
+
+  // helper for empty-message text in flat-filter view
+  const filterMessage = () => {
+    if (searchQuery && searchQuery.trim() !== "") {
+      return `No tasks match "${searchQuery}."`;
+    }
+    if (taskFilters.length === 1) {
+      return `No ${taskFilters[0]} tasks found.`;
+    }
+    if (taskFilters.length > 1) {
+      return `No tasks match those filters.`;
+    }
+    return null;
+  };
 
   // --- Render --------------------------------------------------------------
 
@@ -608,15 +604,11 @@ export default function ProjectEditor({
       ref={editorContainerRef}
       style={{ position: 'relative', overflow: 'auto' }}
     >
-      {(taskFilter || (searchQuery && searchQuery.trim() !== "")) ? (
+      {(taskFilters.length > 0 || (searchQuery && searchQuery.trim() !== "")) ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
           {filteredFlatTasks.length === 0 ? (
-            <p className="filter-flat-empty">
-              {searchQuery && searchQuery.trim() !== ""
-                ? `No tasks match "${searchQuery}".`
-                : `No ${taskFilter} tasks found.`}
-            </p>
+            <p className="filter-flat-empty">{filterMessage()}</p>
           ) : (
             <ul className="item-list">
               <TaskList
@@ -708,25 +700,26 @@ export default function ProjectEditor({
         </>
       )}
 
-      {/* context‑aware floating action button */}
-      {!taskFilter && (
+      {/* context‑aware floating action button
+          only exists when no subproject is currently expanded.  once a
+          subproject is open, the editor provides its own add-row and the
+          FAB becomes redundant. */}
+      {taskFilters.length === 0 && !expandedSub && (
         <>
           <button
             className="fab"
             onClick={handleFabClick}
             title={
-              expandedSub
-                ? "Add task"
-                : fabMenuOpen
+              fabMenuOpen
                 ? "Close"
                 : "Add subproject"
             }
           >
             <span className="material-icons">
-              {fabMenuOpen && !expandedSub ? "close" : "add"}
+              {fabMenuOpen ? "close" : "add"}
             </span>
           </button>
-          {!expandedSub && fabMenuOpen && (
+          {fabMenuOpen && (
             <div className="fab-menu" role="menu">
               <button
                 className="fab-small"
@@ -739,7 +732,7 @@ export default function ProjectEditor({
               <button
                 className="fab-small"
                 onClick={handleAddAiSubproject}
-                title="AI assisted subproject"
+                title="AI assisted project design"
               >
                 <span className="material-icons">auto_awesome</span>
                 <span className="fab-label">AI assisted project design</span>
@@ -763,4 +756,5 @@ ProjectEditor.propTypes = {
   onApplyChange: PropTypes.func,
   onAddSubproject: PropTypes.func,
   searchQuery: PropTypes.string,
+  taskFilters: PropTypes.array,
 };
