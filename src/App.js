@@ -610,15 +610,10 @@ function App({ userId, authUser, onSignOut } = {}) {
     return list;
   })();
 
-  // Reset search/filters when switching away from tasks
+  // Reset search input (but keep filters) when switching away from tasks
   useEffect(() => {
-    if (type !== "tasks") {
-      if (searchQuery) {
-        setSearchQuery("");
-      }
-      if (filters.length) {
-        setFilters([]);
-      }
+    if (type !== "tasks" && searchQuery) {
+      setSearchQuery("");
     }
   }, [type]);
 

@@ -1628,11 +1628,16 @@ body {
 }
 
 
+.search-tasks {
+  width: 100%;
+}
+
 .search-container {
   flex: 1 1 auto;
   display: flex;
   justify-content: center;
   position: relative;
+  width: 100%;
 }
 
 .search-inner {
@@ -1681,7 +1686,8 @@ body {
 /* Filter dropdown popup */
 .filter-popup {
   position: absolute;
-  right: 12px;
+  left: 0;
+  right: auto;
   top: calc(100% + 4px);
   background: white;
   border: 1px solid #ccc;
