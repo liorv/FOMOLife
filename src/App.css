@@ -2988,7 +2988,7 @@ body {
   border: none;
   border-radius: 6px;
   /* animated height/padding/margin when toggling; actual values set by JS */
-  transition: max-height 1.2s ease-out, padding 1.2s ease-out, margin 1.2s ease-out;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
   max-height: 0;
   padding: 0;
   margin: 0;
