@@ -2907,7 +2907,7 @@ body {
   padding-left: 8px;
   padding-right: 60px; /* still leave room for right controls */
   font-size: 0.9rem;
-  background: transparent;
+  background: #fff; /* rows should remain white even though list items are transparent */
 }
 
 /* shrink header height and spacing inside subproject tasks */

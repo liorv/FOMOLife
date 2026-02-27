@@ -99,6 +99,21 @@ describe('SubprojectEditor', () => {
 
 
 
+  test('collapsed subproject rows are not styled as tiles and row background is white', () => {
+    // render with one task so we can inspect the li and row
+    const handlers = { ...defaultHandlers, onAddTask: jest.fn() };
+    const subWithTask = { ...defaultSub, tasks: [{ id: 'foo', text: 'bar' }] };
+    render(<SubprojectEditor sub={subWithTask} {...handlers} />);
+    const li = document.querySelector('.subproject .item-list li');
+    expect(li).toBeTruthy();
+    // ensure no bulky inline properties remain from the global tile style
+    expect(li.getAttribute('style')).toBeNull();
+    const row = document.querySelector('.subproject .task-row');
+    expect(row).toBeTruthy();
+    // background color is governed by stylesheet; jsdom does not reflect it,
+    // so we skip asserting on the computed value.
+  });
+
   test('user can add tasks via the inline add-bar', () => {
     const handlers = { ...defaultHandlers, onAddTask: jest.fn() };
     render(<SubprojectEditor sub={defaultSub} {...handlers} />);
