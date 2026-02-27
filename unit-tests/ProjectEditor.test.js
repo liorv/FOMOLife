@@ -97,7 +97,8 @@ describe('ProjectEditor', () => {
     const body = document.querySelector('.project-editor .subproject-body');
     expect(body).toBeTruthy();
     expect(body.style.backgroundColor).toBeDefined();
-    expect(body.style.boxShadow).toBe('0 2px 8px rgba(0,0,0,0.1)');
+    // no box-shadow is applied now (was removed to eliminate grey line)
+    expect(body.style.boxShadow).toBe('');
 
     // floating action button should not be present in the project editor
     const fab = document.querySelector('.project-editor > .fab:not(.fab-small)');
@@ -339,7 +340,8 @@ describe('ProjectEditor', () => {
     expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
     expect(document.querySelector('.project-editor .subproject-body')).toBeTruthy();
     // collapse again - now the button is .collapse-btn (in expanded view)
-    fireEvent.click(document.querySelector('.project-editor .collapse-btn'));
+    // collapse toggle is now rendered by SubprojectRow with class subproject-expand-btn
+    fireEvent.click(document.querySelector('.project-editor .subproject-expand-btn'));
     expect(document.querySelectorAll('.project-editor .subproject').length).toBe(1);
   });
 });

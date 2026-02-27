@@ -14,6 +14,8 @@ export default function SubprojectRow({
   onDragLeaveSubprojectTile,
   onDropOnSubprojectTile,
   isDragOverSubprojectTile = false,
+  /* when rendered as the header of an expanded subproject */
+  expanded = false,
   autoEdit = false, 
   isDragging = false,
 }) {
@@ -24,6 +26,29 @@ export default function SubprojectRow({
   const menuRef = React.useRef(null);
   const dropdownRef = React.useRef(null);
   const colorPickerRef = React.useRef(null);
+  // state for inline renaming when expanded
+  const [editingName, setEditingName] = React.useState(false);
+  const [draftName, setDraftName] = React.useState(sub.text || "");
+  const nameInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (autoEdit) {
+      setEditingName(true);
+    }
+  }, [autoEdit]);
+
+  React.useEffect(() => {
+    if (editingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [editingName]);
+
+  const finishEditing = () => {
+    if (draftName.trim() && draftName !== sub.text) {
+      onNameChange && onNameChange(draftName.trim());
+    }
+    setEditingName(false);
+  };
 
   // Listen for global menu close events to prevent multiple menus from being open
   React.useEffect(() => {
@@ -129,7 +154,7 @@ export default function SubprojectRow({
 
   return (
     <div 
-      className="subproject-row" 
+      className={`subproject-row${expanded ? " expanded" : ""}`} 
       role="button"
       onClick={() => onEdit(sub.id)}
       style={{ 
@@ -159,9 +184,9 @@ export default function SubprojectRow({
           e.stopPropagation();
           onEdit(sub.id);
         }}
-        title="Expand to edit"
+        title={expanded ? "Hide tasks" : "Show tasks"}
       >
-        <span className="material-icons">expand_more</span>
+        <span className="material-icons">{expanded ? "expand_less" : "expand_more"}</span>
       </button>
 
       {/* icon representing a subproject/folder or project-level tasks */}
@@ -173,9 +198,34 @@ export default function SubprojectRow({
         {sub.isProjectLevel ? "assignment_turned_in" : "folder"}
       </span>
 
-      <span className="subproject-row-title" title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
-        <span>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
-      </span>
+      {editingName ? (
+        <input
+          ref={nameInputRef}
+          className={expanded ? "subproject-name-input-expanded" : "subproject-name-input"}
+          value={draftName}
+          maxLength={100}
+          onChange={(e) => setDraftName(e.target.value)}
+          onBlur={finishEditing}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") finishEditing();
+          }}
+        />
+      ) : (
+        <span className="subproject-row-title subproject-name-display" title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
+          <span>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
+        </span>
+      )}
+
+      {/* optionally show rename button when expanded */}
+      {!sub.isProjectLevel && !editingName && expanded && (
+        <button
+          className="subproject-name-edit-btn"
+          onClick={(e) => { e.stopPropagation(); setEditingName(true); }}
+          title="Rename sub-project"
+        >
+          <span className="material-icons">edit</span>
+        </button>
+      )}
 
       {/* Right group: stats, description icon, owners, and menu button */}
       <div className="subproject-right-group">
@@ -362,6 +412,7 @@ SubprojectRow.propTypes = {
   onDragLeaveSubprojectTile: PropTypes.func,
   onDropOnSubprojectTile: PropTypes.func,
   isDragOverSubprojectTile: PropTypes.bool,
+  expanded: PropTypes.bool,
   autoEdit: PropTypes.bool,
   isDragging: PropTypes.bool,
 };

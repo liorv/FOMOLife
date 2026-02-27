@@ -38,6 +38,8 @@ describe('SubprojectEditor', () => {
     const nameDisplay = document.querySelector('.subproject-name-display');
     expect(nameDisplay).toBeInTheDocument();
     expect(nameDisplay.textContent).toBe(defaultSub.text);
+    // ensure the row component is rendered for the header
+    expect(document.querySelector('.subproject-row')).toBeTruthy();
     // input should not exist anymore
     expect(document.getElementById('subproject-name-sub1')).toBeNull();
     // header no longer renders its own add-button (and the FAB is hidden

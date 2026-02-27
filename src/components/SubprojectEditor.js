@@ -48,10 +48,7 @@ export default function SubprojectEditor({
   // --- AddBar open/close ---
 
   const collapsed = sub.collapsed;
-  const [editingName, setEditingName] = React.useState(
-    () => autoEdit && (!sub.text || sub.text.trim() === "")
-  );
-  const [draftName, setDraftName] = React.useState(sub.text || "");
+  // rename editing is now handled inside SubprojectRow when expanded
 
   // local state for the inline add-bar that appears when subproject is
   // expanded; users can type a task and hit enter or press the button to
@@ -157,90 +154,21 @@ export default function SubprojectEditor({
         />
       ) : (
         <>
-          <div 
-            className="subproject-summary"
-            onClick={(e) => {
-              // Clicking anywhere on the header (other than the collapse button or pencil edit)
-              // should toggle collapse when the subproject is expanded. Ignore clicks on
-              // the collapse toggle itself or the rename (pencil) button so they behave
-              // independently.
-              if (
-                e.target.closest('.collapse-btn') ||
-                e.target.closest('.subproject-name-edit-btn')
-              ) {
-                return;
-              }
-              onToggleCollapse();
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (onDragOverSubprojectTile) onDragOverSubprojectTile();
-            }}
-            onDragLeave={() => {
-              if (onDragLeaveSubprojectTile) onDragLeaveSubprojectTile();
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (onDropOnSubprojectTile) onDropOnSubprojectTile(e);
-            }}
-          >
-            <button
-              className="collapse-btn"
-              onClick={(e) => {
-                e.preventDefault();
-                onToggleCollapse();
-              }}
-              title={collapsed ? "Show tasks" : "Hide tasks"}
-            >
-              <span className="material-icons">
-                {collapsed ? "expand_more" : "expand_less"}
-              </span>
-            </button>
-            <span 
-              className="material-icons subproject-icon" 
-              aria-hidden="true"
-              style={
-                (sub.color || (sub.isProjectLevel && project?.color))
-                  ? { color: sub.color || project?.color }
-                  : {}
-              }
-            >
-              {sub.isProjectLevel ? "assignment_turned_in" : "folder"}
-            </span>
-            {!sub.isProjectLevel && editingName ? (
-              <input
-                className="subproject-name-input-expanded"
-                value={draftName}
-                maxLength={100}
-                autoFocus
-                onChange={(e) => setDraftName(e.target.value)}
-                onBlur={() => {
-                  setEditingName(false);
-                  onUpdateText(draftName);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.target.blur();
-                }}
-              />
-            ) : (
-              <span
-                className="subproject-name-display"
-                title={sub.isProjectLevel ? "Tasks" : sub.text}
-              >
-                {sub.isProjectLevel ? "Tasks" : sub.text}
-              </span>
-            )}
-            {!sub.isProjectLevel && !editingName && (
-              <button
-                className="subproject-name-edit-btn"
-                onClick={() => { setDraftName(sub.text || ""); setEditingName(true); }}
-                title="Rename sub-project"
-              >
-                <span className="material-icons">edit</span>
-              </button>
-            )}
-            <div style={{ flex: '1 1 auto' }} />
-          </div>
+          <SubprojectRow
+            sub={sub}
+            project={project}
+            onEdit={onToggleCollapse}
+            onNameChange={(newName) => onUpdateText(newName)}
+            onColorChange={(id, color) => onUpdateColor(color)}
+            onDelete={onDelete}
+            onDragOverSubprojectTile={onDragOverSubprojectTile}
+            onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
+            onDropOnSubprojectTile={onDropOnSubprojectTile}
+            isDragOverSubprojectTile={isDragOverSubprojectTile}
+            autoEdit={autoEdit}
+            isDragging={isDragging}
+            expanded={true}
+          />
           <div className="subproject-body">
             <div className="subproject-tasks">
               <ul className="item-list">

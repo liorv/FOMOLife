@@ -2997,42 +2997,7 @@ body {
   display: none;
 }
 
-/* Subproject summary header (expanded) */
-.subproject-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 16px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  /* no border bottom to create clean panel look */
-  border-radius: 6px 6px 0 0;
-  box-sizing: border-box;
-}
-
-.subproject-summary input {
-  flex: 1;
-}
-
-.subproject-summary .delete {
-  background: transparent;
-  color: #333;
-  border: none;
-  outline: none;
-  border-radius: 50%;
-  padding: 4px;
-  margin-left: 8px;
-  font-size: 1.1rem;
-  cursor: pointer;
-  visibility: visible;
-  opacity: 1;
-}
-
-.subproject-summary .delete:hover {
-  background: #eee;
-}
-
+/* inline renaming inputs */
 .subproject-name-input {
   flex: none;
   width: 100px;
@@ -3040,7 +3005,6 @@ body {
   box-sizing: border-box;
 }
 
-/* Inline name editing in the expanded subproject header */
 .subproject-name-input-expanded {
   font-size: 14px;
   font-weight: 600;
@@ -3053,7 +3017,6 @@ body {
   border-radius: 4px 4px 0 0;
   flex-shrink: 1;
   min-width: 60px;
-  max-width: 240px;
 }
 
 .subproject-name-edit-btn {
@@ -3069,7 +3032,6 @@ body {
   flex-shrink: 0;
 }
 .subproject-name-edit-btn .material-icons { font-size: 15px !important; }
-.subproject-summary:hover .subproject-name-edit-btn { opacity: 1; }
 
 .collapse-btn {
   background: none;
