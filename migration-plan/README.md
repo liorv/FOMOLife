@@ -1,3 +1,31 @@
+## Automated Deployment & Verification Steps
+
+### STEP-15 — Create Vercel projects for projects and tasks apps
+
+1. Install Vercel CLI: `npm install -g vercel`
+2. Authenticate: `vercel login`
+3. For each app:
+	- `cd apps/projects && vercel link --project fomo-life-projects && vercel --prod`
+	- `cd ../tasks && vercel link --project fomo-life-tasks && vercel --prod`
+
+### STEP-16 — Configure environment variables for all apps
+1. Use Vercel CLI or dashboard to set:
+	- `NEXT_PUBLIC_PROJECTS_APP_URL` for projects
+	- `NEXT_PUBLIC_TASKS_APP_URL` for tasks
+	- `NEXT_PUBLIC_CONTACTS_APP_URL` for contacts
+2. Confirm variables are available in production builds.
+
+### STEP-17 — Validate build and deploy from main branch
+1. Trigger production deploys for all apps from main branch.
+2. Confirm build passes and apps are live at their URLs.
+
+### STEP-18 — Test production app behavior and redirects
+1. Run automated E2E tests (Cypress/Playwright) for navigation, redirects, and data boundaries.
+2. Manually verify legacy URLs (e.g., `/?tab=dreams`) redirect as expected.
+
+### STEP-19 — Update documentation and finalize migration
+1. Document deployment process, environment variables, and app URLs in the repo.
+2. Mark all migration steps as done in STATE.json.
 # Migration Dash Plan
 
 This directory contains **ordered, one-step-at-a-time instruction files** for continuing the monorepo migration manually, even if chat is interrupted.
@@ -17,7 +45,12 @@ This directory contains **ordered, one-step-at-a-time instruction files** for co
 11. STEP-11 — Decompose legacy giant CSS safely
 12. STEP-12 — Extract projects into dedicated app (already done)
 13. STEP-13 — Extract tasks into dedicated app (already done)
-14. STEP-14 — Retire legacy root tab runtime and finalize boundaries (completed)
+
+15. STEP-15 — Create Vercel projects for projects and tasks apps
+16. STEP-16 — Configure environment variables for all apps
+17. STEP-17 — Validate build and deploy from main branch
+18. STEP-18 — Test production app behavior and redirects
+19. STEP-19 — Update documentation and finalize migration
 
 ## How to use with any smart LLM
 

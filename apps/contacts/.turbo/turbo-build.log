@@ -3,16 +3,17 @@
 > next build
 
 ▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
 
   Creating an optimized production build ...
-✓ Compiled successfully in 1636.4ms
+✓ Compiled successfully in 5.3s
   Running TypeScript ...
   Collecting page data using 5 workers ...
   Generating static pages using 5 workers (0/4) ...
   Generating static pages using 5 workers (1/4) 
   Generating static pages using 5 workers (2/4) 
   Generating static pages using 5 workers (3/4) 
-✓ Generating static pages using 5 workers (4/4) in 453.1ms
+✓ Generating static pages using 5 workers (4/4) in 574.2ms
   Finalizing page optimization ...
 
 Route (app)

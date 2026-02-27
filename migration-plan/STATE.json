@@ -1,9 +1,9 @@
 {
   "planName": "migration-dash-plan",
   "lastUpdated": "2026-02-27",
-  "currentStepId": "STEP-14",
-  "summary": "STEP-14 completed: legacy root tab runtime retired; extracted apps validated via filtered lint/test/build.",
-  "steps": [
+"currentStepId": "STEP-16",
+"summary": "STEP-15 done: projects and tasks Vercel projects configured and deployed successfully.",
+"steps" : [
     {
       "id": "STEP-01",
       "title": "Verify monorepo bootstrap",
@@ -87,6 +87,36 @@
       "title": "Retire legacy root tab runtime and finalize boundaries",
       "status": "done",
       "file": "14-retire-legacy-root-tabs.md"
+    },
+    {
+      "id": "STEP-15",
+      "title": "Create Vercel projects for projects and tasks apps",
+      "status": "done",
+      "file": "15-create-vercel-projects.md"
+    },
+    {
+      "id": "STEP-16",
+      "title": "Configure environment variables for all apps",
+      "status": "next",
+      "file": "16-configure-env-vars.md"
+    },
+    {
+      "id": "STEP-17",
+      "title": "Validate build and deploy from main branch",
+      "status": "todo",
+      "file": "17-validate-build-deploy.md"
+    },
+    {
+      "id": "STEP-18",
+      "title": "Test production app behavior and redirects",
+      "status": "todo",
+      "file": "18-test-prod-behavior.md"
+    },
+    {
+      "id": "STEP-19",
+      "title": "Update documentation and finalize migration",
+      "status": "todo",
+      "file": "19-update-docs-finalize.md"
     }
   ]
 }
