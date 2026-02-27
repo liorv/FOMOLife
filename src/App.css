@@ -2973,10 +2973,13 @@ body {
 }
 
 .project-editor .subproject .subproject-body {
-  padding: 0;
-  margin: 0;
+  /* container around tasks when expanded */
+  padding: 8px 0 12px 0;
+  margin: 8px 0 16px 0;
   overflow: visible;
-  background: var(--color-subproject-header);
+  background: #fff; /* keep content white for readability */
+  border: 1px solid var(--color-border-row);
+  border-radius: 6px;
 }
 
 .project-editor .subproject.collapsed .subproject-body {
@@ -2988,10 +2991,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 50px;
+  height: 48px;
   padding: 0 16px;
-  background: var(--color-subproject-header);
-  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border-row);
+  border-radius: 6px 6px 0 0;
   box-sizing: border-box;
 }
 
