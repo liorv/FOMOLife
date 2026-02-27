@@ -24,6 +24,7 @@ Your mission is to execute **exactly one step**: the step marked as `next` in `m
 - Shared code must be exported through `packages/*` public APIs.
 - If blocked, stop and report blocker clearly; still update state to `blocked` for that step.
 - Do not use folder icons or decorative icons in responses; use plain text paths.
+- For Vercel projects, always use naming convention: `fomo-life-{appname}`.
 
 ### Required execution flow
 1. Read `migration-plan/STATE.json` and identify the single step with `status: "next"`.

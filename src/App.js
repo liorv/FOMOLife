@@ -25,7 +25,6 @@ function App({ userId, authUser, onSignOut } = {}) {
   const [data, setData] = useState({
     tasks: [],
     projects: [],
-    dreams: [],
     people: [],
   });
   const [confirmingProjectId, setConfirmingProjectId] = useState(null);
@@ -154,17 +153,30 @@ function App({ userId, authUser, onSignOut } = {}) {
   useEffect(() => {
     if (router.isReady && router.query.tab) {
       const tabFromUrl = router.query.tab;
-      if (["tasks", "projects", "dreams", "people"].includes(tabFromUrl)) {
+      if (["tasks", "projects", "people"].includes(tabFromUrl)) {
         setType(tabFromUrl);
       }
     }
+  }, [router.isReady, router.query.tab]);
+
+  // Backward-compat: migrate removed dreams tab URLs to tasks.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.tab !== "dreams") return;
+
+    setType("tasks");
+    router.replace(
+      { pathname: "/", query: { ...router.query, tab: "tasks" } },
+      undefined,
+      { shallow: true },
+    );
   }, [router.isReady, router.query.tab]);
 
   // Listen to route changes (including back button)
   useEffect(() => {
     const handleRouteChange = () => {
       const tabFromUrl = router.query.tab;
-      if (tabFromUrl && ["tasks", "projects", "dreams", "people"].includes(tabFromUrl)) {
+      if (tabFromUrl && ["tasks", "projects", "people"].includes(tabFromUrl)) {
         setType(tabFromUrl);
       }
     };
@@ -396,7 +408,7 @@ function App({ userId, authUser, onSignOut } = {}) {
       // immediately enter editing mode
       setEditingProjectId(newProject.id);
     } else {
-      // fallback for dreams and other types
+      // fallback for any future list type
       const newItem = await db.create(
         type,
         { text: input, done: false },

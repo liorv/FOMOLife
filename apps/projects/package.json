@@ -1,0 +1,21 @@
+{
+  "name": "projects",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3003",
+    "build": "next build",
+    "start": "next start --port 3003",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@myorg/api-client": "workspace:*",
+    "@myorg/types": "workspace:*",
+    "@myorg/utils": "workspace:*",
+    "next": "latest",
+    "prop-types": "^15.8.1",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

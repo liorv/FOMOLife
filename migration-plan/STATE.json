@@ -1,8 +1,8 @@
 {
   "planName": "migration-dash-plan",
   "lastUpdated": "2026-02-27",
-  "currentStepId": "STEP-10",
-  "summary": "STEP-09 completed: app-scoped Vercel config and deployment runbook added; local Vercel-mirrored install/build checks pass.",
+  "currentStepId": "STEP-13",
+  "summary": "STEP-13 completed: apps/tasks extracted with isolated CSS Modules and filtered lint/test/build passing.",
   "steps": [
     {
       "id": "STEP-01",
@@ -61,14 +61,26 @@
     {
       "id": "STEP-10",
       "title": "Template for next tab extraction",
-      "status": "next",
+      "status": "done",
       "file": "10-next-tab-template.md"
     },
     {
       "id": "STEP-11",
       "title": "Split legacy giant CSS safely",
-      "status": "todo",
+      "status": "done",
       "file": "11-split-legacy-giant-css.md"
+    },
+    {
+      "id": "STEP-12",
+      "title": "Extract projects into dedicated app",
+      "status": "done",
+      "file": "12-extract-projects-app.md"
+    },
+    {
+      "id": "STEP-13",
+      "title": "Extract tasks into dedicated app",
+      "status": "done",
+      "file": "13-extract-tasks-app.md"
     }
   ]
 }

@@ -1,0 +1,4 @@
+
+> projects@0.0.0 lint C:\Users\mylig\Github\FOMO Life\apps\projects
+> eslint "app/**/*.{ts,tsx}" "components/**/*.{ts,tsx}" "lib/**/*.{ts,tsx}"
+

@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   if (method === 'POST') {
     // client sends { data: <object> } in body
     const { data } = req.body || {};
-    await saveData(data || { tasks: [], projects: [], dreams: [], people: [] }, userId);
+    await saveData(data || { tasks: [], projects: [], people: [] }, userId);
     return res.status(200).end();
   }
 

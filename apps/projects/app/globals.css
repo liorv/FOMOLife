@@ -1,0 +1,24 @@
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+@import '../styles/layout.css';
+@import '../styles/tabs.css';
+@import '../styles/projects.css';
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Roboto, "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: #fff;
+}

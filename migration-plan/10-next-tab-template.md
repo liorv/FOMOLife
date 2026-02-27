@@ -13,9 +13,10 @@ Tasks:
    - move UI + CSS modules
    - wire data/auth
    - verify tests/build/deploy
-2. Include a risk matrix and rollback steps.
-3. Include command set for each sub-step.
-4. Keep template concise enough for repeated execution.
+2. Enforce Vercel project naming format for each app: `fomo-life-{appname}`.
+3. Include a risk matrix and rollback steps.
+4. Include command set for each sub-step.
+5. Keep template concise enough for repeated execution.
 
 Acceptance criteria:
 - Team can run next extraction with minimal ad hoc decisions.

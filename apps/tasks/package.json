@@ -1,0 +1,21 @@
+{
+  "name": "tasks",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3004",
+    "build": "next build",
+    "start": "next start --port 3004",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
+    "test": "echo \"No tasks app tests yet\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@myorg/api-client": "workspace:*",
+    "@myorg/types": "workspace:*",
+    "@myorg/utils": "workspace:*",
+    "next": "latest",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}

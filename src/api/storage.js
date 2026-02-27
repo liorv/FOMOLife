@@ -8,7 +8,7 @@ if (typeof window === "undefined") {
 }
 
 const STORAGE_KEY = "fomo_life_data";
-const EMPTY_DATA = Object.freeze({ tasks: [], projects: [], dreams: [], people: [] });
+const EMPTY_DATA = Object.freeze({ tasks: [], projects: [], people: [] });
 
 // Environment flags for backing store selection.
 const isServer = typeof window === "undefined";
@@ -72,7 +72,7 @@ function writeFile(data, userId) {
  * Load the entire persisted dataset.  In the browser this reads from
  * localStorage, on the server it reads from a JSON file.  The return
  * value is always an object with the same shape used throughout the
- * app ({tasks, projects, dreams, people}).
+ * app ({tasks, projects, people}).
  */
 export async function loadData(userId) {
   const id = userId || DEFAULT_USER;

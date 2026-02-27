@@ -13,8 +13,10 @@ This directory contains **ordered, one-step-at-a-time instruction files** for co
 7. STEP-07 — Enforce strict package boundaries in lint/TS
 8. STEP-08 — Harden Turborepo tasks/caching/filters
 9. STEP-09 — Vercel independent deployment setup
-10. STEP-10 — Repeatable template for next tab extraction (**NEXT**)
+10. STEP-10 — Repeatable template for next tab extraction
 11. STEP-11 — Decompose legacy giant CSS safely
+12. STEP-12 — Extract projects into dedicated app (already done)
+13. STEP-13 — Extract tasks into dedicated app (already done)
 
 ## How to use with any smart LLM
 
@@ -55,3 +57,5 @@ Expected behavior:
 ## Vercel deployment
 
 See `VERCEL_PROJECTS.md` for per-project root/build/install settings, env isolation rules, and domain mapping guidance.
+
+Naming convention for all future app projects: `fomo-life-{appname}`.

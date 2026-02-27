@@ -106,6 +106,51 @@ importers:
         specifier: ^18.0.0
         version: 18.3.1(react@18.3.1)
 
+  apps/projects:
+    dependencies:
+      '@myorg/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@myorg/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@myorg/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      next:
+        specifier: latest
+        version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      prop-types:
+        specifier: ^15.8.1
+        version: 15.8.1
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
+
+  apps/tasks:
+    dependencies:
+      '@myorg/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@myorg/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@myorg/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      next:
+        specifier: latest
+        version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
+
   packages/api-client:
     dependencies:
       '@myorg/types':

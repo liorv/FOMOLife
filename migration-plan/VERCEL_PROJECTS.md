@@ -2,11 +2,23 @@
 
 This repo deploys each app as an independent Vercel project.
 
+## Project naming convention (required)
+
+Use this format for all app projects:
+
+- `fomo-life-{appname}`
+
+Examples:
+
+- `fomo-life-contacts`
+- `fomo-life-projects`
+- `fomo-life-tasks`
+
 ## Contacts project (current app)
 
 Create one Vercel project with these settings:
 
-- Project name: `fomo-contacts`
+- Project name: `fomo-life-contacts`
 - Root Directory: `apps/contacts`
 - Framework Preset: `Next.js`
 - Install Command: `pnpm install --frozen-lockfile`
@@ -24,7 +36,7 @@ Set these in Vercel project settings:
 
 Notes:
 
-- Keep these env vars isolated to `fomo-contacts`; do not share with future apps unless intended.
+- Keep these env vars isolated to `fomo-life-contacts`; do not share with future apps unless intended.
 - `NEXT_PUBLIC_*` vars are exposed client-side; do not place secrets there.
 - For `mock-cookie` auth mode, requests require `contacts_session` cookie.
 
@@ -65,7 +77,7 @@ Optional filtered turbo parity:
 
 From repository root:
 
-1. `vercel link` (choose/create project `fomo-contacts`).
+1. `vercel link` (choose/create project `fomo-life-contacts`).
 2. `vercel --prod`.
 3. In project settings, confirm root dir is `apps/contacts`.
 

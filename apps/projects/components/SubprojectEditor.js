@@ -1,0 +1,264 @@
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import TaskList from "./TaskList";
+import SubprojectRow from "./SubprojectRow";
+import AddBar from "./AddBar";
+import { applyFilters } from "../utils/taskFilters";
+
+export default function SubprojectEditor({
+  sub,
+  project,
+  editorTaskId,
+  setEditorTaskId,
+  onDelete,
+  onUpdateText,
+  onUpdateColor,
+  onToggleCollapse,
+  onAddTask,
+  handleTaskToggle,
+  handleTaskStar,
+  handleTaskDelete,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onDragOverSubprojectTile,
+  onDragLeaveSubprojectTile,
+  onDropOnSubprojectTile,
+  isDragOverSubprojectTile = false,
+  onEditorSave,
+  onEditorUpdate,
+  onEditorClose,
+  allPeople,
+  onOpenPeople,
+  onCreatePerson,
+  onTaskTitleChange,
+  autoEdit = false,
+  newlyAddedTaskId = null,
+  onClearNewTask = () => {},
+  onReorder = () => {},
+  isDragging = false,
+  taskFilters = [],
+}) {
+  // Apply filter to the task list if one is active
+  const visibleTasks = React.useMemo(() => {
+    // filters do not consider searchQuery in this component; helper is still usable
+    return applyFilters(sub.tasks || [], taskFilters, "");
+  }, [sub.tasks, JSON.stringify(taskFilters)]);
+  // --- AddBar open/close ---
+
+  const collapsed = sub.collapsed;
+  // rename editing is now handled inside SubprojectRow when expanded
+
+  // local state for the inline add-bar that appears when subproject is
+  // expanded; users can type a task and hit enter or press the button to
+  // create it.  this replaces the previous floating-action approach.
+  const [newTaskText, setNewTaskText] = React.useState("");
+  const addBarRef = React.useRef(null);
+
+  // --- Subproject drag/drop ---
+
+  const handleSubDragStart = (e) => {
+    try {
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("application/json", JSON.stringify({
+          subprojectId: sub.id,
+        }));
+      }
+    } catch (err) {
+      // dataTransfer might not be available in test environment
+    }
+  };
+
+  const handleSubDragOver = (e) => {
+    e.preventDefault();
+    try {
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+    } catch (err) {
+      // dataTransfer might not be available
+    }
+  };
+
+  const handleSubDrop = (e) => {
+    e.preventDefault();
+    let data = "";
+    try {
+      data = e.dataTransfer?.getData("application/json") || "";
+    } catch (err) {
+      return;
+    }
+
+    if (!data) return;
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.subprojectId && parsed.subprojectId !== sub.id) {
+        // ── Subproject reorder ─────────────────────────────────
+        onReorder(parsed.subprojectId, sub.id);
+      } else if (parsed.taskId) {
+        // ── Task dropped onto a subproject header / tile ───────
+        // Delegate to the same handler used by collapsed-tile drops
+        // so the task is moved into this subproject.
+        if (onDropOnSubprojectTile) onDropOnSubprojectTile(e);
+      }
+    } catch (err) {
+      // Silently handle parse errors
+    }
+  };
+
+  // --- Render ---
+
+  const wrapperClass =
+    "subproject" +
+    (collapsed ? " collapsed" : "") +
+    (!collapsed ? " expanded" : "");
+  const bodyRef = React.useRef(null);
+
+  // adjust max-height/padding/margin based on collapsed state for animation
+  React.useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (!collapsed) {
+      // expand: measure content and animate to that height
+      const height = el.scrollHeight;
+      el.style.maxHeight = height + "px";
+      el.style.padding = "8px 0 12px 0";
+      el.style.margin = "8px 0";
+    } else {
+      // collapse: set to current height, then shrink to 0 on next tick
+      const height = el.scrollHeight;
+      el.style.maxHeight = height + "px";
+      el.style.padding = "8px 0 12px 0";
+      el.style.margin = "8px 0";
+      // force a layout so the above styles take effect immediately
+      void el.offsetHeight;
+      setTimeout(() => {
+        el.style.maxHeight = "0";
+        el.style.padding = "0";
+        el.style.margin = "0";
+      }, 0);
+    }
+  }, [collapsed, visibleTasks]);
+
+  // focus input when subproject expands
+  React.useEffect(() => {
+    if (!collapsed && addBarRef.current) {
+      const input = addBarRef.current.querySelector('input');
+      if (input) input.focus();
+    }
+  }, [collapsed]);
+
+  return (
+    <div
+      className={wrapperClass}
+      draggable
+      onDragStart={handleSubDragStart}
+      onDragOver={handleSubDragOver}
+      onDrop={handleSubDrop}
+      style={{ 
+        opacity: isDragging ? 0.5 : 1, 
+        overflow: 'visible',
+        /* keep white background by default; only tint when dragging-over */
+        backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : '#fff',
+        borderLeft: isDragOverSubprojectTile ? '3px solid #1a73e8' : 'none',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      {/* header row is always present; expanded prop toggles collapse icon */}
+      <SubprojectRow
+        sub={sub}
+        project={project}
+        onEdit={onToggleCollapse}
+        onNameChange={(newName) => onUpdateText(newName)}
+        onColorChange={(id, color) => onUpdateColor(color)}
+        onDelete={onDelete}
+        onDragOverSubprojectTile={onDragOverSubprojectTile}
+        onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
+        onDropOnSubprojectTile={onDropOnSubprojectTile}
+        isDragOverSubprojectTile={isDragOverSubprojectTile}
+        autoEdit={autoEdit}
+        isDragging={isDragging}
+        expanded={!collapsed}
+      />
+      <div className="subproject-body" ref={bodyRef}>
+        <div className="subproject-tasks">
+          <ul className="item-list">
+            <TaskList
+              items={visibleTasks}
+              type="tasks"
+              editorTaskId={editorTaskId}
+              setEditorTaskId={setEditorTaskId}
+              handleToggle={handleTaskToggle}
+              handleStar={handleTaskStar}
+              handleDelete={handleTaskDelete}
+              onTitleChange={onTaskTitleChange}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
+              onEditorSave={onEditorSave}
+              onEditorUpdate={onEditorUpdate}
+              onEditorClose={onEditorClose}
+              allPeople={allPeople}
+              onOpenPeople={onOpenPeople}
+              onCreatePerson={onCreatePerson}
+              newlyAddedTaskId={newlyAddedTaskId}
+              onClearNewTask={onClearNewTask}
+            />
+          </ul>
+          {/* add-bar appears as last row when expanded; handles its own state */}
+          <div className="add-bar-wrapper" ref={addBarRef}>
+            <AddBar
+              type="tasks"
+              input={newTaskText}
+              onInputChange={setNewTaskText}
+              onAdd={() => {
+                if (newTaskText.trim() !== "") {
+                  onAddTask(newTaskText, false);
+                  setNewTaskText("");
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+SubprojectEditor.propTypes = {
+  sub: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    text: PropTypes.string,
+    collapsed: PropTypes.bool,
+    tasks: PropTypes.array,
+  }).isRequired,
+  editorTaskId: PropTypes.string,
+  setEditorTaskId: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onUpdateText: PropTypes.func.isRequired,
+  onToggleCollapse: PropTypes.func.isRequired,
+  onAddTask: PropTypes.func.isRequired,
+  handleTaskToggle: PropTypes.func.isRequired,
+  handleTaskStar: PropTypes.func.isRequired,
+  handleTaskDelete: PropTypes.func.isRequired,
+  onDragStart: PropTypes.func.isRequired,
+  onDragOver: PropTypes.func.isRequired,
+  onDrop: PropTypes.func.isRequired,
+  onDragEnd: PropTypes.func.isRequired,
+  onEditorSave: PropTypes.func.isRequired,
+  onEditorUpdate: PropTypes.func.isRequired,
+  onEditorClose: PropTypes.func.isRequired,
+  allPeople: PropTypes.array,
+  onOpenPeople: PropTypes.func,
+  onCreatePerson: PropTypes.func,
+  onTaskTitleChange: PropTypes.func,
+  autoEdit: PropTypes.bool,
+  newlyAddedTaskId: PropTypes.string,
+  onClearNewTask: PropTypes.func,
+  onReorder: PropTypes.func,
+  taskFilters: PropTypes.array,
+  isDragging: PropTypes.bool,
+};

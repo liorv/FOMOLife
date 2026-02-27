@@ -28,11 +28,11 @@ test('API GET returns empty when nothing stored', async () => {
   await handler(req, res);
   const result = res._get();
   expect(result.statusCode).toBe(200);
-  expect(result.body).toEqual({ tasks: [], projects: [], dreams: [], people: [] });
+  expect(result.body).toEqual({ tasks: [], projects: [], people: [] });
 });
 
 test('API POST then GET persists value', async () => {
-  const doc = { tasks: [{ text: 'foo' }], projects: [], dreams: [], people: [] };
+  const doc = { tasks: [{ text: 'foo' }], projects: [], people: [] };
   const postReq = { method: 'POST', query: {}, body: { data: doc } };
   const postRes = makeRes();
   await handler(postReq, postRes);
@@ -46,7 +46,7 @@ test('API POST then GET persists value', async () => {
 
 test('API DELETE clears stored data', async () => {
   // store something first
-  await handler({ method: 'POST', query: {}, body: { data: { tasks: [{text:'x'}], projects:[], dreams:[], people:[] } } }, makeRes());
+  await handler({ method: 'POST', query: {}, body: { data: { tasks: [{text:'x'}], projects:[], people:[] } } }, makeRes());
 
   const delReq = { method: 'DELETE', query: {} };
   const delRes = makeRes();
@@ -55,5 +55,5 @@ test('API DELETE clears stored data', async () => {
 
   const checkRes = makeRes();
   await handler({ method: 'GET', query: {} }, checkRes);
-  expect(checkRes._get().body).toEqual({ tasks: [], projects: [], dreams: [], people: [] });
+  expect(checkRes._get().body).toEqual({ tasks: [], projects: [], people: [] });
 });

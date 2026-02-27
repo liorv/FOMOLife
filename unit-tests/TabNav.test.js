@@ -14,12 +14,12 @@ describe('TabNav', () => {
     render(<TabNav active="tasks" onChange={onChange} />);
     // each tab should render a material icon element
     const icons = screen.getAllByText((content, element) => element.classList.contains('tab-icon'));
-    expect(icons.length).toBe(4);
+    expect(icons.length).toBe(3);
 
     const tasksButton = screen.getByText('Tasks');
     fireEvent.click(tasksButton);
     expect(onChange).toHaveBeenCalledWith('tasks');
-    const peopleButton = screen.getByText('People');
+    const peopleButton = screen.getByText('Contacts');
     fireEvent.click(peopleButton);
     expect(onChange).toHaveBeenCalledWith('people');
   });

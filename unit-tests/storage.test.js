@@ -8,16 +8,16 @@ describe('storage API (file/localStorage abstraction)', () => {
 
 
   test('saveData then loadData preserves the object', async () => {
-    const doc = { tasks: [{ text: 'hello', done: false }], projects: [], dreams: [], people: [] };
+    const doc = { tasks: [{ text: 'hello', done: false }], projects: [], people: [] };
     await saveData(doc);
     await expect(loadData()).resolves.toEqual(doc);
   });
 
   test('clearData removes previously persisted data', async () => {
-    await saveData({ tasks: [{ text: 'x', done: true }], projects: [], dreams: [], people: [] });
+    await saveData({ tasks: [{ text: 'x', done: true }], projects: [], people: [] });
     await expect(loadData()).resolves.toHaveProperty('tasks.length', 1);
     await clearData();
-    await expect(loadData()).resolves.toEqual({ tasks: [], projects: [], dreams: [], people: [] });
+    await expect(loadData()).resolves.toEqual({ tasks: [], projects: [], people: [] });
   });
 
   test('namespaces separate users', async () => {
@@ -39,6 +39,6 @@ describe('storage API (file/localStorage abstraction)', () => {
     // loading explicit "default" should match
     await expect(loadData('default')).resolves.toHaveProperty('tasks.0.text', 'def');
     await clearData();
-    await expect(loadData()).resolves.toEqual({ tasks: [], projects: [], dreams: [], people: [] });
+    await expect(loadData()).resolves.toEqual({ tasks: [], projects: [], people: [] });
   });
 });

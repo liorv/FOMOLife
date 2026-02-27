@@ -3,7 +3,6 @@ import { supabase } from "./supabaseClient";
 const EMPTY_DATA = Object.freeze({
   tasks: [],
   projects: [],
-  dreams: [],
   people: [],
 });
 
@@ -38,7 +37,7 @@ export async function initSupabaseTables() {
 
 /**
  * Load user data from Supabase.
- * Returns an object with shape: { tasks, projects, dreams, people }
+ * Returns an object with shape: { tasks, projects, people }
  */
 export async function loadData(userId = DEFAULT_USER) {
   if (!supabase) return EMPTY_DATA;

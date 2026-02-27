@@ -10,9 +10,10 @@ const DEFAULT_USER = "default";
 // structure so that subsequent loads are fast.
 function ensureIds(data) {
   let changed = false;
-  ["tasks", "projects", "dreams", "people"].forEach((type) => {
-    if (!Array.isArray(data[type])) data[type] = [];
-    data[type] = data[type].map((item) => {
+  const normalized = { ...data };
+  ["tasks", "projects", "people"].forEach((type) => {
+    const source = Array.isArray(data?.[type]) ? data[type] : [];
+    normalized[type] = source.map((item) => {
       if (!item.id) {
         changed = true;
         return { ...item, id: generateId() };
@@ -21,14 +22,14 @@ function ensureIds(data) {
     });
   });
   if (changed) {
-    rawSave(data);
+    rawSave(normalized);
   }
-  return data;
+  return normalized;
 }
 
 /**
  * Load the full dataset, ensuring every record has an `id` field.
- * Returns a plain object `{tasks,projects,dreams,people}`.
+ * Returns a plain object `{tasks,projects,people}`.
  */
 export async function loadData(userId) {
   const d = await rawLoad(userId);

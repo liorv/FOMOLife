@@ -16,7 +16,7 @@ describe('db module (CRUD with GUIDs)', () => {
 
   test('loadData returns empty shape when nothing stored', async () => {
     const d = await db.loadData();
-    expect(d).toEqual({ tasks: [], projects: [], dreams: [], people: [] });
+    expect(d).toEqual({ tasks: [], projects: [], people: [] });
   });
 
   test('create automatically assigns id and persists', async () => {
@@ -41,17 +41,17 @@ describe('db module (CRUD with GUIDs)', () => {
   });
 
   test('remove deletes by id', async () => {
-    const item = await db.create('dreams', { text: 'big' });
-    const removed = await db.remove('dreams', item.id);
+    const item = await db.create('tasks', { text: 'big' });
+    const removed = await db.remove('tasks', item.id);
     expect(removed).toBe(true);
-    const all = await db.getAll('dreams');
+    const all = await db.getAll('tasks');
     expect(all).toEqual([]);
   });
 
   test('ensureIds migrates data missing ids', async () => {
     // write raw storage object without ids
     const { saveData } = require('../src/api/storage');
-    saveData({ tasks: [{ text: 'noid' }], projects: [], dreams: [], people: [] });
+    saveData({ tasks: [{ text: 'noid' }], projects: [], people: [] });
     const d = await db.loadData();
     expect(d.tasks[0].id).toBeDefined();
   });
