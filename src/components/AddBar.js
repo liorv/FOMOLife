@@ -17,12 +17,16 @@ export default function AddBar({
         name={`add-${type || "item"}`}
         value={input}
         onChange={(e) => onInputChange(e.target.value)}
-        placeholder={type === "people" ? "Add a new person" : type === "tasks" ? "Add a new task" : `Add a new ${type}`}
+        placeholder={
+          type === "people"
+            ? "Add a new person (press Enter)"
+            : type === "tasks"
+            ? "Add a new task (press Enter)"
+            : `Add a new ${type} (press Enter)`
+        }
         onKeyDown={(e) => e.key === "Enter" && onAdd()}
       />
-      <button className="add-btn" onClick={onAdd} title="Add">
-        <span className="material-icons">add</span>
-      </button>
+      {/* add button removed to simplify UI; tasks are added via Enter */}
     </div>
   );
 }

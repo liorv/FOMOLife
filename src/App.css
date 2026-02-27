@@ -573,6 +573,15 @@ body {
   transition: box-shadow 0.12s, border-color 0.12s;
   box-shadow: inset 0 -1px 0 rgba(60, 64, 67, 0.02);
 }
+.add-bar input::placeholder {
+  color: #999;
+  opacity: 1; /* override any user-agent */
+}
+
+/* hide unused add button if still present in markup for other reasons */
+.add-bar .add-btn {
+  display: none !important;
+}
 
 .add-bar input:focus {
   outline: none;

@@ -122,12 +122,6 @@ describe('SubprojectEditor', () => {
     fireEvent.change(input, { target: { value: 'new task' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
     expect(handlers.onAddTask).toHaveBeenCalledWith('new task', false);
-
-    // clicking button should also work
-    fireEvent.change(input, { target: { value: 'second' } });
-    const btn = document.querySelector('.add-bar-wrapper .add-bar .add-btn');
-    fireEvent.click(btn);
-    expect(handlers.onAddTask).toHaveBeenCalledWith('second', false);
   });
 
   test('drag and drop props are passed through to TaskList and reorder logic can be triggered', async () => {
