@@ -2,17 +2,17 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-// simple sanity check that the bar can take 100% width (which is what we
-// rely on in App.js).  This avoids importing the whole App component and
-// sidesteps the various router/db hassles in the larger suite.
+// simple sanity check that the SearchTasks component will stretch to the
+// full width of its parent container when used inside the mid-column.
+// This test mirrors the previous semantics but targets the updated markup.
 
-test('projects-search-bar uses full width when given', () => {
+test('search-tasks component expands to 100% width', () => {
   const { container } = render(
-    <div className="mid-column" style={{ width: '300px' }}>
-      <div className="projects-search-bar" style={{ width: '50%' }}>foo</div>
+    <div className="mid-column" style={{ width: '300px', display: 'flex' }}>
+      <div className="search-tasks" style={{ width: '100%' }}>foo</div>
     </div>
   );
-  const bar = container.querySelector('.projects-search-bar');
+  const bar = container.querySelector('.search-tasks');
   expect(bar).toBeInTheDocument();
-  expect(bar).toHaveStyle('width: 50%');
+  expect(bar).toHaveStyle('width: 100%');
 });

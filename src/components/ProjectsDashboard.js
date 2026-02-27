@@ -59,12 +59,14 @@ export default function ProjectsDashboard({
   onCreatePerson,
   onTitleChange,
   projectSearch = "",
+  filters = [],
+  onToggleFilter = () => {},
 }) {
-  const [activeFilter, setActiveFilter] = useState(null); // null | 'starred' | 'overdue' | 'upcoming'
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const addingRef = useRef(false);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const taskFilter = filters.length > 0 ? filters[0] : null;
 
   // Filter sidebar by search query
   const visibleProjects = useMemo(
@@ -122,18 +124,13 @@ export default function ProjectsDashboard({
     }).length;
   }, [scopedTasks]);
 
-  // Toggle a filter — clicking the active filter clears it
-  const toggleFilter = (f) => setActiveFilter((prev) => (prev === f ? null : f));
-
   // Clear filter when switching projects
   const handleSelectProject = (id) => {
-    setActiveFilter(null);
     onSelectProject(id);
   };
 
   // Navigate back (deselect project — useful on mobile)
   const handleBack = () => {
-    setActiveFilter(null);
     setFabMenuOpen(false);
     onSelectProject(null);
   };
@@ -208,8 +205,8 @@ export default function ProjectsDashboard({
                   value={starredCount}
                   accent="star"
                   clickable
-                  active={activeFilter === "starred"}
-                  onClick={() => toggleFilter("starred")}
+                  active={taskFilter === "starred"}
+                  onClick={() => onToggleFilter(taskFilter === "starred" ? null : "starred")}
                 />
                 <SummaryCard
                   icon="event_busy"
@@ -217,8 +214,8 @@ export default function ProjectsDashboard({
                   value={overdueCount}
                   accent={overdueCount > 0 ? "danger" : undefined}
                   clickable
-                  active={activeFilter === "overdue"}
-                  onClick={() => toggleFilter("overdue")}
+                  active={taskFilter === "overdue"}
+                  onClick={() => onToggleFilter(taskFilter === "overdue" ? null : "overdue")}
                 />
                 <SummaryCard
                   icon="upcoming"
@@ -226,8 +223,8 @@ export default function ProjectsDashboard({
                   value={upcomingCount}
                   accent="info"
                   clickable
-                  active={activeFilter === "upcoming"}
-                  onClick={() => toggleFilter("upcoming")}
+                  active={taskFilter === "upcoming"}
+                  onClick={() => onToggleFilter(taskFilter === "upcoming" ? null : "upcoming")}
                 />
               </div>
 
@@ -243,7 +240,8 @@ export default function ProjectsDashboard({
                 onOpenPeople={onOpenPeople}
                 onCreatePerson={onCreatePerson}
                 onSubprojectDeleted={onSubprojectDeleted}
-                taskFilter={activeFilter}
+                taskFilter={taskFilter}
+                searchQuery={projectSearch}
               />
             </div>
           </div>
@@ -355,4 +353,6 @@ ProjectsDashboard.propTypes = {
   onCreatePerson: PropTypes.func,
   onTitleChange: PropTypes.func.isRequired,
   projectSearch: PropTypes.string,
+  filters: PropTypes.array,
+  onToggleFilter: PropTypes.func,
 };

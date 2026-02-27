@@ -108,16 +108,17 @@ describe('App component', () => {
     expect(reinput).toBeTruthy();
     expect(reinput.value).toBe('');
 
-    // switch to projects view; the search bar should appear in the container
+    // switch to projects view; the search input should appear in the title bar
     fireEvent.click(screen.getByText('Projects'));
-    const wrapper = document.querySelector('.projects-search-container');
-    expect(wrapper).toBeInTheDocument();
-    expect(container.contains(wrapper)).toBe(true);
-    // wrapper should have pale gray background, be centered, and width 50%
-    expect(wrapper).toHaveStyle('background: var(--color-bg-light)');
-    expect(wrapper).toHaveStyle('display: flex');
-    expect(wrapper).toHaveStyle('justify-content: center');
-    expect(wrapper).toHaveStyle('width: 50%');
+    const projInput = screen.getByPlaceholderText('Search projects…');
+    expect(projInput).toBeInTheDocument();
+    const titleBar = document.querySelector('.title-bar');
+    expect(titleBar.contains(projInput)).toBe(true);
+    // filter button should not be shown in project-search mode
+    expect(document.querySelector('.filter-icon')).toBeNull();
+    // typing in it should update projectSearch and affect visibleProjects
+    fireEvent.change(projInput, { target: { value: 'foo' } });
+    expect(projInput.value).toBe('foo');
     const projBar = wrapper.querySelector('.projects-search-bar');
     expect(projBar).toBeInTheDocument();
     // the bar itself should be white inside and fill the container
@@ -402,6 +403,19 @@ describe('App component', () => {
     // project editor container should appear with no pre‑existing subprojects
     const editor = document.querySelector('.project-editor');
     expect(editor).toBeInTheDocument();
+
+    // search bar now switches to task-search mode
+    const projSearchInput = screen.getByPlaceholderText('Search tasks…');
+    expect(projSearchInput).toBeInTheDocument();
+    const filterBtn = document.querySelector('.filter-icon');
+    expect(filterBtn).toBeInTheDocument();
+    // open filter popup and check options
+    fireEvent.click(filterBtn);
+    const popup = document.querySelector('.filter-popup');
+    expect(popup).toBeInTheDocument();
+    const pills = popup.querySelectorAll('.filter-pill');
+    const labels = Array.from(pills).map((p) => p.textContent);
+    expect(labels).toEqual(expect.arrayContaining(['Starred','Upcoming','Completed']));
     // expanded editor no longer renders name inputs
     const subInputs = editor.querySelectorAll('.subproject-name-input');
     expect(subInputs.length).toBe(0);
@@ -422,26 +436,63 @@ describe('App component', () => {
     expect(aiBtn.textContent).toContain('AI assisted project design');
     fireEvent.click(manualBtn);
     await waitFor(() => {
-      // new subproject may render expanded or collapsed; accept either selector
       const subs = document.querySelectorAll(
         '.project-editor .subproject, .project-editor .subproject-row'
       );
       expect(subs.length).toBe(1);
       const sub = subs[0];
-      // whichever view, the title should start empty
       const titleSpan = sub.querySelector(
         '.subproject-row-title span, .subproject-name-display'
       );
       expect(titleSpan).toBeTruthy();
       expect(titleSpan.textContent).toBe('');
     });
-    // clicking fab again shouldn't add another unnamed
-    fireEvent.click(fab);
+
+    // now that the subproject is expanded we can create a task via FAB
+    // the main button title should have changed
+    const fabAfter = document.querySelector('.project-editor > .fab:not(.fab-small)');
+    expect(fabAfter.title).toBe('Add task');
+    fireEvent.click(fabAfter);
+    // first task should appear in edit mode
     await waitFor(() => {
-      const subs = document.querySelectorAll(
-        '.project-editor .subproject, .project-editor .subproject-row'
-      );
-      expect(subs.length).toBe(1);
+      const input = document.querySelector('.project-editor .task-title-input');
+      expect(input).toBeTruthy();
+      fireEvent.change(input, { target: { value: 'alpha' } });
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    });
+    // add second task and name it
+    fireEvent.click(fabAfter);
+    await waitFor(() => {
+      const inputs = document.querySelectorAll('.project-editor .task-title-input');
+      expect(inputs.length).toBe(1); // only the new one
+      fireEvent.change(inputs[0], { target: { value: 'beta' } });
+      fireEvent.keyDown(inputs[0], { key: 'Enter', code: 'Enter' });
+    });
+    await waitFor(() => {
+      const taskRows = document.querySelectorAll('.project-editor .task-row');
+      expect(taskRows.length).toBe(2);
+    });
+
+    // now test searching within the project
+    const projSearchInput = screen.getByPlaceholderText('Search tasks…');
+    fireEvent.change(projSearchInput, { target: { value: 'alp' } });
+    await waitFor(() => {
+      const rows = document.querySelectorAll('.project-editor .task-row');
+      expect(rows.length).toBe(1);
+      expect(rows[0].textContent).toContain('alpha');
+    });
+    // try applying a filter (starred) which should hide the alpha row
+    fireEvent.click(document.querySelector('.filter-icon'));
+    const starPill = Array.from(document.querySelectorAll('.filter-pill')).find(p => p.textContent === 'Starred');
+    expect(starPill).toBeTruthy();
+    fireEvent.click(starPill);
+    await waitFor(() => {
+      expect(document.querySelectorAll('.project-editor .task-row').length).toBe(0);
+    });
+    // clearing search returns all tasks
+    fireEvent.change(projSearchInput, { target: { value: '' } });
+    await waitFor(() => {
+      expect(document.querySelectorAll('.project-editor .task-row').length).toBe(2);
     });
 
     // the title bar should display a close icon button on the right
@@ -463,11 +514,14 @@ describe('App component', () => {
     expect(screen.getByText('Renamed')).toBeInTheDocument();
     expect(screen.queryByLabelText('Project Name')).toBeNull();
 
-    // re-open editor and verify unnamed subproject was removed
+    // re-open editor and verify unnamed subproject still exists (it now has tasks)
     const tile2 = screen.getByText('Renamed').closest('.project-tile');
     fireEvent.click(tile2.querySelector('.edit-icon'));
     const rowsAfter = document.querySelectorAll('.project-editor .subproject-row');
-    expect(rowsAfter.length).toBe(0);
+    expect(rowsAfter.length).toBe(1);
+    // the subproject should contain the two tasks we added earlier
+    const tasksAfter = document.querySelectorAll('.project-editor .task-row');
+    expect(tasksAfter.length).toBe(2);
   });
 
   test.skip('subproject tasks may be reordered while editing a project', async () => {

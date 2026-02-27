@@ -26,7 +26,7 @@ describe('ProjectEditor', () => {
     expect(editor.style.overflow).toBe('auto');
   });
 
-  test('fab button shows and hides a menu when clicked', () => {
+  test('fab button shows and hides a menu when clicked (no subproject expanded)', () => {
     render(<ProjectEditor {...defaultProps} />);
 
     const fab = screen.getByTitle('Add subproject');
@@ -67,7 +67,7 @@ describe('ProjectEditor', () => {
       project: {
         ...defaultProps.project,
         subprojects: [
-          { id: 'sub1', text: 'foo', newTaskText: '' },
+          { id: 'sub1', text: 'foo' },
         ],
       },
     };
@@ -80,30 +80,34 @@ describe('ProjectEditor', () => {
   });
 
 
-  test('header add button in a subproject calls onAddTask and avoids duplicates', () => {
-    const handlers = { ...defaultProps, onAddSubproject: jest.fn() };
-    // we'll just verify that the handler wire-up works; the actual subproject
-    // component has its own tests for preventing duplicates.
+  test('when a subproject is expanded the FAB adds a new task', () => {
     const props = {
       ...defaultProps,
       project: {
         ...defaultProps.project,
         subprojects: [
-          { id: 'sub1', text: 'foo', tasks: [] },
+          { id: 'sub1', text: 'foo', tasks: [], collapsed: false },
         ],
       },
       onApplyChange: jest.fn(),
     };
     render(<ProjectEditor {...props} />);
-    const addBtn = document.querySelector('.add-task-header-btn');
-    expect(addBtn).toBeTruthy();
-    expect(addBtn.textContent).toContain('Task');
-    expect(addBtn.title).toBe('AddTask');
-    fireEvent.click(addBtn);
-    // the ProjectEditor passes a spy to the subcomponent; we can't directly
-    // observe the call here, so at minimum ensure clicking doesn't crash and
-    // the button exists.  (Task creation itself is covered by SubprojectEditor
-    // tests.)
+
+    // title should reflect context-aware mode
+    const fab = screen.getByTitle('Add task');
+    expect(fab).toBeInTheDocument();
+
+    // clicking should add a task instead of opening a menu
+    fireEvent.click(fab);
+    expect(document.querySelector('.fab-menu')).toBeNull();
+    expect(props.onApplyChange).toHaveBeenCalled();
+    const updated = props.onApplyChange.mock.calls[0][0];
+    expect(updated.subprojects[0].tasks.length).toBe(1);
+
+    // clicking again should add a second task (not a second subproject)
+    fireEvent.click(fab);
+    const updated2 = props.onApplyChange.mock.calls[1][0];
+    expect(updated2.subprojects[0].tasks.length).toBe(2);
   });
 
   test('tasks within a subproject can be reordered via drag and drop', async () => {
@@ -120,7 +124,6 @@ describe('ProjectEditor', () => {
               { id: 't1', text: 'a', done: false, favorite: false, people: [] },
               { id: 't2', text: 'b', done: false, favorite: false, people: [] },
             ],
-            newTaskText: '',
           },
         ],
       },
@@ -154,6 +157,49 @@ describe('ProjectEditor', () => {
     expect(applied.subprojects[0].tasks[1].text).toBe('a');
   });
 
+  test('searchQuery prop filters flat task view', () => {
+    const props = {
+      ...defaultProps,
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          { id: 's1', text: 'sub', tasks: [{ id: 't1', text: 'foo', done: false, favorite: false, people: [] }] },
+        ],
+      },
+      onApplyChange: jest.fn(),
+    };
+    render(<ProjectEditor {...props} searchQuery="foo" />);
+    // should render flat view
+    expect(document.querySelector('.filter-flat-view')).toBeTruthy();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+  });
+
+  test('searchQuery and taskFilter are applied together', () => {
+    const props = {
+      ...defaultProps,
+      project: {
+        ...defaultProps.project,
+        subprojects: [
+          {
+            id: 's1',
+            text: 'sub',
+            tasks: [
+              { id: 't1', text: 'foo', done: false, favorite: true, people: [] },
+              { id: 't2', text: 'foobar', done: false, favorite: false, people: [] },
+            ],
+          },
+        ],
+      },
+      onApplyChange: jest.fn(),
+    };
+    render(<ProjectEditor {...props} searchQuery="foo" taskFilter="starred" />);
+    // only the starred task matching query should appear
+    expect(document.querySelector('.filter-flat-view')).toBeTruthy();
+    const rows = document.querySelectorAll('.project-editor .task-row');
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain('foo');
+  });
+
   test('subprojects can be reordered via drag and drop', async () => {
     const props = {
       ...defaultProps,
@@ -161,8 +207,8 @@ describe('ProjectEditor', () => {
       project: {
         ...defaultProps.project,
         subprojects: [
-          { id: 's1', text: 'one', tasks: [], newTaskText: '' },
-          { id: 's2', text: 'two', tasks: [], newTaskText: '' },
+          { id: 's1', text: 'one', tasks: [] },
+          { id: 's2', text: 'two', tasks: [] },
         ],
       },
     };
@@ -218,7 +264,6 @@ describe('ProjectEditor', () => {
             id: 'sub1',
             text: 'foo',
             tasks: [{ id: 't1', text: 'orig', done: false, favorite: false, people: [] }],
-            newTaskText: '',
           },
         ],
       },
@@ -244,7 +289,7 @@ describe('ProjectEditor', () => {
       project: {
         ...defaultProps.project,
         subprojects: [
-          { id: 'sub1', text: 'x', tasks: [], newTaskText: '', collapsed: true },
+          { id: 'sub1', text: 'x', tasks: [], collapsed: true },
         ],
       },
     };
@@ -258,7 +303,7 @@ describe('ProjectEditor', () => {
       project: {
         ...defaultProps.project,
         subprojects: [
-          { id: 'sub1', text: 'x', tasks: [], newTaskText: '', collapsed: true },
+          { id: 'sub1', text: 'x', tasks: [], collapsed: true },
         ],
       },
     };

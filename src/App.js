@@ -128,6 +128,11 @@ function App({ userId, authUser, onSignOut } = {}) {
   const [editingPersonName, setEditingPersonName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState([]);
+  const handleToggleFilter = (type) => {
+    setFilters((prev) =>
+      prev.includes(type) ? prev.filter((f) => f !== type) : [...prev, type],
+    );
+  };
   const [projectSearch, setProjectSearch] = useState("");
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
@@ -693,18 +698,26 @@ function App({ userId, authUser, onSignOut } = {}) {
           user={authUser}
           onSignOut={onSignOut}
         >
+          {/* search area adapts based on current tab and edit state */}
           {type === "tasks" && !editingProjectId && (
             <SearchTasks
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               filters={filters}
-              onToggleFilter={(type) => {
-                setFilters((prev) =>
-                  prev.includes(type)
-                    ? prev.filter((f) => f !== type)
-                    : [...prev, type],
-                );
-              }}
+              onToggleFilter={handleToggleFilter}
+            />
+          )}
+
+          {type === "projects" && (
+            <SearchTasks
+              searchQuery={projectSearch}
+              onSearchChange={setProjectSearch}
+              filters={filters}
+              onToggleFilter={handleToggleFilter}
+              availableFilters={editingProjectId ? ['starred','upcoming','completed'] : []}
+              placeholder={
+                editingProjectId ? 'Search tasks…' : 'Search projects…'
+              }
             />
           )}
         </LogoBar>
@@ -713,31 +726,6 @@ function App({ userId, authUser, onSignOut } = {}) {
         >
           {/* decorative splash removed; logo now shown in title bar */}
 
-          {type === "projects" && (
-            <div className="projects-search-container" style={{ width: '50%' }}>
-              <div className="projects-search-bar">
-                <span className="material-icons">search</span>
-                <input
-                  type="text"
-                  id="projects-search"
-                  name="projectsSearch"
-                  placeholder="Search projects..."
-                  value={projectSearch}
-                  onChange={(e) => setProjectSearch(e.target.value)}
-                  aria-label="Search projects"
-                />
-                {projectSearch && (
-                  <button
-                    className="projects-search-clear"
-                    onClick={() => setProjectSearch("")}
-                    aria-label="Clear search"
-                  >
-                    <span className="material-icons">close</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
 
           {type === "projects" ? (
             <ProjectsDashboard
@@ -758,6 +746,8 @@ function App({ userId, authUser, onSignOut } = {}) {
               onCreatePerson={handleCreatePerson}
               onTitleChange={handleProjectTitleChange}
               projectSearch={projectSearch}
+              filters={filters}
+              onToggleFilter={handleToggleFilter}
             />
           ) : type === "people" ? (
             <ContactsPage

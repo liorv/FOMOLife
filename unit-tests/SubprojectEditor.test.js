@@ -7,7 +7,6 @@ const defaultSub = {
   id: 'sub1',
   text: 'foo',
   tasks: [],
-  newTaskText: '',
   collapsed: false,
 };
 
@@ -17,7 +16,6 @@ const defaultHandlers = {
   onDelete: jest.fn(),
   onUpdateText: jest.fn(),
   onToggleCollapse: jest.fn(),
-  onUpdateNewTask: jest.fn(),
   onAddTask: jest.fn(),
   handleTaskToggle: jest.fn(),
   handleTaskStar: jest.fn(),
@@ -42,11 +40,8 @@ describe('SubprojectEditor', () => {
     expect(nameDisplay.textContent).toBe(defaultSub.text);
     // input should not exist anymore
     expect(document.getElementById('subproject-name-sub1')).toBeNull();
-    // header should include add-task button now that the input row is gone
-    const addBtn = document.querySelector('.add-task-header-btn');
-    expect(addBtn).toBeTruthy();
-    expect(addBtn.textContent).toContain('Task');
-    expect(addBtn.title).toBe('AddTask');
+    // header no longer renders its own add-button; FAB is used instead
+    expect(document.querySelector('.add-task-header-btn')).toBeNull();
   });
 
   test('shows SubprojectRow when collapsed and edit button works', () => {
@@ -78,76 +73,6 @@ describe('SubprojectEditor', () => {
     expect(defaultHandlers.onToggleCollapse).toHaveBeenCalled();
   });
 
-test('header add button shows AddBar and allows adding tasks', async () => {
-    const handlers = { ...defaultHandlers, onAddTask: jest.fn() };
-    const subWithTasks = { ...defaultSub, tasks: [] };
-    const { rerender } = render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
-
-    const addBtn = document.querySelector('.add-task-header-btn');
-    expect(addBtn).toBeTruthy();
-    expect(addBtn.textContent).toContain('Task');
-    expect(addBtn.title).toBe('AddTask');
-    
-    // Click plus button to show AddBar
-    fireEvent.click(addBtn);
-    
-    // AddBar should become visible
-    const addBarInput = document.querySelector('.add-bar-wrapper input');
-    expect(addBarInput).toBeTruthy();
-    
-    // Type a task name
-    fireEvent.change(addBarInput, { target: { value: 'My Task' } });
-    
-    // Click add button in AddBar
-    const addBarBtn = document.querySelector('.add-bar-wrapper .add-btn');
-    fireEvent.click(addBarBtn);
-    
-    // onAddTask should be called with the typed text
-    expect(handlers.onAddTask).toHaveBeenCalledTimes(1);
-    expect(handlers.onAddTask).toHaveBeenCalledWith('My Task');
-  });
-
-  test('AddBar closes when clicking outside', async () => {
-    const handlers = { ...defaultHandlers };
-    const subWithTasks = { ...defaultSub, tasks: [] };
-    render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
-
-    // Click plus button to show AddBar
-    const addBtn = document.querySelector('.add-task-header-btn');
-    fireEvent.click(addBtn);
-    
-    // AddBar should be visible
-    let addBarInput = document.querySelector('.add-bar-wrapper input');
-    expect(addBarInput).toBeTruthy();
-    
-    // Click outside the AddBar
-    fireEvent.mouseDown(document.body);
-    
-    // AddBar should be hidden
-    addBarInput = document.querySelector('.add-bar-wrapper input');
-    expect(addBarInput).not.toBeTruthy();
-  });
-
-  test('AddBar closes when pressing Escape', async () => {
-    const handlers = { ...defaultHandlers };
-    const subWithTasks = { ...defaultSub, tasks: [] };
-    render(<SubprojectEditor sub={subWithTasks} {...handlers} />);
-
-    // Click plus button to show AddBar
-    const addBtn = document.querySelector('.add-task-header-btn');
-    fireEvent.click(addBtn);
-    
-    // AddBar should be visible
-    let addBarInput = document.querySelector('.add-bar-wrapper input');
-    expect(addBarInput).toBeTruthy();
-    
-    // Press Escape
-    fireEvent.keyDown(document, { key: 'Escape' });
-    
-    // AddBar should be hidden
-    addBarInput = document.querySelector('.add-bar-wrapper input');
-    expect(addBarInput).not.toBeTruthy();
-  });
 
 
   test('drag and drop props are passed through to TaskList and reorder logic can be triggered', async () => {

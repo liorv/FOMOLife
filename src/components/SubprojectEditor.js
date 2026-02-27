@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import TaskList from "./TaskList";
 import SubprojectRow from "./SubprojectRow";
-import AddBar from "./AddBar";
 
 export default function SubprojectEditor({
   sub,
@@ -13,7 +12,6 @@ export default function SubprojectEditor({
   onUpdateText,
   onUpdateColor,
   onToggleCollapse,
-  onUpdateNewTask,
   onAddTask,
   handleTaskToggle,
   handleTaskStar,
@@ -65,49 +63,6 @@ export default function SubprojectEditor({
     () => autoEdit && (!sub.text || sub.text.trim() === "")
   );
   const [draftName, setDraftName] = React.useState(sub.text || "");
-  const [showAddBar, setShowAddBar] = React.useState(false);
-  const [addBarInput, setAddBarInput] = React.useState("");
-  const addBarRef = React.useRef(null);
-
-  // Close AddBar when clicking outside
-  React.useEffect(() => {
-    if (!showAddBar) return;
-
-    const handleClickOutside = (e) => {
-      if (addBarRef.current && !addBarRef.current.contains(e.target)) {
-        setShowAddBar(false);
-        setAddBarInput("");
-      }
-    };
-
-    const handleEscapeKey = (e) => {
-      if (e.key === "Escape") {
-        setShowAddBar(false);
-        setAddBarInput("");
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscapeKey);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscapeKey);
-    };
-  }, [showAddBar]);
-
-  // Open AddBar when plus button is clicked
-  const openAddBar = () => {
-    setShowAddBar(true);
-    setAddBarInput("");
-  };
-
-  // Handle adding task from AddBar
-  const handleAddBarAdd = () => {
-    if (!addBarInput.trim()) return;
-    onAddTask(addBarInput);
-    setAddBarInput("");
-  };
 
   // --- Subproject drag/drop ---
 
@@ -268,30 +223,10 @@ export default function SubprojectEditor({
               </button>
             )}
             <div style={{ flex: '1 1 auto' }} />
-            <button
-              className="add-task-header-btn"
-              title="AddTask"
-              onClick={openAddBar}
-            >
-              <span className="material-icons">add</span>
-              <span className="add-task-label">Task</span>
-            </button>
           </div>
           <div className="subproject-body">
             <div className="subproject-tasks">
               <ul className="item-list">
-                {showAddBar && (
-                  <li className="add-bar-wrapper" ref={addBarRef}>
-                    <AddBar
-                      type="task"
-                      input={addBarInput}
-                      dueDate=""
-                      onInputChange={setAddBarInput}
-                      onDueDateChange={() => {}}
-                      onAdd={handleAddBarAdd}
-                    />
-                  </li>
-                )}
                 <TaskList
                   items={visibleTasks}
                   type="tasks"
@@ -328,7 +263,6 @@ SubprojectEditor.propTypes = {
     id: PropTypes.string.isRequired,
     text: PropTypes.string,
     collapsed: PropTypes.bool,
-    newTaskText: PropTypes.string,
     tasks: PropTypes.array,
   }).isRequired,
   editorTaskId: PropTypes.string,
@@ -336,7 +270,6 @@ SubprojectEditor.propTypes = {
   onDelete: PropTypes.func.isRequired,
   onUpdateText: PropTypes.func.isRequired,
   onToggleCollapse: PropTypes.func.isRequired,
-  onUpdateNewTask: PropTypes.func.isRequired,
   onAddTask: PropTypes.func.isRequired,
   handleTaskToggle: PropTypes.func.isRequired,
   handleTaskStar: PropTypes.func.isRequired,

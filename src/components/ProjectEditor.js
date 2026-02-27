@@ -16,6 +16,7 @@ export default function ProjectEditor({
   onClearNewSubproject = () => {},
   onSubprojectDeleted = () => {},
   taskFilter = null,
+  searchQuery = "",
 }) {
   // --- State ---------------------------------------------------------------
 
@@ -25,7 +26,6 @@ export default function ProjectEditor({
       ? project.subprojects.map((s) => ({
           ...s,
           collapsed: s.collapsed !== undefined ? s.collapsed : false,
-          newTaskText: "",
         }))
       : [],
   }));
@@ -37,6 +37,17 @@ export default function ProjectEditor({
   const editorContainerRef = useRef(null);
   // Ref-based cooldown avoids setState-outside-act warnings in tests.
   const addingRef = React.useRef(false);
+
+  // floating-action-button state/menu (used when editing a project)
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
+
+  // Which subproject, if any, is currently expanded?  We collapse all
+  // others whenever one is toggled, so there should be at most one.
+  const expandedSub = useMemo(() => {
+    return (local.subprojects || []).find(
+      (s) => !s.collapsed && !s.isProjectLevel,
+    );
+  }, [local.subprojects]);
 
   const handleSetEditorId = (id) =>
     setEditorTaskId((prev) => (prev === id ? null : id));
@@ -78,7 +89,7 @@ export default function ProjectEditor({
     setLocal({
       ...project,
       subprojects: project.subprojects
-        ? project.subprojects.map((s) => ({ ...s, newTaskText: "" }))
+        ? project.subprojects.map((s) => ({ ...s }))
         : [],
     });
   }, [project]);
@@ -254,15 +265,6 @@ export default function ProjectEditor({
     onApplyChange(cleaned);
   };
 
-  const updateSubNewTask = (id, text) => {
-    const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) =>
-        s.id === id ? { ...s, newTaskText: text } : s,
-      ),
-    };
-    setLocal(updated);
-  };
 
   const addTask = (subId, text = "", allowBlank = false) => {
     // prevent creating tasks with no name (or only whitespace) unless caller
@@ -286,7 +288,6 @@ export default function ProjectEditor({
         return {
           ...s,
           tasks: [...(s.tasks || []), newTask],
-          newTaskText: "",
         };
       }),
     };
@@ -364,6 +365,40 @@ export default function ProjectEditor({
 
   const handleDragLeaveSubproject = () => {
     setDragOverSubprojectId(null);
+  };
+
+  // fab-related handlers --------------------------------------------------
+  const handleFabClick = () => {
+    if (expandedSub) {
+      // create a blank task in the expanded subproject and start editing
+      addTask(expandedSub.id, "", true);
+      setFabMenuOpen(false);
+    } else {
+      setFabMenuOpen((o) => !o);
+    }
+  };
+
+  const handleAddManualSubproject = () => {
+    if (!addingRef.current) {
+      addingRef.current = true;
+      onAddSubproject("");
+      setFabMenuOpen(false);
+      setTimeout(() => {
+        addingRef.current = false;
+      }, 500);
+    }
+  };
+
+  const handleAddAiSubproject = () => {
+    if (!addingRef.current) {
+      addingRef.current = true;
+      // pass a sentinel string so the consumer can branch if desired
+      onAddSubproject("AI assisted");
+      setFabMenuOpen(false);
+      setTimeout(() => {
+        addingRef.current = false;
+      }, 500);
+    }
   };
 
   const handleDrop = (subId) => (taskId) => {
@@ -533,26 +568,34 @@ export default function ProjectEditor({
   // --- Flat filter view helpers ------------------------------------------
 
   const filteredFlatTasks = useMemo(() => {
-    if (!taskFilter) return [];
+    const q = searchQuery ? searchQuery.trim().toLowerCase() : "";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const inSeven = new Date(today);
     inSeven.setDate(today.getDate() + 7);
+
     return (local.subprojects || []).flatMap((sub) =>
       (sub.tasks || [])
         .filter((t) => {
-          if (taskFilter === "starred") return (t.starred || t.favorite) && !t.done;
-          if (taskFilter === "overdue") return !t.done && t.dueDate && new Date(t.dueDate) < today;
-          if (taskFilter === "upcoming") {
-            if (t.done || !t.dueDate) return false;
-            const d = new Date(t.dueDate);
-            return d >= today && d <= inSeven;
+          // text query filter
+          if (q && !(t.text || "").toLowerCase().includes(q)) {
+            return false;
+          }
+          // taskFilter filter (may be null)
+          if (taskFilter) {
+            if (taskFilter === "starred") return (t.starred || t.favorite) && !t.done;
+            if (taskFilter === "overdue") return !t.done && t.dueDate && new Date(t.dueDate) < today;
+            if (taskFilter === "upcoming") {
+              if (t.done || !t.dueDate) return false;
+              const d = new Date(t.dueDate);
+              return d >= today && d <= inSeven;
+            }
           }
           return true;
         })
         .map((t) => ({ ...t, _subId: sub.id }))
     );
-  }, [local.subprojects, taskFilter]);
+  }, [local.subprojects, taskFilter, searchQuery]);
 
   const findSubIdForTask = (taskId) =>
     filteredFlatTasks.find((t) => t.id === taskId)?._subId;
@@ -565,11 +608,15 @@ export default function ProjectEditor({
       ref={editorContainerRef}
       style={{ position: 'relative', overflow: 'auto' }}
     >
-      {taskFilter ? (
+      {(taskFilter || (searchQuery && searchQuery.trim() !== "")) ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
           {filteredFlatTasks.length === 0 ? (
-            <p className="filter-flat-empty">No {taskFilter} tasks found.</p>
+            <p className="filter-flat-empty">
+              {searchQuery && searchQuery.trim() !== ""
+                ? `No tasks match "${searchQuery}".`
+                : `No ${taskFilter} tasks found.`}
+            </p>
           ) : (
             <ul className="item-list">
               <TaskList
@@ -632,7 +679,6 @@ export default function ProjectEditor({
           onUpdateText={(text) => updateSubText(sub.id, text)}
           onUpdateColor={(color) => updateSubColor(sub.id, color)}
           onToggleCollapse={() => toggleSubCollapse(sub.id)}
-          onUpdateNewTask={(text) => updateSubNewTask(sub.id, text)}
           onAddTask={(text, allowBlank) => addTask(sub.id, text, allowBlank)}
           handleTaskToggle={(taskId) => handleTaskToggle(sub.id, taskId)}
           handleTaskStar={(taskId) => handleTaskStar(sub.id, taskId)}
@@ -661,6 +707,48 @@ export default function ProjectEditor({
       ))}
         </>
       )}
+
+      {/* context‑aware floating action button */}
+      {!taskFilter && (
+        <>
+          <button
+            className="fab"
+            onClick={handleFabClick}
+            title={
+              expandedSub
+                ? "Add task"
+                : fabMenuOpen
+                ? "Close"
+                : "Add subproject"
+            }
+          >
+            <span className="material-icons">
+              {fabMenuOpen && !expandedSub ? "close" : "add"}
+            </span>
+          </button>
+          {!expandedSub && fabMenuOpen && (
+            <div className="fab-menu" role="menu">
+              <button
+                className="fab-small"
+                onClick={handleAddManualSubproject}
+                title="Add manual subproject"
+              >
+                <span className="material-icons">edit</span>
+                <span className="fab-label">Add subproject</span>
+              </button>
+              <button
+                className="fab-small"
+                onClick={handleAddAiSubproject}
+                title="AI assisted subproject"
+              >
+                <span className="material-icons">auto_awesome</span>
+                <span className="fab-label">AI assisted project design</span>
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
       {/* replicates the FAB formerly living in the global bottom bar */}
     </div>
   );
@@ -674,4 +762,5 @@ ProjectEditor.propTypes = {
   }).isRequired,
   onApplyChange: PropTypes.func,
   onAddSubproject: PropTypes.func,
+  searchQuery: PropTypes.string,
 };

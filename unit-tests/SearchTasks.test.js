@@ -43,6 +43,25 @@ describe('SearchTasks component', () => {
     expect(pills[0].textContent).toBe('Completed');
     expect(pills[1].textContent).toBe('Overdue');
 
+    // try custom availableFilters
+    rerender(
+      <SearchTasks
+        searchQuery=""
+        onSearchChange={() => {}}
+        filters={[]}
+        onToggleFilter={toggle}
+        availableFilters={["starred", "upcoming"]}
+        placeholder="Search items…"
+      />
+    );
+    const input2 = screen.getByPlaceholderText('Search items…');
+    expect(input2).toBeInTheDocument();
+    fireEvent.click(document.querySelector('.filter-icon'));
+    const customPills = document.querySelectorAll('.filter-pill');
+    expect(customPills.length).toBe(2);
+    expect(customPills[0].textContent).toBe('Starred');
+    expect(customPills[1].textContent).toBe('Upcoming');
+
     fireEvent.click(pills[1]);
     expect(toggle).toHaveBeenCalledWith('overdue');
 
