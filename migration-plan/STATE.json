@@ -1,8 +1,8 @@
 {
   "planName": "migration-dash-plan",
   "lastUpdated": "2026-02-27",
-"currentStepId": "STEP-16",
-"summary": "STEP-15 done: projects and tasks Vercel projects configured and deployed successfully.",
+"currentStepId": "STEP-17",
+"summary": "STEP-16 done: Vercel repo/branch/root and env/build/deploy validations passed for contacts, projects, and tasks.",
 "steps" : [
     {
       "id": "STEP-01",
@@ -97,13 +97,13 @@
     {
       "id": "STEP-16",
       "title": "Configure environment variables for all apps",
-      "status": "next",
+      "status": "done",
       "file": "16-configure-env-vars.md"
     },
     {
       "id": "STEP-17",
       "title": "Validate build and deploy from main branch",
-      "status": "todo",
+      "status": "next",
       "file": "17-validate-build-deploy.md"
     },
     {
