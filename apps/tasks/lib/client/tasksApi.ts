@@ -32,14 +32,12 @@ export function createTasksApiClient(baseUrl = ''): TasksApiClient {
     },
 
     async createTask(input: { text: string; dueDate?: string | null; description?: string; favorite?: boolean }): Promise<TaskItem> {
-      console.log('API: createTask', input);
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
       });
       const out = await parseResponse<TaskItem>(response);
-      console.log('API: createTask result', out);
       return out;
     },
 
@@ -56,14 +54,12 @@ export function createTasksApiClient(baseUrl = ''): TasksApiClient {
     },
 
     async deleteTask(id: string): Promise<void> {
-      console.log('API: deleteTask', id);
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      const out = await parseResponse<{ ok: true }>(response);
-      console.log('API: deleteTask result', out);
+      await parseResponse<{ ok: true }>(response);
     },
   };
 }

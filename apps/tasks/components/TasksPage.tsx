@@ -40,15 +40,12 @@ export default function TasksPage({ canManage }: Props) {
   useEffect(() => {
     let active = true;
     (async () => {
-      console.log('TasksPage: loading tasks from server');
       setLoading(true);
       setErrorMessage(null);
       try {
         const loaded = await api.listTasks();
-        console.log('  tasks loaded', loaded);
         if (active) setTasks(loaded);
       } catch (error) {
-        console.error('  load error', error);
         if (active) setErrorMessage(error instanceof Error ? error.message : 'Failed to load tasks');
       } finally {
         if (active) setLoading(false);
@@ -140,18 +137,14 @@ export default function TasksPage({ canManage }: Props) {
   };
 
   const toggleDone = async (taskId: string) => {
-    console.log('toggleDone', taskId);
     if (!canManage) {
-      console.log('  cannot manage');
       return;
     }
     const task = tasks.find((item) => item.id === taskId);
     if (!task) {
-      console.log('  no task found');
       return;
     }
     const updated = await api.updateTask(task.id, { done: !task.done });
-    console.log('  api returned', updated);
     if (!updated) return;
     setTasks((prev) => prev.map((item) => (item.id === task.id ? updated : item)));
   };
@@ -176,10 +169,8 @@ export default function TasksPage({ canManage }: Props) {
   };
 
   const handleTitleChange = async (taskId: string, newText: string) => {
-    console.log('handleTitleChange', taskId, newText);
     if (!canManage || !newText.trim()) return;
     const updated = await api.updateTask(taskId, { text: newText.trim() });
-    console.log('  title update returned', updated);
     if (!updated) return;
     setTasks((prev) => prev.map((item) => (item.id === taskId ? updated : item)));
   };
@@ -190,31 +181,19 @@ export default function TasksPage({ canManage }: Props) {
     const updatedTask: TaskItem | undefined =
       typeof taskId === 'string' ? maybeTask : taskId as TaskItem;
 
-    console.log('TasksPage.handleEditorUpdate called', taskId, maybeTask);
 
     if (!canManage) {
-      console.log('  ignoring update because canManage=false');
-      return;
+        return;
     }
     if (!updatedTask || !updatedTask.id) {
       console.warn('TasksPage.handleEditorUpdate called without id', updatedTask);
       return;
     }
     if (deletingTaskIdsRef.current.has(updatedTask.id)) {
-      console.log('  ignoring update because task is being deleted', updatedTask.id);
-      return;
+        return;
     }
     try {
-      console.log('  sending patch to API', {
-        id: updatedTask.id,
-        patch: {
-          text: updatedTask.text,
-          description: updatedTask.description,
-          dueDate: updatedTask.dueDate,
-          favorite: updatedTask.favorite,
-          done: updatedTask.done,
-        },
-      });
+      // patch being sent to API
       const updated = await api.updateTask(updatedTask.id, {
         text: updatedTask.text,
         description: updatedTask.description,
@@ -222,7 +201,6 @@ export default function TasksPage({ canManage }: Props) {
         favorite: updatedTask.favorite,
         done: updatedTask.done,
       });
-      console.log('  API returned', updated);
       if (!updated) return;
       setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     } catch (error) {
@@ -235,7 +213,6 @@ export default function TasksPage({ canManage }: Props) {
   };
 
   const handleEditorSave = async (updatedTask: TaskItem) => {
-    console.log('TasksPage.handleEditorSave called', updatedTask);
     if (!updatedTask?.id) {
       console.warn('TasksPage.handleEditorSave called without id', updatedTask);
     }
