@@ -250,7 +250,8 @@
 }
 
 /* when hovering the row allow the title to expand so the edit icon can show */
-.task-row:hover .task-title {
+.task-row:hover .task-title,
+.task-row:hover .task-title-wrapper {
   overflow: visible;
 }
 
