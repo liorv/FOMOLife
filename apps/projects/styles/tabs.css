@@ -249,6 +249,11 @@
   font-weight: normal;
 }
 
+/* when hovering the row allow the title to expand so the edit icon can show */
+.task-row:hover .task-title {
+  overflow: visible;
+}
+
 .task-row .task-title-input {
   font-size: 1em;
   padding: 8px 10px;
