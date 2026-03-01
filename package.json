@@ -5,6 +5,7 @@
   "packageManager": "pnpm@9.15.6",
   "dependencies": {
     "@myorg/api-client": "workspace:*",
+    "@myorg/types": "workspace:*",
     "@myorg/utils": "workspace:*",
     "@supabase/supabase-js": "^2.97.0",
     "next": "latest",
