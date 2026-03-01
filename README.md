@@ -5,6 +5,7 @@ This repository is fully migrated to a multi-app monorepo architecture.
 ## Architecture
 
 Apps:
+- `apps/framework` — framework host app (logo bar, navbar, content menu, hosted tabs)
 - `apps/contacts` — contacts management app
 - `apps/projects` — projects app
 - `apps/tasks` — tasks app
@@ -47,14 +48,15 @@ Run all apps (Turbo):
 - `pnpm dev:mono`
 
 Run a single app:
+- `pnpm --filter framework dev`
 - `pnpm --filter contacts dev`
 - `pnpm --filter projects dev`
 - `pnpm --filter tasks dev`
 
 Validation gates:
-- `pnpm turbo lint --filter=contacts --filter=projects --filter=tasks`
-- `pnpm turbo test --filter=contacts --filter=projects --filter=tasks`
-- `pnpm turbo build --filter=contacts --filter=projects --filter=tasks`
+- `pnpm turbo lint --filter=framework --filter=contacts --filter=projects --filter=tasks`
+- `pnpm turbo test --filter=framework --filter=contacts --filter=projects --filter=tasks`
+- `pnpm turbo build --filter=framework --filter=contacts --filter=projects --filter=tasks`
 
 ## Deployment runbook (preview + production)
 
@@ -77,6 +79,7 @@ Notes:
 ## Environment variable management
 
 Cross-app URL vars (set for each extracted app and root shell as needed):
+- `NEXT_PUBLIC_FRAMEWORK_APP_URL`
 - `NEXT_PUBLIC_CONTACTS_APP_URL`
 - `NEXT_PUBLIC_PROJECTS_APP_URL`
 - `NEXT_PUBLIC_TASKS_APP_URL`
