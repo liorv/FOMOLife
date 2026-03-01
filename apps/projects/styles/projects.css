@@ -1638,8 +1638,8 @@
   cursor: pointer;
 }
 
-.task-title:hover .editable-indicator,
-.task-title-container:hover .editable-indicator {
+.task-row:hover .task-title .editable-indicator,
+.task-row:hover .task-title-container .editable-indicator {
   opacity: 1;
 }
 

@@ -76,10 +76,8 @@ export default function TaskRow({
   };
 
   const handleTitleClick = () => {
-    if (onTitleChange) {
-      // only do inline editing, don't open the full task editor
-      setEditingTitle(true);
-    } else if (type === "tasks") {
+    // clicking title should toggle the task editor only; editing is done via pencil icon
+    if (type === "tasks") {
       setEditorTaskId?.(id);
     }
   };
