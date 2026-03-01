@@ -132,6 +132,9 @@ importers:
       '@myorg/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@myorg/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@myorg/utils':
         specifier: workspace:*
         version: link:../../packages/utils

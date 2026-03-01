@@ -1722,9 +1722,23 @@
     flex-direction: column;
   }
 
-  .editor-columns .left-column,
+  .editor-columns .left-column {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
+
   .editor-columns .right-column {
     flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .editor-columns .left-column > *,
+  .editor-columns .right-column > * {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .task-row .notify-people {

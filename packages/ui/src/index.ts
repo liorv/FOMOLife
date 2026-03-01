@@ -12,3 +12,9 @@ export type { DashboardCardProps } from "./dashboard-card";
 
 export { PageShell } from "./page-shell";
 export type { PageShellProps, NavItem } from "./page-shell";
+
+export { AddBar } from "./AddBar";
+export type { AddBarProps } from "./AddBar";
+
+export { TaskList } from "./TaskList";
+export type { TaskListProps } from "./TaskList";

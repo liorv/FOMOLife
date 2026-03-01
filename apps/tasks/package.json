@@ -13,6 +13,7 @@
   "dependencies": {
     "@myorg/api-client": "workspace:*",
     "@myorg/types": "workspace:*",
+    "@myorg/ui": "workspace:*",
     "@myorg/utils": "workspace:*",
     "next": "latest",
     "react": "^18.0.0",
