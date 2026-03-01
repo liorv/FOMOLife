@@ -1624,10 +1624,7 @@
 
 .task-title {
   display: inline-block;
-  position: relative; /* serve as positioning context for icon */
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  position: relative; /* positioning context for icon */
   white-space: nowrap;
 }
 
