@@ -156,7 +156,10 @@ export default function SubprojectRow({
     <div 
       className={`subproject-row${expanded ? " expanded" : ""}`} 
       role="button"
-      onClick={() => onEdit(sub.id)}
+      onClick={() => {
+        if (editingName) return;
+        onEdit(sub.id);
+      }}
       style={{ 
         opacity: isDragging ? 0.5 : 1,
         backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : (sub.color ? `${sub.color}15` : 'white'),
@@ -204,27 +207,29 @@ export default function SubprojectRow({
           className={expanded ? "subproject-name-input-expanded" : "subproject-name-input"}
           value={draftName}
           maxLength={100}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}
           onChange={(e) => setDraftName(e.target.value)}
           onBlur={finishEditing}
           onKeyDown={(e) => {
+            e.stopPropagation();
             if (e.key === "Enter") finishEditing();
           }}
         />
       ) : (
         <span className="subproject-row-title subproject-name-display" title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
-          <span>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
+          <span className="subproject-name-text">{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
+          {!sub.isProjectLevel && (
+            <button
+              className="subproject-name-edit-btn"
+              onClick={(e) => { e.stopPropagation(); setEditingName(true); }}
+              title="Rename sub-project"
+            >
+              <span className="material-icons">edit</span>
+            </button>
+          )}
         </span>
-      )}
-
-      {/* optionally show rename button when expanded */}
-      {!sub.isProjectLevel && !editingName && expanded && (
-        <button
-          className="subproject-name-edit-btn"
-          onClick={(e) => { e.stopPropagation(); setEditingName(true); }}
-          title="Rename sub-project"
-        >
-          <span className="material-icons">edit</span>
-        </button>
       )}
 
       {/* Right group: stats, description icon, owners, and menu button */}

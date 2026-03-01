@@ -43,6 +43,7 @@ export default function ProjectTile({
   width,
   height,
   onEdit = () => {},
+  onTitleChange = () => {},
   onDelete = () => {},
   onChangeColor = () => {},
   onReorder = () => {},
@@ -60,6 +61,8 @@ export default function ProjectTile({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(project.text || project.name || "");
   const menuRef = useRef(null);
   const dragRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -70,6 +73,10 @@ export default function ProjectTile({
     const idx = hashString(project.id || project.text || "") % DEFAULT_COLORS.length;
     return DEFAULT_COLORS[idx];
   }, [project.id, project.text, project.color]);
+
+  useEffect(() => {
+    setDraftName(project.text || project.name || "");
+  }, [project.text, project.name]);
 
   // Close menu when clicking outside (including portal dropdown)
   useEffect(() => {
@@ -162,6 +169,19 @@ export default function ProjectTile({
     setMenuOpen(false);
   };
 
+  const finishInlineRename = () => {
+    const trimmed = (draftName || "").trim();
+    setEditingName(false);
+    if (!trimmed) {
+      setDraftName(project.text || project.name || "");
+      return;
+    }
+    const currentName = (project.text || project.name || "").trim();
+    if (trimmed !== currentName) {
+      onTitleChange(project.id, trimmed);
+    }
+  };
+
   const handleDelete = () => {
     onDelete(project.id);
     setMenuOpen(false);
@@ -235,7 +255,44 @@ export default function ProjectTile({
         {/* Header with name and menu */}
         <div className="project-tile-header">
           <div className="project-name-section">
-            <div className="project-name">{project.text || project.name}</div>
+            <div className="project-name-row">
+              {editingName ? (
+                <input
+                  className="project-name-input"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={finishInlineRename}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      finishInlineRename();
+                    }
+                    if (e.key === "Escape") {
+                      setDraftName(project.text || project.name || "");
+                      setEditingName(false);
+                    }
+                  }}
+                  aria-label="Edit project name"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <div className="project-name">{project.text || project.name}</div>
+                  <button
+                    className="project-name-edit-btn"
+                    title="Rename project"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingName(true);
+                    }}
+                  >
+                    <span className="material-icons">edit</span>
+                  </button>
+                </>
+              )}
+            </div>
             <div className="project-name-accent" />
           </div>
           
@@ -429,5 +486,6 @@ ProjectTile.propTypes = {
   width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   onEdit: PropTypes.func,
+  onTitleChange: PropTypes.func,
   onDelete: PropTypes.func,
 };

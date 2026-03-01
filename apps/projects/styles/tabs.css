@@ -244,7 +244,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  padding-right: 8px;
+  padding-right: 0;
   line-height: 1;
   font-weight: normal;
 }
@@ -1153,6 +1153,11 @@
   background: var(--color-bg);
 }
 
+.projects-dashboard:not(.dashboard--has-project) {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 /* ── Summary strip ─────────────────────────────────────────── */
 .dashboard-summary {
   display: flex;
@@ -1207,6 +1212,8 @@
 .dashboard-card--active.dashboard-card--danger { background: #fbe9e9; border-color: var(--color-danger); }
 .dashboard-card--active.dashboard-card--danger .dashboard-card__active-dot { background: var(--color-danger); }
 .dashboard-card--active.dashboard-card--info   { background: #e8f0fe; border-color: var(--color-primary); }
+.dashboard-card--active.dashboard-card--success { background: #e9f8ee; border-color: #2e7d32; }
+.dashboard-card--active.dashboard-card--success .dashboard-card__active-dot { background: #2e7d32; }
 
 /* Flat task list shown when a summary filter tile is active */
 .filter-flat-view {
@@ -1227,6 +1234,7 @@
 .dashboard-card--star  { border-color: var(--color-star);    }
 .dashboard-card--danger{ border-color: var(--color-danger);  }
 .dashboard-card--info  { border-color: var(--color-primary); }
+.dashboard-card--success { border-color: #2e7d32; }
 
 .dashboard-card__icon {
   font-size: 22px !important;
@@ -1236,6 +1244,7 @@
 .dashboard-card--star   .dashboard-card__icon { color: var(--color-star);    }
 .dashboard-card--danger .dashboard-card__icon { color: var(--color-danger);  }
 .dashboard-card--info   .dashboard-card__icon { color: var(--color-primary); }
+.dashboard-card--success .dashboard-card__icon { color: #2e7d32; }
 
 .dashboard-card__body {
   display: flex;
@@ -1288,7 +1297,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 16px 16px 4px;
+  padding: 16px 16px 8px;
   pointer-events: none;
   user-select: none;
 }
@@ -1321,25 +1330,28 @@
 /* Responsive tile grid */
 .dashboard-tiles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
-  padding: 0; /* no spacing around grid */
+  padding: 0 16px 96px;
   align-content: start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Tile wrapper: intercepts click, passes through pointer for menus */
 .dashboard-tile-wrapper {
   cursor: pointer;
   border-radius: var(--border-radius-lg, 12px);
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: box-shadow 0.15s;
   outline: none;
   /* Override tile dimensions so tiles fill the grid cell */
   --project-tile-width: 100%;
-  --project-tile-height: 160px;
+  --project-tile-height: 220px;
+  min-width: 0;
 }
 .dashboard-tile-wrapper:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 .dashboard-tile-wrapper:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -1470,7 +1482,7 @@
   /* Single-column tile grid on mobile */
   .dashboard-tiles-grid {
     grid-template-columns: 1fr;
-    padding: 12px 12px 100px;
+    padding: 0 12px 100px;
     gap: 14px;
   }
 

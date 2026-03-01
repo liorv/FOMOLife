@@ -196,9 +196,10 @@ export default function ProjectsDashboard({
                 value={`${completedSubprojects} / ${scopedSubprojects.length}`}
                 />
                 <SummaryCard
-                  icon="task_alt"
-                  label="Tasks"
+                  icon="check_circle"
+                  label="Completed"
                   value={`${completedTasks} / ${scopedTasks.length}`}
+                  accent="success"
                 />
                 <SummaryCard
                   icon="star"
@@ -273,7 +274,7 @@ export default function ProjectsDashboard({
               {visibleProjects.length === 0 && projectSearch ? (
                 <p className="sidebar-no-results">No matches for &ldquo;{projectSearch}&rdquo;</p>
               ) : (
-                <div className="dashboard-tiles-grid" style={{ justifyContent: 'center', margin: '10px auto 0 auto' }}>
+                <div className="dashboard-tiles-grid">
                   {visibleProjects.map((p) => (
                     <div
                       key={p.id}
@@ -286,6 +287,7 @@ export default function ProjectsDashboard({
                       <ProjectTile
                         project={p}
                         onEdit={handleSelectProject}
+                        onTitleChange={onTitleChange}
                         onDelete={onDeleteProject}
                         onChangeColor={onColorChange}
                         onReorder={onReorder}
