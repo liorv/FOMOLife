@@ -16,3 +16,239 @@
   background: var(--ui-secondary-bg, transparent);
   color: var(--ui-secondary-fg, inherit);
 }
+
+/* Icon styles */
+.ui-icon--spin {
+  animation: ui-icon-spin 1s linear infinite;
+}
+
+@keyframes ui-icon-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* EmptyState styles */
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--ui-text-muted, #666);
+}
+
+.ui-empty__icon {
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+.ui-empty__title {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 8px;
+  color: var(--ui-text, inherit);
+}
+
+.ui-empty__desc {
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+/* LoadingSpinner styles */
+.ui-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--ui-text-muted, #666);
+}
+
+.ui-spinner__msg {
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+
+/* ErrorMessage styles */
+.ui-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--ui-error, #d32f2f);
+}
+
+.ui-error__icon {
+  margin-bottom: 8px;
+}
+
+.ui-error__msg {
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.ui-error__retry {
+  margin-top: 8px;
+}
+
+/* DashboardCard styles */
+.ui-card {
+  background: var(--ui-card-bg, #fff);
+  border: 1px solid var(--ui-card-border, #e0e0e0);
+  border-radius: 8px;
+  padding: 16px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.ui-card--clickable {
+  cursor: pointer;
+}
+
+.ui-card--clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.ui-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ui-card__icon {
+  color: var(--ui-text-muted, #666);
+}
+
+.ui-card__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ui-text-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ui-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ui-card__value {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--ui-text, #212121);
+}
+
+.ui-card__desc {
+  font-size: 14px;
+  color: var(--ui-text-muted, #666);
+}
+
+.ui-card__trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ui-card__trend--up {
+  color: var(--ui-success, #4caf50);
+}
+
+.ui-card__trend--down {
+  color: var(--ui-error, #f44336);
+}
+
+/* PageShell styles */
+.ui-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ui-shell__header {
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--ui-header-bg, #fff);
+  border-bottom: 1px solid var(--ui-border, #e0e0e0);
+  gap: 24px;
+}
+
+.ui-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-shell__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ui-text, #212121);
+}
+
+.ui-shell__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.ui-shell__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ui-text-muted, #666);
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.ui-shell__nav-item:hover {
+  background: var(--ui-hover-bg, #f5f5f5);
+  color: var(--ui-text, #212121);
+}
+
+.ui-shell__nav-item--active {
+  background: var(--ui-active-bg, #e3f2fd);
+  color: var(--ui-primary, #1976d2);
+}
+
+.ui-shell__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ui-shell__user-name {
+  font-size: 14px;
+  color: var(--ui-text, #212121);
+}
+
+.ui-shell__logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  color: var(--ui-text-muted, #666);
+  transition: background 0.2s, color 0.2s;
+}
+
+.ui-shell__logout:hover {
+  background: var(--ui-hover-bg, #f5f5f5);
+  color: var(--ui-text, #212121);
+}
+
+.ui-shell__content {
+  flex: 1;
+  padding: 24px;
+}
