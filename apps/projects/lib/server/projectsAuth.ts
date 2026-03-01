@@ -8,11 +8,12 @@ export interface ProjectsSession {
   isAuthenticated: boolean;
 }
 
-export async function getProjectsSession(): Promise<ProjectsSession> {
+export async function getProjectsSession(request?: Request): Promise<ProjectsSession> {
   const env = getProjectsServerEnv();
   if (env.authMode === 'none') {
+    const requestUid = request ? new URL(request.url).searchParams.get('uid')?.trim() : '';
     return {
-      userId: env.defaultUserId,
+      userId: requestUid || env.defaultUserId,
       isAuthenticated: true,
     };
   }

@@ -15,7 +15,8 @@ type Props = {
 
 export default function ProjectsPage({ canManage }: Props) {
   const searchParams = useSearchParams();
-  const apiClient = useMemo(() => createProjectsApiClient(''), []);
+  const embeddedUid = searchParams.get('uid') ?? '';
+  const apiClient = useMemo(() => createProjectsApiClient('', { uid: embeddedUid }), [embeddedUid]);
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);

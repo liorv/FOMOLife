@@ -8,8 +8,8 @@ function unauthorizedResponse() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-export async function GET() {
-  const session = await getProjectsSession();
+export async function GET(request: Request) {
+  const session = await getProjectsSession(request);
   if (!session.isAuthenticated) return unauthorizedResponse();
 
   const projects = await listProjects(session.userId);
@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getProjectsSession();
+  const session = await getProjectsSession(request);
   if (!session.isAuthenticated) return unauthorizedResponse();
 
   const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number };
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await getProjectsSession();
+  const session = await getProjectsSession(request);
   if (!session.isAuthenticated) return unauthorizedResponse();
 
   const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>> };
@@ -52,7 +52,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await getProjectsSession();
+  const session = await getProjectsSession(request);
   if (!session.isAuthenticated) return unauthorizedResponse();
 
   const body = (await request.json()) as { id?: string };

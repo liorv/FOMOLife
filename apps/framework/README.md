@@ -19,3 +19,13 @@ Independent Next.js App Router app that hosts the migrated Contacts, Projects, a
 
 - Vercel root directory: `apps/framework`
 - App-scoped config: `apps/framework/vercel.json`
+
+## Auth modes
+
+- `FRAMEWORK_AUTH_MODE=none` — bypass login and auto-enter app.
+- `FRAMEWORK_AUTH_MODE=mock-cookie` — simple local user ID form login.
+- `FRAMEWORK_AUTH_MODE=supabase-google` — Google OAuth via Supabase (recommended for production).
+
+For `supabase-google`, set:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`

@@ -8,13 +8,15 @@ import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '@/lib/fra
 
 type FrameworkHostProps = {
   appName?: string;
+  userId: string;
   userName: string;
   userEmail?: string;
   userInitials: string;
+  userAvatarUrl?: string;
   canSignOut: boolean;
 };
 
-export default function FrameworkHost({ appName: _appName, userName, userEmail, userInitials, canSignOut }: FrameworkHostProps) {
+export default function FrameworkHost({ appName: _appName, userId, userName, userEmail, userInitials, userAvatarUrl, canSignOut }: FrameworkHostProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -46,6 +48,9 @@ export default function FrameworkHost({ appName: _appName, userName, userEmail, 
     if (!href) return undefined;
 
     const queryParts = ['embedded=1'];
+    if (userId.trim()) {
+      queryParts.push(`uid=${encodeURIComponent(userId)}`);
+    }
     if (showHeaderSearch && headerSearchQuery.trim()) {
       queryParts.push(`q=${encodeURIComponent(headerSearchQuery)}`);
     }
@@ -53,7 +58,7 @@ export default function FrameworkHost({ appName: _appName, userName, userEmail, 
     const base = href.split('#')[0] ?? href;
     const separator = base.includes('?') ? '&' : '?';
     return `${href}${separator}${queryParts.join('&')}`;
-  }, [activeTabConfig?.href, headerSearchQuery, showHeaderSearch]);
+  }, [activeTabConfig?.href, headerSearchQuery, showHeaderSearch, userId]);
 
   const frameKey = activeTabConfig?.key ?? activeTab;
   const frameLabel = activeTabConfig?.label ?? 'App';
@@ -71,6 +76,19 @@ export default function FrameworkHost({ appName: _appName, userName, userEmail, 
     }
   };
 
+  const handleSwitchUsers = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+    } finally {
+      router.replace('/login?switchUser=1');
+    }
+  };
+
   return (
     <main className="main-layout">
       <LogoBar
@@ -81,8 +99,10 @@ export default function FrameworkHost({ appName: _appName, userName, userEmail, 
         userName={userName}
         userEmail={userEmail ?? ''}
         userInitials={userInitials}
+        userAvatarUrl={userAvatarUrl ?? ''}
         canSignOut={canSignOut}
-        onSignOut={handleSignOut}
+        onSoftLogout={handleSignOut}
+        onSwitchUsers={handleSwitchUsers}
       />
       <div className="app-outer">
         <div className="container framework-container">

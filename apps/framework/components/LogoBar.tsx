@@ -12,8 +12,10 @@ type LogoBarProps = {
   userName?: string;
   userEmail?: string;
   userInitials?: string;
+  userAvatarUrl?: string;
   canSignOut?: boolean;
-  onSignOut?: () => void;
+  onSoftLogout?: () => void;
+  onSwitchUsers?: () => void;
 };
 
 export default function LogoBar({
@@ -25,8 +27,10 @@ export default function LogoBar({
   userName = 'User',
   userEmail = '',
   userInitials = 'U',
+  userAvatarUrl = '',
   canSignOut = false,
-  onSignOut,
+  onSoftLogout,
+  onSwitchUsers,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -58,7 +62,7 @@ export default function LogoBar({
   return (
     <header className="title-bar">
       <div className="left-column">
-        <Image src={logoUrl} alt="FOMO Life logo" className="title-logo" width={168} height={48} priority />
+        <Image src={logoUrl} alt="FOMO logo" className="title-logo" width={168} height={48} priority />
       </div>
       <div className="mid-column">
         <div className="mid-row" />
@@ -81,49 +85,79 @@ export default function LogoBar({
         <div className="mid-row" />
       </div>
       <div className="right-column">
-        <div className="logobar-user" ref={menuRef}>
-          <button
-            type="button"
-            className="logobar-avatar-btn"
-            aria-label="Open account menu"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((current) => !current)}
-          >
-            <span className="logobar-avatar logobar-avatar--initials">{userInitials}</span>
-          </button>
+        {canSignOut ? (
+          <div className="logobar-user" ref={menuRef} title={userEmail || userName}>
+            <button
+              type="button"
+              className="logobar-avatar-btn"
+              aria-label="Open account menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((value) => !value)}
+            >
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt={userName || 'User'}
+                  className="logobar-avatar"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="logobar-avatar logobar-avatar--initials">{userInitials}</span>
+              )}
+            </button>
 
-          {menuOpen ? (
-            <div className="logobar-menu" role="menu" aria-label="Account menu">
-              <div className="logobar-menu-header">
-                <span className="logobar-menu-avatar logobar-avatar--initials">{userInitials}</span>
-                <div className="logobar-menu-identity">
-                  <div className="logobar-menu-name">{userName}</div>
-                  {userEmail ? <div className="logobar-menu-email">{userEmail}</div> : null}
+            {menuOpen ? (
+              <div className="logobar-menu" role="menu" aria-label="Account menu">
+                <div className="logobar-menu-header">
+                  {userAvatarUrl ? (
+                    <img
+                      src={userAvatarUrl}
+                      alt={userName || 'User'}
+                      className="logobar-menu-avatar"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="logobar-menu-avatar logobar-avatar--initials">{userInitials}</span>
+                  )}
+                  <div className="logobar-menu-identity">
+                    <div className="logobar-menu-name">{userName}</div>
+                    {userEmail ? <div className="logobar-menu-email">{userEmail}</div> : null}
+                  </div>
                 </div>
+                <div className="logobar-menu-divider" />
+                <button
+                  type="button"
+                  className="logobar-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onSoftLogout?.();
+                  }}
+                >
+                  <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
+                    logout
+                  </span>
+                  Logout
+                </button>
+                <button
+                  type="button"
+                  className="logobar-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onSwitchUsers?.();
+                  }}
+                >
+                  <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
+                    switch_account
+                  </span>
+                  Switch users
+                </button>
               </div>
-              {canSignOut ? (
-                <>
-                  <div className="logobar-menu-divider" />
-                  <button
-                    type="button"
-                    className="logobar-menu-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onSignOut?.();
-                    }}
-                  >
-                    <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
-                      logout
-                    </span>
-                    Sign out
-                  </button>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </header>
   );

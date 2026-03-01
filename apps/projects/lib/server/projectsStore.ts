@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { createClient } from '@supabase/supabase-js';
+
 export interface ProjectTaskPerson {
   name: string;
 }
@@ -82,9 +84,82 @@ function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
   return project;
 }
 
-function getOrInitUserProjects(userId: string): ProjectItem[] {
+type PersistedUserData = {
+  tasks?: unknown[];
+  projects?: ProjectItem[];
+  people?: unknown[];
+};
+
+function getSupabaseAdminClient() {
+  const supabaseUrl = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SECRET_KEY?.trim() ||
+    process.env.SUPABASE_ANON_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!supabaseUrl || !key) {
+    return null;
+  }
+  return createClient(supabaseUrl, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+async function loadPersistedUserData(userId: string): Promise<PersistedUserData | null> {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('data')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return { tasks: [], projects: [], people: [] };
+    }
+    throw error;
+  }
+
+  return (data?.data ?? { tasks: [], projects: [], people: [] }) as PersistedUserData;
+}
+
+async function savePersistedUserData(userId: string, data: PersistedUserData): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return;
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from('user_data')
+    .upsert(
+      {
+        user_id: userId,
+        data,
+        updated_at: now,
+      },
+      { onConflict: 'user_id' },
+    );
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   const existing = projectsByUser.get(userId);
   if (existing) return existing;
+
+  const persisted = await loadPersistedUserData(userId).catch(() => null);
+  if (persisted) {
+    const persistedProjects = Array.isArray(persisted.projects) ? persisted.projects : [];
+    const normalizedPersisted = persistedProjects.map((project) => ensureProjectLevelTasks(project));
+    projectsByUser.set(userId, normalizedPersisted);
+    return normalizedPersisted;
+  }
 
   const seed: ProjectItem[] = [
     {
@@ -154,14 +229,15 @@ function getOrInitUserProjects(userId: string): ProjectItem[] {
 }
 
 export async function listProjects(userId: string): Promise<ProjectItem[]> {
-  return [...getOrInitUserProjects(userId)].map((project) => ensureProjectLevelTasks(project));
+  const projects = await getOrInitUserProjects(userId);
+  return [...projects].map((project) => ensureProjectLevelTasks(project));
 }
 
 export async function createProject(
   userId: string,
   input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order'>>,
 ): Promise<ProjectItem> {
-  const current = getOrInitUserProjects(userId);
+  const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
   const project: ProjectItem = {
     id: generateId(),
@@ -174,6 +250,8 @@ export async function createProject(
   const normalized = ensureProjectLevelTasks(project);
   current.push(normalized);
   projectsByUser.set(userId, current);
+  const persisted = (await loadPersistedUserData(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await savePersistedUserData(userId, { ...persisted, projects: current.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return normalized;
 }
 
@@ -182,7 +260,7 @@ export async function updateProject(
   id: string,
   patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>>,
 ): Promise<ProjectItem | null> {
-  const current = getOrInitUserProjects(userId);
+  const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {
     if (item.id !== id) return item;
     const updated = { ...item, ...patch };
@@ -190,12 +268,16 @@ export async function updateProject(
   });
   const updated = next.find((item) => item.id === id) ?? null;
   projectsByUser.set(userId, next);
+  const persisted = (await loadPersistedUserData(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await savePersistedUserData(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return updated;
 }
 
 export async function deleteProject(userId: string, id: string): Promise<boolean> {
-  const current = getOrInitUserProjects(userId);
+  const current = await getOrInitUserProjects(userId);
   const next = current.filter((item) => item.id !== id);
   projectsByUser.set(userId, next);
+  const persisted = (await loadPersistedUserData(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await savePersistedUserData(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return next.length !== current.length;
 }

@@ -9,16 +9,19 @@ export default async function FrameworkPage() {
     redirect('/login');
   }
 
-  const userName = getDisplayNameFromUserId(session.userId);
+  const nameSource = session.userName || session.userEmail || session.userId;
+  const userName = getDisplayNameFromUserId(nameSource);
   const userInitials = getInitials(userName);
 
   return (
     <Suspense fallback={<main className="main-layout" />}>
       <FrameworkHost
+        userId={session.userId}
         userName={userName}
-        userEmail={session.userId}
+        userEmail={session.userEmail ?? session.userId}
         userInitials={userInitials}
-        canSignOut={session.authMode === 'mock-cookie'}
+        userAvatarUrl={session.userAvatarUrl ?? ''}
+        canSignOut={session.authMode !== 'none'}
       />
     </Suspense>
   );

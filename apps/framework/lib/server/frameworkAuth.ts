@@ -5,8 +5,11 @@ import { getFrameworkServerEnv } from '../frameworkEnv.server';
 
 export interface FrameworkSession {
   userId: string;
+  userEmail?: string;
+  userName?: string;
+  userAvatarUrl?: string;
   isAuthenticated: boolean;
-  authMode: 'none' | 'mock-cookie';
+  authMode: 'none' | 'mock-cookie' | 'supabase-google';
 }
 
 export async function getFrameworkSession(): Promise<FrameworkSession> {
@@ -14,12 +17,41 @@ export async function getFrameworkSession(): Promise<FrameworkSession> {
   if (env.authMode === 'none') {
     return {
       userId: env.defaultUserId,
+      userEmail: env.defaultUserId,
       isAuthenticated: true,
       authMode: env.authMode,
     };
   }
 
   const cookieStore = await cookies();
+
+  if (env.authMode === 'supabase-google') {
+    const userId = cookieStore.get('framework_session_user_id')?.value?.trim() ?? '';
+    const userEmail = cookieStore.get('framework_session_user_email')?.value?.trim() ?? '';
+    const userName = cookieStore.get('framework_session_user_name')?.value?.trim() ?? '';
+    const userAvatarUrl = cookieStore.get('framework_session_user_avatar')?.value?.trim() ?? '';
+
+    if (!userId) {
+      return {
+        userId: '',
+        userEmail: '',
+        userName: '',
+        userAvatarUrl: '',
+        isAuthenticated: false,
+        authMode: env.authMode,
+      };
+    }
+
+    return {
+      userId,
+      userEmail,
+      userName,
+      userAvatarUrl,
+      isAuthenticated: true,
+      authMode: env.authMode,
+    };
+  }
+
   const rawSession = cookieStore.get('framework_session')?.value;
   if (!rawSession || !rawSession.trim()) {
     return {

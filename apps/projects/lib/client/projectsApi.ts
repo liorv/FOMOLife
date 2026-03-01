@@ -7,6 +7,10 @@ export interface ProjectsApiClient {
   deleteProject: (id: string) => Promise<void>;
 }
 
+type ProjectsApiClientOptions = {
+  uid?: string;
+};
+
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
@@ -21,16 +25,19 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function createProjectsApiClient(baseUrl = ''): ProjectsApiClient {
+export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClientOptions = {}): ProjectsApiClient {
+  const uid = options.uid?.trim() ?? '';
+  const endpoint = uid ? `${baseUrl}/api/projects?uid=${encodeURIComponent(uid)}` : `${baseUrl}/api/projects`;
+
   return {
     async listProjects(): Promise<ProjectItem[]> {
-      const response = await fetch(`${baseUrl}/api/projects`, { method: 'GET' });
+      const response = await fetch(endpoint, { method: 'GET' });
       const payload = await parseResponse<{ projects: ProjectItem[] }>(response);
       return payload.projects;
     },
 
     async createProject(input: { text: string; color?: string; progress?: number; order?: number }): Promise<ProjectItem> {
-      const response = await fetch(`${baseUrl}/api/projects`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
@@ -39,7 +46,7 @@ export function createProjectsApiClient(baseUrl = ''): ProjectsApiClient {
     },
 
     async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>>): Promise<ProjectItem> {
-      const response = await fetch(`${baseUrl}/api/projects`, {
+      const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id, patch }),
@@ -48,7 +55,7 @@ export function createProjectsApiClient(baseUrl = ''): ProjectsApiClient {
     },
 
     async deleteProject(id: string): Promise<void> {
-      const response = await fetch(`${baseUrl}/api/projects`, {
+      const response = await fetch(endpoint, {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id }),

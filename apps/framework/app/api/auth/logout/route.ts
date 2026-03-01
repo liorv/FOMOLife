@@ -13,5 +13,33 @@ export async function POST(request: Request) {
     path: '/',
     maxAge: 0,
   });
+  response.cookies.set('framework_session_user_id', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
+  response.cookies.set('framework_session_user_email', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
+  response.cookies.set('framework_session_user_name', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
+  response.cookies.set('framework_session_user_avatar', '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
   return response;
 }
