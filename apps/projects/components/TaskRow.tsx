@@ -182,17 +182,18 @@ export default function TaskRow({
               }}
             >
               {item.text}
+              {type === "tasks" && (
+                <span
+                  className="material-icons editable-indicator"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingTitle(true);
+                  }}
+                >
+                  edit
+                </span>
+              )}
             </span>
-            {type === "tasks" && (
-              <span
-                className="material-icons editable-indicator"
-                onClick={() => {
-                  setEditingTitle(true);
-                }}
-              >
-                edit
-              </span>
-            )}
           </div>
         )}
       </div>

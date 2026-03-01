@@ -1622,25 +1622,24 @@
   justify-content: center;
 }
 
-.task-title-container .editable-indicator {
-  position: static;
-  right: auto;
-  top: auto;
-  transform: none;
-  margin-left: 0;
+.task-title {
+  position: relative; /* container for indicator */
+  display: inline-block;
+}
+
+.task-title .editable-indicator {
+  position: absolute;
+  top: 50%;
+  right: -18px; /* small gap to the right of the text */
+  transform: translateY(-50%);
   width: 16px;
   height: 16px;
   opacity: 0;
-  flex-shrink: 0;
+  cursor: pointer;
 }
 
-.task-title-container:hover .editable-indicator,
-.subproject-name-container:hover .editable-indicator,
-.person-name-container:hover .editable-indicator,
-.task-row:hover .editable-indicator,
-.subproject-row:hover .editable-indicator,
-.person-chip:hover .editable-indicator,
-.task-person-row:hover .editable-indicator {
+.task-title:hover .editable-indicator,
+.task-title-container:hover .editable-indicator {
   opacity: 1;
 }
 
