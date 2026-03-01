@@ -321,11 +321,6 @@
   justify-content: center;
 }
 
-/* no rotation needed now that icon changes */
-.expand-icon.open {
-  /* maybe change color when open if desired */
-}
-
 /* Editing state — highlight task header */
 .item-list li.editing .task-header {
   background: #e0f2ff;
