@@ -136,10 +136,10 @@ export default function TaskRow({
           <span
             className={`material-icons expand-icon${isOpen ? " open" : ""}`}
             onClick={() => setEditorTaskId?.(id)}
-            title={isOpen ? " Collapse editor" : "Expand editor"}
+            title={isOpen ? "Collapse editor" : "Expand editor"}
             aria-hidden="true"
           >
-            {isOpen ? "expand_more" : "chevron_right"}
+            chevron_right
           </span>
         )}
 

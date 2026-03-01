@@ -311,11 +311,13 @@
   width: 24px;
   flex-shrink: 0;
   display: inline-flex;
+  align-items: center;
   justify-content: center;
 }
 
+/* rotate the right-pointing chevron to point down when open */
 .expand-icon.open {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 }
 
 /* Editing state — highlight task header */
