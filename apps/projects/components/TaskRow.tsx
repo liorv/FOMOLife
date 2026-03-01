@@ -76,8 +76,24 @@ export default function TaskRow({
   };
 
   const handleTitleClick = () => {
-    // clicking title should toggle the task editor only; editing is done via pencil icon
+    // title clicks are now handled by the row click; this exists for fallback but does same thing
     if (type === "tasks") {
+      setEditorTaskId?.(id);
+    }
+  };
+
+  const handleRowClick = (e: React.MouseEvent) => {
+    // ignore clicks on the edit icon, checkbox, buttons or expand icon itself
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('.editable-indicator') ||
+      target.classList.contains('expand-icon') ||
+      target.closest('input') ||
+      target.closest('button')
+    ) {
+      return;
+    }
+    if (type === 'tasks') {
       setEditorTaskId?.(id);
     }
   };
@@ -127,6 +143,7 @@ export default function TaskRow({
           onDragEnd?.(id, e);
         }
       }}
+      onClick={handleRowClick}
     >
       {/* Left group: expand, checkbox, title */}
       <div className="left-group">
