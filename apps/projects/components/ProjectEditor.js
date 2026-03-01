@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import PropTypes from "prop-types";
 import SubprojectEditor from "./SubprojectEditor";
 import TaskList from "./TaskList";
-import generateId from "../utils/generateId";
-import { applyFilters } from "../utils/taskFilters";
+import { generateId, applyFilters } from '@myorg/utils';
 
 export default function ProjectEditor({
   project,

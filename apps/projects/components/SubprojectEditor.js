@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import TaskList from "./TaskList";
 import SubprojectRow from "./SubprojectRow";
 import AddBar from "./AddBar";
-import { applyFilters } from "../utils/taskFilters";
+import { applyFilters } from '@myorg/utils';
 
 export default function SubprojectEditor({
   sub,

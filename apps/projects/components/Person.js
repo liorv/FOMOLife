@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import generateId from "../utils/generateId";
-import { createInviteLink } from "@myorg/utils";
+import { generateId, createInviteLink } from "@myorg/utils";
 
 /**
  * ContactCard — renders a single contact in the Contacts tab.
