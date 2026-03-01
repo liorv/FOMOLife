@@ -8,11 +8,11 @@ interface ProjectTileProps {
   size?: number | string;
   width?: number | string;
   height?: number | string;
-  onEdit?: (id: string) => void;
-  onTitleChange?: (id: string, title: string) => void;
-  onDelete?: (id: string) => void;
-  onChangeColor?: (id: string, color: string) => void;
-  onReorder?: (fromId: string, toId: string) => void;
+  onEdit?: ((id: string) => void) | undefined;
+  onTitleChange?: ((id: string, title: string) => void) | undefined;
+  onDelete?: ((id: string) => void) | undefined;
+  onChangeColor?: ((id: string, color: string) => void) | undefined;
+  onReorder?: ((fromId: string, toId: string) => void) | undefined;
   isDragging?: boolean;
 }
 

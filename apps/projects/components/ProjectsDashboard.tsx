@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, {
   useState,
   useMemo,
@@ -67,9 +66,28 @@ function SummaryCard({
 
 // ─── Main dashboard component ─────────────────────────────────────────────────
 
-// props are currently loosely typed for incremental migration
-// later we can replace this with a detailed interface
-type ProjectsDashboardProps = Record<string, any>;
+// fully typed props for ProjectsDashboard
+interface ProjectsDashboardProps {
+  projects?: ProjectItem[];
+  people?: any[];
+  selectedProjectId?: string | null;
+  onSelectProject?: (id: string | null) => void;
+  onApplyChange?: (projectId: string, updated: Partial<ProjectItem>) => void;
+  onAddSubproject?: (projectId: string, name: string) => void;
+  newlyAddedSubprojectId?: string | null;
+  onClearNewSubproject?: () => void;
+  onSubprojectDeleted?: (payload: { projectId: string; subproject: any; index: number }) => void;
+  onColorChange?: (projectId: string, color: string) => void;
+  onReorder?: (draggedId: string, targetId: string) => void;
+  onDeleteProject?: (id: string) => void;
+  onAddProject?: () => void;
+  onOpenPeople?: () => void;
+  onCreatePerson?: (name: string) => void;
+  onTitleChange?: (projectId: string, title: string) => void;
+  projectSearch?: string;
+  filters?: string[];
+  onToggleFilter?: (filter: string | null) => void;
+}
 
 export default function ProjectsDashboard({
   projects = [] as ProjectItem[],
@@ -133,7 +151,7 @@ export default function ProjectsDashboard({
   );
 
   const starredCount = useMemo(
-    () => scopedTasks.filter((t) => (t.starred || t.favorite) && !t.done).length,
+    () => scopedTasks.filter((t) => ((t as any).starred || t.favorite) && !t.done).length,
     [scopedTasks],
   );
 
@@ -270,7 +288,7 @@ export default function ProjectsDashboard({
             <ProjectEditor
               key={selectedProject.id}
               project={selectedProject}
-              onApplyChange={(updated) =>
+              onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
               onAddSubproject={onAddSubproject}
