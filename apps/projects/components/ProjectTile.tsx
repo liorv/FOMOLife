@@ -1,9 +1,23 @@
-import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
-import PropTypes from "prop-types";
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, MouseEvent } from "react";
 import ReactDOM from "react-dom";
 
+import type { ProjectItem } from '@myorg/types';
+
+interface ProjectTileProps {
+  project: ProjectItem;
+  size?: number | string;
+  width?: number | string;
+  height?: number | string;
+  onEdit?: (id: string) => void;
+  onTitleChange?: (id: string, title: string) => void;
+  onDelete?: (id: string) => void;
+  onChangeColor?: (id: string, color: string) => void;
+  onReorder?: (fromId: string, toId: string) => void;
+  isDragging?: boolean;
+}
+
 // a simple hash function to convert a string into an index for a color list
-function hashString(str) {
+function hashString(str: string) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     /* eslint-disable no-bitwise */
@@ -48,7 +62,7 @@ export default function ProjectTile({
   onChangeColor = () => {},
   onReorder = () => {},
   isDragging = false,
-}) {
+}: ProjectTileProps) {
   const progress = useMemo(() => {
     // Derive progress solely from tasks; ignore any stored project.progress value.
     const allTasks = (project.subprojects || []).flatMap((s) => s.tasks || []);
@@ -62,11 +76,11 @@ export default function ProjectTile({
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
   const [editingName, setEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(project.text || project.name || "");
-  const menuRef = useRef(null);
-  const dragRef = useRef(null);
-  const dropdownRef = useRef(null);
-  const colorPickerRef = useRef(null);
+  const [draftName, setDraftName] = useState(project.text || "");
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const colorPickerRef = useRef<HTMLDivElement | null>(null);
 
   const color = useMemo(() => {
     if (project.color) return project.color;
@@ -75,16 +89,16 @@ export default function ProjectTile({
   }, [project.id, project.text, project.color]);
 
   useEffect(() => {
-    setDraftName(project.text || project.name || "");
-  }, [project.text, project.name]);
+    setDraftName(project.text || "");
+  }, [project.text]);
 
   // Close menu when clicking outside (including portal dropdown)
   useEffect(() => {
-    function handleClickOutside(event) {
+    function handleClickOutside(event: MouseEvent | globalThis.MouseEvent) {
       const clickedInsideMenu =
-        (menuRef.current && menuRef.current.contains(event.target)) ||
-        (dropdownRef.current && dropdownRef.current.contains(event.target)) ||
-        (colorPickerRef.current && colorPickerRef.current.contains(event.target));
+        (menuRef.current && menuRef.current.contains(event.target as Node)) ||
+        (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) ||
+        (colorPickerRef.current && colorPickerRef.current.contains(event.target as Node));
       if (!clickedInsideMenu) {
         setMenuOpen(false);
         setShowColorPicker(false);
@@ -146,16 +160,17 @@ export default function ProjectTile({
 
   // Listen for global menu close events to prevent multiple menus from being open
   useEffect(() => {
-    function handleCloseAllMenus(event) {
-      // Only close this menu if it's different from the one opening
-      if (event.detail && event.detail.projectId !== project.id) {
+    function handleCloseAllMenus(event: Event) {
+      // custom event with detail.projectId
+      const detail = (event as CustomEvent<{projectId: string}>).detail;
+      if (detail && detail.projectId !== project.id) {
         setMenuOpen(false);
         setShowColorPicker(false);
       }
     }
 
-    document.addEventListener("closeAllMenus", handleCloseAllMenus);
-    return () => document.removeEventListener("closeAllMenus", handleCloseAllMenus);
+    document.addEventListener("closeAllMenus", handleCloseAllMenus as EventListener);
+    return () => document.removeEventListener("closeAllMenus", handleCloseAllMenus as EventListener);
   }, [project.id]);
 
   // compute final width/height with CSS variable overrides
@@ -173,10 +188,10 @@ export default function ProjectTile({
     const trimmed = (draftName || "").trim();
     setEditingName(false);
     if (!trimmed) {
-      setDraftName(project.text || project.name || "");
+      setDraftName(project.text || "");
       return;
     }
-    const currentName = (project.text || project.name || "").trim();
+    const currentName = (project.text || "").trim();
     if (trimmed !== currentName) {
       onTitleChange(project.id, trimmed);
     }
@@ -187,30 +202,30 @@ export default function ProjectTile({
     setMenuOpen(false);
   };
 
-  const handleColorChange = (newColor) => {
+  const handleColorChange = (newColor: string) => {
     onChangeColor(project.id, newColor);
     setShowColorPicker(false);
     setMenuOpen(false);
   };
 
-  const handleDragStart = (e) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("application/json", JSON.stringify({
       projectId: project.id,
     }));
   };
 
-  const handleDragEnd = (e) => {
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     // Cleanup
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const data = e.dataTransfer.getData("application/json");
     if (data) {
@@ -234,7 +249,7 @@ export default function ProjectTile({
         "--project-color": color,
         opacity: isDragging ? 0.5 : 1,
         zIndex: menuOpen || showColorPicker ? 999 : undefined,
-      }}
+      } as any}
       data-testid="project-tile"
       ref={dragRef}
       draggable
@@ -271,7 +286,7 @@ export default function ProjectTile({
                       finishInlineRename();
                     }
                     if (e.key === "Escape") {
-                      setDraftName(project.text || project.name || "");
+                      setDraftName(project.text || "");
                       setEditingName(false);
                     }
                   }}
@@ -280,7 +295,7 @@ export default function ProjectTile({
                 />
               ) : (
                 <>
-                  <div className="project-name">{project.text || project.name}</div>
+                  <div className="project-name">{project.text}</div>
                   <button
                     className="project-name-edit-btn"
                     title="Rename project"
@@ -475,18 +490,3 @@ export default function ProjectTile({
   );
 }
 
-ProjectTile.propTypes = {
-  project: PropTypes.shape({
-    id: PropTypes.string,
-    text: PropTypes.string,
-    name: PropTypes.string,
-    color: PropTypes.string,
-    progress: PropTypes.number,
-  }).isRequired,
-  size: PropTypes.oneOfType([PropTypes.number, PropTypes.string]), // legacy; width/height preferred
-  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  onEdit: PropTypes.func,
-  onTitleChange: PropTypes.func,
-  onDelete: PropTypes.func,
-};

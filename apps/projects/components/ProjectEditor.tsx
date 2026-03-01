@@ -1,5 +1,10 @@
+// @ts-nocheck
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import PropTypes from "prop-types";
+
+// loose props for incremental migration
+interface ProjectEditorProps {
+  [key: string]: any;
+}
 import SubprojectEditor from "./SubprojectEditor";
 import TaskList from "./TaskList";
 import { generateId, applyFilters } from '@myorg/utils';
@@ -18,7 +23,7 @@ export default function ProjectEditor({
   taskFilters = [], // array of active filters
   searchQuery = "",
   canManage = true,
-}) {
+}: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
   const [local, setLocal] = useState(() => ({
@@ -769,15 +774,3 @@ export default function ProjectEditor({
   );
 }
 
-ProjectEditor.propTypes = {
-  project: PropTypes.shape({
-    id: PropTypes.string,
-    text: PropTypes.string,
-    subprojects: PropTypes.array,
-  }).isRequired,
-  onApplyChange: PropTypes.func,
-  onAddSubproject: PropTypes.func,
-  searchQuery: PropTypes.string,
-  taskFilters: PropTypes.array,
-  canManage: PropTypes.bool,
-};

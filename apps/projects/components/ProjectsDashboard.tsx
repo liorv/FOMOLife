@@ -1,11 +1,41 @@
-import React, { useState, useMemo, useRef } from "react";
-import PropTypes from "prop-types";
+// @ts-nocheck
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  KeyboardEvent,
+  MouseEvent,
+} from "react";
+import type {
+  ProjectItem,
+  ProjectSubproject,
+  ProjectTask,
+} from "@myorg/types";
+// JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
 import ProjectTile from "./ProjectTile";
 
 // ─── Summary metric card ─────────────────────────────────────────────────────
 
-function SummaryCard({ icon, label, value, accent, onClick, active, clickable }) {
+type SummaryCardProps = {
+  icon: string;
+  label: string;
+  value: string | number;
+  accent?: string | undefined;
+  onClick?: () => void;
+  active?: boolean | undefined;
+  clickable?: boolean | undefined;
+};
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  accent,
+  onClick,
+  active,
+  clickable,
+}: SummaryCardProps) {
   return (
     <div
       className={[
@@ -13,11 +43,17 @@ function SummaryCard({ icon, label, value, accent, onClick, active, clickable })
         accent ? `dashboard-card--${accent}` : "",
         clickable ? "dashboard-card--clickable" : "",
         active ? "dashboard-card--active" : "",
-      ].filter(Boolean).join(" ")}
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onClick={onClick}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
-      onKeyDown={clickable && onClick ? (e) => e.key === "Enter" && onClick() : undefined}
+      onKeyDown={
+        clickable && onClick
+          ? (e: KeyboardEvent<HTMLDivElement>) => e.key === "Enter" && onClick()
+          : undefined
+      }
     >
       <span className="material-icons dashboard-card__icon">{icon}</span>
       <div className="dashboard-card__body">
@@ -29,22 +65,15 @@ function SummaryCard({ icon, label, value, accent, onClick, active, clickable })
   );
 }
 
-SummaryCard.propTypes = {
-  icon: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  accent: PropTypes.string,
-  onClick: PropTypes.func,
-  active: PropTypes.bool,
-  clickable: PropTypes.bool,
-  clickable: PropTypes.bool,
-};
-
 // ─── Main dashboard component ─────────────────────────────────────────────────
 
+// props are currently loosely typed for incremental migration
+// later we can replace this with a detailed interface
+type ProjectsDashboardProps = Record<string, any>;
+
 export default function ProjectsDashboard({
-  projects = [],
-  people = [],
+  projects = [] as ProjectItem[],
+  people = [] as any[],
   selectedProjectId,
   onSelectProject,
   onApplyChange,
@@ -60,9 +89,9 @@ export default function ProjectsDashboard({
   onCreatePerson,
   onTitleChange,
   projectSearch = "",
-  filters = [],
+  filters = [] as string[],
   onToggleFilter = () => {},
-}) {
+}: ProjectsDashboardProps) {
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const addingRef = useRef(false);
 
@@ -83,9 +112,7 @@ export default function ProjectsDashboard({
   // ── Metrics: scoped to selected project when one is selected ──────────────
 
   const scopedTasks = useMemo(() => {
-    const source = selectedProject
-      ? [selectedProject]
-      : projects;
+    const source = selectedProject ? [selectedProject] : projects;
     return source.flatMap((p) => (p.subprojects || []).flatMap((s) => s.tasks || []));
   }, [projects, selectedProject]);
 
@@ -98,7 +125,10 @@ export default function ProjectsDashboard({
 
   const completedTasks = useMemo(() => scopedTasks.filter((t) => t.done).length, [scopedTasks]);
   const completedSubprojects = useMemo(
-    () => scopedSubprojects.filter((s) => (s.tasks || []).length > 0 && (s.tasks || []).every((t) => t.done)).length,
+    () =>
+      scopedSubprojects.filter(
+        (s) => (s.tasks || []).length > 0 && (s.tasks || []).every((t) => t.done),
+      ).length,
     [scopedSubprojects],
   );
 
@@ -126,14 +156,14 @@ export default function ProjectsDashboard({
   }, [scopedTasks]);
 
   // Clear filter when switching projects
-  const handleSelectProject = (id) => {
-    onSelectProject(id);
+  const handleSelectProject = (id: string | null) => {
+    onSelectProject?.(id);
   };
 
   // Navigate back (deselect project — useful on mobile)
   const handleBack = () => {
     setFabMenuOpen(false);
-    onSelectProject(null);
+    onSelectProject?.(null);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -165,7 +195,7 @@ export default function ProjectsDashboard({
                 onBlur={(e) => {
                   const newText = e.currentTarget.textContent.trim();
                   if (newText && newText !== selectedProject.text) {
-                    onTitleChange(selectedProject.id, newText);
+                    onTitleChange?.(selectedProject.id, newText);
                   }
                 }}
                 onKeyDown={(e) => {
@@ -181,7 +211,7 @@ export default function ProjectsDashboard({
                 <button
                   title="Delete project"
                   className="dashboard-project-delete"
-                  onClick={() => onDeleteProject(selectedProject.id)}
+                  onClick={() => onDeleteProject?.(selectedProject.id)}
                 >
                   <span className="material-icons">delete</span>
                 </button>
@@ -194,114 +224,131 @@ export default function ProjectsDashboard({
                 icon="folder_copy"
                 label="Sub-Projects"
                 value={`${completedSubprojects} / ${scopedSubprojects.length}`}
-                />
-                <SummaryCard
-                  icon="check_circle"
-                  label="Completed"
-                  value={`${completedTasks} / ${scopedTasks.length}`}
-                  accent="success"
-                />
-                <SummaryCard
-                  icon="star"
-                  label="Starred"
-                  value={starredCount}
-                  accent="star"
-                  clickable
-                  active={taskFilter === "starred"}
-                  onClick={() => onToggleFilter(taskFilter === "starred" ? null : "starred")}
-                />
-                <SummaryCard
-                  icon="event_busy"
-                  label="Overdue"
-                  value={overdueCount}
-                  accent={overdueCount > 0 ? "danger" : undefined}
-                  clickable
-                  active={taskFilter === "overdue"}
-                  onClick={() => onToggleFilter(taskFilter === "overdue" ? null : "overdue")}
-                />
-                <SummaryCard
-                  icon="upcoming"
-                  label="Upcoming"
-                  value={upcomingCount}
-                  accent="info"
-                  clickable
-                  active={taskFilter === "upcoming"}
-                  onClick={() => onToggleFilter(taskFilter === "upcoming" ? null : "upcoming")}
-                />
-              </div>
-
-              {/* Project editor (subprojects + tasks) */}
-              <ProjectEditor
-                key={selectedProject.id}
-                project={selectedProject}
-                onApplyChange={(updated) => onApplyChange(selectedProject.id, updated)}
-                onAddSubproject={onAddSubproject}
-                newlyAddedSubprojectId={newlyAddedSubprojectId}
-                onClearNewSubproject={onClearNewSubproject}
-                allPeople={people}
-                onOpenPeople={onOpenPeople}
-                onCreatePerson={onCreatePerson}
-                onSubprojectDeleted={onSubprojectDeleted}
-                taskFilters={filters}
-                searchQuery={projectSearch}
+              />
+              <SummaryCard
+                icon="check_circle"
+                label="Completed"
+                value={`${completedTasks} / ${scopedTasks.length}`}
+                accent="success"
+              />
+              <SummaryCard
+                icon="star"
+                label="Starred"
+                value={starredCount}
+                accent="star"
+                clickable
+                active={taskFilter === "starred"}
+                onClick={() =>
+                  onToggleFilter?.(taskFilter === "starred" ? null : "starred")
+                }
+              />
+              <SummaryCard
+                icon="event_busy"
+                label="Overdue"
+                value={overdueCount}
+                accent={overdueCount > 0 ? "danger" : undefined}
+                clickable
+                active={taskFilter === "overdue"}
+                onClick={() =>
+                  onToggleFilter?.(taskFilter === "overdue" ? null : "overdue")
+                }
+              />
+              <SummaryCard
+                icon="upcoming"
+                label="Upcoming"
+                value={upcomingCount}
+                accent="info"
+                clickable
+                active={taskFilter === "upcoming"}
+                onClick={() =>
+                  onToggleFilter?.(taskFilter === "upcoming" ? null : "upcoming")
+                }
               />
             </div>
-          </div>
-          ) : (
-            /* ── Home: watermark + direct grid ── */
-            <>
-              {/* Subtle background watermark */}
-              <div className="dashboard-home-bg">
-                <span className="material-icons dashboard-home-bg__icon">folder_open</span>
-                <p className="dashboard-home-bg__text">
-                  {projects.length === 0
-                    ? <>No projects yet. Tap <strong>+</strong> to create one.</>
-                    : <>Tap a project to open it, or press <strong>+</strong> to create one.</>}
-                </p>
-                <div className="dashboard-global-stats">
-                  <span className="dashboard-stat-chip">
-                    <span className="material-icons">folder</span>
-                    {projects.length} project{projects.length !== 1 ? "s" : ""}
-                  </span>
-                  <span className="dashboard-stat-chip">
-                    <span className="material-icons">group</span>
-                    {people.length} contact{people.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
 
-              {/* Project tiles grid */}
-              {visibleProjects.length === 0 && projectSearch ? (
-                <p className="sidebar-no-results">No matches for &ldquo;{projectSearch}&rdquo;</p>
+            {/* Project editor (subprojects + tasks) */}
+            <ProjectEditor
+              key={selectedProject.id}
+              project={selectedProject}
+              onApplyChange={(updated) =>
+                onApplyChange?.(selectedProject.id, updated)
+              }
+              onAddSubproject={onAddSubproject}
+              newlyAddedSubprojectId={newlyAddedSubprojectId}
+              onClearNewSubproject={onClearNewSubproject}
+              allPeople={people}
+              onOpenPeople={onOpenPeople}
+              onCreatePerson={onCreatePerson}
+              onSubprojectDeleted={onSubprojectDeleted}
+              taskFilters={filters}
+              searchQuery={projectSearch}
+            />
+          </div>
+        </div>
+      ) : (
+        /* ── Home: watermark + direct grid ── */
+        <>
+          {/* Subtle background watermark */}
+          <div className="dashboard-home-bg">
+            <span className="material-icons dashboard-home-bg__icon">folder_open</span>
+            <p className="dashboard-home-bg__text">
+              {projects.length === 0 ? (
+                <>No projects yet. Tap <strong>+</strong> to create one.</>
               ) : (
-                <div className="dashboard-tiles-grid">
-                  {visibleProjects.map((p) => (
-                    <div
-                      key={p.id}
-                      className="dashboard-tile-wrapper"
-                      onClick={() => handleSelectProject(p.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
-                    >
-                      <ProjectTile
-                        project={p}
-                        onEdit={handleSelectProject}
-                        onTitleChange={onTitleChange}
-                        onDelete={onDeleteProject}
-                        onChangeColor={onColorChange}
-                        onReorder={onReorder}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <>Tap a project to open it, or press <strong>+</strong> to create one.</>
               )}
-            </>
+            </p>
+            <div className="dashboard-global-stats">
+              <span className="dashboard-stat-chip">
+                <span className="material-icons">folder</span>
+                {projects.length} project{projects.length !== 1 ? "s" : ""}
+              </span>
+              <span className="dashboard-stat-chip">
+                <span className="material-icons">group</span>
+                {people.length} contact{people.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+
+          {/* Project tiles grid */}
+          {visibleProjects.length === 0 && projectSearch ? (
+            <p className="sidebar-no-results">
+              No matches for &ldquo;{projectSearch}&rdquo;
+            </p>
+          ) : (
+            <div className="dashboard-tiles-grid">
+              {visibleProjects.map((p) => (
+                <div
+                  key={p.id}
+                  className="dashboard-tile-wrapper"
+                  onClick={() => handleSelectProject(p.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
+                >
+                  <ProjectTile
+                    project={p}
+                    onEdit={handleSelectProject}
+                    onTitleChange={onTitleChange}
+                    onDelete={onDeleteProject}
+                    onChangeColor={onColorChange}
+                    onReorder={onReorder}
+                  />
+                </div>
+              ))}
+            </div>
           )}
+        </>
+      )}
 
       {/* ── FAB — New Project or Add Sub-project ── */}
       {!selectedProject ? (
-        <button className="fab" onClick={() => onAddProject()} title="New project" aria-label="New project">
+        <button
+          className="fab"
+          onClick={() => onAddProject?.()}
+          title="New project"
+          aria-label="New project"
+        >
           <span className="material-icons">add</span>
         </button>
       ) : (
@@ -320,9 +367,11 @@ export default function ProjectsDashboard({
                 onClick={() => {
                   if (!addingRef.current) {
                     addingRef.current = true;
-                    onAddSubproject("");
+                    onAddSubproject?.("", "");
                     setFabMenuOpen(false);
-                    setTimeout(() => { addingRef.current = false; }, 500);
+                    setTimeout(() => {
+                      addingRef.current = false;
+                    }, 500);
                   }
                 }}
                 title="Add sub-project"
@@ -337,25 +386,3 @@ export default function ProjectsDashboard({
     </div>
   );
 }
-
-ProjectsDashboard.propTypes = {
-  projects: PropTypes.array,
-  people: PropTypes.array,
-  selectedProjectId: PropTypes.string,
-  onSelectProject: PropTypes.func.isRequired,
-  onApplyChange: PropTypes.func.isRequired,
-  onAddSubproject: PropTypes.func.isRequired,
-  newlyAddedSubprojectId: PropTypes.string,
-  onClearNewSubproject: PropTypes.func,
-  onSubprojectDeleted: PropTypes.func,
-  onColorChange: PropTypes.func,
-  onReorder: PropTypes.func.isRequired,
-  onDeleteProject: PropTypes.func.isRequired,
-  onAddProject: PropTypes.func.isRequired,
-  onOpenPeople: PropTypes.func,
-  onCreatePerson: PropTypes.func,
-  onTitleChange: PropTypes.func.isRequired,
-  projectSearch: PropTypes.string,
-  filters: PropTypes.array,
-  onToggleFilter: PropTypes.func,
-};

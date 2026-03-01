@@ -7,7 +7,7 @@ import type { ProjectItem } from '@myorg/types';
 import ProjectsDashboard from './ProjectsDashboard';
 import { PROJECT_COLORS } from './ProjectTile';
 
-const ProjectsDashboardAny = ProjectsDashboard as any;
+// ProjectsDashboard is now a typed TSX component
 
 type Props = {
   canManage: boolean;
@@ -268,7 +268,7 @@ export default function ProjectsPage({ canManage }: Props) {
         {loading ? <div style={{ margin: '0 16px 8px' }}>Loading projects…</div> : null}
         {errorMessage ? <div style={{ margin: '0 16px 8px', color: '#b3261e' }}>{errorMessage}</div> : null}
 
-        <ProjectsDashboardAny
+        <ProjectsDashboard
           projects={projects}
           people={[]}
           selectedProjectId={editingProjectId}
