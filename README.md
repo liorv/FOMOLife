@@ -23,12 +23,12 @@ Boundary rule:
 ## Production URLs
 
 Canonical app URLs:
+- Framework host: https://fomo-life.vercel.app
 - Contacts: https://fomo-life-contacts.vercel.app
 - Projects: https://fomo-life-projects.vercel.app
 - Tasks: https://fomo-life-tasks.vercel.app
-- Legacy root shell: https://fomo-life.vercel.app
 
-Legacy compatibility redirects (root shell still handled by framework app):
+Legacy compatibility redirects (handled by framework host shell):
 - `https://fomo-life.vercel.app/?tab=people` → contacts app
 - `https://fomo-life.vercel.app/?tab=projects` → projects app
 - `https://fomo-life.vercel.app/?tab=tasks` → tasks app
@@ -64,10 +64,10 @@ Recommended release flow:
 1. Merge approved changes to `main`.
 2. Run local/CI validation gates.
 3. Trigger production deploy per project:
+  - `Push-Location apps/framework; vercel link --project fomo-life --yes; vercel --prod --yes; Pop-Location`
    - `vercel link --project fomo-life-contacts --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-projects --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-tasks --yes && vercel --prod --yes`
-   - `vercel link --project fomo-life --yes && vercel --prod --yes`
 4. Verify aliases are live and healthy.
 
 Notes:
@@ -76,13 +76,13 @@ Notes:
 
 ## Environment variable management
 
-Cross-app URL vars (set for each extracted app and root shell as needed):
-- `NEXT_PUBLIC_FRAMEWORK_APP_URL`
+Cross-app URL vars (set where relevant):
 - `NEXT_PUBLIC_CONTACTS_APP_URL`
 - `NEXT_PUBLIC_PROJECTS_APP_URL`
 - `NEXT_PUBLIC_TASKS_APP_URL`
 
 Per-app auth/runtime vars:
+- Framework: `FRAMEWORK_AUTH_MODE`, `FRAMEWORK_DEFAULT_USER_ID`
 - Contacts: `CONTACTS_AUTH_MODE`, `CONTACTS_DEFAULT_USER_ID`
 - Projects: `PROJECTS_AUTH_MODE`, `PROJECTS_DEFAULT_USER_ID`
 - Tasks: `TASKS_AUTH_MODE`, `TASKS_DEFAULT_USER_ID`

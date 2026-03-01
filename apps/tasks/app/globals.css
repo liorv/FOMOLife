@@ -1,4 +1,7 @@
 @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+@import '../../projects/styles/layout.css';
+@import '../../projects/styles/tabs.css';
+@import '../../projects/styles/projects.css';
 
 :root {
   color-scheme: light;
@@ -18,4 +21,68 @@ body {
 body {
   min-height: 100vh;
   background: #fff;
+}
+
+.tasks-filter-view {
+  padding: 0;
+}
+
+.tasks-filter-view .subproject-tasks {
+  padding: 0;
+}
+
+.tasks-filter-view .item-list {
+  gap: 0;
+}
+
+.tasks-filter-view .item-list li {
+  background: #fff;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+  padding: 0;
+  border-bottom: 1px solid var(--color-border-row);
+}
+
+.tasks-filter-view .task-row {
+  gap: 4px;
+  padding-left: 8px;
+  padding-right: 60px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.tasks-filter-view .task-header {
+  height: 32px;
+  gap: 6px;
+}
+
+.tasks-filter-view .task-checkbox {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 4px;
+}
+
+.tasks-filter-view .task-row button {
+  padding: 2px;
+}
+
+.tasks-filter-view .task-row .task-title {
+  font-size: 0.95rem;
+}
+
+.tasks-filter-view .task-row .material-icons.expand-icon {
+  font-size: 1.1rem;
+}
+
+.tasks-bottom-add {
+  margin: 0;
+  border-radius: 0;
+}
+
+.tasks-bottom-add .add-bar {
+  margin: 0;
+  padding: 0;
+  position: static;
+  top: auto;
 }

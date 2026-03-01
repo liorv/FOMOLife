@@ -1,0 +1,82 @@
+.tabnav-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.06);
+}
+/*
+ * Imported from projects/styles/layout.css for framework visual parity (minimal set).
+ */
+:root {
+  --color-primary: #1a73e8;
+  --color-surface: #ffffff;
+  --color-bg: #f1f3f4;
+  --color-text: #202124;
+  --color-text-muted: #5f6368;
+  --color-border: rgba(60, 64, 67, 0.12);
+  --nav-height: 60px;
+}
+
+body {
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: var(--nav-height);
+  box-sizing: border-box;
+}
+
+.title-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.left-column {
+  min-width: 140px;
+  justify-content: flex-start;
+  padding-left: 0;
+}
+
+.mid-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mid-row {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-logo {
+  max-height: 120px;
+  width: auto;
+}
+
+.bar-title-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+}

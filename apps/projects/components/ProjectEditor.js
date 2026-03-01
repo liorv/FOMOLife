@@ -119,6 +119,7 @@ export default function ProjectEditor({
   const deleteSubproject = (id) => {
     // Prevent deletion of project-level tasks subproject
     const subproject = (local.subprojects || []).find((s) => s.id === id);
+    const deletedIndex = (local.subprojects || []).findIndex((s) => s.id === id);
     if (subproject && subproject.isProjectLevel) {
       return;
     }
@@ -130,7 +131,11 @@ export default function ProjectEditor({
     onApplyChange(updated);
     // Trigger callback for undo snack bar
     if (subproject) {
-      onSubprojectDeleted(subproject);
+      onSubprojectDeleted({
+        projectId: local.id || project.id,
+        subproject,
+        index: deletedIndex,
+      });
     }
   };
 

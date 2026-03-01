@@ -7,6 +7,9 @@ tmp_bundle.js
 coverage/
 .vscode/
 .next/
+.turbo/
+**/.turbo/
+**/*.tsbuildinfo
 
 data/
 .vercel

@@ -1,12 +1,25 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import FrameworkHost from '@/components/FrameworkHost';
+import { getDisplayNameFromUserId, getFrameworkSession, getInitials } from '@/lib/server/frameworkAuth';
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME ?? 'FOMO Life';
+export default async function FrameworkPage() {
+  const session = await getFrameworkSession();
+  if (!session.isAuthenticated) {
+    redirect('/login');
+  }
 
-export default function FrameworkPage() {
+  const userName = getDisplayNameFromUserId(session.userId);
+  const userInitials = getInitials(userName);
+
   return (
     <Suspense fallback={<main className="main-layout" />}>
-      <FrameworkHost appName={appName} />
+      <FrameworkHost
+        userName={userName}
+        userEmail={session.userId}
+        userInitials={userInitials}
+        canSignOut={session.authMode === 'mock-cookie'}
+      />
     </Suspense>
   );
 }

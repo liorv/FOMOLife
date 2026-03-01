@@ -17,11 +17,34 @@ export const TAB_QUERY_ALIAS: Record<string, FrameworkTab> = {
 
 export const TAB_ORDER: FrameworkTab[] = ['tasks', 'projects', 'people'];
 
+function resolveTabHref(explicitHref: string | undefined, devFallbackHref: string): string | undefined {
+  if (explicitHref && explicitHref.trim()) {
+    return explicitHref;
+  }
+
+  return process.env.NODE_ENV === 'production' ? undefined : devFallbackHref;
+}
+
 export function getFrameworkTabLinks(): FrameworkTabLink[] {
   return [
-    { key: 'tasks', label: 'Tasks', icon: 'check_circle', href: process.env.NEXT_PUBLIC_TASKS_APP_URL },
-    { key: 'projects', label: 'Projects', icon: 'folder', href: process.env.NEXT_PUBLIC_PROJECTS_APP_URL },
-    { key: 'people', label: 'Contacts', icon: 'contacts', href: process.env.NEXT_PUBLIC_CONTACTS_APP_URL },
+    {
+      key: 'tasks',
+      label: 'Tasks',
+      icon: 'check_circle',
+      href: resolveTabHref(process.env.NEXT_PUBLIC_TASKS_APP_URL, 'http://localhost:3004'),
+    },
+    {
+      key: 'projects',
+      label: 'Projects',
+      icon: 'folder',
+      href: resolveTabHref(process.env.NEXT_PUBLIC_PROJECTS_APP_URL, 'http://localhost:3003'),
+    },
+    {
+      key: 'people',
+      label: 'Contacts',
+      icon: 'contacts',
+      href: resolveTabHref(process.env.NEXT_PUBLIC_CONTACTS_APP_URL, 'http://localhost:3002'),
+    },
   ];
 }
 

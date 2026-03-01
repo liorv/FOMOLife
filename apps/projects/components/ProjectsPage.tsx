@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createProjectsApiClient } from '@/lib/client/projectsApi';
-import { getProjectsClientEnv } from '@/lib/projectsEnv.client';
 import type { ProjectItem } from '@/lib/server/projectsStore';
 import ProjectsDashboard from './ProjectsDashboard';
 import { PROJECT_COLORS } from './ProjectTile';
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export default function ProjectsPage({ canManage }: Props) {
-  const clientEnv = useMemo(() => getProjectsClientEnv(), []);
+  const searchParams = useSearchParams();
   const apiClient = useMemo(() => createProjectsApiClient(''), []);
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -24,7 +24,11 @@ export default function ProjectsPage({ canManage }: Props) {
   const [projectSearch, setProjectSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void } | null>(null);
   const pendingBlankSubRef = useRef(false);
+  const pendingProjectDeleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingProjectDeleteIdRef = useRef<string | null>(null);
+  const isEmbedded = searchParams.get('embedded') === '1';
 
   useEffect(() => {
     let active = true;
@@ -45,6 +49,25 @@ export default function ProjectsPage({ canManage }: Props) {
       active = false;
     };
   }, [apiClient]);
+
+  useEffect(() => {
+    if (!isEmbedded) return;
+    setProjectSearch(searchParams.get('q') ?? '');
+  }, [isEmbedded, searchParams]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingProjectDeleteTimeoutRef.current) {
+        clearTimeout(pendingProjectDeleteTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const closeUndoSnackbar = () => setUndoSnackbar(null);
+
+  const showUndoSnackbar = (message: string, onUndo: () => void) => {
+    setUndoSnackbar({ message, onUndo });
+  };
 
   const handleAddProject = async (text = 'New Project') => {
     if (!canManage) return;
@@ -133,14 +156,80 @@ export default function ProjectsPage({ canManage }: Props) {
 
   const handleDeleteProject = async (projectId: string) => {
     if (!canManage) return;
-    const okay = window.confirm('Are you sure you want to delete this project?');
-    if (!okay) return;
 
-    await apiClient.deleteProject(projectId);
+    const currentProjects = [...projects];
+    const deletedIndex = currentProjects.findIndex((item) => item.id === projectId);
+    if (deletedIndex === -1) return;
+    const deletedProject = currentProjects[deletedIndex];
+    if (!deletedProject) return;
+
+    if (pendingProjectDeleteTimeoutRef.current) {
+      clearTimeout(pendingProjectDeleteTimeoutRef.current);
+      pendingProjectDeleteTimeoutRef.current = null;
+      pendingProjectDeleteIdRef.current = null;
+    }
+
+    const deletedWasEditing = editingProjectId === projectId;
     setProjects((prev) => prev.filter((item) => item.id !== projectId));
-    if (editingProjectId === projectId) {
+    if (deletedWasEditing) {
       setEditingProjectId(null);
     }
+
+    pendingProjectDeleteIdRef.current = projectId;
+    pendingProjectDeleteTimeoutRef.current = setTimeout(() => {
+      void apiClient.deleteProject(projectId);
+      if (pendingProjectDeleteIdRef.current === projectId) {
+        pendingProjectDeleteIdRef.current = null;
+      }
+      setUndoSnackbar((current) =>
+        current?.message === 'Project deleted'
+          ? null
+          : current,
+      );
+    }, 5000);
+
+    showUndoSnackbar('Project deleted', () => {
+      if (pendingProjectDeleteIdRef.current !== projectId) return;
+      if (pendingProjectDeleteTimeoutRef.current) {
+        clearTimeout(pendingProjectDeleteTimeoutRef.current);
+        pendingProjectDeleteTimeoutRef.current = null;
+      }
+      pendingProjectDeleteIdRef.current = null;
+      setProjects((prev) => {
+        const restored = [...prev];
+        const targetIndex = Math.min(Math.max(deletedIndex, 0), restored.length);
+        restored.splice(targetIndex, 0, deletedProject);
+        return restored;
+      });
+      if (deletedWasEditing) {
+        setEditingProjectId(projectId);
+      }
+      closeUndoSnackbar();
+    });
+  };
+
+  const handleSubprojectDeleted = async (payload: {
+    projectId: string;
+    subproject: any;
+    index: number;
+  }) => {
+    if (!canManage) return;
+    const { projectId, subproject, index } = payload;
+    showUndoSnackbar('Sub-project deleted', () => {
+      setProjects((prev) => {
+        const project = prev.find((item) => item.id === projectId);
+        if (!project) return prev;
+        const existingSubprojects = [...(project.subprojects || [])];
+        const nextSubprojects = [...existingSubprojects];
+        const targetIndex = Math.min(Math.max(index, 0), nextSubprojects.length);
+        nextSubprojects.splice(targetIndex, 0, subproject);
+
+        const updatedProject = { ...project, subprojects: nextSubprojects };
+        void apiClient.updateProject(projectId, { subprojects: nextSubprojects });
+        return prev.map((item) => (item.id === projectId ? updatedProject : item));
+      });
+      closeUndoSnackbar();
+    });
   };
 
   const handleToggleFilter = (filterType: string | null) => {
@@ -156,19 +245,16 @@ export default function ProjectsPage({ canManage }: Props) {
   return (
     <main className="main-layout">
       <div className="container" style={{ overflow: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: '#fff' }}>
-          <h1 style={{ margin: 0, fontSize: '1.2rem' }}>Projects</h1>
-          <span style={{ color: '#666', fontSize: '.9rem' }}>in {clientEnv.appName}</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: '#fff' }}>
-          <input
-            value={projectSearch}
-            onChange={(event) => setProjectSearch(event.target.value)}
-            placeholder={editingProjectId ? 'Search tasks…' : 'Search projects…'}
-            style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 8, border: '1px solid #d0d7de', padding: '0 10px' }}
-          />
-        </div>
+        {!isEmbedded ? (
+          <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: '#fff' }}>
+            <input
+              value={projectSearch}
+              onChange={(event) => setProjectSearch(event.target.value)}
+              placeholder={editingProjectId ? 'Search tasks…' : 'Search projects…'}
+              style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 8, border: '1px solid #d0d7de', padding: '0 10px' }}
+            />
+          </div>
+        ) : null}
 
         {!canManage ? <div style={{ margin: '0 16px 8px', color: '#8a6d3b' }}>Read-only mode: sign in is required to manage projects.</div> : null}
         {loading ? <div style={{ margin: '0 16px 8px' }}>Loading projects…</div> : null}
@@ -183,7 +269,7 @@ export default function ProjectsPage({ canManage }: Props) {
           onAddSubproject={handleAddSubproject}
           newlyAddedSubprojectId={newlyAddedSubprojectId}
           onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
-          onSubprojectDeleted={() => {}}
+          onSubprojectDeleted={handleSubprojectDeleted}
           onColorChange={handleProjectColorChange}
           onReorder={handleReorderProjects}
           onDeleteProject={handleDeleteProject}
@@ -195,6 +281,30 @@ export default function ProjectsPage({ canManage }: Props) {
           filters={filters}
           onToggleFilter={handleToggleFilter}
         />
+
+        {undoSnackbar ? (
+          <div className="undo-snackbar" role="status" aria-live="polite">
+            <div className="snack-content">
+              <span className="snack-message">{undoSnackbar.message}</span>
+              <div className="snack-actions">
+                <button
+                  type="button"
+                  className="snack-button undo-button"
+                  onClick={() => undoSnackbar.onUndo()}
+                >
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  className="snack-button dismiss-button"
+                  onClick={closeUndoSnackbar}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </main>
   );

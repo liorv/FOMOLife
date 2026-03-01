@@ -2,10 +2,10 @@
 
 This monorepo is deployed as four independent Vercel projects:
 
+- `fomo-life` (framework host shell)
 - `fomo-life-contacts`
 - `fomo-life-projects`
 - `fomo-life-tasks`
-- `fomo-life` (legacy root shell + `/?tab=...` redirects)
 
 ## Project mapping
 
@@ -30,11 +30,11 @@ This monorepo is deployed as four independent Vercel projects:
 - Build Command: `pnpm --filter tasks build`
 - Canonical URL: https://fomo-life-tasks.vercel.app
 
-### `fomo-life` (legacy root)
-- Root Directory: repository root
+### `fomo-life` (framework host)
+- Root Directory: `apps/framework`
 - Framework: Next.js
 - Install Command: `pnpm install --frozen-lockfile`
-- Build Command: `next build`
+- Build Command: `pnpm --filter framework build`
 - Canonical URL: https://fomo-life.vercel.app
 
 ## Environment variable model
@@ -49,9 +49,9 @@ Per-app auth vars:
 - projects: `PROJECTS_AUTH_MODE`, `PROJECTS_DEFAULT_USER_ID`
 - tasks: `TASKS_AUTH_MODE`, `TASKS_DEFAULT_USER_ID`
 
-Root shell auth vars:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+Framework auth vars:
+- `FRAMEWORK_AUTH_MODE`
+- `FRAMEWORK_DEFAULT_USER_ID`
 
 ## Deployment runbook
 
@@ -62,10 +62,10 @@ From repository root:
    - `pnpm turbo test --filter=contacts --filter=projects --filter=tasks`
    - `pnpm turbo build --filter=contacts --filter=projects --filter=tasks`
 2. Deploy projects:
+   - `Push-Location apps/framework; vercel link --project fomo-life --yes; vercel --prod --yes; Pop-Location`
    - `vercel link --project fomo-life-contacts --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-projects --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-tasks --yes && vercel --prod --yes`
-   - `vercel link --project fomo-life --yes && vercel --prod --yes`
 3. Verify aliases are updated and healthy.
 
 ## Legacy route compatibility
