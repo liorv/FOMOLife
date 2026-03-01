@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createTasksApiClient } from '@/lib/client/tasksApi';
-import type { TaskItem } from '@/lib/server/tasksStore';
+import type { TaskItem } from '@myorg/types';
 import TaskList from '../../projects/components/TaskList';
 import AddBar from '../../projects/components/AddBar';
 import { applyFilters } from '../../projects/utils/taskFilters';

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createProjectsApiClient } from '@/lib/client/projectsApi';
-import type { ProjectItem } from '@/lib/server/projectsStore';
+import type { ProjectItem } from '@myorg/types';
 import ProjectsDashboard from './ProjectsDashboard';
 import { PROJECT_COLORS } from './ProjectTile';
 
