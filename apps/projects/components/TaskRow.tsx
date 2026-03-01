@@ -154,7 +154,7 @@ export default function TaskRow({
             title={isOpen ? "Collapse editor" : "Expand editor"}
             aria-hidden="true"
           >
-            chevron_right
+            {isOpen ? "expand_less" : "expand_more"}
           </span>
         )}
 

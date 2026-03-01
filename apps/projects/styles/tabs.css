@@ -321,9 +321,9 @@
   justify-content: center;
 }
 
-/* rotate the right-pointing chevron to point down when open */
+/* no rotation needed now that icon changes */
 .expand-icon.open {
-  transform: rotate(90deg);
+  /* maybe change color when open if desired */
 }
 
 /* Editing state — highlight task header */
