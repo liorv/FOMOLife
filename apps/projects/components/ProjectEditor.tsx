@@ -1,51 +1,85 @@
-// @ts-nocheck
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import type { ProjectItem, ProjectSubproject, ProjectTask, Contact } from "@myorg/types";
+import type { TaskFilter, TaskItem } from "@myorg/types";
 
-// loose props for incremental migration
-interface ProjectEditorProps {
-  [key: string]: any;
+// Subprojects used within the editor always have a defined `collapsed` boolean
+interface EditorSubproject extends ProjectSubproject {
+  collapsed: boolean;
 }
+
+// Local project state mirrors ProjectItem but narrows subprojects
+interface LocalProject extends ProjectItem {
+  subprojects: EditorSubproject[];
+}
+
+interface ProjectEditorProps {
+  project: ProjectItem;
+  onApplyChange?: (updated: Partial<ProjectItem>) => void;
+  allPeople?: Contact[];
+  onCreatePerson?: (name: string) => void;
+  onOpenPeople?: () => void;
+  onAddSubproject?: (name: string) => void;
+  onBack?: () => void;
+  newlyAddedSubprojectId?: string | null;
+  onClearNewSubproject?: () => void;
+  onSubprojectDeleted?: (payload: { projectId: string; subproject: ProjectSubproject; index: number }) => void;
+  taskFilters?: string[];
+  searchQuery?: string;
+  canManage?: boolean;
+}
+
 import SubprojectEditor from "./SubprojectEditor";
 import TaskList from "./TaskList";
 import { generateId, applyFilters } from '@myorg/utils';
 
 export default function ProjectEditor({
   project,
-  onApplyChange = () => {},
-  allPeople = [],
-  onCreatePerson = () => {},
-  onOpenPeople = () => {},
-  onAddSubproject = () => {},
-  onBack = () => {},
-  newlyAddedSubprojectId = null,
-  onClearNewSubproject = () => {},
-  onSubprojectDeleted = () => {},
+  onApplyChange,
+  allPeople,
+  onCreatePerson,
+  onOpenPeople,
+  onAddSubproject,
+  onBack,
+  newlyAddedSubprojectId,
+  onClearNewSubproject,
+  onSubprojectDeleted,
   taskFilters = [], // array of active filters
   searchQuery = "",
   canManage = true,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
-  const [local, setLocal] = useState(() => ({
+  const [local, setLocal] = useState<LocalProject>(() => ({
     ...project,
     subprojects: project.subprojects
       ? project.subprojects.map((s) => ({
           ...s,
-          collapsed: s.collapsed !== undefined ? s.collapsed : false,
+          collapsed: s.collapsed ?? false,
         }))
       : [],
-  }));
-  const [editorTaskId, setEditorTaskId] = useState(null);
-  const [newlyAddedTaskId, setNewlyAddedTaskId] = useState(null);
-  const [draggedTask, setDraggedTask] = useState({ subId: null, taskId: null });
-  const [draggedSubprojectId, setDraggedSubprojectId] = useState(null);
-  const [dragOverSubprojectId, setDragOverSubprojectId] = useState(null);
-  const editorContainerRef = useRef(null);
+  } as LocalProject));
+  const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
+  const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
+  const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
+  const [draggedSubprojectId, setDraggedSubprojectId] = useState<string | null>(null);
+  const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   // Ref-based cooldown avoids setState-outside-act warnings in tests.
   const addingRef = React.useRef(false);
 
   // floating-action-button state/menu (used when editing a project)
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
+
+  // safe call wrappers for optional callbacks
+  const safeOnApplyChange = onApplyChange ?? (() => {});
+  const safeOnCreatePerson = onCreatePerson ?? (() => {});
+  const safeOnOpenPeople = onOpenPeople ?? (() => {});
+  const safeOnAddSubproject = onAddSubproject ?? (() => {});
+  const safeOnClearNewSubproject = onClearNewSubproject ?? (() => {});
+  const safeOnSubprojectDeleted = onSubprojectDeleted ?? (() => {});
+  const safeOnBack = onBack ?? (() => {});
+
+  const peopleList: Contact[] = allPeople ?? [];
 
   // Which subproject, if any, is currently expanded?  We collapse all
   // others whenever one is toggled, so there should be at most one.
@@ -55,12 +89,16 @@ export default function ProjectEditor({
     );
   }, [local.subprojects]);
 
-  const handleSetEditorId = (id) =>
+  const handleSetEditorId = (id: string | null) =>
     setEditorTaskId((prev) => (prev === id ? null : id));
 
   // --- Task helpers (nested inside subprojects) ---------------------------
 
-  const updateTask = (subId, taskId, changes) => {
+  const updateTask = (
+    subId: string,
+    taskId: string,
+    changes: Partial<ProjectTask>
+  ) => {
     if (!canManage) {
       // ignore updates when read-only
       return;
@@ -85,22 +123,26 @@ export default function ProjectEditor({
       }),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
   };
 
-  const handleEditorSave = (subId) => async (updatedTask) => {
+  const handleEditorSave = (subId: string) =>
+    async (updatedTask: ProjectTask) => {
     // use the id that comes with the payload if we have it; falling back to
     // the current editorTaskId guards against situations where the value
     // has been cleared by a race (for example a fast double-click on the
     // close button).  log if we ever end up with no id.
     const taskId = updatedTask?.id || editorTaskId;
+    if (!taskId) return; // nothing to update
     updateTask(subId, taskId, updatedTask);
     setEditorTaskId(null);
   };
 
   // parent of TaskList: onEditorUpdate is called with (taskId, updatedTask)
-  const handleEditorUpdate = (subId) => async (taskId, updatedTask) => {
+  const handleEditorUpdate = (subId: string) =>
+    async (taskId: string, updatedTask: Partial<ProjectTask>) => {
     const id = taskId || updatedTask?.id || editorTaskId;
+    if (!id) return;
     updateTask(subId, id, updatedTask);
   };
 
@@ -110,9 +152,9 @@ export default function ProjectEditor({
     setLocal({
       ...project,
       subprojects: project.subprojects
-        ? project.subprojects.map((s) => ({ ...s }))
+        ? project.subprojects.map((s) => ({ ...s, collapsed: s.collapsed ?? false }))
         : [],
-    });
+    } as LocalProject);
   }, [project]);
 
   // Scroll expanded task into view
@@ -138,7 +180,7 @@ export default function ProjectEditor({
 
   // --- Subproject helpers --------------------------------------------------
 
-  const deleteSubproject = (id) => {
+  const deleteSubproject = (id: string) => {
     // Prevent deletion of project-level tasks subproject
     const subproject = (local.subprojects || []).find((s) => s.id === id);
     const deletedIndex = (local.subprojects || []).findIndex((s) => s.id === id);
@@ -150,10 +192,10 @@ export default function ProjectEditor({
       subprojects: (local.subprojects || []).filter((s) => s.id !== id),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
     // Trigger callback for undo snack bar
     if (subproject) {
-      onSubprojectDeleted({
+      safeOnSubprojectDeleted({
         projectId: local.id || project.id,
         subproject,
         index: deletedIndex,
@@ -161,7 +203,7 @@ export default function ProjectEditor({
     }
   };
 
-  const updateSubText = (id, text) => {
+  const updateSubText = (id: string, text: string) => {
     const subproject = (local.subprojects || []).find((s) => s.id === id);
     
     // Prevent updating the project-level subproject
@@ -180,9 +222,9 @@ export default function ProjectEditor({
             subprojects: (local.subprojects || []).filter((s) => s.id !== id),
           };
           setLocal(updated);
-          onApplyChange(updated);
+          safeOnApplyChange(updated);
           if (id === newlyAddedSubprojectId) {
-            onClearNewSubproject();
+            safeOnClearNewSubproject();
           }
           return;
         }
@@ -195,9 +237,9 @@ export default function ProjectEditor({
           ),
         };
         setLocal(updated);
-        onApplyChange(updated);
+        safeOnApplyChange(updated);
         if (id === newlyAddedSubprojectId) {
-          onClearNewSubproject();
+          safeOnClearNewSubproject();
         }
         return;
       }
@@ -211,14 +253,14 @@ export default function ProjectEditor({
       ),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
     // clear the newly added flag when the name is edited
     if (id === newlyAddedSubprojectId) {
-      onClearNewSubproject();
+      safeOnClearNewSubproject();
     }
   };
 
-  const updateSubColor = (id, color) => {
+  const updateSubColor = (id: string, color: string) => {
     const subproject = (local.subprojects || []).find((s) => s.id === id);
     
     // Prevent updating the project-level subproject
@@ -233,10 +275,10 @@ export default function ProjectEditor({
       ),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
   };
 
-  const toggleSubCollapse = (id) => {
+  const toggleSubCollapse = (id: string) => {
     const subToToggle = (local.subprojects || []).find((s) => s.id === id);
 
     // If currently expanded (about to collapse) and it's empty — delete it silently
@@ -249,9 +291,9 @@ export default function ProjectEditor({
           subprojects: (local.subprojects || []).filter((s) => s.id !== id),
         };
         setLocal(updated);
-        onApplyChange(updated);
+        safeOnApplyChange(updated);
         if (id === newlyAddedSubprojectId) {
-          onClearNewSubproject();
+          safeOnClearNewSubproject();
         }
         return;
       }
@@ -290,11 +332,11 @@ export default function ProjectEditor({
         }),
     };
     setLocal(cleaned);
-    onApplyChange(cleaned);
+    safeOnApplyChange(cleaned);
   };
 
 
-  const addTask = (subId, text = "", allowBlank = false) => {
+  const addTask = (subId: string, text = "", allowBlank = false) => {
     // prevent creating tasks with no name (or only whitespace) unless caller
     // explicitly asked for a blank placeholder.
     if ((!text || text.trim() === "") && !allowBlank) {
@@ -320,7 +362,7 @@ export default function ProjectEditor({
       }),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
     // if task was created blank, mark it as newly added so it enters edit mode
     if (!text || text.trim() === "") {
       const newTask = updated.subprojects
@@ -332,7 +374,7 @@ export default function ProjectEditor({
     }
   };
 
-  const handleTaskToggle = (subId, taskId) => {
+  const handleTaskToggle = (subId: string, taskId: string) => {
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {
@@ -346,10 +388,10 @@ export default function ProjectEditor({
       }),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
   };
 
-  const handleTaskDelete = (subId, taskId) => {
+  const handleTaskDelete = (subId: string, taskId: string) => {
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {
@@ -361,10 +403,10 @@ export default function ProjectEditor({
       }),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
   };
 
-  const handleTaskStar = (subId, taskId) => {
+  const handleTaskStar = (subId: string, taskId: string) => {
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {
@@ -378,16 +420,17 @@ export default function ProjectEditor({
       }),
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
   };
 
   // --- Drag / drop (task reordering within a subproject) ------------------
 
-  const handleDragStart = (subId) => (taskId) => {
+  const handleDragStart = (subId: string) =>
+    (taskId: string) => {
     setDraggedTask({ subId, taskId });
   };
 
-  const handleDragOverSubproject = (subId) => {
+  const handleDragOverSubproject = (subId: string) => {
     setDragOverSubprojectId(subId);
   };
 
@@ -409,7 +452,7 @@ export default function ProjectEditor({
   const handleAddManualSubproject = () => {
     if (!addingRef.current) {
       addingRef.current = true;
-      onAddSubproject("");
+      safeOnAddSubproject("");
       setFabMenuOpen(false);
       setTimeout(() => {
         addingRef.current = false;
@@ -421,7 +464,7 @@ export default function ProjectEditor({
     if (!addingRef.current) {
       addingRef.current = true;
       // pass a sentinel string so the consumer can branch if desired
-      onAddSubproject("AI assisted");
+      safeOnAddSubproject("AI assisted");
       setFabMenuOpen(false);
       setTimeout(() => {
         addingRef.current = false;
@@ -429,7 +472,8 @@ export default function ProjectEditor({
     }
   };
 
-  const handleDrop = (subId) => (taskId) => {
+  const handleDrop = (subId: string) =>
+    (taskId: string) => {
     const { subId: fromSub, taskId: draggedId } = draggedTask;
     if (!draggedId) {
       setDraggedTask({ subId: null, taskId: null });
@@ -456,20 +500,23 @@ export default function ProjectEditor({
         const newSubprojects = [...(prev.subprojects || [])];
         
         // Find and remove task from source subproject
-        const fromSubTasks = [...(newSubprojects[fromSubIdx].tasks || [])];
+        const fromSubTasks = [...(newSubprojects[fromSubIdx]!.tasks || [])];
         const taskIdx = fromSubTasks.findIndex((t) => t.id === draggedId);
         if (taskIdx === -1) {
           return prev;
         }
         
         const [movedTask] = fromSubTasks.splice(taskIdx, 1);
+        if (!movedTask) {
+          return prev;
+        }
         newSubprojects[fromSubIdx] = {
-          ...newSubprojects[fromSubIdx],
+          ...(newSubprojects[fromSubIdx] as EditorSubproject),
           tasks: fromSubTasks,
         };
 
         // Add task to target subproject
-        const toSubTasks = [...(newSubprojects[toSubIdx].tasks || [])];
+        const toSubTasks = [...(newSubprojects[toSubIdx]!.tasks || [])];
         
         // If taskId is specified and exists in target, insert before it
         const toTaskIdx = toSubTasks.findIndex((t) => t.id === taskId);
@@ -481,13 +528,13 @@ export default function ProjectEditor({
         }
         
         newSubprojects[toSubIdx] = {
-          ...newSubprojects[toSubIdx],
+          ...(newSubprojects[toSubIdx] as EditorSubproject),
           tasks: toSubTasks,
         };
 
         updated = { ...prev, subprojects: newSubprojects };
         // call callback immediately while we have access to updated
-        onApplyChange(updated);
+        safeOnApplyChange(updated);
         return updated;
       }
 
@@ -499,11 +546,12 @@ export default function ProjectEditor({
         const toIdx = tasks.findIndex((t) => t.id === taskId);
         if (fromIdx === -1 || toIdx === -1) return s;
         const [moved] = tasks.splice(fromIdx, 1);
+        if (!moved) return s;
         tasks.splice(toIdx, 0, moved);
         return { ...s, tasks };
       });
       updated = { ...prev, subprojects: subs };
-      onApplyChange(updated);
+      safeOnApplyChange(updated);
       return updated;
     });
     // debug note: log updated variable is useless now since update happens inside
@@ -512,7 +560,9 @@ export default function ProjectEditor({
     setDragOverSubprojectId(null);
   };
 
-  const handleDropOnSubprojectTile = (subId) => (e) => {
+  const handleDropOnSubprojectTile =
+    (subId: string) =>
+    (e: React.DragEvent) => {
     e.preventDefault();
     const { subId: fromSub, taskId: draggedId } = draggedTask;
     if (!draggedId || fromSub === subId) {
@@ -533,24 +583,27 @@ export default function ProjectEditor({
       const newSubprojects = [...(prev.subprojects || [])];
       
       // Find and remove task from source subproject
-      const fromSubTasks = [...(newSubprojects[fromSubIdx].tasks || [])];
+      const fromSubTasks = [...(newSubprojects[fromSubIdx]!.tasks || [])];
       const taskIdx = fromSubTasks.findIndex((t) => t.id === draggedId);
       if (taskIdx === -1) {
         return prev;
       }
       
       const [movedTask] = fromSubTasks.splice(taskIdx, 1);
+      if (!movedTask) {
+        return prev;
+      }
       newSubprojects[fromSubIdx] = {
-        ...newSubprojects[fromSubIdx],
+        ...(newSubprojects[fromSubIdx] as EditorSubproject),
         tasks: fromSubTasks,
       };
 
       // Append task to target subproject
-      const toSubTasks = [...(newSubprojects[toSubIdx].tasks || [])];
+      const toSubTasks = [...(newSubprojects[toSubIdx]!.tasks || [])];
       toSubTasks.push(movedTask);
       
       newSubprojects[toSubIdx] = {
-        ...newSubprojects[toSubIdx],
+        ...(newSubprojects[toSubIdx] as EditorSubproject),
         tasks: toSubTasks,
       };
 
@@ -558,7 +611,7 @@ export default function ProjectEditor({
       return updated;
     });
     if (updated) {
-      onApplyChange(updated);
+      safeOnApplyChange(updated);
     }
     setDraggedTask({ subId: null, taskId: null });
     setDragOverSubprojectId(null);
@@ -568,7 +621,10 @@ export default function ProjectEditor({
     setDraggedTask({ subId: null, taskId: null });
   };
 
-  const handleReorderSubprojects = async (draggedSubId, targetSubId) => {
+  const handleReorderSubprojects = async (
+    draggedSubId: string,
+    targetSubId: string,
+  ) => {
     const draggedIndex = (local.subprojects || []).findIndex((s) => s.id === draggedSubId);
     const targetIndex = (local.subprojects || []).findIndex((s) => s.id === targetSubId);
 
@@ -584,29 +640,30 @@ export default function ProjectEditor({
     // Create new array with reordered subprojects
     const newSubprojects = [...(local.subprojects || [])];
     const [removed] = newSubprojects.splice(draggedIndex, 1);
-    newSubprojects.splice(targetIndex, 0, removed);
-
+      if (!removed) return;
+      newSubprojects.splice(targetIndex, 0, removed);
     // Update local state immediately for better UX
     const updated = {
       ...local,
       subprojects: newSubprojects,
     };
     setLocal(updated);
-    onApplyChange(updated);
+    safeOnApplyChange(updated);
   };
 
   // --- Flat filter view helpers ------------------------------------------
 
-  const filteredFlatTasks = useMemo(() => {
+  type FlatTask = ProjectTask & { _subId: string };
+  const filteredFlatTasks = useMemo<FlatTask[]>(() => {
     // flatten and then apply the shared filter helper, which also handles
     // searchQuery
-    const flat = (local.subprojects || []).flatMap((sub) =>
-      (sub.tasks || []).map((t) => ({ ...t, _subId: sub.id }))
+    const flat: TaskItem[] = (local.subprojects || []).flatMap((sub) =>
+      (sub.tasks || []).map((t) => ({ ...t, _subId: sub.id } as any))
     );
-    return applyFilters(flat, taskFilters, searchQuery);
+    return (applyFilters(flat, taskFilters, searchQuery) as unknown) as FlatTask[];
   }, [local.subprojects, JSON.stringify(taskFilters), searchQuery]);
 
-  const findSubIdForTask = (taskId) =>
+  const findSubIdForTask = (taskId: string): string | undefined =>
     filteredFlatTasks.find((t) => t.id === taskId)?._subId;
 
   // helper for empty-message text in flat-filter view
@@ -667,19 +724,19 @@ export default function ProjectEditor({
                   const sid = (local.subprojects || []).find((s) =>
                     (s.tasks || []).some((t) => t.id === editorTaskId)
                   )?.id;
-                  if (sid) updateTask(sid, editorTaskId, updatedTask);
+                  if (sid && editorTaskId) updateTask(sid, editorTaskId, updatedTask);
                   setEditorTaskId(null);
                 }}
-                onEditorUpdate={async (updatedTask) => {
+                onEditorUpdate={async (_taskId, updatedTask: Partial<ProjectTask>) => {
                   const sid = (local.subprojects || []).find((s) =>
                     (s.tasks || []).some((t) => t.id === editorTaskId)
                   )?.id;
-                  if (sid) updateTask(sid, editorTaskId, updatedTask);
+                  if (sid && editorTaskId) updateTask(sid, editorTaskId, updatedTask);
                 }}
                 onEditorClose={handleEditorClose}
-                allPeople={allPeople}
-                onOpenPeople={onOpenPeople}
-                onCreatePerson={onCreatePerson}
+                allPeople={peopleList}
+                onOpenPeople={safeOnOpenPeople}
+                onCreatePerson={safeOnCreatePerson}
               />
             </ul>
           )}
@@ -713,9 +770,9 @@ export default function ProjectEditor({
           onEditorSave={handleEditorSave(sub.id)}
           onEditorUpdate={handleEditorUpdate(sub.id)}
           onEditorClose={handleEditorClose}
-          allPeople={allPeople}
-          onOpenPeople={onOpenPeople}
-          onCreatePerson={onCreatePerson}
+          allPeople={peopleList}
+          onOpenPeople={safeOnOpenPeople}
+          onCreatePerson={safeOnCreatePerson}
           onTaskTitleChange={(taskId, newText) => updateTask(sub.id, taskId, { text: newText })}
           autoEdit={newlyAddedSubprojectId === sub.id}
           newlyAddedTaskId={newlyAddedTaskId}

@@ -41,22 +41,11 @@ describe('ProjectEditor behaviour', () => {
     render(
       <ProjectEditor
         project={baseProject}
-        editingProjectId={editingId}
-        setEditorTaskId={() => {}}
-        editorTaskId={null}
         onApplyChange={((updated: Partial<ProjectItem>) => {
           applied.push(updated);
           Object.assign(baseProject, updated);
         }) as any}
         canManage={canManage}
-        onDelete={() => {}}
-        onUpdateText={() => {}}
-        onUpdateColor={() => {}}
-        onToggleCollapse={() => {}}
-        onAddTask={() => {}}
-        handleTaskToggle={() => {}}
-        handleTaskStar={() => {}}
-        handleTaskDelete={() => {}}
         onOpenPeople={() => {}}
         onCreatePerson={async () => null}
       />

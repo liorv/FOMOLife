@@ -291,13 +291,13 @@ export default function ProjectsDashboard({
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
-              onAddSubproject={onAddSubproject}
-              newlyAddedSubprojectId={newlyAddedSubprojectId}
-              onClearNewSubproject={onClearNewSubproject}
+              onAddSubproject={(name: string) => onAddSubproject?.(selectedProject.id, name)}
+              newlyAddedSubprojectId={newlyAddedSubprojectId ?? null}
+              onClearNewSubproject={onClearNewSubproject ?? (() => {})}
               allPeople={people}
-              onOpenPeople={onOpenPeople}
-              onCreatePerson={onCreatePerson}
-              onSubprojectDeleted={onSubprojectDeleted}
+              onOpenPeople={onOpenPeople ?? (() => {})}
+              onCreatePerson={onCreatePerson ?? (() => {})}
+              onSubprojectDeleted={onSubprojectDeleted ?? (() => {})}
               taskFilters={filters}
               searchQuery={projectSearch}
             />
