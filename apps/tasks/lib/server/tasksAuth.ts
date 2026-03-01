@@ -10,7 +10,9 @@ export interface TasksSession {
 
 export async function getTasksSession(): Promise<TasksSession> {
   const env = getTasksServerEnv();
+  console.log('tasksAuth.getTasksSession env', env);
   if (env.authMode === 'none') {
+    console.log('tasksAuth: authMode none -> defaultUserId', env.defaultUserId);
     return {
       userId: env.defaultUserId,
       isAuthenticated: true,

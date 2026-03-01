@@ -17,6 +17,7 @@ export default function ProjectEditor({
   onSubprojectDeleted = () => {},
   taskFilters = [], // array of active filters
   searchQuery = "",
+  canManage = true,
 }) {
   // --- State ---------------------------------------------------------------
 
@@ -55,6 +56,17 @@ export default function ProjectEditor({
   // --- Task helpers (nested inside subprojects) ---------------------------
 
   const updateTask = (subId, taskId, changes) => {
+    if (!canManage) {
+      // ignore updates when read-only
+      return;
+    }
+    if (!taskId) {
+      // should never happen, but log so we can trace bugs where the editor
+      // loses its id before the callback fires (e.g. rapid switching)
+      console.warn("updateTask called without taskId", subId, changes);
+      return;
+    }
+
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).map((s) => {
@@ -72,15 +84,19 @@ export default function ProjectEditor({
   };
 
   const handleEditorSave = (subId) => async (updatedTask) => {
-    // assume editor passes only changes
-    const taskId = editorTaskId;
+    // use the id that comes with the payload if we have it; falling back to
+    // the current editorTaskId guards against situations where the value
+    // has been cleared by a race (for example a fast double-click on the
+    // close button).  log if we ever end up with no id.
+    const taskId = updatedTask?.id || editorTaskId;
     updateTask(subId, taskId, updatedTask);
     setEditorTaskId(null);
   };
 
-  const handleEditorUpdate = (subId) => async (updatedTask) => {
-    const taskId = editorTaskId;
-    updateTask(subId, taskId, updatedTask);
+  // parent of TaskList: onEditorUpdate is called with (taskId, updatedTask)
+  const handleEditorUpdate = (subId) => async (taskId, updatedTask) => {
+    const id = taskId || updatedTask?.id || editorTaskId;
+    updateTask(subId, id, updatedTask);
   };
 
   const handleEditorClose = () => setEditorTaskId(null);
@@ -103,7 +119,9 @@ export default function ProjectEditor({
       if (expandedElement) {
         // Scroll the task to the top of the visible area so users can see the whole editor
         setTimeout(() => {
-          expandedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          if (typeof expandedElement.scrollIntoView === 'function') {
+            expandedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         }, 100);
       }
     };
@@ -761,4 +779,5 @@ ProjectEditor.propTypes = {
   onAddSubproject: PropTypes.func,
   searchQuery: PropTypes.string,
   taskFilters: PropTypes.array,
+  canManage: PropTypes.bool,
 };

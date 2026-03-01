@@ -1,0 +1,31 @@
+const path = require('path');
+
+/** @type {import('jest').Config} */
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  // explicitly include TypeScript and TSX in file extensions so jest
+  // picks up our test files, and define a match pattern just to be safe
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+        allowJs: true,
+      },
+    }],
+    '^.+\\.jsx?$': ['babel-jest', {
+      presets: [
+        ['@babel/preset-env', { targets: { node: 'current' } }],
+        '@babel/preset-react',
+      ],
+    }],
+  },
+  moduleNameMapper: {
+    '^@myorg/utils$': path.resolve(__dirname, '../../packages/utils/src/index.ts'),
+    '^@myorg/types$': path.resolve(__dirname, '../../packages/types/src/index.ts'),
+    '^@myorg/api-client$': path.resolve(__dirname, '../../packages/api-client/src/index.ts'),
+  },
+};

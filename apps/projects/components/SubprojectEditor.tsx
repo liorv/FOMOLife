@@ -1,9 +1,46 @@
-import React, { useState } from "react";
-import PropTypes from "prop-types";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import TaskList from "./TaskList";
 import SubprojectRow from "./SubprojectRow";
 import AddBar from "./AddBar";
 import { applyFilters } from '@myorg/utils';
+import type { ProjectSubproject, ProjectItem, ProjectTask, Contact } from "@myorg/types";
+import type { TaskFilter } from "@myorg/types";
+
+interface SubprojectEditorProps {
+  sub: ProjectSubproject;
+  project: ProjectItem;
+  editorTaskId?: string | null;
+  setEditorTaskId: (taskId: string | null) => void;
+  onDelete: () => void;
+  onUpdateText: (text: string) => void;
+  onUpdateColor: (color: string) => void;
+  onToggleCollapse: () => void;
+  onAddTask: (text: string, favorite?: boolean) => void;
+  handleTaskToggle: (taskId: string) => void;
+  handleTaskStar: (taskId: string) => void;
+  handleTaskDelete: (taskId: string) => void;
+  onDragStart?: (taskId: string, e: React.DragEvent) => void;
+  onDragOver?: (taskId: string, e: React.DragEvent) => void;
+  onDrop?: (taskId: string, e: React.DragEvent) => void;
+  onDragEnd?: (taskId: string, e: React.DragEvent) => void;
+  onDragOverSubprojectTile?: () => void;
+  onDragLeaveSubprojectTile?: () => void;
+  onDropOnSubprojectTile?: (e: React.DragEvent) => void;
+  isDragOverSubprojectTile?: boolean;
+  onEditorSave: (task: ProjectTask) => void;
+  onEditorUpdate: (taskId: string, updates: Partial<ProjectTask>) => void;
+  onEditorClose: () => void;
+  allPeople: Contact[];
+  onOpenPeople?: () => void;
+  onCreatePerson?: (name: string) => void;
+  onTaskTitleChange?: (taskId: string, newTitle: string) => void;
+  autoEdit?: boolean;
+  newlyAddedTaskId?: string | null;
+  onClearNewTask?: () => void;
+  onReorder?: (fromId: string, toId: string) => void;
+  isDragging?: boolean;
+  taskFilters?: TaskFilter[];
+}
 
 export default function SubprojectEditor({
   sub,
@@ -22,9 +59,9 @@ export default function SubprojectEditor({
   onDragOver,
   onDrop,
   onDragEnd,
-  onDragOverSubprojectTile,
-  onDragLeaveSubprojectTile,
-  onDropOnSubprojectTile,
+  onDragOverSubprojectTile = () => {},
+  onDragLeaveSubprojectTile = () => {},
+  onDropOnSubprojectTile = () => {},
   isDragOverSubprojectTile = false,
   onEditorSave,
   onEditorUpdate,
@@ -39,26 +76,26 @@ export default function SubprojectEditor({
   onReorder = () => {},
   isDragging = false,
   taskFilters = [],
-}) {
+}: SubprojectEditorProps) {
   // Apply filter to the task list if one is active
-  const visibleTasks = React.useMemo(() => {
+  const visibleTasks = useMemo(() => {
     // filters do not consider searchQuery in this component; helper is still usable
-    return applyFilters(sub.tasks || [], taskFilters, "");
+    // Cast through any to handle type mismatch between ProjectTask and TaskItem
+    const tasks = sub.tasks || [];
+    return applyFilters(tasks as any, taskFilters, "") as ProjectTask[];
   }, [sub.tasks, JSON.stringify(taskFilters)]);
-  // --- AddBar open/close ---
 
   const collapsed = sub.collapsed;
-  // rename editing is now handled inside SubprojectRow when expanded
 
   // local state for the inline add-bar that appears when subproject is
   // expanded; users can type a task and hit enter or press the button to
   // create it.  this replaces the previous floating-action approach.
-  const [newTaskText, setNewTaskText] = React.useState("");
-  const addBarRef = React.useRef(null);
+  const [newTaskText, setNewTaskText] = useState("");
+  const addBarRef = useRef<HTMLDivElement>(null);
 
   // --- Subproject drag/drop ---
 
-  const handleSubDragStart = (e) => {
+  const handleSubDragStart = (e: React.DragEvent) => {
     try {
       if (e.dataTransfer) {
         e.dataTransfer.effectAllowed = "move";
@@ -71,7 +108,7 @@ export default function SubprojectEditor({
     }
   };
 
-  const handleSubDragOver = (e) => {
+  const handleSubDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     try {
       if (e.dataTransfer) {
@@ -82,7 +119,7 @@ export default function SubprojectEditor({
     }
   };
 
-  const handleSubDrop = (e) => {
+  const handleSubDrop = (e: React.DragEvent) => {
     e.preventDefault();
     let data = "";
     try {
@@ -114,10 +151,10 @@ export default function SubprojectEditor({
     "subproject" +
     (collapsed ? " collapsed" : "") +
     (!collapsed ? " expanded" : "");
-  const bodyRef = React.useRef(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // adjust max-height/padding/margin based on collapsed state for animation
-  React.useEffect(() => {
+  useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
     if (!collapsed) {
@@ -143,7 +180,7 @@ export default function SubprojectEditor({
   }, [collapsed, visibleTasks]);
 
   // focus input when subproject expands
-  React.useEffect(() => {
+  useEffect(() => {
     if (!collapsed && addBarRef.current) {
       const input = addBarRef.current.querySelector('input');
       if (input) input.focus();
@@ -171,8 +208,8 @@ export default function SubprojectEditor({
         sub={sub}
         project={project}
         onEdit={onToggleCollapse}
-        onNameChange={(newName) => onUpdateText(newName)}
-        onColorChange={(id, color) => onUpdateColor(color)}
+        onNameChange={(newName: string) => onUpdateText(newName)}
+        onColorChange={(_id: string, color: string) => onUpdateColor(color)}
         onDelete={onDelete}
         onDragOverSubprojectTile={onDragOverSubprojectTile}
         onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
@@ -186,26 +223,28 @@ export default function SubprojectEditor({
         <div className="subproject-tasks">
           <ul className="item-list">
             <TaskList
-              items={visibleTasks}
-              type="tasks"
-              editorTaskId={editorTaskId}
-              setEditorTaskId={setEditorTaskId}
-              handleToggle={handleTaskToggle}
-              handleStar={handleTaskStar}
-              handleDelete={handleTaskDelete}
-              onTitleChange={onTaskTitleChange}
-              onDragStart={onDragStart}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              onDragEnd={onDragEnd}
-              onEditorSave={onEditorSave}
-              onEditorUpdate={onEditorUpdate}
-              onEditorClose={onEditorClose}
-              allPeople={allPeople}
-              onOpenPeople={onOpenPeople}
-              onCreatePerson={onCreatePerson}
-              newlyAddedTaskId={newlyAddedTaskId}
-              onClearNewTask={onClearNewTask}
+              {...{
+                items: visibleTasks as any,
+                type: "tasks",
+                editorTaskId: editorTaskId ?? null,
+                setEditorTaskId,
+                handleToggle: handleTaskToggle,
+                handleStar: handleTaskStar,
+                handleDelete: handleTaskDelete,
+                onTitleChange: onTaskTitleChange,
+                onDragStart,
+                onDragOver,
+                onDrop,
+                onDragEnd,
+                onEditorSave,
+                onEditorUpdate,
+                onEditorClose,
+                allPeople,
+                onOpenPeople,
+                onCreatePerson,
+                newlyAddedTaskId: newlyAddedTaskId ?? null,
+                onClearNewTask,
+              } as any}
             />
           </ul>
           {/* add-bar appears as last row when expanded; handles its own state */}
@@ -227,38 +266,3 @@ export default function SubprojectEditor({
     </div>
   );
 }
-
-SubprojectEditor.propTypes = {
-  sub: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    text: PropTypes.string,
-    collapsed: PropTypes.bool,
-    tasks: PropTypes.array,
-  }).isRequired,
-  editorTaskId: PropTypes.string,
-  setEditorTaskId: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  onUpdateText: PropTypes.func.isRequired,
-  onToggleCollapse: PropTypes.func.isRequired,
-  onAddTask: PropTypes.func.isRequired,
-  handleTaskToggle: PropTypes.func.isRequired,
-  handleTaskStar: PropTypes.func.isRequired,
-  handleTaskDelete: PropTypes.func.isRequired,
-  onDragStart: PropTypes.func.isRequired,
-  onDragOver: PropTypes.func.isRequired,
-  onDrop: PropTypes.func.isRequired,
-  onDragEnd: PropTypes.func.isRequired,
-  onEditorSave: PropTypes.func.isRequired,
-  onEditorUpdate: PropTypes.func.isRequired,
-  onEditorClose: PropTypes.func.isRequired,
-  allPeople: PropTypes.array,
-  onOpenPeople: PropTypes.func,
-  onCreatePerson: PropTypes.func,
-  onTaskTitleChange: PropTypes.func,
-  autoEdit: PropTypes.bool,
-  newlyAddedTaskId: PropTypes.string,
-  onClearNewTask: PropTypes.func,
-  onReorder: PropTypes.func,
-  taskFilters: PropTypes.array,
-  isDragging: PropTypes.bool,
-};

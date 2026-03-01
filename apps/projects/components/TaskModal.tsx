@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from "react";
+import type { ProjectTask, ProjectTaskPerson, Contact } from "@myorg/types";
+
+interface TaskEditorProps {
+  task: ProjectTask;
+  onSave: (task: ProjectTask) => void;
+  onClose: () => void;
+  onUpdateTask?: (task: ProjectTask) => void;
+  allPeople?: Contact[];
+  onOpenPeople?: () => void;
+  onCreatePerson?: (person: { name: string }) => Contact | Promise<Contact | void> | void;
+  inline?: boolean;
+}
+
+interface PersonEntry {
+  name: string;
+}
 
 export default function TaskEditor({
   task,
@@ -9,7 +25,7 @@ export default function TaskEditor({
   onOpenPeople = () => {},
   onCreatePerson = () => {},
   inline = false,
-}) {
+}: TaskEditorProps) {
   // --- State ---------------------------------------------------------------
 
   const [title, setTitle] = useState(task.text || "");
@@ -17,12 +33,15 @@ export default function TaskEditor({
   const [dueDate, setDueDate] = useState(task.dueDate || "");
 
   // People assigned to this task – stored simply as [{name}].
-  const initialPeople = (task.people || []).map((p) => ({
-    name: typeof p === "string" ? p : p.name || p,
+  const initialPeople: PersonEntry[] = (task.people || []).map((p) => ({
+    name: typeof p === "string" ? p : p.name || "",
   }));
-  const [people, setPeople] = useState(initialPeople);
+  const [people, setPeople] = useState<PersonEntry[]>(initialPeople);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
+
+  // Keep a ref to track if component is mounted (for Strict Mode double-mount handling)
+  const isMountedRef = React.useRef(true);
 
   // Keep a ref to latest editable state so cleanup can persist on unmount
   const latestRef = React.useRef({
@@ -35,50 +54,71 @@ export default function TaskEditor({
     latestRef.current = { title, description, dueDate, people };
   }, [title, description, dueDate, people]);
 
+  // Sync local state with prop changes (handles external updates)
+  useEffect(() => {
+    setTitle(task.text || "");
+    setDescription(task.description || "");
+    setDueDate(task.dueDate || "");
+    const newPeople: PersonEntry[] = (task.people || []).map((p) => ({
+      name: typeof p === "string" ? p : p.name || "",
+    }));
+    setPeople(newPeople);
+  }, [task.id, task.text, task.description, task.dueDate, JSON.stringify(task.people)]);
+
   useEffect(() => {
     // reset keyboard focus whenever the query changes
     setActiveSuggestion(-1);
   }, [searchQuery]);
 
   // persist latest edits when editor unmounts (e.g. user switches tasks)
+  // Use a flag to ensure cleanup only runs once (handles Strict Mode double-mount)
+  const cleanupRanRef = React.useRef(false);
+
   useEffect(() => {
     return () => {
-      const {
-        title: latestTitle,
-        description: latestDesc,
-        dueDate: latestDate,
-        people: latestPeople,
-      } = latestRef.current;
-      const normalized = latestPeople.map((p) => ({ name: p.name }));
-      onUpdateTask({
+      // Prevent running twice in React 18 Strict Mode
+      if (cleanupRanRef.current) return;
+      cleanupRanRef.current = true;
+
+      const latest = latestRef.current;
+      const normalizedPeople = latest.people.map((p: PersonEntry) => ({ name: p.name }));
+      // Build updated task from latest values, preserving original task properties
+      const updatedTask = {
         ...task,
-        text: latestTitle,
-        description: latestDesc,
-        dueDate: latestDate || null,
-        people: normalized,
-      });
+        text: latest.title,
+        description: latest.description,
+        dueDate: latest.dueDate || null,
+        people: normalizedPeople,
+      };
+      onUpdateTask(updatedTask);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- People handlers ---------------------------------------------------
 
-  const handleAddFromAll = (person) => {
+  const handleAddFromAll = (person: Contact) => {
     if (people.find((p) => p.name === person.name)) return;
-    setPeople([...people, { name: person.name }]);
+    const newPeople = [...people, { name: person.name }];
+    setPeople(newPeople);
     setSearchQuery("");
+    onUpdateTask({ ...task, people: newPeople });
   };
 
   // Create a new person locally and persist via the parent callback.
-  const handleCreateAndAdd = (name) => {
+  const handleCreateAndAdd = (name: string) => {
     const created = { name };
-    setPeople((prev) =>
-      prev.find((p) => p.name === created.name) ? prev : [...prev, created],
-    );
+    const newPeople = (prev: PersonEntry[]) =>
+      prev.find((p) => p.name === created.name) ? prev : [...prev, created];
+    setPeople(newPeople);
     setSearchQuery("");
     setActiveSuggestion(-1);
+    // Update parent with new person added
+    const updatedPeople = [...people, created];
+    onUpdateTask({ ...task, people: updatedPeople });
     const maybePromise = onCreatePerson(created);
-    if (maybePromise && typeof maybePromise.then === "function") {
-      maybePromise.then((newPerson) => {
+    if (maybePromise && typeof maybePromise === 'object' && 'then' in maybePromise) {
+      (maybePromise as Promise<Contact | void>).then((newPerson) => {
         if (newPerson && newPerson.id) {
           setPeople((prev) =>
             prev.map((p) => (p.name === newPerson.name ? { name: newPerson.name } : p)),
@@ -88,15 +128,17 @@ export default function TaskEditor({
     }
   };
 
-  const handleRemovePerson = (name) => {
-    setPeople(people.filter((person) => person.name !== name));
+  const handleRemovePerson = (name: string) => {
+    const newPeople = people.filter((person) => person.name !== name);
+    setPeople(newPeople);
+    onUpdateTask({ ...task, people: newPeople });
   };
 
   // --- Save / keyboard shortcuts ------------------------------------------
 
   const saveToParent = (closeAfter = false) => {
-    const normalizedPeople = people.map((p) => ({ name: p.name }));
-    const updated = {
+    const normalizedPeople: ProjectTaskPerson[] = people.map((p) => ({ name: p.name }));
+    const updated: ProjectTask = {
       ...task,
       text: title,
       description,
@@ -111,7 +153,7 @@ export default function TaskEditor({
 
   // Keyboard shortcuts: Esc → close, Ctrl/Cmd+Enter → save & close
   useEffect(() => {
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         saveToParent(true);
@@ -129,7 +171,7 @@ export default function TaskEditor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [searchQuery, description, people]);
+  }, [searchQuery, description, people, onSave, onUpdateTask, task]);
 
   // --- Render ---
 
@@ -149,7 +191,11 @@ export default function TaskEditor({
               type="date"
               className="due-date-input"
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setDueDate(newValue);
+                onUpdateTask({ ...task, dueDate: newValue || null });
+              }}
             />
           </div>
 
@@ -162,7 +208,9 @@ export default function TaskEditor({
               className="task-description"
               value={description}
               onChange={(e) => {
-                setDescription(e.target.value);
+                const newValue = e.target.value;
+                setDescription(newValue);
+                onUpdateTask({ ...task, description: newValue });
               }}
             />
           </div>
@@ -247,7 +295,7 @@ export default function TaskEditor({
                     e.preventDefault();
 
                     if (activeSuggestion >= 0) {
-                      if (matches.length > 0) {
+                      if (matches.length > 0 && matches[activeSuggestion]) {
                         handleAddFromAll(matches[activeSuggestion]);
                       } else {
                         handleCreateAndAdd(q);
@@ -329,7 +377,7 @@ export default function TaskEditor({
                       onClick={() => handleCreateAndAdd(newName)}
                     >
                       <div className="task-person-col name">
-                        <strong>Add “{newName}”</strong>
+                        <strong>Add "{newName}"</strong>
                       </div>
                       <div
                         className="task-person-col methods"

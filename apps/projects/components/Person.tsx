@@ -1,11 +1,23 @@
 import React, { useState } from "react";
 import { generateId, createInviteLink } from "@myorg/utils";
+import { Contact } from "@myorg/types";
 
-/**
- * ContactCard — renders a single contact in the Contacts tab.
- * Shows: avatar, nickname (editable), invite status badge,
- * copy-invite-link button (or generate-link button), and delete.
- */
+export interface PersonProps {
+  person: Contact;
+  id: string;
+  editingPersonId: string | null;
+  editingPersonName: string;
+  setEditingPersonId?: (id: string | null) => void;
+  setEditingPersonName?: (name: string) => void;
+  onSaveEdit?: (id: string, name: string) => void;
+  onCancelEdit?: () => void;
+  handleDelete?: (id: string) => void;
+  onGenerateInvite?: (id: string, token: string) => void;
+  // legacy props accepted but unused
+  handleTogglePersonDefault?: (taskId: string) => void | undefined;
+  asRow?: boolean;
+}
+
 export default function Person({
   person,
   id,
@@ -17,10 +29,7 @@ export default function Person({
   onCancelEdit,
   handleDelete,
   onGenerateInvite,
-  // legacy props accepted but unused
-  handleTogglePersonDefault,
-  asRow,
-}) {
+}: PersonProps) {
   const [copied, setCopied] = useState(false);
 
   const initials = (person.name || "?")
@@ -32,9 +41,9 @@ export default function Person({
 
   const isEditing = editingPersonId === id;
   const isAccepted = person.status === "accepted";
-  const hasPendingInvite = person.inviteToken && !isAccepted;
+  const hasPendingInvite = !!person.inviteToken && !isAccepted;
 
-  const copyLink = (token) => {
+  const copyLink = (token: string) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const link = createInviteLink(origin, token);
     navigator.clipboard.writeText(link).then(() => {
@@ -74,22 +83,22 @@ export default function Person({
               name="person-name"
               className="contact-edit-input"
               value={editingPersonName}
-              onChange={(e) => setEditingPersonName(e.target.value)}
+              onChange={(e) => setEditingPersonName?.(e.target.value)}
               placeholder="Nickname"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === "Enter") onSaveEdit(id, editingPersonName);
-                if (e.key === "Escape") onCancelEdit();
+                if (e.key === "Enter") onSaveEdit?.(id, editingPersonName);
+                if (e.key === "Escape") onCancelEdit?.();
               }}
             />
             <div className="contact-edit-actions">
               <button
                 className="btn-small primary"
-                onClick={() => onSaveEdit(id, editingPersonName)}
+                onClick={() => onSaveEdit?.(id, editingPersonName)}
               >
                 Save
               </button>
-              <button className="btn-small" onClick={onCancelEdit}>
+              <button className="btn-small" onClick={() => onCancelEdit?.()}>
                 Cancel
               </button>
             </div>
@@ -102,8 +111,8 @@ export default function Person({
                 className="material-icons editable-indicator"
                 title="Edit nickname"
                 onClick={() => {
-                  setEditingPersonId(id);
-                  setEditingPersonName(person.name);
+                  setEditingPersonId?.(id);
+                  setEditingPersonName?.(person.name);
                 }}
               >
                 edit
@@ -143,7 +152,7 @@ export default function Person({
           /* No token yet (added via task editor) — generate one */
           <button
             className="btn-icon"
-            title="Generate &amp; copy invite link"
+            title="Generate & copy invite link"
             onClick={handleGenerateInvite}
           >
             <span className="material-icons">add_link</span>
@@ -151,7 +160,7 @@ export default function Person({
         ) : null}
         <button
           className="delete"
-          onClick={() => handleDelete(id)}
+          onClick={() => handleDelete?.(id)}
           aria-label="Remove contact"
         >
           <span className="material-icons">close</span>

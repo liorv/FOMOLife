@@ -1,13 +1,20 @@
 import React from "react";
 
+export interface AddBarProps {
+  type?: "tasks" | "people" | string;
+  input: string;
+  dueDate?: string | null;
+  onInputChange: (value: string) => void;
+  onDueDateChange?: (date: string) => void;
+  onAdd: () => void;
+}
+
 export default function AddBar({
   type,
   input,
-  dueDate,
   onInputChange,
-  onDueDateChange,
   onAdd,
-}) {
+}: AddBarProps) {
   // calendar functionality removed; dueDate prop still accepted but not used
 
   return (

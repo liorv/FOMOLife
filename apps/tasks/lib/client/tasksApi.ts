@@ -24,36 +24,46 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export function createTasksApiClient(baseUrl = ''): TasksApiClient {
   return {
     async listTasks(): Promise<TaskItem[]> {
+      console.log('API: listTasks');
       const response = await fetch(`${baseUrl}/api/tasks`, { method: 'GET' });
       const payload = await parseResponse<{ tasks: TaskItem[] }>(response);
+      console.log('API: listTasks result', payload);
       return payload.tasks;
     },
 
     async createTask(input: { text: string; dueDate?: string | null; description?: string; favorite?: boolean }): Promise<TaskItem> {
+      console.log('API: createTask', input);
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
       });
-      return parseResponse<TaskItem>(response);
+      const out = await parseResponse<TaskItem>(response);
+      console.log('API: createTask result', out);
+      return out;
     },
 
     async updateTask(id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description'>>): Promise<TaskItem> {
+      console.log('API: updateTask', id, patch);
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id, patch }),
       });
-      return parseResponse<TaskItem>(response);
+      const out = await parseResponse<TaskItem>(response);
+      console.log('API: updateTask result', out);
+      return out;
     },
 
     async deleteTask(id: string): Promise<void> {
+      console.log('API: deleteTask', id);
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      await parseResponse<{ ok: true }>(response);
+      const out = await parseResponse<{ ok: true }>(response);
+      console.log('API: deleteTask result', out);
     },
   };
 }

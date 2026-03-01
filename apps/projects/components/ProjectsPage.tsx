@@ -87,15 +87,22 @@ export default function ProjectsPage({ canManage }: Props) {
     setEditingProjectId(created.id);
   };
 
+  // Always persist project changes (including task edits) to backend
   const handleProjectApplyChange = async (projectId: string, updated: Partial<ProjectItem>) => {
     if (!canManage) return;
+    // If subprojects changed, check for blank subprojects (for UI logic)
     if (updated.subprojects) {
       const hasBlank = updated.subprojects.some((sub) => !sub.text || sub.text.trim() === '');
       pendingBlankSubRef.current = hasBlank;
     }
 
-    const next = await apiClient.updateProject(projectId, updated);
-    setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
+    // Use the updated project object from ProjectEditor as the source of truth
+    try {
+      const next = await apiClient.updateProject(projectId, updated);
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to update project');
+    }
   };
 
   const handleProjectTitleChange = async (projectId: string, newText: string) => {

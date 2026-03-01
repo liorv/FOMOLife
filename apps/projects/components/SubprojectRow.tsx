@@ -1,7 +1,24 @@
-import React from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import ReactDOM from "react-dom";
-import PropTypes from "prop-types";
 import { PROJECT_COLORS } from "./ProjectTile";
+import type { ProjectSubproject, ProjectItem } from "@myorg/types";
+
+interface SubprojectRowProps {
+  sub: ProjectSubproject;
+  project?: ProjectItem;
+  onEdit: (subprojectId: string) => void;
+  onNameChange?: (newName: string) => void;
+  onDelete?: (subprojectId: string) => void;
+  onColorChange?: (subprojectId: string, color: string) => void;
+  onDragOverSubprojectTile?: () => void;
+  onDragLeaveSubprojectTile?: () => void;
+  onDropOnSubprojectTile?: (e: React.DragEvent) => void;
+  isDragOverSubprojectTile?: boolean;
+  /* when rendered as the header of an expanded subproject */
+  expanded?: boolean;
+  autoEdit?: boolean;
+  isDragging?: boolean;
+}
 
 export default function SubprojectRow({ 
   sub, 
@@ -14,30 +31,29 @@ export default function SubprojectRow({
   onDragLeaveSubprojectTile,
   onDropOnSubprojectTile,
   isDragOverSubprojectTile = false,
-  /* when rendered as the header of an expanded subproject */
   expanded = false,
   autoEdit = false, 
   isDragging = false,
-}) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
-  const [showColorPicker, setShowColorPicker] = React.useState(false);
-  const [menuFlippedVertically, setMenuFlippedVertically] = React.useState(false);
-  const [dropdownStyle, setDropdownStyle] = React.useState({});
-  const menuRef = React.useRef(null);
-  const dropdownRef = React.useRef(null);
-  const colorPickerRef = React.useRef(null);
+}: SubprojectRowProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
   // state for inline renaming when expanded
-  const [editingName, setEditingName] = React.useState(false);
-  const [draftName, setDraftName] = React.useState(sub.text || "");
-  const nameInputRef = React.useRef(null);
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(sub.text || "");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (autoEdit) {
       setEditingName(true);
     }
   }, [autoEdit]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingName && nameInputRef.current) {
       nameInputRef.current.focus();
     }
@@ -45,16 +61,17 @@ export default function SubprojectRow({
 
   const finishEditing = () => {
     if (draftName.trim() && draftName !== sub.text) {
-      onNameChange && onNameChange(draftName.trim());
+      onNameChange?.(draftName.trim());
     }
     setEditingName(false);
   };
 
   // Listen for global menu close events to prevent multiple menus from being open
-  React.useEffect(() => {
-    function handleCloseAllMenus(event) {
+  useEffect(() => {
+    function handleCloseAllMenus(event: Event) {
       // Only close this menu if it's different from the one opening
-      if (event.detail && event.detail.subprojectId !== sub.id) {
+      const customEvent = event as CustomEvent<{ subprojectId: string }>;
+      if (customEvent.detail && customEvent.detail.subprojectId !== sub.id) {
         setMenuOpen(false);
       }
     }
@@ -68,13 +85,14 @@ export default function SubprojectRow({
   const doneCount = tasks.filter((t) => t.done).length;
   const percent = count ? Math.round((doneCount / count) * 100) : 0;
   const hasDescription = sub.description && sub.description.trim() !== "";
-  const owners = sub.owners || sub.people || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const owners = (sub.owners || (sub as any).people || []) as { name: string }[];
 
   // Determine the color for the folder icon or project-level background
   const subprojectColor = sub.color || (sub.isProjectLevel ? project?.color : undefined);
 
-  // Helper to render avatar initials
-  const renderAvatar = (name) => (
+  // Helper to Render avatar initials
+  const renderAvatar = (name: string) => (
     <div key={name} className="avatar small" title={name}>
       {name
         .split(" ")
@@ -86,12 +104,12 @@ export default function SubprojectRow({
   );
 
   // Close menu when clicking outside
-  React.useEffect(() => {
-    function handleClickOutside(event) {
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
       const clickedInsideMenu =
-        (menuRef.current && menuRef.current.contains(event.target)) ||
-        (dropdownRef.current && dropdownRef.current.contains(event.target)) ||
-        (colorPickerRef.current && colorPickerRef.current.contains(event.target));
+        (menuRef.current && menuRef.current.contains(event.target as Node)) ||
+        (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) ||
+        (colorPickerRef.current && colorPickerRef.current.contains(event.target as Node));
       if (!clickedInsideMenu) {
         setMenuOpen(false);
         setShowColorPicker(false);
@@ -104,11 +122,8 @@ export default function SubprojectRow({
     }
   }, [menuOpen, showColorPicker]);
 
-  // Close modal when clicking overlay (mobile)
-  // Removed document listener - using React onClick instead for better event handling
-
   // Position the dropdown in a fixed portal and update on resize/scroll
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     if (!menuOpen) return;
 
     const updatePosition = () => {
@@ -250,7 +265,7 @@ export default function SubprojectRow({
         )}
         {owners.length > 0 && (
           <div className="owners">
-            {owners.slice(0, 2).map((o) => renderAvatar(o.name))}
+            {owners.slice(0, 2).map((o: { name: string }) => renderAvatar(o.name))}
             {owners.length > 2 && (
               <div className="people-count">+{owners.length - 2}</div>
             )}
@@ -374,7 +389,7 @@ export default function SubprojectRow({
                   title={`Set color to ${c}`}
                   type="button"
                   onClick={() => {
-                    onColorChange(sub.id, c);
+                    onColorChange?.(sub.id, c);
                     setShowColorPicker(false);
                     setMenuOpen(false);
                   }}
@@ -393,31 +408,3 @@ export default function SubprojectRow({
     </div>
   );
 }
-
-SubprojectRow.propTypes = {
-  sub: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    text: PropTypes.string,
-    tasks: PropTypes.array,
-    description: PropTypes.string,
-    owners: PropTypes.array,
-    people: PropTypes.array,
-    color: PropTypes.string,
-    isProjectLevel: PropTypes.bool,
-  }).isRequired,
-  project: PropTypes.shape({
-    id: PropTypes.string,
-    color: PropTypes.string,
-  }),
-  onEdit: PropTypes.func.isRequired,
-  onNameChange: PropTypes.func,
-  onDelete: PropTypes.func,
-  onColorChange: PropTypes.func,
-  onDragOverSubprojectTile: PropTypes.func,
-  onDragLeaveSubprojectTile: PropTypes.func,
-  onDropOnSubprojectTile: PropTypes.func,
-  isDragOverSubprojectTile: PropTypes.bool,
-  expanded: PropTypes.bool,
-  autoEdit: PropTypes.bool,
-  isDragging: PropTypes.bool,
-};

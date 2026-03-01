@@ -1,9 +1,28 @@
 import React, { useState, useEffect } from "react";
+import type { ProjectTask, ProjectTaskPerson } from "@myorg/types";
 
 /**
  * A single task row.  Columns (left → right):
  *   expand toggle | checkbox | title | date | people avatars | star | delete
  */
+export interface TaskRowProps {
+  item: ProjectTask;
+  id: string;
+  type: "tasks" | "people" | string;
+  editorTaskId: string | null;
+  setEditorTaskId?: (taskId: string | null) => void;
+  handleToggle?: (taskId: string) => void;
+  handleStar?: (taskId: string) => void;
+  handleDelete?: (taskId: string) => void;
+  onTitleChange?: (taskId: string, newTitle: string) => void;
+  onDragStart?: (taskId: string, e: React.DragEvent) => void;
+  onDragOver?: (taskId: string, e: React.DragEvent) => void;
+  onDrop?: (taskId: string, e: React.DragEvent) => void;
+  onDragEnd?: (taskId: string, e: React.DragEvent) => void;
+  newlyAddedTaskId?: string | null;
+  onClearNewTask?: () => void;
+}
+
 export default function TaskRow({
   item,
   id,
@@ -20,7 +39,7 @@ export default function TaskRow({
   onDragEnd,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
-}) {
+}: TaskRowProps) {
   const isOpen = editorTaskId === id;
 
   // inline title editing state
@@ -48,7 +67,7 @@ export default function TaskRow({
     }
     // if the task title is empty or only whitespace, delete the task
     if (!draftTitle.trim()) {
-      handleDelete(id);
+      handleDelete?.(id);
       return;
     }
     if (onTitleChange && draftTitle !== item.text) {
@@ -61,22 +80,27 @@ export default function TaskRow({
       // only do inline editing, don't open the full task editor
       setEditingTitle(true);
     } else if (type === "tasks") {
-      setEditorTaskId(id);
+      setEditorTaskId?.(id);
     }
   };
   // Compute days until due date.
   // Parse the date string as LOCAL midnight (not UTC) so that "2026-02-26"
   // means Feb 26 at 00:00 in the user's timezone, matching filter logic.
   let isPast = false;
-  let daysLeft = null;
+  let daysLeft: number | null = null;
   if (item.dueDate) {
-    const [y, m, d] = item.dueDate.split("-").map(Number);
-    const due = new Date(y, m - 1, d); // local midnight of due date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);        // local midnight of today
-    const msPerDay = 24 * 60 * 60 * 1000;
-    daysLeft = Math.round((due - today) / msPerDay);
-    isPast = daysLeft < 0; // strictly before today
+    const parts = item.dueDate.split("-").map(Number);
+    const y = parts[0];
+    const m = parts[1];
+    const d = parts[2];
+    if (y !== undefined && m !== undefined && d !== undefined) {
+      const due = new Date(y, m - 1, d); // local midnight of due date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);        // local midnight of today
+      const msPerDay = 24 * 60 * 60 * 1000;
+      daysLeft = Math.round((due.getTime() - today.getTime()) / msPerDay);
+      isPast = daysLeft < 0; // strictly before today
+    }
   }
 
   return (
@@ -85,24 +109,24 @@ export default function TaskRow({
       draggable={type === "tasks"}
       onDragStart={(e) => {
         if (type === "tasks") {
-          onDragStart && onDragStart(id, e);
+          onDragStart?.(id, e);
         }
       }}
       onDragOver={(e) => {
         if (type === "tasks") {
           e.preventDefault();
-          onDragOver && onDragOver(id, e);
+          onDragOver?.(id, e);
         }
       }}
       onDrop={(e) => {
         if (type === "tasks") {
           e.preventDefault();
-          onDrop && onDrop(id, e);
+          onDrop?.(id, e);
         }
       }}
       onDragEnd={(e) => {
         if (type === "tasks") {
-          onDragEnd && onDragEnd(id, e);
+          onDragEnd?.(id, e);
         }
       }}
     >
@@ -111,7 +135,7 @@ export default function TaskRow({
         {type === "tasks" && (
           <span
             className={`material-icons expand-icon${isOpen ? " open" : ""}`}
-            onClick={() => setEditorTaskId(id)}
+            onClick={() => setEditorTaskId?.(id)}
             title={isOpen ? " Collapse editor" : "Expand editor"}
             aria-hidden="true"
           >
@@ -125,7 +149,7 @@ export default function TaskRow({
             name={`task-${id}-done`}
             type="checkbox"
             checked={item.done}
-            onChange={() => handleToggle(id)}
+            onChange={() => handleToggle?.(id)}
             className="task-checkbox"
             title={item.done ? "Mark as incomplete" : "Mark as complete"}
           />
@@ -200,9 +224,9 @@ export default function TaskRow({
         {type === "tasks" && (item.people || []).length > 0 && (
           <div
             className="notify-people"
-            title={(item.people || []).map((p) => p.name).join(", ")}
+            title={(item.people || []).map((p: ProjectTaskPerson) => p.name).join(", ")}
           >
-            {(item.people || []).slice(0, 2).map((p) => (
+            {(item.people || []).slice(0, 2).map((p: ProjectTaskPerson) => (
               <div key={p.name} className="avatar small">
                 {p.name
                   .split(" ")
@@ -223,7 +247,7 @@ export default function TaskRow({
           <button
             className={item.favorite ? "star favorite" : "star"}
             title={item.favorite ? "Unstar" : "Star"}
-            onClick={() => handleStar(id)}
+            onClick={() => handleStar?.(id)}
             aria-label={item.favorite ? "Unstar" : "Star"}
           >
             <span className="material-icons">
@@ -233,7 +257,7 @@ export default function TaskRow({
         )}
         <button
           className="delete"
-          onClick={() => handleDelete(id)}
+          onClick={() => handleDelete?.(id)}
           aria-label="Delete"
         >
           <span className="material-icons">close</span>

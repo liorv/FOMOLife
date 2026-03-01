@@ -1,5 +1,25 @@
 import React from "react";
 import TaskRow from "./TaskRow";
+import type { ProjectTask, ProjectTaskPerson } from "@myorg/types";
+
+export interface TaskProps {
+  item: ProjectTask;
+  id: string;
+  type: "tasks" | "people" | string;
+  editorTaskId?: string | null;
+  setEditorTaskId?: (taskId: string | null) => void;
+  handleToggle?: (taskId: string) => void;
+  handleStar?: (taskId: string) => void;
+  handleDelete?: (taskId: string) => void;
+  onTitleChange?: (taskId: string, newTitle: string) => void;
+  children?: React.ReactNode;
+  onDragStart?: (taskId: string, e: React.DragEvent) => void;
+  onDragOver?: (taskId: string, e: React.DragEvent) => void;
+  onDrop?: (taskId: string, e: React.DragEvent) => void;
+  onDragEnd?: (taskId: string, e: React.DragEvent) => void;
+  newlyAddedTaskId?: string | null;
+  onClearNewTask?: () => void;
+}
 
 export default function Task({
   item,
@@ -18,11 +38,11 @@ export default function Task({
   onDragEnd,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
-}) {
+}: TaskProps) {
   return (
     <li
       data-task-id={id}
-      className={`${item.done ? "done" : ""}${type === "tasks" && editorTaskId === id ? " is-editing" : ""}`}
+      className={`${item.done ? "done" : ""}${type === "tasks" && (editorTaskId ?? null) === id ? " is-editing" : ""}`}
       draggable={type === "tasks"}
       onDragStart={(e) => {
         // Stop bubbling so the SubprojectEditor wrapper's onDragStart
@@ -60,12 +80,12 @@ export default function Task({
           item={item}
           id={id}
           type={type}
-          editorTaskId={editorTaskId}
-          setEditorTaskId={setEditorTaskId}
-          handleToggle={handleToggle}
-          handleStar={handleStar}
-          handleDelete={handleDelete}
-          onTitleChange={onTitleChange}
+          editorTaskId={editorTaskId ?? null}
+          {...(setEditorTaskId !== undefined && { setEditorTaskId })}
+          {...(handleToggle !== undefined && { handleToggle })}
+          {...(handleStar !== undefined && { handleStar })}
+          {...(handleDelete !== undefined && { handleDelete })}
+          {...(onTitleChange !== undefined && { onTitleChange })}
           newlyAddedTaskId={newlyAddedTaskId}
           onClearNewTask={onClearNewTask}
         />
