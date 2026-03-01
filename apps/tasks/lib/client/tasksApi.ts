@@ -40,14 +40,12 @@ export function createTasksApiClient(baseUrl = ''): TasksApiClient {
     },
 
     async updateTask(id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description'>>): Promise<TaskItem> {
-      console.log('API: updateTask', id, patch);
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id, patch }),
       });
       const out = await parseResponse<TaskItem>(response);
-      console.log('API: updateTask result', out);
       return out;
     },
 
