@@ -177,17 +177,23 @@ export default function TaskEditor({
 
   const containerClass = inline ? "inline-editor" : "side-editor";
 
+  // unique ids for inputs (avoid duplicates when multiple editors are mounted)
+  const dateId = `task-date-${task.id || 'editor'}`;
+  const descId = `task-desc-${task.id || 'editor'}`;
+  const peopleSearchId = `person-search-${task.id || 'editor'}`;
+
   return (
     <div className={containerClass} style={{ overflow: 'auto' }}>
       {!inline && <h2>Edit Task</h2>}
       <div className="editor-columns">
         <div className="left-column">
+              {/* use unique ids so multiple editors on the page won't clash */}
           <div className="editor-section date-section">
-            <label htmlFor="task-date" className="desc-label">
+            <label htmlFor={dateId} className="desc-label">
               Due date
             </label>
             <input
-              id="task-date"
+              id={dateId}
               type="date"
               className="due-date-input"
               value={dueDate}
@@ -200,11 +206,11 @@ export default function TaskEditor({
           </div>
 
           <div className="editor-section desc-section">
-            <label htmlFor="task-desc" className="desc-label">
+            <label htmlFor={descId} className="desc-label">
               Notes
             </label>
             <textarea
-              id="task-desc"
+              id={descId}
               className="task-description"
               value={description}
               onChange={(e) => {
@@ -217,7 +223,7 @@ export default function TaskEditor({
         </div>
         <div className="right-column">
           <div className="editor-section people-section">
-            <label>Owners</label>
+            <label htmlFor={peopleSearchId}>Owners</label>
             <div className="people-list task-person-list">
               {people.map((p) => (
                 <div key={p.name} className="task-person-row">
@@ -246,7 +252,7 @@ export default function TaskEditor({
             </div>
             <div className="add-person-bar" style={{ position: "relative" }}>
               <input
-                id={`person-search-${task && task.id ? task.id : "editor"}`}
+                id={peopleSearchId}
                 name="personSearch"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

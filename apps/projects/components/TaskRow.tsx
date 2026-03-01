@@ -161,6 +161,7 @@ export default function TaskRow({
         {editingTitle ? (
           <input
             className="task-title-input"
+            name={`task-title-${id}`}
             value={draftTitle}
             onChange={(e) => setDraftTitle(e.target.value)}
             onBlur={finishEdit}

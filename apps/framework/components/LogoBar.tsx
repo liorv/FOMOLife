@@ -74,6 +74,7 @@ export default function LogoBar({
               </span>
               <input
                 className="logo-search-input"
+                name="logo-search"
                 value={searchValue}
                 onChange={(event) => onSearchChange?.(event.target.value)}
                 placeholder={searchPlaceholder}

@@ -259,6 +259,7 @@ export default function ProjectTile({
               {editingName ? (
                 <input
                   className="project-name-input"
+                  name={`project-name-${project.id}`}
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
                   onMouseDown={(e) => e.stopPropagation()}

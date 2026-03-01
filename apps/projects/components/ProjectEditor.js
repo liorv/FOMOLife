@@ -61,9 +61,9 @@ export default function ProjectEditor({
       return;
     }
     if (!taskId) {
-      // should never happen, but log so we can trace bugs where the editor
-      // loses its id before the callback fires (e.g. rapid switching)
-      console.warn("updateTask called without taskId", subId, changes);
+      // should never happen, but guard against bugs where the editor
+      // loses its id before the callback fires (e.g. rapid switching).
+      // Previously we logged this to console; remove logging to keep output clean.
       return;
     }
 
