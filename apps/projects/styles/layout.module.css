@@ -1,0 +1,187 @@
+/* Layout Styles - Shared layout styles extracted from projects.css */
+
+/* Projects Page specific styles */
+.container {
+  overflow: auto;
+}
+
+.searchBar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #d0d7de;
+  padding: 0 10px;
+}
+
+.message {
+  margin: 0 16px 8px;
+}
+
+.readOnlyMessage {
+  composes: message;
+  color: #8a6d3b;
+}
+
+.loadingMessage {
+  composes: message;
+}
+
+.errorMessage {
+  composes: message;
+  color: #b3261e;
+}
+
+/* Add Bar Wrapper */
+.addBarWrapper {
+  width: 100%;
+}
+
+.addBarWrapper .addBar {
+  position: static;
+}
+
+.addBarWrapper .addBar input {
+  flex: 1;
+}
+
+.addBarWrapper .addBar input:focus {
+  outline: none;
+}
+
+.addBarWrapper .addBar .addBtn {
+  background: var(--color-subproject-header);
+}
+
+.addBarWrapper .addBar .addBtn:hover {
+  background: var(--color-subproject-header);
+}
+
+/* FAB (Floating Action Button) */
+.fab {
+  position: absolute;
+}
+
+.fab:focus {
+  outline: none;
+}
+
+.fab .materialIcons {
+  font-size: 24px;
+}
+
+/* FAB menu (opens above FAB) */
+.fabMenu {
+  position: absolute;
+}
+
+.fabSmall {
+  position: static;
+}
+
+.fabSmall .materialIcons {
+  font-size: 1.2rem;
+}
+
+.fabLabel {
+  font-size: 0.9rem;
+}
+
+/* Confirm Modal */
+.confirmModalOverlay {
+  position: fixed;
+}
+
+.confirmModal {
+  background: white;
+}
+
+.confirmModal .warningIcon {
+  font-size: 3rem;
+}
+
+.confirmModal .confirmMessage {
+  margin-bottom: 16px;
+}
+
+.confirmButtons {
+  display: flex;
+}
+
+.confirmBtn {
+  background: var(--color-danger);
+}
+
+.cancelBtn {
+  background: #ccc;
+}
+
+/* Undo Snackbar */
+.undoSnackbar {
+  position: fixed;
+}
+
+.snackContent {
+  display: flex;
+}
+
+.snackMessage {
+  font-size: 14px;
+}
+
+.snackActions {
+  display: flex;
+}
+
+.snackButton {
+  padding: 8px 16px;
+}
+
+.undoButton {
+  background-color: #1976d2;
+}
+
+.undoButton:hover {
+  background-color: #1565c0;
+}
+
+.undoButton:active {
+  transform: scale(0.98);
+}
+
+.dismissButton {
+  background-color: #555555;
+}
+
+.dismissButton:hover {
+  background-color: #666666;
+}
+
+.dismissButton:active {
+  transform: scale(0.98);
+}
+
+/* Editable indicator */
+.editableIndicator {
+  font-size: 0.75rem !important;
+}
+
+.taskTitle {
+  display: inline-block;
+}
+
+.taskTitle .editableIndicator {
+  position: absolute;
+}
+
+.taskRow:hover .taskTitle .editableIndicator,
+.taskRow:hover .taskTitleContainer .editableIndicator {
+  opacity: 1;
+}

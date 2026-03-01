@@ -1,0 +1,194 @@
+/* Subproject Row Styles - Extracted from projects.css */
+.subprojectRow {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 4px 0;
+  box-sizing: border-box;
+}
+
+.subprojectRow:hover {
+  /* lighten slightly on hover but stay white-based */
+  background: #fafafa;
+}
+
+.expandBtn {
+  background: transparent;
+}
+
+.expandBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.rightGroup {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.subprojectIcon,
+.statsIcon,
+.descIcon {
+  font-size: 20px;
+}
+
+.rowTitle {
+  display: inline-flex;
+  flex: 1;
+}
+
+.rowNameText {
+  min-width: 0;
+}
+
+.rowNameInput {
+  width: 100%;
+}
+
+.rowStats {
+  font-size: 0.9em;
+}
+
+.row .owners {
+  display: flex;
+}
+
+.row .avatar.small {
+  width: 24px;
+}
+
+.row .peopleCount {
+  font-size: 0.8em;
+}
+
+.row button {
+  background: none;
+}
+
+.row button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.row .menuButton {
+  margin-left: auto;
+}
+
+/* Subproject row menu — matches project-tile menu styling */
+.row .menu {
+  position: absolute;
+}
+
+.row .menu .menuButton {
+  position: relative;
+}
+
+.row .menuDropdown {
+  position: fixed;
+}
+
+.row .menuDropdown[data-flipped-v="true"] {
+  animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menuDropdown .menuItem {
+  width: 100%;
+}
+
+.menuDropdown .menuItem:hover {
+  background-color: #f8f9fa;
+}
+
+.menuDropdown .menuItem:active {
+  background-color: #f1f3f4;
+}
+
+.menuDropdown .menuItem .materialIcons {
+  font-size: 1.2rem;
+}
+
+.menuDropdown .colorMenuItem:hover .materialIcons {
+  color: #f57c00;
+}
+
+.menuDropdown .editMenuItem:hover .materialIcons {
+  color: #1f77d1;
+}
+
+.menuDropdown .deleteMenuItem:hover .materialIcons {
+  color: #d33b27;
+}
+
+/* Color picker submenu */
+.row .colorPickerSubmenu {
+  position: absolute;
+}
+
+.row .colorPickerSubmenu[data-flipped="true"] {
+  right: auto;
+}
+
+.row .colorPickerGrid {
+  display: grid;
+}
+
+.row .colorOption {
+  width: 36px;
+}
+
+.row .colorOption:hover {
+  transform: scale(1.1);
+}
+
+.row .colorOption.selected {
+  border-color: var(--color-text);
+}
+
+.row .colorOption .materialIcons {
+  font-size: 1.2rem;
+}
+
+.row .colorOption[style*="#FFC107"] .materialIcons,
+.row .colorOption[style*="#FFA000"] .materialIcons,
+.row .colorOption[style*="#FF8F00"] .materialIcons {
+  color: var(--color-text);
+}
+
+/* Subproject row context menu (legacy — kept for compat) */
+.rowMenu {
+  position: absolute;
+}
+
+.rowMenu .menuItem {
+  background: none;
+}
+
+.rowMenu .menuIcon {
+  font-size: 18px;
+}
+
+.rowMenu .menuItem:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Color picker inline */
+.colorPickerInline {
+  display: flex;
+}
+
+.colorPickerButton {
+  width: 28px;
+}
+
+.colorPickerButton:hover {
+  transform: scale(1.1);
+}
+
+/* Task list */
+.taskList {
+  list-style: disc inside;
+}

@@ -27,6 +27,8 @@ export interface ProjectTask {
   dueDate: string | null;
   /** Whether the task is marked as favorite/starred */
   favorite: boolean;
+  /** Legacy alias used in some components */
+  starred?: boolean;
   /** Extended description/notes for the task */
   description?: string;
   /** People assigned to this task */

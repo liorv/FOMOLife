@@ -1,0 +1,119 @@
+/* Project Editor Styles - Extracted from projects.css */
+.editor {
+  padding: 10px 10px 0 10px;
+}
+
+.editAccordion {
+  padding: 16px;
+}
+
+.editAccordion details {
+  width: 100%;
+}
+
+.editAccordion summary {
+  cursor: pointer;
+}
+
+.editor .editorSection {
+  display: flex;
+}
+
+.editor input {
+  padding: 8px 10px;
+}
+
+.editor ul.itemList {
+  min-width: 100%;
+}
+
+/* Project editor task rows match main task row behavior */
+.editor .taskRow {
+  flex: 1 1 100%;
+}
+
+.subproject .taskRow {
+  gap: 4px;
+}
+
+/* shrink header height and spacing inside subproject tasks */
+.subproject .taskHeader {
+  height: 36px;
+}
+
+.subproject .taskCheckbox {
+  width: 0.9em;
+}
+
+.subproject .taskRow button {
+  padding: 2px;
+}
+
+.subproject .taskRow .taskTitle {
+  font-size: 0.95rem;
+}
+
+/* add separator line between rows */
+.subproject .taskRow + .taskRow {
+  border-top: 1px solid var(--color-border-row);
+}
+
+/* keep drag handle icon a little smaller */
+.subproject .taskRow .materialIcons.expandIcon {
+  font-size: 1.1rem;
+}
+
+/* ensure checkbox and buttons remain properly sized */
+.subproject .taskRow .taskCheckbox,
+.subproject .taskRow button {
+  padding: 2px;
+}
+
+/* Subproject container */
+.editor .subproject {
+  margin: 0;
+}
+
+.editor .subproject:active {
+  cursor: grabbing;
+}
+
+/* Collapsed subproject: transparent wrapper so card styling comes from row */
+.editor .subproject.collapsed {
+  background: transparent;
+}
+
+.editor .subproject.collapsed .subprojectRow {
+  margin: 0;
+}
+
+/* wrapper receives shadow when subproject is open */
+.editor .subproject.expanded {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* inline renaming inputs */
+.subprojectNameInput {
+  flex: none;
+}
+
+.subprojectNameInputExpanded {
+  font-size: 14px;
+}
+
+.subprojectNameEditBtn {
+  background: none;
+}
+
+.subprojectNameEditBtn .materialIcons {
+  font-size: 15px !important;
+}
+
+.subprojectRow:hover .subprojectNameEditBtn,
+.subprojectNameEditBtn:focusVisible {
+  opacity: 1;
+}
+
+.collapseBtn {
+  background: none;
+}

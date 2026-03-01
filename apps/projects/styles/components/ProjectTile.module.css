@@ -1,0 +1,210 @@
+/* Project Tile Styles - Extracted from projects.css */
+.projectsPanel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  padding: 36px 20px 220px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-bg-light);
+  flex: 1;
+  min-height: 0;
+  justify-items: center;
+}
+
+/* Tile custom property defaults */
+.tile {
+  width: 100%;
+  min-width: 300px;
+  min-height: 280px;
+  position: relative;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgba(60, 64, 67, 0.12);
+  display: flex;
+  flex-direction: column;
+  cursor: grab;
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.tile:active {
+  cursor: grabbing;
+}
+
+.tile:hover {
+  transform: none;
+  box-shadow: 0 6px 16px rgba(60, 64, 67, 0.16);
+}
+
+/* Artistic background shapes */
+.tileBg {
+  display: none;
+}
+
+.tileShape {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.08) 0%, 
+    rgba(147, 51, 234, 0.06) 50%, 
+    rgba(236, 72, 153, 0.04) 100%);
+  animation: float 6s ease-in-out infinite;
+}
+
+.shape1 {
+  width: 120px;
+  height: 120px;
+  top: -40px;
+  right: -40px;
+  animation-delay: 0s;
+}
+
+.shape2 {
+  width: 80px;
+  height: 80px;
+  bottom: -30px;
+  left: -30px;
+  animation-delay: 2s;
+}
+
+.shape3 {
+  width: 60px;
+  height: 60px;
+  top: 50%;
+  left: 20%;
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(180deg); }
+}
+
+/* Main content container */
+.tileContent {
+  position: relative;
+  z-index: 2;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header section */
+.tileHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.nameSection {
+  flex: 1;
+}
+
+.nameRow {
+  display: inline-flex;
+}
+
+.nameInput {
+  font-size: 1rem;
+}
+
+.name {
+  font-size: 1rem;
+}
+
+.nameEditBtn {
+  background: none;
+}
+
+.nameEditBtn .materialIcons {
+  font-size: 15px !important;
+}
+
+.tile:hover .nameEditBtn,
+.nameEditBtn:focusVisible {
+  opacity: 1;
+}
+
+.nameAccent {
+  height: 3px;
+}
+
+/* Progress visualization */
+.progressSection {
+  /* absolutely center the visualization inside the tile */
+}
+
+.progressVisualization {
+  position: relative;
+}
+
+.progressCircle {
+  position: relative;
+}
+
+.progressSvg {
+  width: 100%;
+}
+
+.progressBg {
+  fill: none;
+}
+
+.progressFill {
+  fill: none;
+}
+
+.progressText {
+  position: absolute;
+}
+
+.progressPercent {
+  font-size: 1.5rem;
+}
+
+.progressLabel {
+  font-size: 0.75rem;
+}
+
+/* Stats - rounded so that the left edge aligns exactly with the tile's edge. */
+.stats {
+  display: flex;
+}
+
+.statItem {
+  display: flex;
+}
+
+.statNumber {
+  font-size: 1.25rem;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+}
+
+/* Menu button */
+.tile .menu {
+  position: relative;
+}
+
+.tile .menuButton {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.tile .menuButton:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.tile .menuButton:active {
+  transform: scale(0.95);
+}
+
+.tile .menuButton .materialIcons {
+  font-size: 1.25rem;
+}
