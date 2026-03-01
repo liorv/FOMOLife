@@ -1,4 +1,0 @@
-
-> contacts@0.0.0 lint C:\Users\mylig\Github\FOMO Life\apps\contacts
-> eslint "app/**/*.{ts,tsx}" "components/**/*.{ts,tsx}" "lib/**/*.{ts,tsx}"
-

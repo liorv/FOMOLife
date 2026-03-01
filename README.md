@@ -52,6 +52,18 @@ Run a single app:
 - `pnpm --filter projects dev`
 - `pnpm --filter tasks dev`
 
+## Git safety guardrails (large/generated files)
+
+This repo blocks committing and pushing generated/cache artifacts and oversized files.
+
+One-time local setup:
+- `pnpm setup:githooks`
+
+Checks:
+- Pre-commit blocks staged cache/generated files and files larger than 5MB.
+- Pre-push blocks pushed commits that contain cache/generated files or files larger than 5MB.
+- CI also runs `npm run check:large-files` on every push/PR.
+
 Validation gates:
 - `pnpm turbo lint --filter=framework --filter=contacts --filter=projects --filter=tasks`
 - `pnpm turbo build --filter=framework --filter=contacts --filter=projects --filter=tasks`

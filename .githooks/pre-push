@@ -1,0 +1,3 @@
+#!/bin/sh
+
+node scripts/guard-large-files.js pre-push

@@ -9,10 +9,14 @@ coverage/
 .next/
 .turbo/
 **/.turbo/
+**/.next/
+**/.vercel/
+**/coverage/
+**/dist/
 **/*.tsbuildinfo
 
 data/
-.vercel
+.vercel/
 .env*.local
 
 # GCP OAuth credentials — never commit these

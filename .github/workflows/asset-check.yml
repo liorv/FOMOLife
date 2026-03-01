@@ -17,5 +17,7 @@ jobs:
         run: npm ci
       - name: Verify referenced assets exist
         run: npm run verify-assets
+      - name: Block cache and large files
+        run: npm run check:large-files
       - name: Run unit tests
         run: npm test -- --runInBand
