@@ -1,5 +1,0 @@
-/* Legacy CSS split aggregator for deterministic import order. */
-@import "./styles/layout.css";
-@import "./styles/tabs.css";
-@import "./styles/projects.css";
-@import "./styles/contacts.css";

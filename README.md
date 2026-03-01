@@ -9,7 +9,6 @@ Apps:
 - `apps/contacts` — contacts management app
 - `apps/projects` — projects app
 - `apps/tasks` — tasks app
-- `pages/*` + `src/*` — legacy root shell kept for compatibility and tab handoff redirects
 
 Shared packages:
 - `packages/types` — shared domain contracts
@@ -29,7 +28,7 @@ Canonical app URLs:
 - Tasks: https://fomo-life-tasks.vercel.app
 - Legacy root shell: https://fomo-life.vercel.app
 
-Legacy compatibility redirects (root shell):
+Legacy compatibility redirects (root shell still handled by framework app):
 - `https://fomo-life.vercel.app/?tab=people` → contacts app
 - `https://fomo-life.vercel.app/?tab=projects` → projects app
 - `https://fomo-life.vercel.app/?tab=tasks` → tasks app
@@ -55,7 +54,6 @@ Run a single app:
 
 Validation gates:
 - `pnpm turbo lint --filter=framework --filter=contacts --filter=projects --filter=tasks`
-- `pnpm turbo test --filter=framework --filter=contacts --filter=projects --filter=tasks`
 - `pnpm turbo build --filter=framework --filter=contacts --filter=projects --filter=tasks`
 
 ## Deployment runbook (preview + production)
