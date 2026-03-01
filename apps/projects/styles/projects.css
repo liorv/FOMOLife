@@ -1626,6 +1626,7 @@
   display: inline-block;
   position: relative; /* positioning context for icon */
   white-space: nowrap;
+  flex: none; /* do not grow/shrink in flex container */
 }
 
 .task-title .editable-indicator {
