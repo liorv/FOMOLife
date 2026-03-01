@@ -24,10 +24,8 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export function createTasksApiClient(baseUrl = ''): TasksApiClient {
   return {
     async listTasks(): Promise<TaskItem[]> {
-      console.log('API: listTasks');
       const response = await fetch(`${baseUrl}/api/tasks`, { method: 'GET' });
       const payload = await parseResponse<{ tasks: TaskItem[] }>(response);
-      console.log('API: listTasks result', payload);
       return payload.tasks;
     },
 

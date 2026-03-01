@@ -81,7 +81,6 @@ function getOrInitUserTasks(userId: string): TaskItem[] {
 
 export async function listTasks(userId: string): Promise<TaskItem[]> {
   const tasks = [...getOrInitUserTasks(userId)];
-  console.log("tasksStore: listTasks for", userId, "->", tasks.map(t=>t.id));
   return tasks;
 }
 
