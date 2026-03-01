@@ -161,22 +161,20 @@ export default function SubprojectEditor({
       // expand: measure content and animate to that height
       const height = el.scrollHeight;
       el.style.maxHeight = height + "px";
-      el.style.padding = "8px 0 12px 0";
-      el.style.margin = "8px 0";
+      // no padding/margin adjustments as requested
     } else {
       // collapse: set to current height, then shrink to 0 on next tick
       const height = el.scrollHeight;
       el.style.maxHeight = height + "px";
-      el.style.padding = "8px 0 12px 0";
-      el.style.margin = "8px 0";
-      // force a layout so the above styles take effect immediately
-      void el.offsetHeight;
-      setTimeout(() => {
-        el.style.maxHeight = "0";
-        el.style.padding = "0";
-        el.style.margin = "0";
-      }, 0);
+      // keep padding/margin at 0
     }
+    // force a layout so the above styles take effect immediately
+    void el.offsetHeight;
+    setTimeout(() => {
+      el.style.maxHeight = "0";
+      el.style.padding = "0";
+      el.style.margin = "0";
+    }, 0);
   }, [collapsed, visibleTasks]);
 
   // focus input when subproject expands
