@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { createProjectsApiClient } from '@/lib/client/projectsApi';
 import type { ProjectItem } from '@myorg/types';
 import ProjectsDashboard from './ProjectsDashboard';
+import layoutStyles from '../styles/layout.module.css';
 import { PROJECT_COLORS } from './ProjectTile';
 
 // ProjectsDashboard is now a typed TSX component
@@ -252,21 +253,21 @@ export default function ProjectsPage({ canManage }: Props) {
 
   return (
     <main className="main-layout">
-      <div className="container" style={{ overflow: 'auto' }}>
+      <div className={`container ${layoutStyles.container}`}>
         {!isEmbedded ? (
-          <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: '#fff' }}>
+          <div className={layoutStyles.searchBar}>
             <input
               value={projectSearch}
               onChange={(event) => setProjectSearch(event.target.value)}
               placeholder={editingProjectId ? 'Search tasks…' : 'Search projects…'}
-              style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 8, border: '1px solid #d0d7de', padding: '0 10px' }}
+              className={layoutStyles.searchInput}
             />
           </div>
         ) : null}
 
-        {!canManage ? <div style={{ margin: '0 16px 8px', color: '#8a6d3b' }}>Read-only mode: sign in is required to manage projects.</div> : null}
-        {loading ? <div style={{ margin: '0 16px 8px' }}>Loading projects…</div> : null}
-        {errorMessage ? <div style={{ margin: '0 16px 8px', color: '#b3261e' }}>{errorMessage}</div> : null}
+        {!canManage ? <div className={`${layoutStyles.message} ${layoutStyles.readOnlyMessage}`}>Read-only mode: sign in is required to manage projects.</div> : null}
+        {loading ? <div className={layoutStyles.message}>Loading projects…</div> : null}
+        {errorMessage ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{errorMessage}</div> : null}
 
         <ProjectsDashboard
           projects={projects}

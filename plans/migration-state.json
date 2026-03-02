@@ -64,6 +64,13 @@
       "status": "completed",
       "completedAt": "2026-03-01T00:55:00Z"
     },
+    {
+      "id": "6c",
+      "title": "Begin using CSS modules in Projects components",
+      "description": "ProjectsPage now uses layout.module.css; additional components still need updates.",
+      "status": "in-progress",
+      "completedAt": null
+    },
 
     {
       "id": 7,
