@@ -313,9 +313,9 @@ export default function ProjectTile({
             <div className="project-name-accent" />
           </div>
           
-          <div className="project-menu" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+          <div className={tileStyles.menu} ref={menuRef} onClick={(e) => e.stopPropagation()}>
             <button
-              className="project-menu-button"
+              className={tileStyles.menuButton}
               title="More options"
               onClick={(e) => {
                 e.stopPropagation();
