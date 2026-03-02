@@ -162,14 +162,11 @@ export default function SubprojectEditor({
     const height = el.scrollHeight;
 
     if (!collapsed) {
-      // expanding: set maxHeight to the measured content, then clear it
-      // after the transition so the element can grow/shrink naturally later.
+      // expanding: set maxHeight to the measured content.
+      // Keep this value so tasks stay visible. The effect reruns when
+      // content changes (visibleTasks) so it'll update accordingly.
       el.style.maxHeight = height + "px";
-      // padding/margin are kept at whatever CSS rules dictate
-      void el.offsetHeight;
-      setTimeout(() => {
-        el.style.maxHeight = "";
-      }, 0);
+      // padding/margin are handled via CSS or collapse branch.
     } else {
       // collapsing: start from current height then animate to 0
       el.style.maxHeight = height + "px";
