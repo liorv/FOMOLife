@@ -153,28 +153,33 @@ export default function SubprojectEditor({
     (!collapsed ? " expanded" : "");
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // adjust max-height/padding/margin based on collapsed state for animation
+  // animate height when toggling collapsed state
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
+
+    // measure current height so we can animate from/to it
+    const height = el.scrollHeight;
+
     if (!collapsed) {
-      // expand: measure content and animate to that height
-      const height = el.scrollHeight;
+      // expanding: set maxHeight to the measured content, then clear it
+      // after the transition so the element can grow/shrink naturally later.
       el.style.maxHeight = height + "px";
-      // no padding/margin adjustments as requested
+      // padding/margin are kept at whatever CSS rules dictate
+      void el.offsetHeight;
+      setTimeout(() => {
+        el.style.maxHeight = "";
+      }, 0);
     } else {
-      // collapse: set to current height, then shrink to 0 on next tick
-      const height = el.scrollHeight;
+      // collapsing: start from current height then animate to 0
       el.style.maxHeight = height + "px";
-      // keep padding/margin at 0
+      void el.offsetHeight;
+      setTimeout(() => {
+        el.style.maxHeight = "0";
+        el.style.padding = "0";
+        el.style.margin = "0";
+      }, 0);
     }
-    // force a layout so the above styles take effect immediately
-    void el.offsetHeight;
-    setTimeout(() => {
-      el.style.maxHeight = "0";
-      el.style.padding = "0";
-      el.style.margin = "0";
-    }, 0);
   }, [collapsed, visibleTasks]);
 
   // focus input when subproject expands
