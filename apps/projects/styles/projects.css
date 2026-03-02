@@ -126,7 +126,9 @@
   background: #fff; /* keep content white for readability */
   border: none;
   border-radius: 6px;
-  /* animated height/padding/margin when toggling; actual values set by JS */
+  /* animated height/padding/margin when toggling; maintain zero spacing
+     so tasks hug the card edges. JS will also explicitly clear any inline
+     padding/margin to avoid flash when the element is measured. */
   transition: max-height 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
   max-height: 0;
   padding: 0;
