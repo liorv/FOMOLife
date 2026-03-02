@@ -1553,8 +1553,10 @@
 /* Ensure the AddBar inside the wrapper behaves like the normal global
    add-bar; override anything aggressive from the old styles. */
 .add-bar-wrapper .add-bar {
-  position: static;
-  top: auto;
+  /* prevent the global sticky rule from layout.css from affecting
+     in-editor bars; they should scroll with their container */
+  position: static !important;
+  top: auto !important;
   background: var(--color-surface);
   padding: 10px 50px 0px;
   margin-bottom: 0;
