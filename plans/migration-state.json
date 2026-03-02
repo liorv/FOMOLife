@@ -32,9 +32,10 @@
       "id": 5,
       "title": "Convert remaining apps to TypeScript",
       "description": "Migrate tasks, framework, and any future apps; ensure typechecks and builds succeed.",
-      "status": "in-progress",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-01T00:35:00Z"
     },
+
     {
       "id": "5a",
       "title": "Verify tasks app",
