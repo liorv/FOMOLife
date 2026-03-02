@@ -18,8 +18,8 @@
       "id": 3,
       "title": "Convert first additional app (e.g., contacts) to TypeScript",
       "description": "Migrate components, update tests, ensure typechecks pass.",
-      "status": "not-started",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-01T00:15:00Z"
     },
     {
       "id": 4,
