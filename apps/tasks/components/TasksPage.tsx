@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import styles from './TasksPage.module.css';
 import { useSearchParams } from 'next/navigation';
 import { createTasksApiClient } from '@/lib/client/tasksApi';
 import type { TaskItem } from '@myorg/types';
@@ -235,14 +236,14 @@ export default function TasksPage({ canManage }: Props) {
 
   return (
     <main className="main-layout">
-      <div className="container" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className={`container ${styles.inlineContainer}`}>
         {!isEmbedded ? (
-          <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: '#fff' }}>
+          <div className={styles.searchBar}>
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search tasks…"
-              style={{ flex: 1, minWidth: 0, height: 36, borderRadius: 8, border: '1px solid #d0d7de', padding: '0 10px' }}
+              className={styles.searchInput}
             />
           </div>
         ) : null}
@@ -357,16 +358,16 @@ export default function TasksPage({ canManage }: Props) {
           </div>
         </div>
 
-        {!canManage ? <div style={{ margin: '0 16px 8px', color: '#8a6d3b' }}>Read-only mode: sign in is required to manage tasks.</div> : null}
-        {loading ? <div style={{ margin: '0 16px 8px' }}>Loading tasks…</div> : null}
-        {errorMessage ? <div style={{ margin: '0 16px 8px', color: '#b3261e' }}>{errorMessage}</div> : null}
+        {!canManage ? <div className={`${styles.message} ${styles.messageReadOnly}`}>Read-only mode: sign in is required to manage tasks.</div> : null}
+        {loading ? <div className={styles.message}>Loading tasks…</div> : null}
+        {errorMessage ? <div className={`${styles.message} ${styles.messageError}`}>{errorMessage}</div> : null}
 
-        <div className="filter-flat-view tasks-filter-view" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className={`filter-flat-view tasks-filter-view ${styles.filterView}`}>
           {filtered.length === 0 ? (
             <p className="filter-flat-empty">{emptyMessage()}</p>
           ) : (
             <div className="subproject-tasks">
-              <ul className="item-list" style={{ margin: 0 }}>
+              <ul className={`item-list ${styles.itemList}`}>
                 <TaskListAny
                   items={filtered as any[]}
                   type="tasks"
@@ -395,17 +396,7 @@ export default function TasksPage({ canManage }: Props) {
         </div>
 
         <div
-          className="add-bar-wrapper tasks-bottom-add"
-          style={{
-            background: '#fff',
-            borderTop: '1px solid #d0d7de',
-            padding: '10px 16px',
-            position: 'sticky',
-            bottom: 0,
-            marginTop: 'auto',
-            flexShrink: 0,
-            zIndex: 15,
-          }}
+          className={`add-bar-wrapper tasks-bottom-add ${styles.addBarWrapper}`}
         >
           <AddBar
             type="tasks"

@@ -47,9 +47,17 @@
       "id": 6,
       "title": "Refine CSS architecture",
       "description": "Implement phase3-css-architecture plan across workspaces, isolate global rules and clean styles.",
-      "status": "not-started",
+      "status": "in-progress",
       "completedAt": null
     },
+    {
+      "id": "6a",
+      "title": "Replace inline styles in TasksPage",
+      "description": "Move styles from TasksPage.tsx into TasksPage.module.css and remove inline attributes.",
+      "status": "completed",
+      "completedAt": "2026-03-01T00:50:00Z"
+    },
+
     {
       "id": 7,
       "title": "Build comprehensive testing infrastructure",
