@@ -190,10 +190,26 @@
 
 .tile .menuButton {
   background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: all 0.2s ease;
+  font-size: 0;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .tile .menuButton:hover {
   background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .tile .menuButton:active {
