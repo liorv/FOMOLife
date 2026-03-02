@@ -1,5 +1,7 @@
 # Phase 1: Types Package - Step-by-Step Implementation
 
+> This phase is tracked by `plans/migration-state.json`. Update the JSON status for each step as you complete it, ensuring subsequent requests can resume where left off.
+
 **Purpose**: Create shared type definitions in `@myorg/types` package  
 **Approach**: One small step at a time, verify each step before proceeding
 

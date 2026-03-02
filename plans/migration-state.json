@@ -1,0 +1,32 @@
+{
+  "steps": [
+    {
+      "id": 1,
+      "title": "Convert projects app to TypeScript",
+      "description": "Fully type ProjectEditor, SubprojectEditor, and related components, fix UI bugs.",
+      "status": "completed",
+      "completedAt": "2026-03-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "title": "Audit remaining apps for JavaScript files",
+      "description": "Identify .js files across contacts, framework, projects, tasks, etc. and plan conversion.",
+      "status": "not-started",
+      "completedAt": null
+    },
+    {
+      "id": 3,
+      "title": "Convert first additional app (e.g., contacts) to TypeScript",
+      "description": "Migrate components, update tests, ensure typechecks pass.",
+      "status": "not-started",
+      "completedAt": null
+    },
+    {
+      "id": 4,
+      "title": "Establish shared types and utils",
+      "description": "Expand @myorg/types and utils as needed for new conversions.",
+      "status": "not-started",
+      "completedAt": null
+    }
+  ]
+}

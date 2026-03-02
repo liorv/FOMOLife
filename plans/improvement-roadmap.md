@@ -1,5 +1,7 @@
 # FOMO Life Improvement Roadmap
 
+> Track progress using `plans/migration-state.json`. Update the JSON whenever a major migration step completes so future requests resume accurately.
+
 **Created**: 2026-03-01  
 **Based on**: [Architecture Analysis](architecture-analysis.md)
 
