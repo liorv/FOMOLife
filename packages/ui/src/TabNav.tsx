@@ -1,14 +1,20 @@
 'use client';
 
-import type { FrameworkTab, FrameworkTabLink } from '@/lib/frameworkConfig';
+import React from 'react';
 
-type TabNavProps = {
-  active: FrameworkTab;
-  tabs: FrameworkTabLink[];
-  onChange: (tab: FrameworkTab) => void;
-};
+export interface TabLink<T extends string> {
+  key: T;
+  label: string;
+  icon: string;
+}
 
-export default function TabNav({ active, tabs, onChange }: TabNavProps) {
+export interface TabNavProps<T extends string> {
+  active: T;
+  tabs: TabLink<T>[];
+  onChange: (tab: T) => void;
+}
+
+export default function TabNav<T extends string>({ active, tabs, onChange }: TabNavProps<T>) {
   return (
     <nav className="tabs" role="navigation" aria-label="App navigation">
       {tabs.map((tab) => (

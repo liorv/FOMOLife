@@ -1,6 +1,6 @@
 import React from "react";
 import TaskRow from "./TaskRow";
-import type { ProjectTask, ProjectTaskPerson } from "@myorg/types";
+import type { ProjectTask } from "@myorg/types";
 
 export interface TaskProps {
   item: ProjectTask;

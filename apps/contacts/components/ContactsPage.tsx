@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ContactsApiClient } from '@myorg/api-client';
 import { createInviteLink, isNonEmptyString } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
-import { ContactCard } from './ContactCard';
+import { ContactCard } from '@myorg/ui';
 import { createContactsApiClient } from '@/lib/client/contactsApi';
 import { getContactsClientEnv } from '@/lib/env.client';
 import styles from './ContactsPage.module.css';

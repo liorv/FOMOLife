@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, MouseEvent } from "react";
 import ReactDOM from "react-dom";
-import tileStyles from '../styles/components/ProjectTile.module.css';
+import styles from './ProjectTile.module.css';
+import ColorPickerOverlay from './ColorPickerOverlay';
 
 import type { ProjectItem } from '@myorg/types';
 
-interface ProjectTileProps {
+export interface ProjectTileProps {
   project: ProjectItem;
   size?: number | string;
   width?: number | string;
@@ -159,11 +160,11 @@ export default function ProjectTile({
     };
   }, [menuOpen]);
 
-  // Listen for global menu close events to prevent multiple menus from being open
+  // listen for global menu close events to prevent multiple menus from being open
   useEffect(() => {
     function handleCloseAllMenus(event: Event) {
       // custom event with detail.projectId
-      const detail = (event as CustomEvent<{projectId: string}>).detail;
+      const detail = (event as CustomEvent<{ projectId: string }>).detail;
       if (detail && detail.projectId !== project.id) {
         setMenuOpen(false);
         setShowColorPicker(false);
@@ -243,7 +244,7 @@ export default function ProjectTile({
 
   return (
     <div
-      className={tileStyles.tile}
+      className={styles.tile}
       style={{
         width: widthStr,
         height: heightStr,
@@ -260,21 +261,21 @@ export default function ProjectTile({
       onDrop={handleDrop}
     >
       {/* Artistic background elements */}
-      <div className="project-tile-bg">
-        <div className="project-tile-shape shape-1" />
-        <div className="project-tile-shape shape-2" />
-        <div className="project-tile-shape shape-3" />
+      <div className={`${styles.tileBg} project-tile-bg`}>
+        <div className={`${styles.tileShape} ${styles.shape1} project-tile-shape shape-1`} />
+        <div className={`${styles.tileShape} ${styles.shape2} project-tile-shape shape-2`} />
+        <div className={`${styles.tileShape} ${styles.shape3} project-tile-shape shape-3`} />
       </div>
 
       {/* Main content container */}
-      <div className="project-tile-content">
+      <div className={`${styles.tileContent} project-tile-content`}>
         {/* Header with name and menu */}
-        <div className="project-tile-header">
-          <div className="project-name-section">
-            <div className="project-name-row">
+        <div className={`${styles.tileHeader} project-tile-header`}>
+          <div className={`${styles.nameSection} project-name-section`}>
+            <div className={`${styles.nameRow} project-name-row`}>
               {editingName ? (
                 <input
-                  className="project-name-input"
+                  className={`${styles.nameInput} project-name-input`}
                   name={`project-name-${project.id}`}
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
@@ -296,9 +297,9 @@ export default function ProjectTile({
                 />
               ) : (
                 <>
-                  <div className="project-name">{project.text}</div>
+                  <div className={`${styles.name} project-name`}>{project.text}</div>
                   <button
-                    className="project-name-edit-btn"
+                    className={`${styles.nameEditBtn} project-name-edit-btn`}
                     title="Rename project"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -310,12 +311,12 @@ export default function ProjectTile({
                 </>
               )}
             </div>
-            <div className="project-name-accent" />
+            <div className={`${styles.nameAccent} project-name-accent`} />
           </div>
           
-          <div className={tileStyles.menu} ref={menuRef} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.menu} ref={menuRef} onClick={(e) => e.stopPropagation()}>
             <button
-              className={tileStyles.menuButton}
+              className={styles.menuButton}
               title="More options"
               onClick={(e) => {
                 e.stopPropagation();
@@ -333,7 +334,7 @@ export default function ProjectTile({
             {menuOpen &&
               ReactDOM.createPortal(
                 <div
-                  className="project-menu-dropdown"
+                  className={`${styles.menuDropdown} project-menu-dropdown`}
                   ref={dropdownRef}
                   data-flipped-v={menuFlippedVertically ? "true" : "false"}
                   style={{
@@ -344,19 +345,19 @@ export default function ProjectTile({
                   }}
                 >
                 <button
-                  className="menu-item color-menu-item"
+                  className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
                   onClick={() => setShowColorPicker(!showColorPicker)}
                   title="Change color"
                 >
                   <span className="material-icons">palette</span>
                   <span>Color</span>
-                  <span className="menu-arrow">›</span>
+                  <span className={`${styles.menuArrow} menu-arrow`}>›</span>
                 </button>
 
-                <div className="menu-divider" />
+                <div className={`${styles.menuDivider} menu-divider`} />
 
                 <button
-                  className="menu-item edit-menu-item"
+                  className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
                   onClick={handleEdit}
                   title="Edit project"
                 >
@@ -364,7 +365,7 @@ export default function ProjectTile({
                   <span>Edit</span>
                 </button>
                 <button
-                  className="menu-item delete-menu-item"
+                  className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
                   onClick={handleDelete}
                   title="Delete project"
                 >
@@ -378,19 +379,19 @@ export default function ProjectTile({
         </div>
 
         {/* Progress visualization */}
-        <div className="project-progress-section">
-          <div className="progress-visualization">
-            <div className="progress-circle">
-              <svg className="progress-svg" viewBox="0 0 120 120">
+        <div className={`${styles.progressSection} project-progress-section`}>
+          <div className={`${styles.progressVisualization} progress-visualization`}>
+            <div className={`${styles.progressCircle} progress-circle`}>
+              <svg className={`${styles.progressSvg} progress-svg`} viewBox="0 0 120 120">
                 <circle
-                  className="progress-bg"
+                  className={`${styles.progressBg} progress-bg`}
                   cx="60"
                   cy="60"
                   r="50"
                   strokeWidth="8"
                 />
                 <circle
-                  className="progress-fill"
+                  className={`${styles.progressFill} progress-fill`}
                   cx="60"
                   cy="60"
                   r="50"
@@ -400,8 +401,8 @@ export default function ProjectTile({
                   transform="rotate(-90 60 60)"
                 />
               </svg>
-              <div className="progress-text">
-                <div className="progress-percent">{progress}%</div>
+              <div className={`${styles.progressText} progress-text`}>
+                <div className={`${styles.progressPercent} progress-percent`}>{progress}%</div>
                 {/* label removed per design; remaining CSS kept for potential future use */}
               </div>
             </div>
@@ -409,12 +410,12 @@ export default function ProjectTile({
         </div>
 
         {/* Task count indicator */}
-        <div className="project-stats">
-          <div className="stat-item">
-            <span className="stat-number">
+        <div className={`${styles.stats} project-stats`}>
+          <div className={`${styles.statItem} stat-item`}>
+            <span className={`${styles.statNumber} stat-number`}>
               {(project.subprojects || []).flatMap((s) => s.tasks || []).length}
             </span>
-            <span className="stat-label">Tasks</span>
+            <span className={`${styles.statLabel} stat-label`}>Tasks</span>
           </div>
         </div>
       </div>
@@ -430,8 +431,7 @@ export default function ProjectTile({
             />
           </div>
           <div className="project-percent" data-testid="project-percent">
-            {progress}%
-          </div>
+            {progress}%</div>
         </div>
       </div>
 
@@ -440,53 +440,14 @@ export default function ProjectTile({
       </div>
 
       {/* Color picker modal - rendered at document root to avoid scroll clipping */}
-      {showColorPicker && ReactDOM.createPortal(
-        <div 
-          className="color-picker-modal-overlay"
-          onClick={(e) => {
-            // Only close if clicking directly on the overlay background
-            if (e.target === e.currentTarget) {
-              setShowColorPicker(false);
-            }
-          }}
-        >
-          <div 
-            className="color-picker-modal"
-            ref={colorPickerRef}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="color-picker-modal-header">
-              <h3>Choose Color</h3>
-              <button
-                className="color-picker-modal-close"
-                onClick={() => setShowColorPicker(false)}
-                aria-label="Close color picker"
-                type="button"
-              >
-                <span className="material-icons">close</span>
-              </button>
-            </div>
-            <div className="color-picker-grid">
-              {DEFAULT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`color-option ${c === color ? "selected" : ""}`}
-                  style={{ backgroundColor: c }}
-                  title={`Change to ${c}`}
-                  type="button"
-                  onClick={() => handleColorChange(c)}
-                  aria-label={`Color ${c}`}
-                >
-                  {c === color && (
-                    <span className="material-icons">check</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <ColorPickerOverlay
+        open={showColorPicker}
+        onClose={() => setShowColorPicker(false)}
+        colors={DEFAULT_COLORS}
+        selectedColor={color}
+        contentRef={colorPickerRef}
+        onSelect={handleColorChange}
+      />
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import ReactDOM from "react-dom";
-import { PROJECT_COLORS } from "./ProjectTile";
+import { PROJECT_COLORS } from './ProjectTile';
+import styles from './SubprojectRow.module.css';
+import ColorPickerOverlay from './ColorPickerOverlay';
 import type { ProjectSubproject, ProjectItem } from "@myorg/types";
 
-interface SubprojectRowProps {
+export interface SubprojectRowProps {
   sub: ProjectSubproject;
   project?: ProjectItem;
   onEdit: (subprojectId: string) => void;
@@ -93,7 +95,7 @@ export default function SubprojectRow({
 
   // Helper to Render avatar initials
   const renderAvatar = (name: string) => (
-    <div key={name} className="avatar small" title={name}>
+    <div key={name} className={`${styles.avatar} avatar small`} title={name}>
       {name
         .split(" ")
         .map((s) => s[0])
@@ -166,10 +168,9 @@ export default function SubprojectRow({
     };
   }, [menuOpen]);
 
-
   return (
     <div 
-      className={`subproject-row${expanded ? " expanded" : ""}`} 
+      className={`${styles.subprojectRow} subproject-row${expanded ? " expanded" : ""}`} 
       role="button"
       onClick={() => {
         if (editingName) return;
@@ -196,7 +197,7 @@ export default function SubprojectRow({
     >
       {/* expand/collapse button */}
       <button
-        className="subproject-expand-btn"
+        className={`${styles.expandBtn} subproject-expand-btn`}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -209,7 +210,7 @@ export default function SubprojectRow({
 
       {/* icon representing a subproject/folder or project-level tasks */}
       <span 
-        className="material-icons subproject-icon" 
+        className={`material-icons ${styles.subprojectIcon} subproject-icon`} 
         aria-hidden="true"
         style={subprojectColor ? { color: subprojectColor } : {}}
       >
@@ -219,7 +220,7 @@ export default function SubprojectRow({
       {editingName ? (
         <input
           ref={nameInputRef}
-          className={expanded ? "subproject-name-input-expanded" : "subproject-name-input"}
+          className={`${styles.rowNameInput} ${expanded ? "subproject-name-input-expanded" : "subproject-name-input"}`}
           value={draftName}
           maxLength={100}
           onMouseDown={(e) => e.stopPropagation()}
@@ -233,8 +234,8 @@ export default function SubprojectRow({
           }}
         />
       ) : (
-        <span className="subproject-row-title subproject-name-display" title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
-          <span className="subproject-name-text">{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
+        <span className={`${styles.rowTitle} subproject-row-title subproject-name-display`} title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
+          <span className={`${styles.rowNameText} subproject-name-text`}>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
           {!sub.isProjectLevel && (
             <button
               className="subproject-name-edit-btn"
@@ -248,26 +249,26 @@ export default function SubprojectRow({
       )}
 
       {/* Right group: stats, description icon, owners, and menu button */}
-      <div className="subproject-right-group">
+      <div className={`${styles.rightGroup} subproject-right-group`}>
         <span
-          className="subproject-row-stats"
+          className={`${styles.rowStats} subproject-row-stats`}
           title={`${count} tasks, ${percent}% complete`}
         >
-          <span className="material-icons stats-icon" aria-hidden="true">
+          <span className={`material-icons ${styles.statsIcon} stats-icon`} aria-hidden="true">
             assignment
           </span>
           {count} <span className="task-label">task{count !== 1 ? "s" : ""}</span> <span className="stat-percent">({percent}%)</span>
         </span>
         {hasDescription && (
-          <span className="material-icons desc-icon" title="Has description">
+          <span className={`material-icons ${styles.descIcon} desc-icon`} title="Has description">
             description
           </span>
         )}
         {owners.length > 0 && (
-          <div className="owners">
+          <div className={`${styles.owners} owners`}>
             {owners.slice(0, 2).map((o: { name: string }) => renderAvatar(o.name))}
             {owners.length > 2 && (
-              <div className="people-count">+{owners.length - 2}</div>
+              <div className={`${styles.peopleCount} people-count`}>+{owners.length - 2}</div>
             )}
           </div>
         )}
@@ -275,9 +276,9 @@ export default function SubprojectRow({
 
       {/* hamburger menu on far right — outside of right-group so it's not constrained by its z-index */}
       {!sub.isProjectLevel && (
-        <div className="project-menu" ref={menuRef} style={menuOpen || showColorPicker ? { zIndex: 10000 } : {}}>
+        <div className={`${styles.menu} project-menu`} ref={menuRef} style={menuOpen || showColorPicker ? { zIndex: 10000 } : {}}>
           <button
-            className="menu-button"
+            className={`${styles.menuButton} menu-button`}
             title="More options"
             onClick={(e) => {
               e.stopPropagation();
@@ -294,7 +295,7 @@ export default function SubprojectRow({
           {menuOpen && (
             ReactDOM.createPortal(
               <div
-                className="project-menu-dropdown"
+                className={`${styles.menuDropdown} project-menu-dropdown`}
                 ref={dropdownRef}
                 onClick={(e) => e.stopPropagation()}
                 data-flipped-v={menuFlippedVertically ? "true" : "false"}
@@ -307,21 +308,21 @@ export default function SubprojectRow({
               >
               {!sub.isProjectLevel && onColorChange && (
                 <button
-                  className="menu-item color-menu-item"
+                  className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
                   onClick={() => setShowColorPicker(!showColorPicker)}
                   title="Change color"
                 >
                   <span className="material-icons">palette</span>
                   <span>Color</span>
-                  <span className="menu-arrow">›</span>
+                  <span className={`${styles.menuArrow} menu-arrow`}>›</span>
                 </button>
               )}
 
-              <div className="menu-divider" />
+              <div className={`${styles.menuDivider} menu-divider`} />
 
               {!sub.isProjectLevel && (
                 <button
-                  className="menu-item edit-menu-item"
+                  className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
                   onClick={() => {
                     setMenuOpen(false);
                     onEdit(sub.id);
@@ -334,7 +335,7 @@ export default function SubprojectRow({
               )}
               {onDelete && !sub.isProjectLevel && (
                 <button
-                  className="menu-item delete-menu-item"
+                  className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
                   onClick={() => {
                     setMenuOpen(false);
                     onDelete(sub.id);
@@ -353,57 +354,19 @@ export default function SubprojectRow({
       )}
 
       {/* Color picker modal - rendered at document root to avoid scroll clipping */}
-      {showColorPicker && !sub.isProjectLevel && onColorChange && ReactDOM.createPortal(
-        <div 
-          className="color-picker-modal-overlay"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Only close if clicking directly on the overlay background
-            if (e.target === e.currentTarget) {
-              setShowColorPicker(false);
-            }
+      {!sub.isProjectLevel && onColorChange && (
+        <ColorPickerOverlay
+          open={showColorPicker}
+          onClose={() => setShowColorPicker(false)}
+          colors={PROJECT_COLORS}
+          selectedColor={sub.color}
+          contentRef={colorPickerRef}
+          onSelect={(color) => {
+            onColorChange?.(sub.id, color);
+            setShowColorPicker(false);
+            setMenuOpen(false);
           }}
-        >
-          <div 
-            className="color-picker-modal"
-            ref={colorPickerRef}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="color-picker-modal-header">
-              <h3>Choose Color</h3>
-              <button
-                className="color-picker-modal-close"
-                onClick={() => setShowColorPicker(false)}
-                aria-label="Close color picker"
-                type="button"
-              >
-                <span className="material-icons">close</span>
-              </button>
-            </div>
-            <div className="color-picker-grid">
-              {PROJECT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`color-option ${c === sub.color ? "selected" : ""}`}
-                  style={{ backgroundColor: c }}
-                  title={`Set color to ${c}`}
-                  type="button"
-                  onClick={() => {
-                    onColorChange?.(sub.id, c);
-                    setShowColorPicker(false);
-                    setMenuOpen(false);
-                  }}
-                  aria-label={`Color ${c}`}
-                >
-                  {c === sub.color && (
-                    <span className="material-icons">check</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>,
-        document.body
+        />
       )}
     </div>
   );

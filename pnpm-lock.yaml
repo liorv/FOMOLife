@@ -75,6 +75,9 @@ importers:
       '@myorg/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@myorg/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@myorg/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -112,6 +115,9 @@ importers:
 
   apps/framework:
     dependencies:
+      '@myorg/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       next:
         specifier: latest
         version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -152,6 +158,9 @@ importers:
       '@myorg/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@myorg/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@myorg/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -254,6 +263,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@myorg/types':
+        specifier: workspace:*
+        version: link:../types
       react:
         specifier: ^18.0.0
         version: 18.3.1

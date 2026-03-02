@@ -1,7 +1,9 @@
 /// <reference types="jest" />
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ContactCard } from '../ContactCard';
+// import shared component directly from UI package
+// @ts-ignore
+import { ContactCard } from '@myorg/ui';
 import type { Contact } from '@myorg/types';
 
 // stub clipboard

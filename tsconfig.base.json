@@ -2,14 +2,19 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
     "strict": true,
+    "baseUrl": ".",
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@myorg/ui": ["packages/ui/dist"],
+      "@myorg/ui/*": ["packages/ui/dist/*"]
+    }
   }
 }

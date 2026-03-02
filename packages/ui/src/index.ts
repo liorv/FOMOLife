@@ -16,5 +16,26 @@ export type { PageShellProps, NavItem } from "./page-shell";
 export { AddBar } from "./AddBar";
 export type { AddBarProps } from "./AddBar";
 
-export { TaskList } from "./TaskList";
-export type { TaskListProps } from "./TaskList";
+export { TaskList, Task, Person, TaskModal } from "./TaskList";
+export type { TaskListProps, TaskProps, PersonProps, TaskEditorProps } from "./TaskList";
+
+export { default as ContactCard } from './ContactCard';
+export type { ContactCardProps } from './ContactCard';
+
+export { default as LogoBar } from './LogoBar';
+export type { LogoBarProps } from './LogoBar';
+
+export { default as TabNav } from './TabNav';
+export type { TabNavProps } from './TabNav';
+
+export { default as ProjectTile, PROJECT_COLORS } from './ProjectTile';
+export type { ProjectTileProps } from './ProjectTile';
+
+export { default as SubprojectRow } from './SubprojectRow';
+export type { SubprojectRowProps } from './SubprojectRow';
+
+export { default as ModalOverlay } from './ModalOverlay';
+export type { ModalOverlayProps } from './ModalOverlay';
+
+export { default as ColorPickerOverlay } from './ColorPickerOverlay';
+export type { ColorPickerOverlayProps } from './ColorPickerOverlay';

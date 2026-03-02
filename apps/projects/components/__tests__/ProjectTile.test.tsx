@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react';
-import ProjectTile, { PROJECT_COLORS } from '../ProjectTile';
+import { ProjectTile, PROJECT_COLORS } from '@myorg/ui';
 import type { ProjectItem } from '@myorg/types';
 
 const project: ProjectItem = {
   id: 'p1',
   text: 'Test',
-  color: PROJECT_COLORS[0],
+  color: PROJECT_COLORS[0]!, // non-null assertion for test
   subprojects: [],
 };
 

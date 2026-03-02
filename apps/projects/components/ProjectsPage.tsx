@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createProjectsApiClient } from '@/lib/client/projectsApi';
+import { createProjectsApiClient } from '../lib/client/projectsApi';
 import type { ProjectItem } from '@myorg/types';
 import ProjectsDashboard from './ProjectsDashboard';
 import layoutStyles from '../styles/layout.module.css';
-import { PROJECT_COLORS } from './ProjectTile';
+import { PROJECT_COLORS } from '@myorg/ui';
 
 // ProjectsDashboard is now a typed TSX component
 

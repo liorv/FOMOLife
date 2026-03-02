@@ -13,7 +13,8 @@
   "dependencies": {
     "next": "latest",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "@myorg/ui": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

@@ -3,13 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TasksPage.module.css';
 import { useSearchParams } from 'next/navigation';
-import { createTasksApiClient } from '@/lib/client/tasksApi';
-import type { TaskItem } from '@myorg/types';
-import TaskList from '../../projects/components/TaskList';
-import { AddBar } from '@myorg/ui';
+import { createTasksApiClient } from '../lib/client/tasksApi';
+import type { TaskItem, ProjectTask } from '@myorg/types';
+import { TaskList, AddBar } from '@myorg/ui';
 import { applyFilters } from '@myorg/utils';
 
-const TaskListAny = TaskList as any;
+// using shared TaskList from ui package; it is fully typed
 
 type Props = {
   canManage: boolean;
@@ -71,14 +70,14 @@ export default function TasksPage({ canManage }: Props) {
   const completedCount = useMemo(() => tasks.filter((task) => task.done).length, [tasks]);
 
   const starredCount = useMemo(
-    () => tasks.filter((task) => (task.favorite || (task as any).starred) && !task.done).length,
+    () => tasks.filter((task) => task.favorite || (task as any).starred).length,
     [tasks],
   );
 
   const overdueCount = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return tasks.filter((task) => !task.done && task.dueDate && new Date(task.dueDate) < today).length;
+    return tasks.filter((task) => task.dueDate && new Date(task.dueDate) < today).length;
   }, [tasks]);
 
   const upcomingCount = useMemo(() => {
@@ -87,7 +86,7 @@ export default function TasksPage({ canManage }: Props) {
     const inSeven = new Date(today);
     inSeven.setDate(today.getDate() + 7);
     return tasks.filter((task) => {
-      if (task.done || !task.dueDate) return false;
+      if (!task.dueDate) return false;
       const date = new Date(task.dueDate);
       return date >= today && date <= inSeven;
     }).length;
@@ -176,25 +175,24 @@ export default function TasksPage({ canManage }: Props) {
     setTasks((prev) => prev.map((item) => (item.id === taskId ? updated : item)));
   };
 
-  // updatedTask may actually be the id when called via TaskList; fix signature
-  const handleEditorUpdate = async (taskId: string | TaskItem, maybeTask?: TaskItem) => {
-    // normalize parameters: if first arg is string, second is TaskItem
-    const updatedTask: TaskItem | undefined =
-      typeof taskId === 'string' ? maybeTask : taskId as TaskItem;
-
-
+  // called by TaskList when the inline editor or other subcomponent
+  // has produced a new task object.  `updates` may be partial but usually
+  // contains the full task record.
+  const handleEditorUpdate = async (taskId: string, updates: Partial<TaskItem>) => {
     if (!canManage) {
-        return;
-    }
-    if (!updatedTask || !updatedTask.id) {
-      console.warn('TasksPage.handleEditorUpdate called without id', updatedTask);
       return;
     }
+    if (!updates || !updates.id) {
+      console.warn('TasksPage.handleEditorUpdate called without id', updates);
+      return;
+    }
+    const updatedTask = updates as TaskItem;
+
     if (deletingTaskIdsRef.current.has(updatedTask.id)) {
-        return;
+      return;
     }
     try {
-      // patch being sent to API
+      // patch being sent to API; include only changed fields if desired
       const updated = await api.updateTask(updatedTask.id, {
         text: updatedTask.text,
         description: updatedTask.description,
@@ -213,11 +211,20 @@ export default function TasksPage({ canManage }: Props) {
     }
   };
 
-  const handleEditorSave = async (updatedTask: TaskItem) => {
+  const handleEditorSave = async (updatedTask: ProjectTask) => {
     if (!updatedTask?.id) {
       console.warn('TasksPage.handleEditorSave called without id', updatedTask);
     }
-    await handleEditorUpdate(updatedTask);
+    // convert ProjectTask to TaskItem (description may be undefined)
+    const taskItem: TaskItem = {
+      id: updatedTask.id,
+      text: updatedTask.text,
+      done: updatedTask.done,
+      dueDate: updatedTask.dueDate,
+      favorite: updatedTask.favorite,
+      description: updatedTask.description || "",
+    };
+    await handleEditorUpdate(taskItem.id, taskItem);
     setEditorTaskId(null);
   };
 
@@ -270,7 +277,7 @@ export default function TasksPage({ canManage }: Props) {
           >
             <span className="material-icons dashboard-card__icon">check_circle</span>
             <div className="dashboard-card__body">
-              <span className="dashboard-card__value">{completedCount} / {tasks.length}</span>
+              <span className="dashboard-card__value">{completedCount}</span>
               <span className="dashboard-card__label">Completed</span>
             </div>
             {filters.includes('completed') ? <span className="dashboard-card__active-dot" /> : null}
@@ -368,21 +375,21 @@ export default function TasksPage({ canManage }: Props) {
           ) : (
             <div className="subproject-tasks">
               <ul className={`item-list ${styles.itemList}`}>
-                <TaskListAny
-                  items={filtered as any[]}
+                <TaskList
+                  items={filtered}
                   type="tasks"
                   editorTaskId={editorTaskId}
-                  setEditorTaskId={toggleEditorTaskId as any}
-                  handleToggle={(id: string) => void toggleDone(id)}
-                  handleStar={(id: string) => void toggleFavorite(id)}
-                  handleDelete={(id: string) => void removeTask(id)}
-                  onTitleChange={(id: string, value: string) => void handleTitleChange(id, value)}
-                  onDragStart={(id: string) => handleDragStart(id)}
+                  setEditorTaskId={toggleEditorTaskId}
+                  handleToggle={toggleDone}
+                  handleStar={toggleFavorite}
+                  handleDelete={removeTask}
+                  onTitleChange={handleTitleChange}
+                  onDragStart={handleDragStart}
                   onDragOver={() => {}}
-                  onDrop={(id: string) => handleDrop(id)}
+                  onDrop={handleDrop}
                   onDragEnd={() => setDraggedTaskId(null)}
-                  onEditorSave={(updated: TaskItem) => void handleEditorSave(updated)}
-                  onEditorUpdate={(updated: any, maybeTask: any) => void handleEditorUpdate(updated, maybeTask)}
+                  onEditorSave={handleEditorSave}
+                  onEditorUpdate={handleEditorUpdate}
                   onEditorClose={() => setEditorTaskId(null)}
                   allPeople={[]}
                   onOpenPeople={() => {}}

@@ -20,7 +20,7 @@ export function getSupabaseBrowserClient(): SupabaseClient {
       auth: {
         async getSession() { return { data: { session: null }, error: null }; },
         async signOut() { return { error: null }; },
-        async signInWithOAuth() { return { error: { message: 'noop' } } }; },
+        async signInWithOAuth() { return { error: { message: 'noop' } } } },
       from: () => ({ select: async () => ({ data: [], error: null }) }),
       // add other methods as needed
     });

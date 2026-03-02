@@ -5,13 +5,13 @@ import { createInviteLink } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
 import styles from './ContactCard.module.css';
 
-type Props = {
+export interface ContactCardProps {
   contact: Contact;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onGenerateInvite: (id: string, token: string) => void;
   readOnly?: boolean;
-};
+}
 
 function initials(name: string): string {
   return name
@@ -29,7 +29,7 @@ function generateToken(): string {
   return Math.random().toString(36).slice(2);
 }
 
-export function ContactCard({ contact, onDelete, onRename, onGenerateInvite, readOnly = false }: Props) {
+export default function ContactCard({ contact, onDelete, onRename, onGenerateInvite, readOnly = false }: ContactCardProps) {
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [nextName, setNextName] = useState(contact.name);

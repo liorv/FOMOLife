@@ -1,0 +1,475 @@
+/* Project Tile Styles - migrated from apps/projects */
+.projectsPanel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  padding: 36px 20px 220px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--color-bg-light);
+  flex: 1;
+  min-height: 0;
+  justify-items: center;
+}
+
+/* Tile custom property defaults */
+.tile {
+  width: 100%;
+  min-width: 300px;
+  min-height: 280px;
+  position: relative;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgba(60, 64, 67, 0.12);
+  display: flex;
+  flex-direction: column;
+  cursor: grab;
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.tile:active {
+  cursor: grabbing;
+}
+
+.tile:hover {
+  transform: none;
+  box-shadow: 0 6px 16px rgba(60, 64, 67, 0.16);
+}
+
+/* Artistic background shapes */
+.tileBg {
+  display: none;
+}
+
+.tileShape {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.08) 0%, 
+    rgba(147, 51, 234, 0.06) 50%, 
+    rgba(236, 72, 153, 0.04) 100%);
+  animation: float 6s ease-in-out infinite;
+}
+
+.shape1 {
+  width: 120px;
+  height: 120px;
+  top: -40px;
+  right: -40px;
+  animation-delay: 0s;
+}
+
+.shape2 {
+  width: 80px;
+  height: 80px;
+  bottom: -30px;
+  left: -30px;
+  animation-delay: 2s;
+}
+
+.shape3 {
+  width: 60px;
+  height: 60px;
+  top: 50%;
+  left: 20%;
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(180deg); }
+}
+
+/* Main content container */
+.tileContent {
+  position: relative;
+  z-index: 2;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+/* Header section */
+.tileHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nameSection {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.nameRow {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-bottom: 6px;
+}
+
+.nameInput {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.25;
+  border: none;
+  border-bottom: 2px solid var(--project-color, #0d47a1);
+  outline: none;
+  background: transparent;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0;
+  line-height: 1.25;
+  margin-bottom: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nameEditBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nameEditBtn .materialIcons {
+  font-size: 15px !important;
+}
+
+.tile:hover .nameEditBtn,
+.nameEditBtn:focus-visible {
+  opacity: 1;
+}
+
+.nameAccent {
+  height: 3px;
+  width: 60px;
+  background: linear-gradient(90deg, var(--project-color, #0d47a1), rgba(255, 255, 255, 0.3));
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progressSection {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 120px;
+  height: 120px;
+  flex: none;
+  pointer-events: none;
+}
+
+.progressVisualization {
+  position: relative;
+}
+
+.progressCircle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex: none;
+  min-width: 120px;
+  min-height: 120px;
+  max-width: 120px;
+  max-height: 120px;
+}
+
+.progressSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.progressBg {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-linecap: round;
+}
+
+.progressFill {
+  fill: none;
+  stroke: var(--project-color, var(--color-primary));
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.progressText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.25rem;
+  line-height: 1;
+  width: 120px;
+  height: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.progressPercent {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.progressLabel {
+  font-size: 0.75rem;
+}
+
+/* Stats - rounded so that the left edge aligns exactly with the tile's edge. */
+.stats {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-8px, -50%);
+  justify-content: flex-start;
+  align-items: center;
+  border-radius: 0 16px 16px 0;
+  overflow: hidden;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.statNumber {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--project-color, #0d47a1);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+/* Menu button */
+.tile .menu {
+  position: relative;
+}
+
+.tile .menuButton {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: all 0.2s ease;
+  font-size: 0;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tile .menuButton:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tile .menuButton:active {
+  transform: scale(0.95);
+}
+
+.tile .menuButton .materialIcons {
+  font-size: 1.25rem;
+}
+
+.menuDropdown {
+  background: #ffffff;
+  border-radius: var(--border-radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  z-index: 9999;
+  overflow: visible;
+  animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.menuDropdown[data-flipped-v="true"] {
+  animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menuItem {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+.menuItem:hover {
+  background-color: #f8f9fa;
+}
+
+.colorMenuItem:hover .material-icons {
+  color: #f57c00;
+}
+
+.editMenuItem:hover .material-icons {
+  color: #1f77d1;
+}
+
+.deleteMenuItem:hover .material-icons {
+  color: #d33b27;
+}
+
+.menuArrow {
+  margin-left: auto;
+}
+
+.menuDivider {
+  height: 1px;
+  margin: 4px 0;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.colorPickerModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.colorPickerModal {
+  background: #fff;
+  border-radius: var(--border-radius-lg, 12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  width: min(92vw, 320px);
+  padding: 12px;
+}
+
+.colorPickerModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.colorPickerModalHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.colorPickerModalClose {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.colorPickerModalClose:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.colorPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.colorOption {
+  width: 42px;
+  height: 42px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-text);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

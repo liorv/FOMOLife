@@ -1,6 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import TaskEditor from '../TaskModal';
+// using shared UI directly from source as path alias resolution can be unreliable in tests
+// @ts-ignore
+import { TaskModal as TaskEditor } from '@myorg/ui';
 import type { ProjectTask, ProjectTaskPerson, Contact } from '@myorg/types';
 
 const mockTask: ProjectTask = {

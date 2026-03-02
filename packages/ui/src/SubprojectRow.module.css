@@ -1,0 +1,295 @@
+.subprojectRow {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0 16px;
+  margin: 4px 0;
+  box-sizing: border-box;
+  min-height: 48px;
+  gap: 12px;
+  overflow: visible;
+  cursor: pointer;
+  user-select: none;
+}
+
+.subprojectRow:hover {
+  background: #fafafa;
+}
+
+.expandBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #667;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+}
+
+.expandBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+}
+
+.subprojectIcon,
+.statsIcon,
+.descIcon {
+  font-size: 20px;
+}
+
+.rowTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  max-width: 70vw;
+  min-width: 0;
+  font-weight: 500;
+  font-size: 1rem;
+  color: #212121;
+}
+
+.rowNameText {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rowNameInput {
+  width: 100%;
+  font-size: 1rem;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.rightGroup {
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  z-index: 10;
+}
+
+.rowStats {
+  font-size: 0.9em;
+  color: #555;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.owners {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  background: #bdbdbd;
+  color: #fff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.peopleCount {
+  font-size: 0.8em;
+  color: #757575;
+}
+
+.menu {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex: 0 0 auto;
+  z-index: 1000;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+}
+
+.menuButton:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 480px) {
+  .rowStats {
+    display: none;
+  }
+}
+
+@media (max-width: 290px) {
+  .rowStats {
+    display: none;
+  }
+  .statsIcon {
+    display: none;
+  }
+}
+
+.menuDropdown {
+  background: #ffffff;
+  border-radius: var(--border-radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  overflow: visible;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menuDropdown[data-flipped-v="true"] {
+  animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menuItem {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+.menuItem:hover {
+  background-color: #f8f9fa;
+}
+
+.colorMenuItem:hover .material-icons {
+  color: #f57c00;
+}
+
+.editMenuItem:hover .material-icons {
+  color: #1f77d1;
+}
+
+.deleteMenuItem:hover .material-icons {
+  color: #d33b27;
+}
+
+.menuArrow {
+  margin-left: auto;
+}
+
+.menuDivider {
+  height: 1px;
+  margin: 4px 0;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.colorPickerModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.colorPickerModal {
+  background: #fff;
+  border-radius: var(--border-radius-lg, 12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  width: min(92vw, 320px);
+  padding: 12px;
+}
+
+.colorPickerModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.colorPickerModalHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.colorPickerModalClose {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.colorPickerModalClose:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.colorPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.colorOption {
+  width: 42px;
+  height: 42px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-text);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

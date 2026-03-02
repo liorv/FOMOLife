@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import TaskList from "./TaskList";
-import SubprojectRow from "./SubprojectRow";
-import AddBar from "./AddBar";
+import { TaskList } from "@myorg/ui";
+import { AddBar } from "@myorg/ui";
+import { SubprojectRow } from "@myorg/ui";
 import { applyFilters } from '@myorg/utils';
 import type { ProjectSubproject, ProjectItem, ProjectTask, Contact } from "@myorg/types";
 import type { TaskFilter } from "@myorg/types";

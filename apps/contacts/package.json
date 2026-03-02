@@ -14,6 +14,7 @@
     "@myorg/api-client": "workspace:*",
     "@myorg/types": "workspace:*",
     "@myorg/utils": "workspace:*",
+    "@myorg/ui": "workspace:*",
     "next": "latest",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"

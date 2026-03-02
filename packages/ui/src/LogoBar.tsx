@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
-type LogoBarProps = {
+export interface LogoBarProps {
   logoUrl?: string;
   showSearch?: boolean;
   searchValue?: string;
@@ -16,7 +16,7 @@ type LogoBarProps = {
   canSignOut?: boolean;
   onSoftLogout?: () => void;
   onSwitchUsers?: () => void;
-};
+}
 
 export default function LogoBar({
   logoUrl = '/assets/logo_fomo.png',

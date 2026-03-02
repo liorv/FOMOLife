@@ -29,7 +29,7 @@ interface ProjectEditorProps {
 }
 
 import SubprojectEditor from "./SubprojectEditor";
-import TaskList from "./TaskList";
+import { TaskList } from "@myorg/ui";
 import { generateId, applyFilters } from '@myorg/utils';
 
 export default function ProjectEditor({

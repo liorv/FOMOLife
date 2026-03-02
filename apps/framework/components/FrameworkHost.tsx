@@ -2,9 +2,8 @@
 
 import { useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import LogoBar from './LogoBar';
-import TabNav from './TabNav';
-import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '@/lib/frameworkConfig';
+import { LogoBar, TabNav } from '@myorg/ui';
+import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '../lib/frameworkConfig';
 
 type FrameworkHostProps = {
   appName?: string;

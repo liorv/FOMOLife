@@ -10,9 +10,9 @@ import type {
   ProjectSubproject,
   ProjectTask,
 } from "@myorg/types";
+import { ProjectTile } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
-import ProjectTile from "./ProjectTile";
 
 // ─── Summary metric card ─────────────────────────────────────────────────────
 
@@ -42,6 +42,7 @@ function SummaryCard({
         accent ? `dashboard-card--${accent}` : "",
         clickable ? "dashboard-card--clickable" : "",
         active ? "dashboard-card--active" : "",
+        active && accent ? `dashboard-card--${accent}` : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -50,7 +51,12 @@ function SummaryCard({
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={
         clickable && onClick
-          ? (e: KeyboardEvent<HTMLDivElement>) => e.key === "Enter" && onClick()
+          ? (e: KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
           : undefined
       }
     >
@@ -114,7 +120,7 @@ export default function ProjectsDashboard({
   const addingRef = useRef(false);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
-  const taskFilter = filters.length > 0 ? filters[0] : null;
+  const isFilterActive = (filterType: string) => filters.includes(filterType);
 
   // Filter sidebar by search query
   const visibleProjects = useMemo(
@@ -151,14 +157,14 @@ export default function ProjectsDashboard({
   );
 
   const starredCount = useMemo(
-    () => scopedTasks.filter((t) => ((t as any).starred || t.favorite) && !t.done).length,
+    () => scopedTasks.filter((t) => (t as any).starred || t.favorite).length,
     [scopedTasks],
   );
 
   const overdueCount = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return scopedTasks.filter((t) => !t.done && t.dueDate && new Date(t.dueDate) < today).length;
+    return scopedTasks.filter((t) => t.dueDate && new Date(t.dueDate) < today).length;
   }, [scopedTasks]);
 
   const upcomingCount = useMemo(() => {
@@ -167,7 +173,7 @@ export default function ProjectsDashboard({
     const inSeven = new Date(today);
     inSeven.setDate(today.getDate() + 7);
     return scopedTasks.filter((t) => {
-      if (t.done || !t.dueDate) return false;
+      if (!t.dueDate) return false;
       const d = new Date(t.dueDate);
       return d >= today && d <= inSeven;
     }).length;
@@ -246,8 +252,11 @@ export default function ProjectsDashboard({
               <SummaryCard
                 icon="check_circle"
                 label="Completed"
-                value={`${completedTasks} / ${scopedTasks.length}`}
+                value={completedTasks}
                 accent="success"
+                clickable
+                active={isFilterActive("completed")}
+                onClick={() => onToggleFilter?.("completed")}
               />
               <SummaryCard
                 icon="star"
@@ -255,21 +264,17 @@ export default function ProjectsDashboard({
                 value={starredCount}
                 accent="star"
                 clickable
-                active={taskFilter === "starred"}
-                onClick={() =>
-                  onToggleFilter?.(taskFilter === "starred" ? null : "starred")
-                }
+                active={isFilterActive("starred")}
+                onClick={() => onToggleFilter?.("starred")}
               />
               <SummaryCard
-                icon="event_busy"
+                icon="warning"
                 label="Overdue"
                 value={overdueCount}
-                accent={overdueCount > 0 ? "danger" : undefined}
+                accent="danger"
                 clickable
-                active={taskFilter === "overdue"}
-                onClick={() =>
-                  onToggleFilter?.(taskFilter === "overdue" ? null : "overdue")
-                }
+                active={isFilterActive("overdue")}
+                onClick={() => onToggleFilter?.("overdue")}
               />
               <SummaryCard
                 icon="upcoming"
@@ -277,10 +282,8 @@ export default function ProjectsDashboard({
                 value={upcomingCount}
                 accent="info"
                 clickable
-                active={taskFilter === "upcoming"}
-                onClick={() =>
-                  onToggleFilter?.(taskFilter === "upcoming" ? null : "upcoming")
-                }
+                active={isFilterActive("upcoming")}
+                onClick={() => onToggleFilter?.("upcoming")}
               />
             </div>
 

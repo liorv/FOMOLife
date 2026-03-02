@@ -30,61 +30,28 @@ quadrantChart
 
 ---
 
-## Phase 1: Critical Fixes
+## Next Actions
 
-### 1.1 Extract Shared Components to Packages
+With the core boundary violations fixed, the focus shifts to cleaning up and stabilizing the workspace.
 
-**Problem**: Tasks app imports from Projects app, violating boundary rule.
+- **Extract additional shared pieces**
+  - Consider moving `ProjectTile` & `SubprojectRow` into `packages/ui` if they may be reused by other apps.
+  - Audit the repo for other common UI pieces, layout helpers, or hooks; extract them into shared packages following the same pattern.
 
-**Solution**: Move shared components to `packages/ui`.
+- **Update and eventually revert path aliases**
+  - The current setup uses direct relative paths for `@myorg/ui` imports to avoid TypeScript alias resolution issues during development.
+  - Once builds are stable and the workspace is settled, restore the original `@myorg/ui` aliases (via `tsconfig.base.json` paths) to simplify import statements.
 
-#### Step-by-Step Plan
+- **Expand UI test coverage** (already begun above)
+  - Add tests for `ContactCard`, `LogoBar`, and `TabNav` to the `packages/ui/__tests__` directory.
+  - Continue writing component‑level tests as new shared pieces are extracted.
 
-- [ ] **Create shared type definitions**
-  - Create `packages/types/src/task.ts` with `TaskItem` interface
-  - Create `packages/types/src/person.ts` with `Person` interface
-  - Export from `packages/types/src/index.ts`
-  - Update `packages/types/package.json` exports
+- **Clean up the workspace**
+  - Remove any remaining legacy JavaScript components (only jest configs/mocks should remain now).
+  - Consider adding ESLint/TSLint rules to forbid duplicate copies of components across apps and to enforce import boundaries.
+  - Delete outdated plan documents or sections that are no longer relevant.
 
-- [ ] **Extract TaskList component**
-  - Create `packages/ui/src/TaskList/TaskList.tsx`
-  - Convert from JS to TypeScript with proper types
-  - Create `packages/ui/src/TaskList/TaskList.module.css`
-  - Export from `packages/ui/src/TaskList/index.ts`
-  - Update `packages/ui/package.json` exports
-
-- [ ] **Extract AddBar component**
-  - Create `packages/ui/src/AddBar/AddBar.tsx`
-  - Create styles if needed
-  - Export from `packages/ui/src/AddBar/index.ts`
-
-- [ ] **Extract taskFilters utility**
-  - Create `packages/utils/src/taskFilters.ts`
-  - Add proper TypeScript types
-  - Export from `packages/utils/src/index.ts`
-
-- [ ] **Update apps to use shared packages**
-  - Update `apps/tasks/components/TasksPage.tsx` imports
-  - Update `apps/projects/components/` imports
-  - Remove `as any` type casts
-  - Run typecheck to verify
-
-#### Files to Create/Modify
-
-| Action | File |
-|--------|------|
-| Create | `packages/types/src/task.ts` |
-| Create | `packages/types/src/person.ts` |
-| Modify | `packages/types/src/index.ts` |
-| Create | `packages/ui/src/TaskList/TaskList.tsx` |
-| Create | `packages/ui/src/TaskList/index.ts` |
-| Create | `packages/ui/src/AddBar/AddBar.tsx` |
-| Create | `packages/ui/src/AddBar/index.ts` |
-| Create | `packages/utils/src/taskFilters.ts` |
-| Modify | `apps/tasks/components/TasksPage.tsx` |
-| Modify | `apps/projects/components/` (multiple files) |
-
----
+> This roadmap should be revisited periodically; tasks may slide between phases as the codebase evolves.
 
 ### 1.2 Define Shared Domain Types
 

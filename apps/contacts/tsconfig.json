@@ -2,15 +2,17 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["node", "react", "react-dom"],
+    "types": ["node", "react", "react-dom", "jest", "@testing-library/jest-dom"],
     "allowJs": false,
     "incremental": true,
     "jsx": "preserve",
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@myorg/ui": ["../../packages/ui/src"],
+      "@myorg/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "**/__tests__/**"]
+  "exclude": ["node_modules"]
 }

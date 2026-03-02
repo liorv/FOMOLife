@@ -31,6 +31,7 @@ module.exports = {
     '^@myorg/utils$': path.resolve(__dirname, '../../packages/utils/src/index.ts'),
     '^@myorg/types$': path.resolve(__dirname, '../../packages/types/src/index.ts'),
     '^@myorg/api-client$': path.resolve(__dirname, '../../packages/api-client/src/index.ts'),
+    '^@myorg/ui$': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
     // CSS modules and other style imports
     '^.+\\.module\\.css$': 'identity-obj-proxy',
     '^.+\\.(css|less|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',

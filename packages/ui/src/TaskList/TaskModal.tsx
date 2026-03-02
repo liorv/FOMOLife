@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { ProjectTask, ProjectTaskPerson, Contact } from "@myorg/types";
-import styles from '../styles/components/TabContent.module.css';
 
-interface TaskEditorProps {
+export interface TaskEditorProps {
   task: ProjectTask;
   onSave: (task: ProjectTask) => void;
   onClose: () => void;
@@ -184,7 +183,7 @@ export default function TaskEditor({
   const peopleSearchId = `person-search-${task.id || 'editor'}`;
 
   return (
-    <div className={`${containerClass} ${styles.taskModalContainer}`}>
+    <div className={containerClass}>
       {!inline && <h2>Edit Task</h2>}
       <div className="editor-columns">
         <div className="left-column">
@@ -251,7 +250,7 @@ export default function TaskEditor({
                 </div>
               ))}
             </div>
-            <div className={`add-person-bar ${styles.addPersonBar}`}>
+            <div className="add-person-bar">
               <input
                 id={peopleSearchId}
                 name="personSearch"
@@ -387,7 +386,7 @@ export default function TaskEditor({
                         <strong>Add "{newName}"</strong>
                       </div>
                       <div
-                        className={`task-person-col methods ${styles.taskPersonColMethods}`}
+                        className="task-person-col methods"
                       >
                         create and add to task
                       </div>

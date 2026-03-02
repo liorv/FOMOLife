@@ -1,5 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
+  "references": [
+    { "path": "../../packages/ui" }
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["node", "react", "react-dom"],
@@ -9,9 +12,18 @@
     "jsx": "preserve",
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@myorg/ui": ["../../packages/ui/dist"],
+      "@myorg/ui/*": ["../../packages/ui/dist/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.js", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.js",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "../../packages/ui/src/**/*"
+  ],
   "exclude": ["node_modules"]
 }
