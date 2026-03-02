@@ -4,6 +4,7 @@ import React, {
   useRef,
   KeyboardEvent,
   MouseEvent,
+  useEffect,
 } from "react";
 import type {
   ProjectItem,
@@ -86,6 +87,8 @@ interface ProjectsDashboardProps {
   onColorChange?: (projectId: string, color: string) => void;
   onReorder?: (draggedId: string, targetId: string) => void;
   onDeleteProject?: (id: string) => void;
+  pendingDeleteProjectId?: string | null;
+  onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
@@ -108,6 +111,8 @@ export default function ProjectsDashboard({
   onColorChange,
   onReorder,
   onDeleteProject,
+  pendingDeleteProjectId,
+  onConfirmDeleteProject,
   onAddProject,
   onOpenPeople,
   onCreatePerson,
@@ -119,8 +124,73 @@ export default function ProjectsDashboard({
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const addingRef = useRef(false);
 
+  
+
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
+
+  // thumb configuration helpers ------------------------------------------------
+  // the projects tab uses a custom svg asset for the thumb button. the file is
+  // stored in the projects app's public assets directory and will be referenced
+  // by a URL path. the action value is also given a descriptive name so the host
+  // can distinguish it from the generic fab event used by other apps.
+  const getThumbIcon = () => {
+    // show a different thumb icon when a project is currently selected/being
+    // edited; the host already sends the icon URL through origin prefixing.
+    return selectedProjectId ? '/assets/add-sub-project.svg' : '/assets/add-project.svg';
+  };
+  const getThumbAction = () => (selectedProjectId ? 'add-subproject' : 'add-project');
+
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      try {
+        const data = e.data || {};
+        // accept either our configured action or the legacy thumb-fab when a
+        // project is selected; the latter covers cases where the host hasn't yet
+        // updated its thumbAction state.
+        if (
+          data &&
+          (data.type === getThumbAction() || (selectedProject && data.type === 'thumb-fab'))
+        ) {
+          if (!selectedProject) {
+            onAddProject?.();
+          } else if (selectedProjectId) {
+            // when a project is selected, treat the button as "add subproject"
+            onAddSubproject?.(selectedProjectId, '');
+            // ensure the local FAB menu isn't left open
+            setFabMenuOpen(false);
+          }
+        } else if (data && data.type === 'get-thumb-config') {
+          // reply with our current icon/action
+          try {
+            window.parent?.postMessage?.(
+              { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
+              '*',
+            );
+          } catch (err) {
+            // ignore
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    window.addEventListener('message', onMessage);
+
+    // send our desired configuration as soon as we mount; this guards against a
+    // race where the parent asks for config before our listener is attached.
+    try {
+      window.parent?.postMessage?.(
+        { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
+        '*',
+      );
+    } catch {
+      // ignore
+    }
+
+    return () => window.removeEventListener('message', onMessage);
+  }, [selectedProjectId, selectedProject, onAddProject]);
 
   // Filter sidebar by search query
   const visibleProjects = useMemo(
@@ -231,15 +301,6 @@ export default function ProjectsDashboard({
               >
                 {selectedProject.text}
               </h2>
-              <div className="dashboard-project-actions">
-                <button
-                  title="Delete project"
-                  className="dashboard-project-delete"
-                  onClick={() => onDeleteProject?.(selectedProject.id)}
-                >
-                  <span className="material-icons">delete</span>
-                </button>
-              </div>
             </div>
 
             {/* Summary chips — contextual to selected project */}
@@ -352,6 +413,8 @@ export default function ProjectsDashboard({
                     onEdit={handleSelectProject}
                     onTitleChange={onTitleChange}
                     onDelete={onDeleteProject}
+                    onConfirmDelete={onConfirmDeleteProject}
+                    isPendingDelete={pendingDeleteProjectId === p.id}
                     onChangeColor={onColorChange}
                     onReorder={onReorder}
                   />
@@ -386,9 +449,9 @@ export default function ProjectsDashboard({
               <button
                 className="fab-small"
                 onClick={() => {
-                  if (!addingRef.current) {
+                  if (!addingRef.current && selectedProjectId) {
                     addingRef.current = true;
-                    onAddSubproject?.("", "");
+                    onAddSubproject?.(selectedProjectId, "");
                     setFabMenuOpen(false);
                     setTimeout(() => {
                       addingRef.current = false;

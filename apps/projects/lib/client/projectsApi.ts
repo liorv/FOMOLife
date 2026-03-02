@@ -2,7 +2,7 @@ import type { ProjectItem } from '../server/projectsStore';
 
 export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
-  createProject: (input: { text: string; color?: string; progress?: number; order?: number }) => Promise<ProjectItem>;
+  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[] }) => Promise<ProjectItem>;
   updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>>) => Promise<ProjectItem>;
   deleteProject: (id: string) => Promise<void>;
 }
@@ -36,7 +36,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
       return payload.projects;
     },
 
-    async createProject(input: { text: string; color?: string; progress?: number; order?: number }): Promise<ProjectItem> {
+    async createProject(input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[] }): Promise<ProjectItem> {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

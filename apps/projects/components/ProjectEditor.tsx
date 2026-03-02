@@ -215,21 +215,8 @@ export default function ProjectEditor({
     if (!text || text.trim() === "") {
       if (subproject) {
         const taskCount = (subproject.tasks || []).length;
-        // if no tasks, delete the subproject
-        if (taskCount === 0) {
-          const updated = {
-            ...local,
-            subprojects: (local.subprojects || []).filter((s) => s.id !== id),
-          };
-          setLocal(updated);
-          safeOnApplyChange(updated);
-          if (id === newlyAddedSubprojectId) {
-            safeOnClearNewSubproject();
-          }
-          return;
-        }
-        // if has tasks, give it a temporary name
-        const tempName = `Untitled (${taskCount})`;
+        // always give it a temporary name, don't delete
+        const tempName = taskCount > 0 ? `Untitled (${taskCount})` : "Untitled";
         const updated = {
           ...local,
           subprojects: (local.subprojects || []).map((s) =>

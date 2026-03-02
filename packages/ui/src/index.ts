@@ -27,6 +27,8 @@ export type { LogoBarProps } from './LogoBar';
 
 export { default as TabNav } from './TabNav';
 export type { TabNavProps } from './TabNav';
+export { default as ThumbButton } from './ThumbButton';
+export type { ThumbButtonProps } from './ThumbButton';
 
 export { default as ProjectTile, PROJECT_COLORS } from './ProjectTile';
 export type { ProjectTileProps } from './ProjectTile';

@@ -19,4 +19,35 @@ describe('AddBar', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(add).toHaveBeenCalled();
   });
+
+  it('applies focused class when input is focused', () => {
+    render(<AddBar type="tasks" input="" onInputChange={() => {}} onAdd={() => {}} />);
+    const wrapper = document.querySelector('.add-bar');
+    const input = screen.getByRole('textbox');
+    expect(wrapper).not.toHaveClass('focused');
+    fireEvent.focus(input);
+    expect(wrapper).toHaveClass('focused');
+    fireEvent.blur(input);
+    expect(wrapper).not.toHaveClass('focused');
+  });
+
+  it('accepts focusStyle and focusClassName props', () => {
+    const style = { background: 'red' };
+    render(
+      <AddBar
+        type="tasks"
+        input=""
+        onInputChange={() => {}}
+        onAdd={() => {}}
+        focusStyle={style}
+        focusClassName="extra"
+      />,
+    );
+    const wrapper = document.querySelector('.add-bar')!;
+    const input = screen.getByRole('textbox');
+    fireEvent.focus(input);
+    expect(wrapper).toHaveClass('focused');
+    expect(wrapper).toHaveClass('extra');
+    expect(wrapper).toHaveStyle('background: red');
+  });
 });

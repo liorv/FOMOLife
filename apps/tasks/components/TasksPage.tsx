@@ -57,6 +57,39 @@ export default function TasksPage({ canManage }: Props) {
     };
   }, [api]);
 
+  // helper functions that describe this app's thumb button behaviour
+  const getThumbIcon = () => 'add';
+  // using a custom action value so the host doesn't accidentally trigger
+  // the old behaviour of creating a task.
+  const getThumbAction = () => 'focus-add';
+
+  useEffect(() => {
+    const handler = async (event: MessageEvent) => {
+      if (!event?.data) return;
+      if (event.data.type === 'focus-add' || event.data.type === 'thumb-fab') {
+        // thumb-fab is the legacy action; treat it the same as focus-add so the
+        // button works even if the host hasn't yet received a config reply.
+        requestAnimationFrame(() => {
+          const el = document.getElementById('add-tasks-input') as HTMLInputElement | null;
+          if (el) el.focus();
+        });
+      } else if (event.data.type === 'get-thumb-config') {
+        // host is asking what icon/action to use
+        try {
+          window.parent?.postMessage?.(
+            { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
+            '*',
+          );
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [api, canManage]);
+
   useEffect(() => {
     if (!isEmbedded) return;
     setSearch(searchParams.get('q') ?? '');
@@ -412,6 +445,7 @@ export default function TasksPage({ canManage }: Props) {
             onInputChange={setInput}
             onDueDateChange={setDueDate}
             onAdd={() => void addTask()}
+            focusStyle={{ background: '#e6f7ff' }}
           />
         </div>
       </div>

@@ -20,6 +20,10 @@ export interface AddBarProps {
   dueDate?: string | null;
   /** Callback when due date changes */
   onDueDateChange?: (date: string) => void;
+  /** Optional inline style to apply to wrapper when focused */
+  focusStyle?: React.CSSProperties;
+  /** Optional additional class to apply to wrapper when focused */
+  focusClassName?: string;
 }
 
 export default function AddBar({
@@ -27,7 +31,11 @@ export default function AddBar({
   input,
   onInputChange,
   onAdd,
+  focusStyle,
+  focusClassName,
 }: AddBarProps) {
+  const [focused, setFocused] = React.useState(false);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       onAdd();
@@ -46,7 +54,12 @@ export default function AddBar({
   };
 
   return (
-    <div className="add-bar">
+    <div
+      className={`add-bar${focused ? ' focused' : ''}${focused && focusClassName ? ' ' + focusClassName : ''}`}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={focused ? focusStyle : undefined}
+    >
       <input
         id={`add-${type || 'item'}-input`}
         name={`add-${type || 'item'}`}

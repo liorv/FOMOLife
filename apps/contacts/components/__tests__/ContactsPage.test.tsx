@@ -59,4 +59,31 @@ describe('ContactsPage', () => {
     fireEvent.click(screen.getByLabelText('Remove contact'));
     await waitFor(() => expect(screen.queryByText('Foo')).not.toBeInTheDocument());
   });
+
+  it('replies with thumb-config including current icon', async () => {
+    render(<ContactsPage canManage={true} />);
+    await waitFor(() => expect(screen.queryByText('Loading contacts…')).not.toBeInTheDocument());
+
+    const msgs: any[] = [];
+    window.addEventListener('message', (e) => msgs.push(e.data));
+
+    act(() => {
+      window.postMessage({ type: 'get-thumb-config' }, '*');
+    });
+    await waitFor(() => msgs.some((m) => m.type === 'thumb-config'));
+    const cfg = msgs.find((m) => m.type === 'thumb-config');
+    expect(cfg.icon).toBe('person_add');
+    expect(cfg.action).toBe('thumb-fab');
+
+    // toggle form and request again
+    act(() => {
+      window.postMessage({ type: 'thumb-fab' }, '*');
+    });
+    // when form opens icon should change to close
+    await waitFor(() => {
+      act(() => window.postMessage({ type: 'get-thumb-config' }, '*'));
+    });
+    const cfg2 = msgs.find((m) => m.type === 'thumb-config' && m.icon === 'close');
+    expect(cfg2).toBeDefined();
+  });
 });

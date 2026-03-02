@@ -13,4 +13,46 @@ test('TabNav renders tabs and handles click', () => {
   expect(screen.getByText('A')).toBeInTheDocument();
   fireEvent.click(screen.getByText('B'));
   expect(change).toHaveBeenCalledWith('b');
+
+  // thumb button should invoke handler when using a glyph
+  const thumbClick = jest.fn();
+  render(
+    <TabNav
+      active="a"
+      tabs={tabs}
+      onChange={change}
+      onThumbButtonClick={thumbClick}
+      thumbIcon="star"
+    />,
+  );
+  // button exists and uses icon name as text content inside fab
+  const thumbBtn = screen.getByLabelText('Thumb');
+  expect(thumbBtn).toBeInTheDocument();
+  expect(thumbBtn).toHaveTextContent('star');
+  fireEvent.click(thumbBtn);
+  expect(thumbClick).toHaveBeenCalled();
+
+  // custom svg path should render an <img> element instead of text
+  const svgClick = jest.fn();
+  render(
+    <TabNav
+      active="a"
+      tabs={tabs}
+      onChange={change}
+      onThumbButtonClick={svgClick}
+      thumbIcon="/assets/add-project.svg"
+    />,
+  );
+  const svgBtn = screen.getByLabelText('Thumb');
+  expect(svgBtn).toBeInTheDocument();
+  const img = svgBtn.querySelector('img');
+  expect(img).toBeInTheDocument();
+  expect(img).toHaveAttribute('src', '/assets/add-project.svg');
+  // image should live inside the circular fab wrapper
+  expect(img?.closest('.tabs-thumb-fab')).toBeInTheDocument();
+  // it should be sized down to 32x32, have the filter class applied,
+  // and be centered via margin:auto
+  expect(img).toHaveStyle({ width: '32px', height: '32px', filter: expect.stringContaining('invert'), margin: 'auto' });
+  fireEvent.click(svgBtn);
+  expect(svgClick).toHaveBeenCalled();
 });

@@ -27,7 +27,11 @@ export async function POST(request: Request) {
     favorite?: boolean;
   };
 
-  if (!body.text || !body.text.trim()) {
+  // The client is allowed to POST an empty string when creating a new task
+  // (e.g. when the thumb button is used, we open the title editor so the
+  // user will immediately type something).  Only disallow a completely
+  // missing "text" property, which generally indicates a malformed request.
+  if (body.text === undefined) {
     return NextResponse.json({ error: 'Task text is required' }, { status: 400 });
   }
 

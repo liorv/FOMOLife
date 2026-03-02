@@ -22,14 +22,13 @@ export default function ProjectsPage({ canManage }: Props) {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState<string | null>(null);
+  const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<string | null>(null);
   const [filters, setFilters] = useState<string[]>([]);
   const [projectSearch, setProjectSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void } | null>(null);
+  const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void; onConfirm?: () => void } | null>(null);
   const pendingBlankSubRef = useRef(false);
-  const pendingProjectDeleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingProjectDeleteIdRef = useRef<string | null>(null);
   const isEmbedded = searchParams.get('embedded') === '1';
 
   useEffect(() => {
@@ -59,16 +58,21 @@ export default function ProjectsPage({ canManage }: Props) {
 
   useEffect(() => {
     return () => {
-      if (pendingProjectDeleteTimeoutRef.current) {
-        clearTimeout(pendingProjectDeleteTimeoutRef.current);
-      }
+      // cleanup not needed for pending delete
     };
   }, []);
 
   const closeUndoSnackbar = () => setUndoSnackbar(null);
 
-  const showUndoSnackbar = (message: string, onUndo: () => void) => {
-    setUndoSnackbar({ message, onUndo });
+  const showUndoSnackbar = (message: string, onUndo: () => void, onConfirm?: () => void) => {
+    setUndoSnackbar({ message, onUndo, ...(onConfirm && { onConfirm }) });
+    // If not dismissed within 5 seconds, treat as undo
+    setTimeout(() => {
+      if (undoSnackbar) {
+        undoSnackbar.onUndo();
+        setUndoSnackbar(null);
+      }
+    }, 5000);
   };
 
   const handleAddProject = async (text = 'New Project') => {
@@ -85,7 +89,6 @@ export default function ProjectsPage({ canManage }: Props) {
       ...(color ? { color } : {}),
     });
     setProjects((prev) => [...prev, created]);
-    setEditingProjectId(created.id);
   };
 
   // Always persist project changes (including task edits) to backend
@@ -137,9 +140,9 @@ export default function ProjectsPage({ canManage }: Props) {
     );
   };
 
-  const handleAddSubproject = async (name = '') => {
-    if (!canManage || !editingProjectId) return;
-    const project = projects.find((item) => item.id === editingProjectId);
+  const handleAddSubproject = async (projectId: string, name = '') => {
+    if (!canManage) return;
+    const project = projects.find((item) => item.id === projectId);
     if (!project) return;
 
     if ((project.subprojects || []).some((sub) => !sub.text || sub.text.trim() === '')) {
@@ -147,74 +150,57 @@ export default function ProjectsPage({ canManage }: Props) {
     }
 
     if (!name.trim()) {
-      pendingBlankSubRef.current = true;
+      // Generate automatic name: subproject (i) where i is incremented
+      const existingSubs = project.subprojects || [];
+      const subprojectRegex = /^subproject \((\d+)\)$/i;
+      let maxNum = 0;
+      for (const sub of existingSubs) {
+        const match = sub.text?.match(subprojectRegex);
+        if (match && match[1]) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+      const nextNum = maxNum + 1;
+      name = `subproject (${nextNum})`;
     }
 
     const newSub = {
       id: crypto.randomUUID(),
-      text: (name || '').trim(),
+      text: name.trim(),
       tasks: [],
-      collapsed: false,
+      collapsed: true,
       isProjectLevel: false,
     };
     const updatedSubprojects = [...(project.subprojects || []), newSub];
-    const updatedProject = await apiClient.updateProject(editingProjectId, { subprojects: updatedSubprojects });
+    const updatedProject = await apiClient.updateProject(projectId, { subprojects: updatedSubprojects });
     setNewlyAddedSubprojectId(newSub.id);
-    setProjects((prev) => prev.map((item) => (item.id === editingProjectId ? updatedProject : item)));
+    setProjects((prev) => prev.map((item) => (item.id === projectId ? updatedProject : item)));
   };
 
-  const handleDeleteProject = async (projectId: string) => {
+  const handleDeleteProject = (projectId: string) => {
     if (!canManage) return;
-
-    const currentProjects = [...projects];
-    const deletedIndex = currentProjects.findIndex((item) => item.id === projectId);
-    if (deletedIndex === -1) return;
-    const deletedProject = currentProjects[deletedIndex];
-    if (!deletedProject) return;
-
-    if (pendingProjectDeleteTimeoutRef.current) {
-      clearTimeout(pendingProjectDeleteTimeoutRef.current);
-      pendingProjectDeleteTimeoutRef.current = null;
-      pendingProjectDeleteIdRef.current = null;
+    if (pendingDeleteProjectId === projectId) {
+      // Cancel pending delete
+      setPendingDeleteProjectId(null);
+    } else {
+      // Start pending delete
+      setPendingDeleteProjectId(projectId);
     }
+  };
 
-    const deletedWasEditing = editingProjectId === projectId;
-    setProjects((prev) => prev.filter((item) => item.id !== projectId));
-    if (deletedWasEditing) {
-      setEditingProjectId(null);
+  const handleConfirmDeleteProject = async (projectId: string) => {
+    if (!canManage) return;
+    try {
+      await apiClient.deleteProject(projectId);
+      setProjects((prev) => prev.filter((item) => item.id !== projectId));
+      if (editingProjectId === projectId) {
+        setEditingProjectId(null);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete project');
     }
-
-    pendingProjectDeleteIdRef.current = projectId;
-    pendingProjectDeleteTimeoutRef.current = setTimeout(() => {
-      void apiClient.deleteProject(projectId);
-      if (pendingProjectDeleteIdRef.current === projectId) {
-        pendingProjectDeleteIdRef.current = null;
-      }
-      setUndoSnackbar((current) =>
-        current?.message === 'Project deleted'
-          ? null
-          : current,
-      );
-    }, 5000);
-
-    showUndoSnackbar('Project deleted', () => {
-      if (pendingProjectDeleteIdRef.current !== projectId) return;
-      if (pendingProjectDeleteTimeoutRef.current) {
-        clearTimeout(pendingProjectDeleteTimeoutRef.current);
-        pendingProjectDeleteTimeoutRef.current = null;
-      }
-      pendingProjectDeleteIdRef.current = null;
-      setProjects((prev) => {
-        const restored = [...prev];
-        const targetIndex = Math.min(Math.max(deletedIndex, 0), restored.length);
-        restored.splice(targetIndex, 0, deletedProject);
-        return restored;
-      });
-      if (deletedWasEditing) {
-        setEditingProjectId(projectId);
-      }
-      closeUndoSnackbar();
-    });
+    setPendingDeleteProjectId(null);
   };
 
   const handleSubprojectDeleted = async (payload: {
@@ -223,21 +209,15 @@ export default function ProjectsPage({ canManage }: Props) {
     index: number;
   }) => {
     if (!canManage) return;
-    const { projectId, subproject, index } = payload;
-    showUndoSnackbar('Sub-project deleted', () => {
-      setProjects((prev) => {
-        const project = prev.find((item) => item.id === projectId);
-        if (!project) return prev;
-        const existingSubprojects = [...(project.subprojects || [])];
-        const nextSubprojects = [...existingSubprojects];
-        const targetIndex = Math.min(Math.max(index, 0), nextSubprojects.length);
-        nextSubprojects.splice(targetIndex, 0, subproject);
-
-        const updatedProject = { ...project, subprojects: nextSubprojects };
-        void apiClient.updateProject(projectId, { subprojects: nextSubprojects });
-        return prev.map((item) => (item.id === projectId ? updatedProject : item));
-      });
-      closeUndoSnackbar();
+    const { projectId, subproject } = payload;
+    // Directly remove the subproject
+    setProjects((prev) => {
+      const project = prev.find((item) => item.id === projectId);
+      if (!project) return prev;
+      const updatedSubprojects = (project.subprojects || []).filter((sub) => sub.id !== subproject.id);
+      const updatedProject = { ...project, subprojects: updatedSubprojects };
+      void apiClient.updateProject(projectId, { subprojects: updatedSubprojects });
+      return prev.map((item) => (item.id === projectId ? updatedProject : item));
     });
   };
 
@@ -282,6 +262,8 @@ export default function ProjectsPage({ canManage }: Props) {
           onColorChange={handleProjectColorChange}
           onReorder={handleReorderProjects}
           onDeleteProject={handleDeleteProject}
+          pendingDeleteProjectId={pendingDeleteProjectId}
+          onConfirmDeleteProject={handleConfirmDeleteProject}
           onAddProject={handleAddProject}
           onOpenPeople={() => {}}
           onCreatePerson={async () => null}
@@ -290,30 +272,39 @@ export default function ProjectsPage({ canManage }: Props) {
           filters={filters}
           onToggleFilter={handleToggleFilter}
         />
+      </div>
 
-        {undoSnackbar ? (
-          <div className="undo-snackbar" role="status" aria-live="polite">
-            <div className="snack-content">
-              <span className="snack-message">{undoSnackbar.message}</span>
-              <div className="snack-actions">
-                <button
-                  type="button"
-                  className="snack-button undo-button"
-                  onClick={() => undoSnackbar.onUndo()}
-                >
-                  Undo
-                </button>
-                <button
-                  type="button"
-                  className="snack-button dismiss-button"
-                  onClick={closeUndoSnackbar}
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
+      <div className="undo-snackbar" role="status" aria-live="polite" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, maxWidth: '90vw', visibility: undoSnackbar ? 'visible' : 'hidden' }}>
+        <div className="snack-content">
+          <span className="snack-message">{undoSnackbar?.message || ''}</span>
+          <div className="snack-actions">
+            <button
+              type="button"
+              className="snack-button undo-button"
+              onClick={() => {
+                undoSnackbar?.onUndo();
+                setUndoSnackbar(null);
+              }}
+              disabled={!undoSnackbar}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="snack-button dismiss-button"
+              onClick={() => {
+                if (undoSnackbar?.onConfirm) {
+                  undoSnackbar.onConfirm();
+                } else {
+                  setUndoSnackbar(null);
+                }
+              }}
+              disabled={!undoSnackbar}
+            >
+              {undoSnackbar?.onConfirm ? 'Confirm' : 'Dismiss'}
+            </button>
           </div>
-        ) : null}
+        </div>
       </div>
     </main>
   );

@@ -1,5 +1,6 @@
 :root {
   --color-primary: #1a73e8;
+  --color-accent: #d32998;
   --color-surface: #ffffff;
   --color-bg: #f1f3f4;
   --color-text: #202124;
@@ -569,12 +570,26 @@ body {
 
 .tabs {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
+  position: relative;
+  overflow: visible;
   height: var(--nav-height);
-  background: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-top: none;
   backdrop-filter: blur(12px);
+  padding: 2px;
+}
+
+.tabs::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-border);
+  z-index: 0;
 }
 
 .tabs button {
@@ -587,10 +602,72 @@ body {
   color: var(--color-text-muted);
   cursor: pointer;
   padding: 4px 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .tabs button.active {
   color: var(--color-primary);
+}
+
+.tabs button.tabs-thumb-btn {
+  position: relative;
+  padding: 0;
+  gap: 0;
+  overflow: visible;
+}
+
+.tabs button.tabs-thumb-btn::before {
+  content: '';
+  position: absolute;
+  top: -33px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 66px;
+  height: 33px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: 66px 66px 0 0;
+  z-index: 1;
+}
+
+.tabs button.tabs-thumb-btn .tabs-thumb-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-28px);
+  z-index: 3;
+  /* make sure children are centered in all situations */
+  line-height: 0;
+}
+
+.tabs button.tabs-thumb-btn .tab-icon {
+  font-size: 24px;
+}
+
+/* if the thumb icon is an image (custom svg) ensure it fits the fab */
+/* the img element itself receives the `tab-icon` class, so the prior selector
+   was matching nothing and the image was rendering at its native 480px size
+   (appearing multiple times). target the img directly or via the fab wrapper. */
+.tabs button.tabs-thumb-btn .tabs-thumb-fab img,
+.tabs button.tabs-thumb-btn img.tab-icon {
+  width: 32px;
+  height: 32px;
+  margin: auto; /* center within available space */
+  /* images default to their own colors; invert them so they appear white like
+     the glyphs. the fab background is also set via --color-accent so white
+     ensures good contrast. */
+  filter: invert(1) brightness(2);
+  display: block; /* prevent inline spacing and ensure centering */
+}
+.tabs button.tabs-thumb-btn .tab-label {
+  display: none;
 }
 
 .tab-icon {

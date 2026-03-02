@@ -57,6 +57,63 @@ export default function ContactsPage({ canManage }: Props) {
     };
   }, [apiClient]);
 
+  const toggleShowForm = () => {
+    setShowForm((prev) => {
+      const next = !prev;
+      console.log('[Contacts] Toggling showForm from', prev, 'to', next);
+      
+      // Reset nickname when closing, match behavior of a full cancel
+      if (!next) {
+        setNickname('');
+      }
+
+      if (next) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById('contact-name') as HTMLInputElement | null;
+          if (el) el.focus();
+        });
+      }
+      return next;
+    });
+  };
+
+  const getThumbIcon = () => (showForm ? 'close' : 'person_add');
+  const getThumbAction = () => 'thumb-fab';
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'thumb-fab') {
+        if (!canManage) {
+          console.warn('[Contacts] thumb-fab received but canManage is false');
+          return;
+        }
+        toggleShowForm();
+      } else if (event.data?.type === 'get-thumb-config') {
+        try {
+          window.parent?.postMessage?.(
+            { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
+            '*',
+          );
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [canManage, showForm]);
+
+  // inform host what icon the thumb should show for this app (legacy updates)
+  useEffect(() => {
+    try {
+      const icon = getThumbIcon();
+      window.parent?.postMessage?.({ type: 'thumb-icon', icon }, '*');
+    } catch (err) {
+      // ignore
+    }
+  }, [showForm]);
+
   const addContact = async () => {
     if (!isNonEmptyString(nickname)) return;
 
@@ -97,7 +154,7 @@ export default function ContactsPage({ canManage }: Props) {
         <header className={styles.header}>
           <button
             className={`${styles.addToggle} ${showForm ? styles.addToggleCancel : ''}`.trim()}
-            onClick={() => setShowForm((v) => !v)}
+            onClick={toggleShowForm}
             disabled={!canManage}
             aria-label={showForm ? 'Cancel add contact' : 'Add contact'}
             title={showForm ? 'Cancel add contact' : 'Add contact'}

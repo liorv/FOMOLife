@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { LogoBar, TabNav } from '@myorg/ui';
 import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '../lib/frameworkConfig';
@@ -60,6 +60,21 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   }, [activeTabConfig?.href, headerSearchQuery, showHeaderSearch, userId]);
 
   const frameKey = activeTabConfig?.key ?? activeTab;
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [thumbIcon, setThumbIcon] = useState<string>('add');
+  const [thumbAction, setThumbAction] = useState<string>('thumb-fab');
+
+  const handleThumb = () => {
+    try {
+      const win = iframeRef.current?.contentWindow;
+      if (win) {
+        // send whichever action the app registered (defaults to thumb-fab)
+        win.postMessage({ type: thumbAction || 'thumb-fab' }, '*');
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
   const frameLabel = activeTabConfig?.label ?? 'App';
 
   const handleSignOut = async () => {
@@ -74,6 +89,52 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       router.replace('/login');
     }
   };
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (!event?.data) return;
+      const { type, icon, action } = event.data as {
+        type?: string;
+        icon?: unknown;
+        action?: unknown;
+      };
+      if (type === 'thumb-icon' && typeof icon === 'string') {
+        setThumbIcon(icon);
+      } else if (type === 'thumb-config') {
+        if (typeof icon === 'string') {
+          // if the icon is a path (starts with /) we should fetch it from the
+          // sender's origin so that assets hosted by other apps resolve
+          let resolved = icon;
+          if (icon.startsWith('/') && event.origin) {
+            resolved = `${event.origin}${icon}`;
+          }
+          setThumbIcon(resolved);
+        }
+        if (typeof action === 'string') {
+          setThumbAction(action);
+        }
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // reset thumb icon/action when switching tabs and request fresh config
+  useEffect(() => {
+    setThumbIcon('add');
+    setThumbAction('thumb-fab');
+
+    // ask embedded app what it wants the thumb button to do
+    const win = iframeRef.current?.contentWindow;
+    if (win) {
+      try {
+        win.postMessage({ type: 'get-thumb-config' }, '*');
+      } catch {
+        // ignore
+      }
+    }
+  }, [activeTab, frameKey]);
 
   const handleSwitchUsers = async () => {
     try {
@@ -108,10 +169,12 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
           <section className="host-pane" aria-label="Hosted app content">
             {hostedSrc ? (
               <iframe
+                ref={iframeRef}
                 key={frameKey}
                 title={`${frameLabel} app`}
                 src={hostedSrc}
                 className="host-frame"
+                allow="clipboard-write"
               />
             ) : (
               <div className="host-empty">
@@ -121,7 +184,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
             )}
           </section>
         </div>
-        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} />
+        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={thumbIcon} />
       </div>
     </main>
   );

@@ -13,6 +13,8 @@ export interface ProjectTileProps {
   onEdit?: ((id: string) => void) | undefined;
   onTitleChange?: ((id: string, title: string) => void) | undefined;
   onDelete?: ((id: string) => void) | undefined;
+  onConfirmDelete?: ((id: string) => void) | undefined;
+  isPendingDelete?: boolean;
   onChangeColor?: ((id: string, color: string) => void) | undefined;
   onReorder?: ((fromId: string, toId: string) => void) | undefined;
   isDragging?: boolean;
@@ -61,6 +63,8 @@ export default function ProjectTile({
   onEdit = () => {},
   onTitleChange = () => {},
   onDelete = () => {},
+  onConfirmDelete = () => {},
+  isPendingDelete = false,
   onChangeColor = () => {},
   onReorder = () => {},
   isDragging = false,
@@ -314,68 +318,95 @@ export default function ProjectTile({
             <div className={`${styles.nameAccent} project-name-accent`} />
           </div>
           
-          <div className={styles.menu} ref={menuRef} onClick={(e) => e.stopPropagation()}>
-            <button
-              className={styles.menuButton}
-              title="More options"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Dispatch event to close all other menus
-                const event = new CustomEvent("closeAllMenus", {
-                  detail: { projectId: project.id },
-                });
-                document.dispatchEvent(event);
-                setMenuOpen(!menuOpen);
-              }}
-              aria-label="Project menu"
-            >
-              <span className="material-icons">more_vert</span>
-            </button>
-            {menuOpen &&
-              ReactDOM.createPortal(
-                <div
-                  className={`${styles.menuDropdown} project-menu-dropdown`}
-                  ref={dropdownRef}
-                  data-flipped-v={menuFlippedVertically ? "true" : "false"}
-                  style={{
-                    position: "fixed",
-                    ...dropdownStyle,
-                    right: "auto",
-                    zIndex: 1001,
+          {isPendingDelete ? (
+            <div className={styles.menu} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.pendingActions}>
+                <button
+                  className={`${styles.confirmDeleteButton} confirm-delete-button`}
+                  title="Confirm delete project"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConfirmDelete(project.id);
                   }}
                 >
-                <button
-                  className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
-                  onClick={() => setShowColorPicker(!showColorPicker)}
-                  title="Change color"
-                >
-                  <span className="material-icons">palette</span>
-                  <span>Color</span>
-                  <span className={`${styles.menuArrow} menu-arrow`}>›</span>
+                  <span className="material-icons">delete_forever</span>
                 </button>
+                <button
+                  className={`${styles.cancelDeleteButton} cancel-delete-button`}
+                  title="Cancel delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(project.id); // This will unset pending
+                  }}
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.menu} ref={menuRef} onClick={(e) => e.stopPropagation()}>
+              <button
+                className={styles.menuButton}
+                title="More options"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Dispatch event to close all other menus
+                  const event = new CustomEvent("closeAllMenus", {
+                    detail: { projectId: project.id },
+                  });
+                  document.dispatchEvent(event);
+                  setMenuOpen(!menuOpen);
+                }}
+                aria-label="Project menu"
+              >
+                <span className="material-icons">more_vert</span>
+              </button>
+              {menuOpen &&
+                ReactDOM.createPortal(
+                  <div
+                    className={`${styles.menuDropdown} project-menu-dropdown`}
+                    ref={dropdownRef}
+                    data-flipped-v={menuFlippedVertically ? "true" : "false"}
+                    style={{
+                      position: "fixed",
+                      ...dropdownStyle,
+                      right: "auto",
+                      zIndex: 1001,
+                    }}
+                  >
+                  <button
+                    className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    title="Change color"
+                  >
+                    <span className="material-icons">palette</span>
+                    <span>Color</span>
+                    <span className={`${styles.menuArrow} menu-arrow`}>›</span>
+                  </button>
 
-                <div className={`${styles.menuDivider} menu-divider`} />
+                  <div className={`${styles.menuDivider} menu-divider`} />
 
-                <button
-                  className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
-                  onClick={handleEdit}
-                  title="Edit project"
-                >
-                  <span className="material-icons">edit</span>
-                  <span>Edit</span>
-                </button>
-                <button
-                  className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
-                  onClick={handleDelete}
-                  title="Delete project"
-                >
-                  <span className="material-icons">delete</span>
-                  <span>Delete</span>
-                </button>
-              </div>,
-                document.body
-            )}
-          </div>
+                  <button
+                    className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
+                    onClick={handleEdit}
+                    title="Edit project"
+                  >
+                    <span className="material-icons">edit</span>
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
+                    onClick={handleDelete}
+                    title="Delete project"
+                  >
+                    <span className="material-icons">delete</span>
+                    <span>Delete</span>
+                  </button>
+                </div>,
+                  document.body
+              )}
+            </div>
+          )}
         </div>
 
         {/* Progress visualization */}

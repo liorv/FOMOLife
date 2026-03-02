@@ -5,6 +5,8 @@
 
 :root {
   color-scheme: light;
+  /* fallback for older references */
+  --btn-google-bg-color: #4285f4;
 }
 
 * {
@@ -85,4 +87,17 @@ body {
   padding: 0;
   position: static;
   top: auto;
+}
+
+/* focus styling for wrapper is handled by AddBar via props; input bg colors go here */
+
+/* tasks input should default to google button background, white when focused */
+#add-tasks-input {
+  /* use shared google button color var if available, otherwise fall back to
+     the familiar Google blue so it's clearly not white */
+  background: var(--color-google-btn-bg, var(--btn-google-bg-color, #4285f4));
+  transition: background 0.2s ease;
+}
+#add-tasks-input:focus {
+  background: white;
 }
