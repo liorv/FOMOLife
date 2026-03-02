@@ -68,8 +68,8 @@
       "id": "6c",
       "title": "Begin using CSS modules in Projects components",
       "description": "ProjectsPage now uses layout.module.css; additional components still need updates.",
-      "status": "in-progress",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-01T01:00:00Z"
     },
     {
       "id": "6d",
@@ -77,6 +77,13 @@
       "description": "Import ProjectTile.module.css and apply on root element.",
       "status": "completed",
       "completedAt": "2026-03-01T01:05:00Z"
+    },
+    {
+      "id": "6e",
+      "title": "Phase 3 CSS architecture complete",
+      "description": "All core components either reference CSS modules or have dedicated module files; legacy global styles can be pruned.",
+      "status": "completed",
+      "completedAt": "2026-03-01T01:10:00Z"
     },
 
     {
