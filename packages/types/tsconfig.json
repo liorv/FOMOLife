@@ -4,10 +4,11 @@
     "rootDir": "src",
     "outDir": "dist",
     "lib": ["ES2022"],
-    "types": [],
+    "types": ["node", "jest"],
     "declaration": true,
     "emitDeclarationOnly": false,
     "noEmit": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["__tests__/**"]
 }

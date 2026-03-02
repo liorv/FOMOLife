@@ -12,12 +12,16 @@
     },
     "./styles.css": "./dist/styles.css"
   },
+  "dependencies": {
+    "@myorg/types": "workspace:*"
+  },
   "peerDependencies": {
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node ./scripts/copy-css.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "jest"
   }
 }
