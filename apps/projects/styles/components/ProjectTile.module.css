@@ -126,17 +126,12 @@
 }
 
 .tile:hover .nameEditBtn,
-.nameEditBtn:focusVisible {
+.nameEditBtn:focus-visible {
   opacity: 1;
 }
 
 .nameAccent {
   height: 3px;
-}
-
-/* Progress visualization */
-.progressSection {
-  /* absolutely center the visualization inside the tile */
 }
 
 .progressVisualization {
