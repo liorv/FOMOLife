@@ -71,6 +71,13 @@
       "status": "in-progress",
       "completedAt": null
     },
+    {
+      "id": "6d",
+      "title": "Convert ProjectTile root to CSS module",
+      "description": "Import ProjectTile.module.css and apply on root element.",
+      "status": "completed",
+      "completedAt": "2026-03-01T01:05:00Z"
+    },
 
     {
       "id": 7,
