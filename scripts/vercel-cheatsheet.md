@@ -11,7 +11,7 @@ A quick reference for the most common `vercel` commands you'll need when working
 | Run development server for all apps | `pnpm dev:mono` *(alias for `pnpm --filter=... dev`)* | Starts `next dev` in every package with `dev` script. |
 | Build all apps | `pnpm --filter ./... build` | Useful for CI or preflight checks. |
 | Deploy entire monorepo | `vercel` | Will deploy the root project and any defined projects in `vercel.json`. |
-| Deploy a single app | run `vercel` from the app folder **or** specify the project name with `--project` | e.g. `cd apps/contacts && vercel` or `vercel --project contacts` |
+| Deploy a single app | run `vercel` from the app folder **or** specify the working directory with `--cwd` | e.g. `cd apps/contacts && vercel` or `vercel --cwd=apps/contacts` |
 | Deploy to prod | add `--prod` flag | e.g. `cd apps/projects && vercel --prod` or `vercel --project projects --prod` |
 
 ---
