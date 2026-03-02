@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "C:\Users\mylig\Github\FOMO Life\scripts\setup_supabase.py", line 19, in <module>
+    print("\U0001f517 Connecting to Supabase PostgreSQL...")
+  File "C:\Users\mylig\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f517' in position 0: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mylig\Github\FOMO Life\scripts\setup_supabase.py", line 70, in <module>
+    print(f"\u274c Error: {e}")
+  File "C:\Users\mylig\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 0: character maps to <undefined>

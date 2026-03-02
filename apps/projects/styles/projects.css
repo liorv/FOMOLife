@@ -1,0 +1,911 @@
+.project-edit-accordion summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.project-editor .editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-editor input {
+  padding: 8px 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  font-size: 1em;
+}
+
+.project-editor ul.item-list {
+  min-width: 100%;
+}
+
+/* Project editor task rows match main task row behavior */
+.project-editor .task-row {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-left: 10px;
+  padding-right: 80px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+
+/* compact task rows for expanded subprojects
+   ------------------------------------------------------------
+   make them look more like table rows: tighter spacing, smaller font,
+   thinner separators, reduced height, no tile-like padding. also strip the
+   surrounding <li> "tiles" that are applied globally so rows flow
+   together without margins, radius, or shadows.
+*/
+.subproject .item-list li {
+  /* remove tile chrome */
+  background: transparent;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+  padding: 0 1px; /* preserve minimal horizontal gap from parent rules */
+  border-bottom: 1px solid var(--color-border-row);
+}
+
+.subproject .task-row {
+  gap: 4px;
+  padding-left: 8px;
+  padding-right: 60px; /* still leave room for right controls */
+  font-size: 0.9rem;
+  background: #fff; /* rows should remain white even though list items are transparent */
+}
+
+/* shrink header height and spacing inside subproject tasks */
+.subproject .task-header {
+  height: 36px;
+  gap: 6px;
+}
+.subproject .task-checkbox {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 4px;
+}
+.subproject .task-row button {
+  padding: 2px;
+}
+
+.subproject .task-row .task-title {
+  font-size: 0.95rem;
+}
+
+/* add separator line between rows */
+.subproject .task-row + .task-row {
+  border-top: 1px solid var(--color-border-row);
+}
+
+/* keep drag handle icon a little smaller */
+.subproject .task-row .material-icons.expand-icon {
+  font-size: 1.1rem;
+}
+
+/* ensure checkbox and buttons remain properly sized */
+.subproject .task-row .task-checkbox,
+.subproject .task-row button {
+  padding: 2px;
+}
+
+/* ============================================================
+  20. SUBPROJECT (Expanded & Collapsed)
+   ============================================================ */
+.project-editor .subproject {
+  margin: 0;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #fff;
+}
+
+.project-editor .subproject:active {
+  cursor: grabbing;
+}
+
+/* Collapsed subproject: transparent wrapper so card styling comes from row */
+.project-editor .subproject.collapsed {
+  background: transparent;
+  box-shadow: none;
+}
+
+.project-editor .subproject.collapsed .subproject-row {
+  margin: 0;
+}
+
+.project-editor .subproject .subproject-body {
+  /* container around tasks when expanded */
+  overflow: visible;
+  background: #fff; /* keep content white for readability */
+  border: none;
+  border-radius: 6px;
+  transition: none;
+  max-height: none;
+  padding: 0;
+  margin: 0;
+}
+
+
+/* wrapper receives shadow when subproject is open */
+.project-editor .subproject.expanded {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 6px;
+}
+
+/* inline renaming inputs */
+.subproject-name-input {
+  flex: none;
+  width: 100px;
+  max-width: 250px;
+  box-sizing: border-box;
+}
+
+.subproject-name-input-expanded {
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-bottom: 2px solid var(--color-primary);
+  outline: none;
+  background: #fff;
+  color: var(--color-text);
+  padding: 4px 8px;
+  border-radius: 4px 4px 0 0;
+  width: 70%;
+  flex-shrink: 1;
+  min-width: 60px;
+}
+
+.subproject-name-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 2px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.subproject-name-edit-btn .material-icons { font-size: 15px !important; }
+
+.subproject-row:hover .subproject-name-edit-btn,
+.subproject-name-edit-btn:focus-visible {
+  opacity: 1;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  font-size: 1.2rem;
+}
+
+
+
+.subproject-name-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.subproject-row-name-input {
+  width: 100%;
+  font-size: 1rem;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.subproject-row-stats {
+  font-size: 0.9em;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.subproject-row .owners {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.subproject-row .avatar.small {
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  background: #bdbdbd;
+  color: #fff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subproject-row .people-count {
+  font-size: 0.8em;
+  color: #757575;
+}
+
+.subproject-row button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+}
+
+.subproject-row button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.subproject-row .menu-button {
+  margin-left: auto;
+}
+
+/* Subproject row menu — matches project-tile menu styling */
+.subproject-row .project-menu {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex: 0 0 auto;
+  z-index: 1000;
+}
+
+.subproject-row .project-menu .menu-button {
+  position: relative;
+  z-index: 1;
+}
+
+.subproject-row .project-menu-dropdown {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: #ffffff;
+  border-radius: var(--border-radius);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  z-index: 9999;
+  overflow: visible;
+  animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.subproject-row .project-menu-dropdown[data-flipped-v="true"] {
+  animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-menu-dropdown .menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+.project-menu-dropdown .menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+.project-menu-dropdown .menu-item:active {
+  background-color: #f1f3f4;
+}
+
+.project-menu-dropdown .menu-item .material-icons {
+  font-size: 1.2rem;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.project-menu-dropdown .color-menu-item:hover .material-icons {
+  color: #f57c00;
+}
+
+.project-menu-dropdown .edit-menu-item:hover .material-icons {
+  color: #1f77d1;
+}
+
+.project-menu-dropdown .delete-menu-item:hover .material-icons {
+  color: #d33b27;
+}
+
+.task-list {
+  list-style: disc inside;
+  padding-left: 0;
+}
+
+
+/* ============================================================
+  22. FAB (Floating Action Button)
+   ============================================================ */
+.fab {
+  position: absolute;
+  bottom: 16px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  z-index: 30;
+}
+
+.fab:focus {
+  outline: none;
+}
+
+.fab .material-icons {
+  font-size: 24px;
+}
+
+/* FAB menu (opens above FAB) */
+.fab-menu {
+  position: absolute;
+  bottom: 84px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 110;
+}
+
+.fab-small {
+  position: static;
+  padding: 8px 16px;
+  font-size: 1rem;
+  border-radius: 24px;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fab-small .material-icons {
+  font-size: 1.2rem;
+}
+
+.fab-label {
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #fff;
+}
+
+
+/* ============================================================
+  23. CONFIRM MODAL
+   ============================================================ */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-modal {
+  background: white;
+  padding: 20px;
+  border-radius: var(--border-radius);
+  max-width: 90%;
+  width: 300px;
+  text-align: center;
+  box-shadow: var(--elevation-2);
+}
+
+.confirm-modal .warning-icon {
+  font-size: 3rem;
+  color: var(--color-danger);
+  display: block;
+  margin: 0 auto 10px;
+}
+
+.confirm-modal .confirm-message {
+  margin-bottom: 16px;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.confirm-btn {
+  background: var(--color-danger);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #ccc;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.undo-snackbar {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #323232;
+  color: white;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  min-width: 300px;
+  max-width: 90%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  animation: slideUp 0.3s ease-in-out;
+}
+
+@keyframes slideUp {
+  from {
+    bottom: -100px;
+    opacity: 0;
+  }
+  to {
+    bottom: 60px;
+    opacity: 1;
+  }
+}
+
+.snack-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.snack-message {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.snack-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.snack-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.undo-button {
+  background-color: #1976d2;
+  color: white;
+}
+
+.undo-button:hover {
+  background-color: #1565c0;
+  transform: scale(1.02);
+}
+
+.undo-button:active {
+  transform: scale(0.98);
+}
+
+.dismiss-button {
+  background-color: #555555;
+  color: white;
+}
+
+.dismiss-button:hover {
+  background-color: #666666;
+  transform: scale(1.02);
+}
+
+.dismiss-button:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 600px) {
+  .undo-snackbar {
+    min-width: auto;
+    max-width: 95%;
+    left: 2.5%;
+    right: 2.5%;
+    transform: translateX(0);
+  }
+
+  .snack-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .snack-button {
+    flex: 1;
+    min-width: auto;
+  }
+}
+
+
+/* ============================================================
+  24. ADDBAR WRAPPER (Subproject Task List)
+   ============================================================ */
+/* wrapper exists primarily to ensure full width within the subproject
+   container.  visual styling should be minimal so the input looks identical
+   to other rows. */
+.add-bar-wrapper {
+  width: 100%;
+  padding: 0;
+}
+
+/* Ensure the AddBar inside the wrapper behaves like the normal global
+   add-bar; override anything aggressive from the old styles. */
+.add-bar-wrapper .add-bar {
+  position: static;
+  top: auto;
+  background: var(--color-surface);
+  /* reduce padding to keep bar compact inside container */
+  padding: 5px;
+  margin-bottom: 0;
+}
+
+.add-bar-wrapper .add-bar input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  background: #fff;
+  min-width: 100px;
+}
+
+.add-bar-wrapper .add-bar input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
+}
+
+.add-bar-wrapper .add-bar .add-btn {
+  background: var(--color-subproject-header);
+  color: var(--color-subproject-header);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  flex: none;
+  height: 44px;
+  width: 44px;
+}
+
+.add-bar-wrapper .add-bar .add-btn:hover {
+  background: var(--color-subproject-header);
+}
+
+
+/* ============================================================
+  25. EDITABLE INDICATOR
+   ============================================================ */
+.subproject-name-container,
+.person-name-container {
+  position: relative;
+  display: inline-block;
+}
+
+.editable-indicator {
+  font-size: 0.75rem !important;
+  color: #a0a0a0 !important;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  cursor: pointer !important;
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-title {
+  display: inline-block;
+  position: relative; /* positioning context for icon */
+  white-space: nowrap;
+  flex: none; /* do not grow/shrink in flex container */
+}
+
+.task-title .editable-indicator {
+  position: absolute;
+  left: 100%;
+  margin-left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.task-row:hover .task-title .editable-indicator,
+.task-row:hover .task-title-container .editable-indicator {
+  opacity: 1;
+}
+
+
+/* ============================================================
+  26. ANIMATIONS
+   ============================================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+
+/* ============================================================
+  27. RESPONSIVE — Tablet (≤900px)
+   ============================================================ */
+@media (max-width: 900px) {
+  .container {
+    border-radius: 0;
+    min-height: 0;
+  }
+
+  .add-bar {
+    top: 0;
+  }
+
+  .side-editor {
+    border-radius: 0 0 18px 18px;
+    margin: 0;
+    position: static;
+    width: 100%;
+    max-width: 100vw;
+    height: auto;
+    min-height: 40vh;
+  }
+}
+
+
+/* ============================================================
+  28. RESPONSIVE — Small (≤640px)
+   ============================================================ */
+@media (max-width: 640px) {
+  .editor-columns {
+    flex-direction: column;
+  }
+
+  .editor-columns .left-column {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .editor-columns .right-column {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .editor-columns .left-column > *,
+  .editor-columns .right-column > * {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .task-row .notify-people {
+    display: none;
+  }
+
+  .add-bar .due-date-input {
+    display: none;
+  }
+}
+
+
+/* ============================================================
+  29. RESPONSIVE — Mobile (≤600px)
+   ============================================================ */
+@media (max-width: 600px) {
+  .add-bar-wrapper .add-bar {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 8px;
+  }
+
+  .add-bar-wrapper .add-bar .add-btn {
+    height: 40px;
+    width: 40px;
+  }
+}
+
+
+/* ============================================================
+  30. RESPONSIVE — Narrow (≤480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .task-date .full {
+    display: none;
+  }
+
+  .task-date .short {
+    display: inline;
+  }
+
+  .date-container {
+    min-width: 2ch;
+  }
+
+  .task-row .star {
+    display: none;
+  }
+
+  .subproject-row-stats {
+    display: none;
+  }
+
+  .add-bar-wrapper .add-bar input {
+    max-width: none;
+    flex: 1;
+    min-width: 100px;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+  }
+
+  .add-bar-wrapper .add-bar {
+    padding-left: 6px;
+    padding-right: 6px;
+    gap: 6px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .add-bar-wrapper .add-bar .add-btn {
+    height: 36px;
+    width: 36px;
+    padding: 6px 10px !important;
+  }
+
+  .add-bar-wrapper .add-bar .add-btn .material-icons {
+    font-size: 20px;
+  }
+}
+
+
+/* ============================================================
+  31. RESPONSIVE — Tiny (≤290px)
+   ============================================================ */
+@media (max-width: 290px) {
+  .title-bar .search-container {
+    display: none;
+  }
+
+  .subproject-row-stats {
+    display: none;
+  }
+
+  .subproject-row-stats .stats-icon {
+    display: none;
+  }
+
+  .task-date {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .projects-panel {
+    padding: 18px 12px 140px;
+    gap: 16px;
+  }
+
+  .project-tile {
+    min-height: 200px;
+    border-radius: 16px;
+  }
+
+  .project-tile .project-header {
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .project-tile .project-body {
+    padding: 0 12px 12px;
+  }
+}
+
+
