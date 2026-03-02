@@ -75,10 +75,10 @@ export default function TaskRow({
     }
   };
 
-  const handleTitleClick = () => {
-    // title clicks are now handled by the row click; this exists for fallback but does same thing
+  const handleTitleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (type === "tasks") {
-      setEditorTaskId?.(id);
+      setEditorTaskId?.(isOpen ? null : id);
     }
   };
 
