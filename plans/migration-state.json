@@ -25,8 +25,8 @@
       "id": 4,
       "title": "Establish shared types and utils",
       "description": "Expand @myorg/types and utils as needed for new conversions.",
-      "status": "not-started",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-01T00:20:00Z"
     }
   ]
 }
