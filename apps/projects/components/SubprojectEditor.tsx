@@ -151,35 +151,6 @@ export default function SubprojectEditor({
     "subproject" +
     (collapsed ? " collapsed" : "") +
     (!collapsed ? " expanded" : "");
-  const bodyRef = useRef<HTMLDivElement>(null);
-
-  // animate height when toggling collapsed state
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (!el) return;
-
-    // measure current height so we can animate from/to it
-    const height = el.scrollHeight;
-
-    if (!collapsed) {
-      // expanding: set maxHeight to the measured content. we also clear any
-      // inline padding/margin just in case the element was previously collapsed
-      // with a non‑zero value – the CSS already keeps everything at zero so this
-      // just prevents a flash during the height animation.
-      el.style.maxHeight = height + "px";
-      el.style.padding = "0";
-      el.style.margin = "0";
-    } else {
-      // collapsing: start from current height then animate to 0
-      el.style.maxHeight = height + "px";
-      void el.offsetHeight;
-      setTimeout(() => {
-        el.style.maxHeight = "0";
-        el.style.padding = "0";
-        el.style.margin = "0";
-      }, 0);
-    }
-  }, [collapsed, visibleTasks]);
 
   // focus input when subproject expands
   useEffect(() => {
@@ -221,7 +192,7 @@ export default function SubprojectEditor({
         isDragging={isDragging}
         expanded={!collapsed}
       />
-      <div className="subproject-body" ref={bodyRef}>
+      {!collapsed && <div className="subproject-body">
         <div className="subproject-tasks">
           <ul className="item-list">
             <TaskList
@@ -264,7 +235,7 @@ export default function SubprojectEditor({
             />
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

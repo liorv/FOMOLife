@@ -380,8 +380,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 65vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
