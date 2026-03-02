@@ -1,0 +1,6 @@
+# exclude local build artifacts and caches
+node_modules
+.turbo
+**/.next
+.env*
+*.log
