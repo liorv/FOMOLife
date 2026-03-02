@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, MouseEvent } from "react";
 import ReactDOM from "react-dom";
+import tileStyles from '../styles/components/ProjectTile.module.css';
 
 import type { ProjectItem } from '@myorg/types';
 
@@ -242,7 +243,7 @@ export default function ProjectTile({
 
   return (
     <div
-      className="project-tile"
+      className={tileStyles.tile}
       style={{
         width: widthStr,
         height: heightStr,
