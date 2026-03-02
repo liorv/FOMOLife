@@ -10,7 +10,13 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@myorg/ui": ["../../packages/ui/src"],
+      "@myorg/ui/*": ["../../packages/ui/src/*"],
+      "@myorg/utils": ["../../packages/utils/src"],
+      "@myorg/utils/*": ["../../packages/utils/src/*"],
+      "@myorg/types": ["../../packages/types/src"],
+      "@myorg/types/*": ["../../packages/types/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.js", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
