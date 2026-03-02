@@ -11,8 +11,8 @@
       "id": 2,
       "title": "Audit remaining apps for JavaScript files",
       "description": "Identify .js files across contacts, framework, projects, tasks, etc. and plan conversion.",
-      "status": "not-started",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-01T00:10:00Z"
     },
     {
       "id": 3,
