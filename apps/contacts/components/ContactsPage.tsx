@@ -2,19 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ContactsApiClient } from '@myorg/api-client';
-import { createInviteLink, isNonEmptyString } from '@myorg/utils';
+import { isNonEmptyString } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
-import { ContactCard } from '@myorg/ui';
+import { ContactTile } from '@myorg/ui';
 import { createContactsApiClient } from '@/lib/client/contactsApi';
 import { getContactsClientEnv } from '@/lib/env.client';
 import styles from './ContactsPage.module.css';
 
-function generateToken(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-}
+
+export const DEFAULT_CONTACT_NAME = 'New contact';
 
 type Props = {
   canManage: boolean;
@@ -25,47 +21,36 @@ export default function ContactsPage({ canManage }: Props) {
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [copied, setCopied] = useState(false);
+  // track an id for a freshly-created contact so we can auto-focus its name input
+  const [newContactId, setNewContactId] = useState<string | null>(null);
+  // general loading/error state
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // banner shown when an invite link is copied anywhere on the page
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  // helper that creates a contact by prompting the user for a name. this
-  // replaces the previous form-based flow and is invoked only from the thumb
-  // button (see message handler below).
+  // helper that creates a contact with a default placeholder name. the new
+  // tile is then focused so the user can immediately edit its name. this is
+  // invoked only from the thumb button (see message handler below).
   const addContact = async () => {
     if (!canManage) return;
 
-    const input = window.prompt('Enter a nickname for the new contact:');
-    const name = (input ?? '').trim();
-    if (!isNonEmptyString(name)) return;
-
-    const inviteToken = generateToken();
+    // placeholder contact with no invite; status not_linked
+    const name = DEFAULT_CONTACT_NAME;
     const contact: Contact = {
       id: '',
       name,
-      status: 'invited',
-      inviteToken,
+      status: 'not_linked',
       login: '',
     };
-
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const link = createInviteLink(origin, inviteToken);
-
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      window.prompt('Copy this invite link and share it:', link);
-    }
 
     const created = await apiClient.createContact({
       name: contact.name,
       ...(contact.login ? { login: contact.login } : {}),
-      inviteToken: contact.inviteToken ?? null,
     });
 
     setContacts((prev) => [...prev, created]);
+    setNewContactId(created.id);
   };
 
   useEffect(() => {
@@ -169,42 +154,53 @@ export default function ContactsPage({ canManage }: Props) {
 
         {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
 
-        {copied ? (
+        {linkCopied ? (
           <div className={styles.banner}>
             <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
             Invite link copied to clipboard!
           </div>
         ) : null}
 
+
         {contacts.length === 0 ? (
           <div className={styles.empty}>
             <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people</span>
             <p>No contacts yet.</p>
-            <p className={styles.emptySub}>You can no longer add new contacts.</p>
+            <p className={styles.emptySub}>Use the add button to create a new contact.</p>
           </div>
         ) : (
-          <ul className={styles.list}>
+          <div className={styles.list}>
             {contacts.map((contact) => (
-              <ContactCard
+              <ContactTile
                 key={contact.id}
-                contact={contact}
-                onDelete={async (id) => {
-                  await apiClient.deleteContact(id);
-                  setContacts((prev) => prev.filter((item) => item.id !== id));
+                id={contact.id}
+                name={contact.name}
+                status={contact.status}
+                avatarUrl={null}
+                autoFocus={newContactId === contact.id}
+                onNameChange={async (newName) => {
+                  if (!isNonEmptyString(newName)) return;
+                  const updated = await apiClient.updateContact(contact.id, { name: newName.trim() });
+                  setContacts((prev) => prev.map((item) => (item.id === contact.id ? updated : item)));
+                  if (newContactId === contact.id) {
+                    setNewContactId(null);
+                  }
                 }}
-                onRename={async (id, name) => {
-                  if (!isNonEmptyString(name)) return;
-                  const updated = await apiClient.updateContact(id, { name: name.trim() });
-                  setContacts((prev) => prev.map((item) => (item.id === id ? updated : item)));
+                onUnlink={async () => {
+                  await apiClient.deleteContact(contact.id);
+                  setContacts((prev) => prev.filter((item) => item.id !== contact.id));
                 }}
-                onGenerateInvite={async (id, token) => {
-                  const updated = await apiClient.updateContact(id, { inviteToken: token, status: 'invited' });
-                  setContacts((prev) => prev.map((item) => (item.id === id ? updated : item)));
+                onLink={async () => {
+                  // update local status immediately for user feedback
+                  setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, status: 'link_pending' } : c));
                 }}
-                readOnly={!canManage}
+                onLinkSuccess={() => {
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2500);
+                }}
               />
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </main>

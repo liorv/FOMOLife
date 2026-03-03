@@ -1,5 +1,9 @@
 {
   "buildCommand": "next build",
   "devCommand": "next dev",
-  "installCommand": "pnpm install --frozen-lockfile"
+  "installCommand": "pnpm install --frozen-lockfile",
+  "env": {
+    "INVITE_SECRET": "${INVITE_SECRET}",
+    "NEXT_PUBLIC_BASE_URL": "${NEXT_PUBLIC_BASE_URL}"
+  }
 }

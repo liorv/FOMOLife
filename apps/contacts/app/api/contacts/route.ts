@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     name: body.name.trim(),
     ...(typeof body.login === 'string' ? { login: body.login } : {}),
     inviteToken: body.inviteToken ?? null,
-    status: body.inviteToken ? 'invited' : 'none',
+    status: body.inviteToken ? 'link_pending' : 'not_linked',
   });
   return corsResponse(NextResponse.json(created, { status: 201 }), request);
 }

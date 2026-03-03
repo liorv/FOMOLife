@@ -16,12 +16,14 @@ describe('invite utilities', () => {
     expect(isValidInviteToken('abc123_-')).toBe(true);
     expect(isValidInviteToken('')).toBe(false);
     expect(isValidInviteToken('in valid')).toBe(false);
-    expect(isValidInviteToken('x'.repeat(129))).toBe(false);
+    // JWT style tokens with periods should still validate
+    expect(isValidInviteToken('header.payload.signature')).toBe(true);
+    expect(isValidInviteToken('x'.repeat(513))).toBe(false);
   });
 
   it('creates and parses links', () => {
     const link = createInviteLink('http://example.com/', 'tok');
-    expect(link).toContain('/invite?token=tok');
+    expect(link).toContain('/accept-invite?token=tok');
     expect(parseInviteTokenFromUrl(link)).toBe('tok');
     expect(parseInviteTokenFromUrl('not a url')).toBe(null);
   });

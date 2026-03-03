@@ -11,12 +11,12 @@ jest.mock('next/navigation', () => ({
 
 // also mock contacts client so TasksPage has a people list
 const contactsListMock = jest.fn().mockResolvedValue([
-  { id: 'c1', name: 'John Doe', status: 'accepted' },
+  { id: 'c1', name: 'John Doe', status: 'linked' },
 ]);
 const contactsCreateMock = jest.fn().mockImplementation(async (input) => ({
   id: 'c2',
   name: input.name,
-  status: 'none',
+  status: 'not_linked',
 }));
 
 jest.mock('../../lib/client/contactsApi', () => ({

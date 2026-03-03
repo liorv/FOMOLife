@@ -18,7 +18,7 @@ const mockTask: ProjectTask = {
 const mockContact: Contact = {
   id: 'contact-1',
   name: 'John Doe',
-  status: 'accepted',
+  status: 'linked',
 };
 
 describe('TaskModal', () => {

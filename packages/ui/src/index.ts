@@ -1,3 +1,5 @@
+export { ContactTile } from './ContactTile';
+export type { ContactTileProps } from './ContactTile';
 export { UiButton } from "./ui-button";
 export type { UiButtonProps } from "./ui-button";
 
@@ -18,9 +20,6 @@ export type { AddBarProps } from "./AddBar";
 
 export { TaskList, Task, Person, TaskModal } from "./TaskList";
 export type { TaskListProps, TaskProps, PersonProps, TaskEditorProps } from "./TaskList";
-
-export { default as ContactCard } from './ContactCard';
-export type { ContactCardProps } from './ContactCard';
 
 export { default as LogoBar } from './LogoBar';
 export type { LogoBarProps } from './LogoBar';

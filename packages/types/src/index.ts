@@ -9,7 +9,18 @@
 export type { BaseEntity, AsyncState, Result, Maybe, NonEmptyString, Timestamp, ColorHex, UserId, PaginationParams, PaginatedResult } from './common';
 
 // Contact types
-export type { ContactStatus, InviteToken, Contact, ContactCreateInput, ContactUpdateInput } from './contact';
+export type {
+	ContactStatus,
+	InviteToken,
+	Contact,
+	ContactCreateInput,
+	ContactUpdateInput,
+	InviteAcceptanceRequest,
+	ContactGroup,
+	ContactGroupInput,
+	Group,
+	InviteTokenResponse,
+} from './contact';
 
 // Project types
 export type { ProjectTaskPerson, ProjectTask, ProjectSubproject, ProjectItem, ProjectCreateInput, ProjectUpdateInput } from './project';
