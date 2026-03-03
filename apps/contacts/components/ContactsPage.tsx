@@ -25,11 +25,48 @@ export default function ContactsPage({ canManage }: Props) {
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [nickname, setNickname] = useState('');
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // helper that creates a contact by prompting the user for a name. this
+  // replaces the previous form-based flow and is invoked only from the thumb
+  // button (see message handler below).
+  const addContact = async () => {
+    if (!canManage) return;
+
+    const input = window.prompt('Enter a nickname for the new contact:');
+    const name = (input ?? '').trim();
+    if (!isNonEmptyString(name)) return;
+
+    const inviteToken = generateToken();
+    const contact: Contact = {
+      id: '',
+      name,
+      status: 'invited',
+      inviteToken,
+      login: '',
+    };
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const link = createInviteLink(origin, inviteToken);
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this invite link and share it:', link);
+    }
+
+    const created = await apiClient.createContact({
+      name: contact.name,
+      ...(contact.login ? { login: contact.login } : {}),
+      inviteToken: contact.inviteToken ?? null,
+    });
+
+    setContacts((prev) => [...prev, created]);
+  };
 
   useEffect(() => {
     let active = true;
@@ -89,113 +126,41 @@ export default function ContactsPage({ canManage }: Props) {
     };
   }, [apiClient, canManage]);
 
-  const toggleShowForm = () => {
-    setShowForm((prev) => {
-      const next = !prev;
-      console.log('[Contacts] Toggling showForm from', prev, 'to', next);
-      
-      // Reset nickname when closing, match behavior of a full cancel
-      if (!next) {
-        setNickname('');
-      }
-
-      if (next) {
-        requestAnimationFrame(() => {
-          const el = document.getElementById('contact-name') as HTMLInputElement | null;
-          if (el) el.focus();
-        });
-      }
-      return next;
-    });
-  };
-
-  const getThumbIcon = () => (showForm ? 'close' : 'person_add');
-  const getThumbAction = () => 'thumb-fab';
-
+  // configure thumb button for contacts tab and listen for presses
   useEffect(() => {
+    const icon = 'person_add';
+    const action = 'add-contact';
+
+    // legacy notification
+    try {
+      window.parent?.postMessage?.({ type: 'thumb-icon', icon }, '*');
+    } catch (err) {
+      // ignore
+    }
+
     const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'thumb-fab') {
-        if (!canManage) {
-          console.warn('[Contacts] thumb-fab received but canManage is false');
-          return;
-        }
-        toggleShowForm();
-      } else if (event.data?.type === 'get-thumb-config') {
+      if (!event?.data) return;
+      if (event.data.type === 'get-thumb-config') {
         try {
-          window.parent?.postMessage?.(
-            { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
-            '*',
-          );
+          window.parent?.postMessage?.({ type: 'thumb-config', icon, action }, '*');
         } catch (err) {
           // ignore
         }
+      } else if ((event.data.type === action || event.data.type === 'thumb-fab') && canManage) {
+        // invoke contact creation when thumb button is pressed
+        addContact();
       }
     };
 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [canManage, showForm]);
-
-  // inform host what icon the thumb should show for this app (legacy updates)
-  useEffect(() => {
-    try {
-      const icon = getThumbIcon();
-      window.parent?.postMessage?.({ type: 'thumb-icon', icon }, '*');
-    } catch (err) {
-      // ignore
-    }
-  }, [showForm]);
-
-  const addContact = async () => {
-    if (!isNonEmptyString(nickname)) return;
-
-    const inviteToken = generateToken();
-    const contact: Contact = {
-      id: '',
-      name: nickname.trim(),
-      status: 'invited',
-      inviteToken,
-      login: '',
-    };
-
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const link = createInviteLink(origin, inviteToken);
-
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      window.prompt('Copy this invite link and share it:', link);
-    }
-
-    const created = await apiClient.createContact({
-      name: contact.name,
-      ...(contact.login ? { login: contact.login } : {}),
-      inviteToken: contact.inviteToken ?? null,
-    });
-
-    setContacts((prev) => [...prev, created]);
-    setNickname('');
-    setShowForm(false);
-  };
+  }, [canManage]);
 
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
         <header className={styles.header}>
-          <button
-            className={`${styles.addToggle} ${showForm ? styles.addToggleCancel : ''}`.trim()}
-            onClick={toggleShowForm}
-            disabled={!canManage}
-            aria-label={showForm ? 'Cancel add contact' : 'Add contact'}
-            title={showForm ? 'Cancel add contact' : 'Add contact'}
-          >
-            <span className={`material-icons ${styles.iconGlyph}`} aria-hidden="true">
-              {showForm ? 'close' : 'person_add'}
-            </span>
-            {showForm ? 'Cancel' : 'Add Contact'}
-          </button>
+          {/* add contact button removed per design change; read-only header */}
         </header>
 
         {!canManage ? <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div> : null}
@@ -203,30 +168,6 @@ export default function ContactsPage({ canManage }: Props) {
         {loading ? <div className={styles.notice}>Loading contacts…</div> : null}
 
         {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
-
-        {showForm ? (
-          <section className={styles.form}>
-            <div className={styles.formFields}>
-              <div className={styles.fieldWrap}>
-                <label className={styles.fieldLabel} htmlFor="contact-name">Nickname</label>
-                <input
-                  id="contact-name"
-                  className={styles.fieldInput}
-                  value={nickname}
-                  onChange={(event) => setNickname(event.target.value)}
-                  placeholder="e.g. Alex"
-                />
-              </div>
-            </div>
-            <button className={styles.primaryBtn} onClick={addContact} disabled={!isNonEmptyString(nickname)}>
-              <span className={`material-icons ${styles.primaryIcon}`} aria-hidden="true">link</span>
-              Add & Copy Invite Link
-            </button>
-            <p className={styles.hint}>
-              A unique invite link is copied to your clipboard. Share it however you like — whoever follows it and signs in is automatically connected to you.
-            </p>
-          </section>
-        ) : null}
 
         {copied ? (
           <div className={styles.banner}>
@@ -239,7 +180,7 @@ export default function ContactsPage({ canManage }: Props) {
           <div className={styles.empty}>
             <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people</span>
             <p>No contacts yet.</p>
-            <p className={styles.emptySub}>Add someone to start collaborating on tasks together.</p>
+            <p className={styles.emptySub}>You can no longer add new contacts.</p>
           </div>
         ) : (
           <ul className={styles.list}>

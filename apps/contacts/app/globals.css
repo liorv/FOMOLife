@@ -17,5 +17,6 @@ body {
 
 body {
   min-height: 100vh;
-  background: #fff;
+  /* match framework background; fall back to light gray when not hosted */
+  background: var(--color-bg, #f1f3f4);
 }

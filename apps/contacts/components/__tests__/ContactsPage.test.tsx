@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import ContactsPage from '../ContactsPage';
 import type { Contact } from '@myorg/types';
 
@@ -9,12 +9,13 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// stub clipboard so addContact uses clipboard instead of prompt
+// stub clipboard and prompt for any interactions
 beforeEach(() => {
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText: jest.fn().mockResolvedValue(undefined) },
     writable: true,
   });
+  jest.spyOn(window, 'prompt').mockImplementation(() => 'Foo');
 });
 
 // mock the api client factory
@@ -34,7 +35,7 @@ jest.mock('../../lib/client/contactsApi', () => ({
 }));
 
 describe('ContactsPage', () => {
-  it('toggles add form and adds a contact', async () => {
+  it('renders without an add-contact button and shows empty state', async () => {
     render(<ContactsPage canManage={true} />);
 
     // loading indicator should show initially
@@ -44,20 +45,8 @@ describe('ContactsPage', () => {
     // initially no contacts, show empty message
     expect(screen.getByText('No contacts yet.')).toBeInTheDocument();
 
-    // open add form
-    fireEvent.click(screen.getByRole('button', { name: /Add Contact/i }));
-    expect(screen.getByPlaceholderText('e.g. Alex')).toBeInTheDocument();
-
-    // fill in and submit
-    fireEvent.change(screen.getByPlaceholderText('e.g. Alex'), { target: { value: 'Foo' } });
-    fireEvent.click(screen.getByRole('button', { name: /Add & Copy Invite Link/i }));
-
-    // new contact should appear
-    await waitFor(() => expect(screen.getByText('Foo')).toBeInTheDocument());
-
-    // delete the contact
-    fireEvent.click(screen.getByLabelText('Remove contact'));
-    await waitFor(() => expect(screen.queryByText('Foo')).not.toBeInTheDocument());
+    // there should be no button for adding contacts
+    expect(screen.queryByRole('button', { name: /Add Contact/i })).not.toBeInTheDocument();
   });
 
   it('refreshes when window gains focus or receives contacts-updated message', async () => {
@@ -100,30 +89,45 @@ describe('ContactsPage', () => {
   });
 
 
-  it('replies with thumb-config including current icon', async () => {
+  it('replies with thumb-config including current icon and creates contact on action', async () => {
     render(<ContactsPage canManage={true} />);
     await waitFor(() => expect(screen.queryByText('Loading contacts…')).not.toBeInTheDocument());
 
     const msgs: any[] = [];
     window.addEventListener('message', (e) => msgs.push(e.data));
-
+    // verify initial thumb-icon message was posted when component mounted
+    await waitFor(() => msgs.some((m) => m.type === 'thumb-icon' && m.icon === 'person_add'));
     act(() => {
       window.postMessage({ type: 'get-thumb-config' }, '*');
     });
     await waitFor(() => msgs.some((m) => m.type === 'thumb-config'));
     const cfg = msgs.find((m) => m.type === 'thumb-config');
     expect(cfg.icon).toBe('person_add');
-    expect(cfg.action).toBe('thumb-fab');
+    expect(cfg.action).toBe('add-contact');
 
-    // toggle form and request again
+    // sending thumb-fab should not change the configuration (but it does trigger the add behavior)
     act(() => {
       window.postMessage({ type: 'thumb-fab' }, '*');
     });
-    // when form opens icon should change to close
     await waitFor(() => {
       act(() => window.postMessage({ type: 'get-thumb-config' }, '*'));
     });
-    const cfg2 = msgs.find((m) => m.type === 'thumb-config' && m.icon === 'close');
-    expect(cfg2).toBeDefined();
+    // icon should remain the same
+    const cfg2 = msgs.filter((m) => m.type === 'thumb-config').pop();
+    expect(cfg2.icon).toBe('person_add');
+
+    // now trigger add-contact action via message
+    act(() => {
+      window.postMessage({ type: 'add-contact' }, '*');
+    });
+    await waitFor(() => expect(screen.getByText('Foo')).toBeInTheDocument());
+    expect(screen.getByText('Invite link copied to clipboard!')).toBeInTheDocument();
+
+    // also verify legacy thumb-fab still creates a contact
+    jest.spyOn(window, 'prompt').mockReturnValue('Bar');
+    act(() => {
+      window.postMessage({ type: 'thumb-fab' }, '*');
+    });
+    await waitFor(() => expect(screen.getByText('Bar')).toBeInTheDocument());
   });
 });
