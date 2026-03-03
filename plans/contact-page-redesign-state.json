@@ -1,0 +1,22 @@
+{
+  "steps": [
+    { "id": "1.1", "title": "Create ContactTile component skeleton", "status": "completed" },
+    { "id": "1.2", "title": "Add avatar placeholder to tile", "status": "completed" },
+    { "id": "1.3", "title": "Add name display and pencil icon", "status": "completed" },
+    { "id": "1.4", "title": "Add status display (placeholder)", "status": "completed" },
+    { "id": "1.5", "title": "Ensure tile dimensions via CSS", "status": "completed" },
+    { "id": "1.6", "title": "Add props for contact data", "status": "completed" },
+    { "id": "1.7", "title": "Add storybook/test page for tile", "status": "completed" },
+    { "id": 2, "title": "Implement Inline Name Editing", "status": "completed" },
+    { "id": 3, "title": "Display Contact Status", "status": "completed" },
+    { "id": 4, "title": "Show Unique GUID for Each Contact", "status": "completed" },
+    { "id": 5, "title": "Link/Unlink Actions", "status": "completed" },
+    { "id": 6, "title": "Handle Invite Token Generation", "status": "completed" },
+    { "id": 7, "title": "Accept Invite Token UI", "status": "completed" },
+    { "id": 8, "title": "Contact Groups UI", "status": "completed" },
+    { "id": 9, "title": "Drag-and-Drop Contacts into Groups", "status": "completed" },
+    { "id": 10, "title": "Persist and Sync State", "status": "completed" },
+    { "id": 11, "title": "Testing and Validation", "status": "completed" }
+  ],
+  "currentStep": "11"
+}
