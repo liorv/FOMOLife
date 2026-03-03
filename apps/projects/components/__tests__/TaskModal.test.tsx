@@ -88,6 +88,9 @@ describe('TaskModal', () => {
       await waitFor(() => {
         expect(screen.getByText('John Doe')).toBeInTheDocument();
       });
+      // dropdown is rendered in a portal (not inside the inline-editor element)
+      const suggestion = screen.getByText('John Doe');
+      expect(suggestion.closest('.inline-editor')).toBeNull();
 
       // Click on the suggestion
       fireEvent.click(screen.getByText('John Doe'));
@@ -99,6 +102,32 @@ describe('TaskModal', () => {
             people: [{ name: 'John Doe' }],
           })
         );
+      });
+    });
+
+    it('should show inline suggestion with white background when no matches', async () => {
+      const mockAllPeople: Contact[] = [];
+      renderComponent({ allPeople: mockAllPeople });
+      const personInput = screen.getByPlaceholderText(/search people/i);
+      fireEvent.change(personInput, { target: { value: 'Unknown' } });
+
+      await waitFor(() => {
+        const addRow = screen.getByText(/Add "Unknown"/i);
+        expect(addRow).toBeInTheDocument();
+        expect(addRow.closest('.suggestion-inline')).toHaveStyle('background: #fff');
+      });
+    });
+
+    it('should show inline suggestion with white background when no matches', async () => {
+      const mockAllPeople: Contact[] = [];
+      renderComponent({ allPeople: mockAllPeople });
+      const personInput = screen.getByPlaceholderText(/search people/i);
+      fireEvent.change(personInput, { target: { value: 'Unknown' } });
+
+      await waitFor(() => {
+        const addRow = screen.getByText(/Add "Unknown"/i);
+        expect(addRow).toBeInTheDocument();
+        expect(addRow.closest('.suggestion-inline')).toHaveStyle('background: #fff');
       });
     });
 

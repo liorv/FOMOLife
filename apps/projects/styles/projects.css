@@ -341,74 +341,64 @@
 
 
 /* ============================================================
-  22. FAB (Floating Action Button)
+  22.5 FILTER FLAT VIEW (Filtered Tasks)
    ============================================================ */
-.fab {
-  position: absolute;
-  bottom: 16px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  border: none;
-  outline: none;
-  cursor: pointer;
-  z-index: 30;
+
+/* Apply the same compact styling as subproject tasks to filtered tasks */
+.filter-flat-view .item-list li {
+  /* remove tile chrome */
+  background: transparent;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+  padding: 0;
+  border-bottom: none;
 }
 
-.fab:focus {
-  outline: none;
-}
-
-.fab .material-icons {
-  font-size: 24px;
-}
-
-/* FAB menu (opens above FAB) */
-.fab-menu {
-  position: absolute;
-  bottom: 84px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 110;
-}
-
-.fab-small {
-  position: static;
-  padding: 8px 16px;
-  font-size: 1rem;
-  border-radius: 24px;
-  background: var(--color-accent);
-  color: #fff;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  border: none;
-  outline: none;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.fab-small .material-icons {
-  font-size: 1.2rem;
-}
-
-.fab-label {
+.filter-flat-view .task-row {
+  gap: 4px;
+  padding-left: 8px;
+  padding-right: 60px; /* still leave room for right controls */
   font-size: 0.9rem;
-  line-height: 1;
-  color: #fff;
+  background: #fff; /* rows should remain white even though list items are transparent */
 }
+
+/* shrink header height and spacing inside filtered tasks */
+.filter-flat-view .task-header {
+  height: 36px;
+  gap: 6px;
+  background: #fff;
+}
+.filter-flat-view .task-checkbox {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 4px;
+}
+.filter-flat-view .task-row button {
+  padding: 2px;
+}
+
+.filter-flat-view .task-row .task-title {
+  font-size: 0.95rem;
+}
+
+/* add separator line between rows */
+.filter-flat-view .task-row + .task-row {
+  border-top: 1px solid var(--color-border-row);
+}
+
+/* keep drag handle icon a little smaller */
+.filter-flat-view .task-row .material-icons.expand-icon {
+  font-size: 1.1rem;
+}
+
+/* ensure checkbox and buttons remain properly sized */
+.filter-flat-view .task-row .task-checkbox,
+.filter-flat-view .task-row button {
+  padding: 2px;
+}
+
+
 
 
 /* ============================================================

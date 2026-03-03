@@ -12,13 +12,28 @@ function unauthorizedResponse() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-export async function GET() {
+function corsResponse(response: NextResponse, request?: Request) {
+  const origin = request?.headers.get('origin') || '*';
+  // when credentials are included we must echo the origin instead of '*'
+  response.headers.set('Access-Control-Allow-Origin', origin);
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  return response;
+}
+
+export async function OPTIONS(request: Request) {
+  // preflight handler
+  return corsResponse(NextResponse.json({}), request);
+}
+
+export async function GET(request: Request) {
   const session = await getContactsSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
   const contacts = await listContacts(session.userId);
   const payload: ContactsListResponse = { contacts };
-  return NextResponse.json(payload);
+  return corsResponse(NextResponse.json(payload), request);
 }
 
 export async function POST(request: Request) {
@@ -27,7 +42,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as CreateContactRequest;
   if (!body?.name || !body.name.trim()) {
-    return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    return corsResponse(NextResponse.json({ error: 'Name is required' }, { status: 400 }), request);
   }
 
   const created = await createContact(session.userId, {
@@ -36,7 +51,7 @@ export async function POST(request: Request) {
     inviteToken: body.inviteToken ?? null,
     status: body.inviteToken ? 'invited' : 'none',
   });
-  return NextResponse.json(created, { status: 201 });
+  return corsResponse(NextResponse.json(created, { status: 201 }), request);
 }
 
 export async function PATCH(request: Request) {
@@ -45,15 +60,15 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json()) as { id?: string; patch?: UpdateContactRequest };
   if (!body?.id || !body.patch) {
-    return NextResponse.json({ error: 'id and patch are required' }, { status: 400 });
+    return corsResponse(NextResponse.json({ error: 'id and patch are required' }, { status: 400 }), request);
   }
 
   const updated = await updateContact(session.userId, body.id, body.patch);
   if (!updated) {
-    return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+    return corsResponse(NextResponse.json({ error: 'Contact not found' }, { status: 404 }), request);
   }
 
-  return NextResponse.json(updated);
+  return corsResponse(NextResponse.json(updated), request);
 }
 
 export async function DELETE(request: Request) {
@@ -62,13 +77,13 @@ export async function DELETE(request: Request) {
 
   const body = (await request.json()) as { id?: string };
   if (!body?.id) {
-    return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    return corsResponse(NextResponse.json({ error: 'id is required' }, { status: 400 }), request);
   }
 
   const removed = await deleteContact(session.userId, body.id);
   if (!removed) {
-    return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+    return corsResponse(NextResponse.json({ error: 'Contact not found' }, { status: 404 }), request);
   }
 
-  return NextResponse.json({ ok: true });
+  return corsResponse(NextResponse.json({ ok: true }), request);
 }

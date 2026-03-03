@@ -57,6 +57,38 @@ export default function ContactsPage({ canManage }: Props) {
     };
   }, [apiClient]);
 
+  // if user navigates back to this tab (or window regains focus), refresh list
+  useEffect(() => {
+    if (!canManage) return;
+    const onFocus = async () => {
+      try {
+        const updated = await apiClient.listContacts();
+        setContacts(updated);
+      } catch (err) {
+        // ignore; existing errorMessage state covers it when mounted
+        console.warn('[Contacts] refresh failed', err);
+      }
+    };
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'contacts-updated') {
+        onFocus();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('message', onMessage);
+    const onStorage = (evt: StorageEvent) => {
+      if (evt.key === 'fomo:contactsUpdated') {
+        onFocus();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('message', onMessage);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [apiClient, canManage]);
+
   const toggleShowForm = () => {
     setShowForm((prev) => {
       const next = !prev;

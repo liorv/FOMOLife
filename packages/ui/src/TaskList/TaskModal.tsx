@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { ProjectTask, ProjectTaskPerson, Contact } from "@myorg/types";
 
 export interface TaskEditorProps {
@@ -39,6 +40,8 @@ export default function TaskEditor({
   const [people, setPeople] = useState<PersonEntry[]>(initialPeople);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const barRef = React.useRef<HTMLInputElement | null>(null);
+  const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({});
 
   // Keep a ref to track if component is mounted (for Strict Mode double-mount handling)
   const isMountedRef = React.useRef(true);
@@ -68,7 +71,30 @@ export default function TaskEditor({
   useEffect(() => {
     // reset keyboard focus whenever the query changes
     setActiveSuggestion(-1);
+    updatePortalPosition();
   }, [searchQuery]);
+
+  const updatePortalPosition = () => {
+    if (barRef.current) {
+      const rect = barRef.current.getBoundingClientRect();
+      setPortalStyle({
+        position: 'absolute',
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        zIndex: 300,
+      });
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('scroll', updatePortalPosition, true);
+    window.addEventListener('resize', updatePortalPosition);
+    return () => {
+      window.removeEventListener('scroll', updatePortalPosition, true);
+      window.removeEventListener('resize', updatePortalPosition);
+    };
+  }, []);
 
   // persist latest edits when editor unmounts (e.g. user switches tasks)
   // Use a flag to ensure cleanup only runs once (handles Strict Mode double-mount)
@@ -226,27 +252,16 @@ export default function TaskEditor({
             <label htmlFor={peopleSearchId}>Owners</label>
             <div className="people-list task-person-list">
               {people.map((p) => (
-                <div key={p.name} className="task-person-row">
-                  <div className="task-person-col name">
-                    <div className="owner-avatar">
-                      {(p.name || "?")
-                        .split(" ")
-                        .map((s) => s[0])
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase()}
-                    </div>
-                    <strong className="person-name">{p.name}</strong>
-                  </div>
-                  <div className="task-person-col actions">
-                    <button
-                      className="remove-btn"
-                      onClick={() => handleRemovePerson(p.name)}
-                      aria-label={`Remove ${p.name}`}
-                    >
-                      <span className="material-icons">close</span>
-                    </button>
-                  </div>
+                <div key={p.name} className="person-chip small">
+                  <span className="person-name">{p.name}</span>
+                  <button
+                    type="button"
+                    className="btn-icon delete"
+                    onClick={() => handleRemovePerson(p.name)}
+                    aria-label={`Remove ${p.name}`}
+                  >
+                    <span className="material-icons">close</span>
+                  </button>
                 </div>
               ))}
             </div>
@@ -254,6 +269,7 @@ export default function TaskEditor({
               <input
                 id={peopleSearchId}
                 name="personSearch"
+                ref={barRef}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search people to add (type to find)"
@@ -334,9 +350,9 @@ export default function TaskEditor({
                     )
                     .slice(0, 6);
 
-                  // render a floating dropdown only when we have multiple matches
+                  // build dropdown or inline suggestion
                   if (matches.length > 0) {
-                    return (
+                    const dropdown = (
                       <div
                         className="search-suggestions dropdown"
                         role="listbox"
@@ -366,9 +382,17 @@ export default function TaskEditor({
                         ))}
                       </div>
                     );
+                    // portal the floating dropdown so it can escape overflow
+                    if (typeof document !== 'undefined') {
+                      return createPortal(
+                        <div style={{ ...portalStyle, background: '#fff' }}>{dropdown}</div>,
+                        document.body,
+                      );
+                    }
+                    return dropdown;
                   }
 
-                  // no matches — show inline "Add" row (avoid floating box / scrollbars)
+                  // inline suggestion (no matches) renders in-place with transparent background
                   const newName = searchQuery.trim();
                   return (
                     <div

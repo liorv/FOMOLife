@@ -23,7 +23,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export function createContactsApiClient(baseUrl = ''): ContactsApiClient {
   return {
     async listContacts(): Promise<Contact[]> {
-      const response = await fetch(`${baseUrl}/api/contacts`, { method: 'GET' });
+      const response = await fetch(`${baseUrl}/api/contacts`, { method: 'GET', credentials: 'include' });
       const payload = await parseResponse<ContactsListResponse>(response);
       return payload.contacts;
     },
@@ -31,6 +31,7 @@ export function createContactsApiClient(baseUrl = ''): ContactsApiClient {
     async createContact(input: CreateContactRequest): Promise<Contact> {
       const response = await fetch(`${baseUrl}/api/contacts`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(input),
       });
@@ -40,6 +41,7 @@ export function createContactsApiClient(baseUrl = ''): ContactsApiClient {
     async updateContact(id: string, patch: UpdateContactRequest): Promise<Contact> {
       const response = await fetch(`${baseUrl}/api/contacts`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id, patch }),
       });
@@ -49,6 +51,7 @@ export function createContactsApiClient(baseUrl = ''): ContactsApiClient {
     async deleteContact(id: string): Promise<void> {
       const response = await fetch(`${baseUrl}/api/contacts`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ id }),
       });

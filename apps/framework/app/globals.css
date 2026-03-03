@@ -570,26 +570,50 @@ body {
 
 .tabs {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  /* left group takes from left viewport to thumb, right group from thumb to right
+     viewport. groups are flex:1 so they expand equally around the thumb. */
   position: relative;
   overflow: visible;
   height: var(--nav-height);
   background: var(--color-surface);
-  border-top: none;
+  /* add a grey top border */
+  border-top: 1px solid rgba(190, 189, 189, 0.473);
   backdrop-filter: blur(12px);
   padding: 2px;
 }
 
+/* The curved 'hump' - Updated to a circle to eliminate vertical side-walls */
 .tabs::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--color-border);
-  z-index: 0;
+  top: -20px; /* Kept at your preferred height */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;  
+  /* 1. Set height to match width (70px) to make it a perfect circle */
+  height: 70px; 
+  background: white; 
+  border: 1px solid #e0e0e0;
+  /* 2. Remove 'border-bottom: none' to allow a consistent circular border */
+  border-radius: 50%; 
+  z-index: 1;
+}
+
+/* The 'Eraser' - Adjusted to perfectly mask the circle's intersection */
+.tabs::after {
+  content: "";
+  position: absolute;
+  /* 3. Set to -1px to perfectly overlap and 'erase' the navbar's top border */
+  top: 0px; 
+  left: 0px;
+  /* 4. MATCH the 70px width exactly to hide the vertical artifact lines */
+  width: 100%; 
+  /* 5. Increased height slightly to ensure no bottom border of the circle peaks out */
+  height: 100%; 
+  background: white; 
+  z-index: 2;
 }
 
 .tabs button {
@@ -598,12 +622,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   color: var(--color-text-muted);
   cursor: pointer;
-  padding: 4px 0;
-  flex: 1;
-  min-width: 0;
+  padding: 0;
+  flex: 0 0 auto;
 }
 
 .tabs button.active {
@@ -611,37 +635,51 @@ body {
 }
 
 .tabs button.tabs-thumb-btn {
-  position: relative;
+  /* thumb sits between the two groups with some horizontal breathing room */
+  flex: 0 0 auto;
+  margin: 0 16px;
   padding: 0;
   gap: 0;
   overflow: visible;
+  /* place the button at the bottom of the nav bar */
+  align-self: flex-end;
+  /* ensure the thumb button is above decorative pseudo elements */
+  position: relative;
+  z-index: 3;
+}
+
+/* groups control spacing now; no need for absolute positioning of tabs */
+.tabs-group {
+  flex: 1 0 0;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.tabs-left {
+  /* keep a little gap so left items don't butt against the thumb */
+  padding-right: 24px;
+}
+
+.tabs-right {
+  padding-left: 24px;
 }
 
 .tabs button.tabs-thumb-btn::before {
-  content: '';
-  position: absolute;
-  top: -33px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 66px;
-  height: 33px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-bottom: none;
-  border-radius: 66px 66px 0 0;
-  z-index: 1;
+  display: none;
 }
 
 .tabs button.tabs-thumb-btn .tabs-thumb-fab {
-  width: 56px;
-  height: 56px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: var(--color-accent);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transform: translateY(-28px);
+  /* no vertical shift; fab now sits at bottom of nav */
+  transform: translateY(0px);
   z-index: 3;
   /* make sure children are centered in all situations */
   line-height: 0;
@@ -672,10 +710,12 @@ body {
 
 .tab-icon {
   font-size: 1.35rem;
+  z-index: 3;
 }
 
 .tab-label {
   font-size: 0.75rem;
+  z-index: 3;
 }
 
 @media (max-width: 900px) {

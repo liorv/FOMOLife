@@ -1,13 +1,14 @@
 import React from 'react';
 
 export interface ThumbButtonProps {
-  icon?: string;
+  /** icon string, either material glyph or svg path/URL */
+  icon: string;
   ariaLabel?: string;
   onClick?: () => void;
   className?: string;
 }
 
-export default function ThumbButton({ icon = 'add', ariaLabel = 'Thumb', onClick, className }: ThumbButtonProps) {
+export default function ThumbButton({ icon, ariaLabel = 'Thumb', onClick, className }: ThumbButtonProps) {
   // if the icon string appears to be a URL/path to an SVG we render an <img>
   // rather than relying on the material-icons font. this lets individual apps
   // ship custom icons without touching shared styles.

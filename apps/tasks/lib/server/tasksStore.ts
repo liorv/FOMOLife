@@ -7,6 +7,8 @@ export interface TaskItem {
   dueDate: string | null;
   favorite: boolean;
   description: string;
+  // people assigned to this task (project-style)
+  people?: import('@myorg/types').ProjectTaskPerson[];
 }
 
 const tasksByUser = new Map<string, TaskItem[]>();
@@ -86,7 +88,8 @@ export async function listTasks(userId: string): Promise<TaskItem[]> {
 
 export async function createTask(
   userId: string,
-  input: Pick<TaskItem, 'text'> & Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description'>>,
+  input: Pick<TaskItem, 'text'> &
+    Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description' | 'people'>>,
 ): Promise<TaskItem> {
   const current = getOrInitUserTasks(userId);
   const created: TaskItem = {
@@ -96,6 +99,7 @@ export async function createTask(
     dueDate: input.dueDate ?? null,
     favorite: Boolean(input.favorite),
     description: input.description ?? '',
+    ...(input.people ? { people: input.people } : {}),
   };
   current.push(created);
   tasksByUser.set(userId, current);
@@ -106,11 +110,13 @@ export async function createTask(
 export async function updateTask(
   userId: string,
   id: string,
-  patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description'>>,
+  patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people'>>,
 ): Promise<TaskItem | null> {
   console.log("tasksStore: updateTask", userId, id, patch);
   const current = getOrInitUserTasks(userId);
-  const next = current.map((item) => (item.id === id ? { ...item, ...patch, id } : item));
+  const next = current.map((item) =>
+    item.id === id ? { ...item, ...patch, id } : item,
+  );
   const updated = next.find((item) => item.id === id) ?? null;
   tasksByUser.set(userId, next);
   savePersisted();

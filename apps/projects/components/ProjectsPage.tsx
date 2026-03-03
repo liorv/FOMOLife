@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createProjectsApiClient } from '../lib/client/projectsApi';
-import type { ProjectItem } from '@myorg/types';
+import { createContactsApiClient } from '../../contacts/lib/client/contactsApi';
+import type { ProjectItem, Contact } from '@myorg/types';
 import ProjectsDashboard from './ProjectsDashboard';
 import layoutStyles from '../styles/layout.module.css';
 import { PROJECT_COLORS } from '@myorg/ui';
@@ -18,8 +19,43 @@ export default function ProjectsPage({ canManage }: Props) {
   const searchParams = useSearchParams();
   const embeddedUid = searchParams.get('uid') ?? '';
   const apiClient = useMemo(() => createProjectsApiClient('', { uid: embeddedUid }), [embeddedUid]);
+  // contacts API may live on a different origin/port (separate Next app).
+  // frameworkConfig already exposes NEXT_PUBLIC_CONTACTS_APP_URL for dev/prod links.
+  // use explicit URL if configured, otherwise during local dev fall back to the default port
+  const contactsBaseUrl =
+    process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() ||
+    (process.env.NODE_ENV !== 'production' ? 'http://localhost:3002' : '');
+  const contactsClient = useMemo(
+    () => createContactsApiClient(contactsBaseUrl),
+    [contactsBaseUrl],
+  );
+
+  const handleCreatePerson = async (name: string) => {
+    if (!contactsBaseUrl) return null;
+    try {
+      const created = await contactsClient.createContact({ name });
+      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
+      try {
+        window.postMessage({ type: 'contacts-updated' }, '*');
+      } catch {}
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'contacts-updated' }, '*');
+        }
+      } catch {}
+      try {
+        localStorage.setItem('fomo:contactsUpdated', Date.now().toString());
+      } catch {}
+      return created;
+    } catch (err) {
+      console.warn('[Projects] failed to create person', err);
+      return null;
+    }
+  };
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [people, setPeople] = useState<Contact[]>([]);
+  const [contactsError, setContactsError] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState<string | null>(null);
   const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<string | null>(null);
@@ -37,10 +73,31 @@ export default function ProjectsPage({ canManage }: Props) {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const loaded = await apiClient.listProjects();
-        if (active) setProjects(loaded);
+        const loadedProjects = await apiClient.listProjects();
+        let loadedContacts: Contact[] = [];
+
+        if (contactsBaseUrl) {
+          try {
+            loadedContacts = await contactsClient.listContacts();
+          } catch (err) {
+            console.warn('[Projects] failed to load contacts', err);
+            let msg = 'Failed to load contacts';
+            if (err instanceof TypeError && err.message === 'Failed to fetch') {
+              msg = 'Unable to reach contacts service – make sure it is running';
+            } else if (err instanceof Error) {
+              msg = err.message;
+            }
+            setContactsError(msg);
+          }
+        }
+
+        if (active) {
+          setProjects(loadedProjects);
+          setPeople(loadedContacts);
+        }
       } catch (error) {
-        if (active) setErrorMessage(error instanceof Error ? error.message : 'Failed to load projects');
+        if (active)
+          setErrorMessage(error instanceof Error ? error.message : 'Failed to load projects');
       } finally {
         if (active) setLoading(false);
       }
@@ -49,7 +106,30 @@ export default function ProjectsPage({ canManage }: Props) {
     return () => {
       active = false;
     };
-  }, [apiClient]);
+  }, [apiClient, contactsClient]);
+
+  // re-pull contacts when the user returns to the tab (might have added contacts elsewhere)
+  useEffect(() => {
+    if (!contactsBaseUrl) return;
+    const handleFocus = async () => {
+      try {
+        const updated = await contactsClient.listContacts();
+        setPeople(updated);
+        setContactsError(null);
+      } catch (err) {
+        console.warn('[Projects] refresh contacts failed', err);
+        let msg = 'Failed to load contacts';
+        if (err instanceof TypeError && err.message === 'Failed to fetch') {
+          msg = 'Unable to reach contacts service – make sure it is running';
+        } else if (err instanceof Error) {
+          msg = err.message;
+        }
+        setContactsError(msg);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [contactsBaseUrl, contactsClient]);
 
   useEffect(() => {
     if (!isEmbedded) return;
@@ -63,6 +143,12 @@ export default function ProjectsPage({ canManage }: Props) {
   }, []);
 
   const closeUndoSnackbar = () => setUndoSnackbar(null);
+
+  const openContacts = () => {
+    if (contactsBaseUrl) {
+      window.open(contactsBaseUrl, '_blank');
+    }
+  };
 
   const showUndoSnackbar = (message: string, onUndo: () => void, onConfirm?: () => void) => {
     setUndoSnackbar({ message, onUndo, ...(onConfirm && { onConfirm }) });
@@ -248,10 +334,11 @@ export default function ProjectsPage({ canManage }: Props) {
         {!canManage ? <div className={`${layoutStyles.message} ${layoutStyles.readOnlyMessage}`}>Read-only mode: sign in is required to manage projects.</div> : null}
         {loading ? <div className={layoutStyles.message}>Loading projects…</div> : null}
         {errorMessage ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{errorMessage}</div> : null}
+        {contactsError ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{contactsError}</div> : null}
 
         <ProjectsDashboard
           projects={projects}
-          people={[]}
+          people={people}
           selectedProjectId={editingProjectId}
           onSelectProject={setEditingProjectId}
           onApplyChange={handleProjectApplyChange}
@@ -265,8 +352,8 @@ export default function ProjectsPage({ canManage }: Props) {
           pendingDeleteProjectId={pendingDeleteProjectId}
           onConfirmDeleteProject={handleConfirmDeleteProject}
           onAddProject={handleAddProject}
-          onOpenPeople={() => {}}
-          onCreatePerson={async () => null}
+          onOpenPeople={openContacts}
+          onCreatePerson={handleCreatePerson}
           onTitleChange={handleProjectTitleChange}
           projectSearch={projectSearch}
           filters={filters}

@@ -10,7 +10,13 @@ test('TabNav renders tabs and handles click', () => {
   ] as const;
   const change = jest.fn();
   render(<TabNav active="a" tabs={tabs} onChange={change} />);
-  expect(screen.getByText('A')).toBeInTheDocument();
+  const btnA = screen.getByText('A').closest('button');
+  expect(btnA).toBeInTheDocument();
+  expect(btnA).toHaveClass('tab-a');
+  // hamburger placeholder should be rendered
+  const ham = screen.getByLabelText('Menu');
+  expect(ham).toBeInTheDocument();
+  expect(ham).toHaveClass('tab-hamburger');
   fireEvent.click(screen.getByText('B'));
   expect(change).toHaveBeenCalledWith('b');
 

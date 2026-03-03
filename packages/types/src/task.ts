@@ -17,6 +17,8 @@ export interface TaskItem {
   favorite: boolean;
   /** Extended description/notes for the task */
   description: string;
+  /** Assigned people (project-style) */
+  people?: import("./project").ProjectTaskPerson[];
 }
 
 /**
@@ -32,6 +34,7 @@ export interface TaskCreateInput {
   dueDate?: string | null;
   favorite?: boolean;
   description?: string;
+  people?: import("./project").ProjectTaskPerson[];
 }
 
 /**
@@ -43,4 +46,5 @@ export interface TaskUpdateInput {
   dueDate?: string | null;
   favorite?: boolean;
   description?: string;
+  people?: import("./project").ProjectTaskPerson[];
 }

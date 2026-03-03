@@ -64,11 +64,7 @@ export default function ProjectEditor({
   const [draggedSubprojectId, setDraggedSubprojectId] = useState<string | null>(null);
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  // Ref-based cooldown avoids setState-outside-act warnings in tests.
-  const addingRef = React.useRef(false);
 
-  // floating-action-button state/menu (used when editing a project)
-  const [fabMenuOpen, setFabMenuOpen] = useState(false);
 
   // safe call wrappers for optional callbacks
   const safeOnApplyChange = onApplyChange ?? (() => {});
@@ -425,39 +421,6 @@ export default function ProjectEditor({
     setDragOverSubprojectId(null);
   };
 
-  // fab-related handlers --------------------------------------------------
-  const handleFabClick = () => {
-    if (expandedSub) {
-      // create a blank task in the expanded subproject and start editing
-      addTask(expandedSub.id, "", true);
-      setFabMenuOpen(false);
-    } else {
-      setFabMenuOpen((o) => !o);
-    }
-  };
-
-  const handleAddManualSubproject = () => {
-    if (!addingRef.current) {
-      addingRef.current = true;
-      safeOnAddSubproject("");
-      setFabMenuOpen(false);
-      setTimeout(() => {
-        addingRef.current = false;
-      }, 500);
-    }
-  };
-
-  const handleAddAiSubproject = () => {
-    if (!addingRef.current) {
-      addingRef.current = true;
-      // pass a sentinel string so the consumer can branch if desired
-      safeOnAddSubproject("AI assisted");
-      setFabMenuOpen(false);
-      setTimeout(() => {
-        addingRef.current = false;
-      }, 500);
-    }
-  };
 
   const handleDrop = (subId: string) =>
     (taskId: string) => {
@@ -771,49 +734,6 @@ export default function ProjectEditor({
         </>
       )}
 
-      {/* context‑aware floating action button
-          only exists when no subproject is currently expanded.  once a
-          subproject is open, the editor provides its own add-row and the
-          FAB becomes redundant. */}
-      {taskFilters.length === 0 && !expandedSub && (
-        <>
-          <button
-            className="fab"
-            onClick={handleFabClick}
-            title={
-              fabMenuOpen
-                ? "Close"
-                : "Add subproject"
-            }
-          >
-            <span className="material-icons">
-              {fabMenuOpen ? "close" : "add"}
-            </span>
-          </button>
-          {fabMenuOpen && (
-            <div className="fab-menu" role="menu">
-              <button
-                className="fab-small"
-                onClick={handleAddManualSubproject}
-                title="Add manual subproject"
-              >
-                <span className="material-icons">edit</span>
-                <span className="fab-label">Add subproject</span>
-              </button>
-              <button
-                className="fab-small"
-                onClick={handleAddAiSubproject}
-                title="AI assisted project design"
-              >
-                <span className="material-icons">auto_awesome</span>
-                <span className="fab-label">AI assisted project design</span>
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* replicates the FAB formerly living in the global bottom bar */}
     </div>
   );
 }

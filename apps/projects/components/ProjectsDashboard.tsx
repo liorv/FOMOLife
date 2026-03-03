@@ -1,7 +1,5 @@
 import React, {
-  useState,
   useMemo,
-  useRef,
   KeyboardEvent,
   MouseEvent,
   useEffect,
@@ -121,10 +119,6 @@ export default function ProjectsDashboard({
   filters = [] as string[],
   onToggleFilter = () => {},
 }: ProjectsDashboardProps) {
-  const [fabMenuOpen, setFabMenuOpen] = useState(false);
-  const addingRef = useRef(false);
-
-  
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
@@ -157,8 +151,6 @@ export default function ProjectsDashboard({
           } else if (selectedProjectId) {
             // when a project is selected, treat the button as "add subproject"
             onAddSubproject?.(selectedProjectId, '');
-            // ensure the local FAB menu isn't left open
-            setFabMenuOpen(false);
           }
         } else if (data && data.type === 'get-thumb-config') {
           // reply with our current icon/action
@@ -256,7 +248,6 @@ export default function ProjectsDashboard({
 
   // Navigate back (deselect project — useful on mobile)
   const handleBack = () => {
-    setFabMenuOpen(false);
     onSelectProject?.(null);
   };
 
@@ -425,48 +416,6 @@ export default function ProjectsDashboard({
         </>
       )}
 
-      {/* ── FAB — New Project or Add Sub-project ── */}
-      {!selectedProject ? (
-        <button
-          className="fab"
-          onClick={() => onAddProject?.()}
-          title="New project"
-          aria-label="New project"
-        >
-          <span className="material-icons">add</span>
-        </button>
-      ) : (
-        <>
-          <button
-            className="fab"
-            onClick={() => setFabMenuOpen(!fabMenuOpen)}
-            title={fabMenuOpen ? "Close" : "Add sub-project"}
-          >
-            <span className="material-icons">{fabMenuOpen ? "close" : "add"}</span>
-          </button>
-          {fabMenuOpen && (
-            <div className="fab-menu" role="menu">
-              <button
-                className="fab-small"
-                onClick={() => {
-                  if (!addingRef.current && selectedProjectId) {
-                    addingRef.current = true;
-                    onAddSubproject?.(selectedProjectId, "");
-                    setFabMenuOpen(false);
-                    setTimeout(() => {
-                      addingRef.current = false;
-                    }, 500);
-                  }
-                }}
-                title="Add sub-project"
-              >
-                <span className="material-icons">edit</span>
-                <span className="fab-label">Add sub-project</span>
-              </button>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }

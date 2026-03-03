@@ -60,6 +60,46 @@ describe('ContactsPage', () => {
     await waitFor(() => expect(screen.queryByText('Foo')).not.toBeInTheDocument());
   });
 
+  it('refreshes when window gains focus or receives contacts-updated message', async () => {
+    const api = require('../../lib/client/contactsApi').createContactsApiClient();
+    (api.listContacts as jest.Mock).mockResolvedValueOnce([{ id: 'x', name: 'FocusMe', status: 'accepted' }]);
+
+    render(<ContactsPage canManage={true} />);
+    // initial mount triggers list
+    await waitFor(() => expect(api.listContacts).toHaveBeenCalledTimes(1));
+
+    // simulate focus
+    (api.listContacts as jest.Mock).mockResolvedValueOnce([{ id: 'x', name: 'FocusMe', status: 'accepted' }, { id: 'y', name: 'NewOne', status: 'accepted' }]);
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(screen.getByText('NewOne')).toBeInTheDocument());
+
+    // simulate external notification
+    (api.listContacts as jest.Mock).mockResolvedValueOnce([{ id: 'x', name: 'FocusMe', status: 'accepted' }, { id: 'y', name: 'NewOne', status: 'accepted' }, { id: 'z', name: 'FromMsg', status: 'accepted' }]);
+    act(() => {
+      window.postMessage({ type: 'contacts-updated' }, '*');
+    });
+    await waitFor(() => expect(screen.getByText('FromMsg')).toBeInTheDocument());
+  });
+
+  it('refreshes when a storage event indicates contacts updated', async () => {
+    const api = require('../../lib/client/contactsApi').createContactsApiClient();
+    (api.listContacts as jest.Mock).mockResolvedValueOnce([{ id: '1', name: 'A', status: 'accepted' }]);
+    render(<ContactsPage canManage={true} />);
+    await waitFor(() => expect(api.listContacts).toHaveBeenCalledTimes(1));
+
+    (api.listContacts as jest.Mock).mockResolvedValueOnce([
+      { id: '1', name: 'A', status: 'accepted' },
+      { id: '2', name: 'B', status: 'accepted' },
+    ]);
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'fomo:contactsUpdated', newValue: '123' }));
+    });
+    await waitFor(() => expect(screen.getByText('B')).toBeInTheDocument());
+  });
+
+
   it('replies with thumb-config including current icon', async () => {
     render(<ContactsPage canManage={true} />);
     await waitFor(() => expect(screen.queryByText('Loading contacts…')).not.toBeInTheDocument());

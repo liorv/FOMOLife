@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TasksPage.module.css';
 import { useSearchParams } from 'next/navigation';
 import { createTasksApiClient } from '../lib/client/tasksApi';
-import type { TaskItem, ProjectTask } from '@myorg/types';
+import { createContactsApiClient } from '../../contacts/lib/client/contactsApi';
+import type { TaskItem, ProjectTask, Contact } from '@myorg/types';
 import { TaskList, AddBar } from '@myorg/ui';
 import { applyFilters } from '@myorg/utils';
 
@@ -23,12 +24,45 @@ function isTaskNotFoundError(error: unknown): boolean {
 export default function TasksPage({ canManage }: Props) {
   const searchParams = useSearchParams();
   const api = useMemo(() => createTasksApiClient(''), []);
+  const contactsBaseUrl =
+    process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() ||
+    (process.env.NODE_ENV !== 'production' ? 'http://localhost:3002' : '');
+  const contactsApi = useMemo(
+    () => createContactsApiClient(contactsBaseUrl),
+    [contactsBaseUrl],
+  );
+
+  const handleCreatePerson = async (name: string) => {
+    if (!contactsBaseUrl) return null;
+    try {
+      const created = await contactsApi.createContact({ name });
+      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
+      // notify other frames or tabs that contacts changed
+      try {
+        window.postMessage({ type: 'contacts-updated' }, '*');
+      } catch {}
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'contacts-updated' }, '*');
+        }
+      } catch {}
+      try {
+        localStorage.setItem('fomo:contactsUpdated', Date.now().toString());
+      } catch {}
+      return created;
+    } catch (err) {
+      console.warn('[Tasks] failed to create person', err);
+      return null;
+    }
+  };
 
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [people, setPeople] = useState<Contact[]>([]);
   const [input, setInput] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<TaskFilter[]>([]);
+  const [contactsError, setContactsError] = useState<string | null>(null);
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -43,8 +77,28 @@ export default function TasksPage({ canManage }: Props) {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const loaded = await api.listTasks();
-        if (active) setTasks(loaded);
+        const loadedTasks = await api.listTasks();
+        let loadedContacts: Contact[] = [];
+
+        if (contactsBaseUrl) {
+          try {
+            loadedContacts = await contactsApi.listContacts();
+          } catch (err) {
+            console.warn('[Tasks] failed to load contacts', err);
+            let msg = 'Failed to load contacts';
+            if (err instanceof TypeError && err.message === 'Failed to fetch') {
+              msg = 'Unable to reach contacts service – make sure it is running';
+            } else if (err instanceof Error) {
+              msg = err.message;
+            }
+            setContactsError(msg);
+          }
+        }
+
+        if (active) {
+          setTasks(loadedTasks);
+          setPeople(loadedContacts);
+        }
       } catch (error) {
         if (active) setErrorMessage(error instanceof Error ? error.message : 'Failed to load tasks');
       } finally {
@@ -55,7 +109,30 @@ export default function TasksPage({ canManage }: Props) {
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, contactsApi]);
+
+  // update contact list when returning to page
+  useEffect(() => {
+    if (!contactsBaseUrl) return;
+    const onFocus = async () => {
+      try {
+        const refreshed = await contactsApi.listContacts();
+        setPeople(refreshed);
+        setContactsError(null);
+      } catch (err) {
+        console.warn('[Tasks] refresh contacts failed', err);
+        let msg = 'Failed to load contacts';
+        if (err instanceof TypeError && err.message === 'Failed to fetch') {
+          msg = 'Unable to reach contacts service – make sure it is running';
+        } else if (err instanceof Error) {
+          msg = err.message;
+        }
+        setContactsError(msg);
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [contactsBaseUrl, contactsApi]);
 
   // helper functions that describe this app's thumb button behaviour
   const getThumbIcon = () => 'add';
@@ -94,6 +171,12 @@ export default function TasksPage({ canManage }: Props) {
     if (!isEmbedded) return;
     setSearch(searchParams.get('q') ?? '');
   }, [isEmbedded, searchParams]);
+
+  const openContacts = () => {
+    if (contactsBaseUrl) {
+      window.open(contactsBaseUrl, '_blank');
+    }
+  };
 
   const filtered = useMemo(
     () => applyFilters(tasks as any[], filters as string[], search) as TaskItem[],
@@ -232,6 +315,7 @@ export default function TasksPage({ canManage }: Props) {
         dueDate: updatedTask.dueDate,
         favorite: updatedTask.favorite,
         done: updatedTask.done,
+        ...(updatedTask.people ? { people: updatedTask.people } : {}),
       });
       if (!updated) return;
       setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
@@ -256,6 +340,7 @@ export default function TasksPage({ canManage }: Props) {
       dueDate: updatedTask.dueDate,
       favorite: updatedTask.favorite,
       description: updatedTask.description || "",
+      ...(updatedTask.people ? { people: updatedTask.people } : {}),
     };
     await handleEditorUpdate(taskItem.id, taskItem);
     setEditorTaskId(null);
@@ -401,6 +486,7 @@ export default function TasksPage({ canManage }: Props) {
         {!canManage ? <div className={`${styles.message} ${styles.messageReadOnly}`}>Read-only mode: sign in is required to manage tasks.</div> : null}
         {loading ? <div className={styles.message}>Loading tasks…</div> : null}
         {errorMessage ? <div className={`${styles.message} ${styles.messageError}`}>{errorMessage}</div> : null}
+        {contactsError ? <div className={`${styles.message} ${styles.messageError}`}>{contactsError}</div> : null}
 
         <div className={`filter-flat-view tasks-filter-view ${styles.filterView}`}>
           {filtered.length === 0 ? (
@@ -424,9 +510,9 @@ export default function TasksPage({ canManage }: Props) {
                   onEditorSave={handleEditorSave}
                   onEditorUpdate={handleEditorUpdate}
                   onEditorClose={() => setEditorTaskId(null)}
-                  allPeople={[]}
-                  onOpenPeople={() => {}}
-                  onCreatePerson={async () => null}
+                  allPeople={people}
+                  onOpenPeople={openContacts}
+                  onCreatePerson={handleCreatePerson}
                   newlyAddedTaskId={newlyAddedTaskId}
                   onClearNewTask={() => setNewlyAddedTaskId(null)}
                 />

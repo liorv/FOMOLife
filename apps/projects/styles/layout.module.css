@@ -64,35 +64,6 @@
   background: var(--color-subproject-header);
 }
 
-/* FAB (Floating Action Button) */
-.fab {
-  position: absolute;
-}
-
-.fab:focus {
-  outline: none;
-}
-
-.fab .materialIcons {
-  font-size: 24px;
-}
-
-/* FAB menu (opens above FAB) */
-.fabMenu {
-  position: absolute;
-}
-
-.fabSmall {
-  position: static;
-}
-
-.fabSmall .materialIcons {
-  font-size: 1.2rem;
-}
-
-.fabLabel {
-  font-size: 0.9rem;
-}
 
 /* Confirm Modal */
 .confirmModalOverlay {

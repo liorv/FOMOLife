@@ -122,7 +122,13 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   // reset thumb icon/action when switching tabs and request fresh config
   useEffect(() => {
-    setThumbIcon('add');
+    // provide an immediate fallback for apps that default to add (tasks/projects)
+    if (activeTab === 'tasks') {
+      setThumbIcon('add');
+    } else {
+      // non-content tabs start blank until the frame replies
+      setThumbIcon('');
+    }
     setThumbAction('thumb-fab');
 
     // ask embedded app what it wants the thumb button to do
