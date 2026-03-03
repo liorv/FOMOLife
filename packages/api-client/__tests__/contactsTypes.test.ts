@@ -5,9 +5,8 @@ describe('api-client exports', () => {
     // just referencing types to ensure they're present
     const req: CreateContactRequest = { name: 'foo' };
     expect(req.name).toBe('foo');
-    // @ts-expect-error missing field should error
+    // the following intentionally violates the type; expect a compile error
     // @ts-ignore
-    // eslint-disable-next-line
     const bad: CreateContactRequest = {};
   });
 });

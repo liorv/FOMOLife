@@ -97,11 +97,85 @@ export async function deleteContact(userId: string, id: string): Promise<boolean
 
 // invite acceptance helpers
 export async function findContactByInviteToken(token: InviteToken): Promise<{ userId: string; contact: Contact } | null> {
-  for (const [uid, contacts] of contactsByUser.entries()) {
-    const found = contacts.find((c) => c.inviteToken === token);
-    if (found) return { userId: uid, contact: found };
+  // decode the JWT to determine the inviter and contact id, then lookup
+  // directly.  this is more reliable than scanning all contacts by token
+  // and avoids races when the in-memory map isn't shared across handler
+  // invocations.
+  let decoded: any;
+  try {
+    decoded = jwt.decode(token) as { inviter: string; contactId: string } | null;
+  } catch {
+    return null;
+  }
+  if (!decoded) return null;
+  const contacts = getOrInitUserContacts(decoded.inviter);
+  const contact = contacts.find((c) => c.id === decoded.contactId);
+  if (contact && contact.inviteToken === token) {
+    return { userId: decoded.inviter, contact };
   }
   return null;
+}
+
+// additional helpers used by the invite API route
+export async function findInviteByToken(token: InviteToken): Promise<{
+  ownerId: string;
+  contactName: string;
+  inviterId: string;
+} | null> {
+  console.log('[store] findInviteByToken called with', token);
+  let decoded: any;
+  try {
+    // do not verify here; caller handles expiration/invalid errors so we
+    // can still return data for an expired token (needed for 410 response)
+    decoded = jwt.decode(token) as { inviter: string; contactId: string } | null;
+    console.log('[store] decoded', decoded);
+  } catch (err) {
+    console.log('[store] jwt.decode failed', err?.name || err);
+    return null;
+  }
+  if (!decoded) {
+    return null;
+  }
+  const contacts = getOrInitUserContacts(decoded.inviter);
+  console.log('[store] contacts list', contacts.map(c => ({ id: c.id, inviteToken: c.inviteToken })));
+  const contact = contacts.find((c) => c.id === decoded.contactId);
+  if (!contact) {
+    console.log('[store] contact not found for id', decoded.contactId);
+    return null;
+  }
+  if (contact.inviteToken !== token) {
+    console.log('[store] token mismatch', contact.inviteToken);
+    return null;
+  }
+  return {
+    ownerId: decoded.inviter,
+    contactName: contact.name,
+    // inviterId should always be the user who generated the invite (the
+    // decoded.inviter value).  previous logic confused this with the
+    // contact's name or login when those fields were present, which meant
+    // self-invite detection could fail when the invitee name differed from
+    // the inviter's user ID.  see issue reproduced in tests below.
+    inviterId: decoded.inviter,
+  };
+}
+
+export async function invalidateInviteToken(token: InviteToken): Promise<void> {
+  const match = await findContactByInviteToken(token);
+  if (!match) return;
+  await updateContact(match.userId, match.contact.id, { inviteToken: null, status: 'not_linked' });
+}
+
+export async function findUserById(userId: string): Promise<{ id: string; name?: string; email?: string }> {
+  // in this simple in-memory demo we don't have a real user store,
+  // so just return the id as the name/email. replace with real lookup
+  return { id: userId, name: userId, email: userId };
+}
+
+export class SelfInvitationError extends Error {
+  constructor(message = 'cannot accept your own invitation') {
+    super(message);
+    this.name = 'SelfInvitationError';
+  }
 }
 
 export async function acceptInvite(userId: string, token: InviteToken): Promise<Contact | null> {
@@ -117,6 +191,12 @@ export async function acceptInvite(userId: string, token: InviteToken): Promise<
   // stored token matches the provided one (prevents reuse if we regenerated)
   const match = await findContactByInviteToken(token);
   if (!match) return null;
+
+  // reject self-accepts; the inviter already has the contact and following a
+  // link yourself is misuse of the feature.
+  if (userId === match.userId) {
+    throw new SelfInvitationError();
+  }
 
   // mark inviter side as linked and clear token
   await updateContact(match.userId, match.contact.id, { status: 'linked', inviteToken: null });

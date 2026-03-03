@@ -11,8 +11,13 @@ export interface ContactsSession {
 export async function getContactsSession(): Promise<ContactsSession> {
   const env = getContactsServerEnv();
   if (env.authMode === 'none') {
+    // development mode: allow overriding via special cookie so tests and
+    // manual dev flows can switch users on the fly without restarting.
+    const cookieStore = await cookies();
+    const devUser = cookieStore.get('contacts_dev_user')?.value;
+    const userId = devUser && devUser.trim() ? devUser : env.defaultUserId;
     return {
-      userId: env.defaultUserId,
+      userId,
       isAuthenticated: true,
     };
   }

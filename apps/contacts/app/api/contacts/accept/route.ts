@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import type { InviteAcceptanceRequest } from '@myorg/types';
-import { acceptInvite } from '@/lib/server/contactsStore';
+import { acceptInvite, SelfInvitationError } from '@/lib/server/contactsStore';
 import { getContactsSession } from '@/lib/server/auth';
 
 function unauthorizedResponse() {
@@ -30,10 +30,22 @@ export async function POST(request: Request) {
     return corsResponse(NextResponse.json({ error: 'token required' }, { status: 400 }), request);
   }
 
-  const accepted = await acceptInvite(session.userId, body.token);
-  if (!accepted) {
-    return corsResponse(NextResponse.json({ error: 'invalid token' }, { status: 404 }), request);
+  try {
+    const accepted = await acceptInvite(session.userId, body.token);
+    if (!accepted) {
+      return corsResponse(NextResponse.json({ error: 'invalid token' }, { status: 404 }), request);
+    }
+    return corsResponse(NextResponse.json(accepted), request);
+  } catch (err: any) {
+    if (err instanceof SelfInvitationError) {
+      return corsResponse(
+        NextResponse.json(
+          { error: 'self_invite', message: 'You cannot accept your own invitation.' },
+          { status: 400 }
+        ),
+        request
+      );
+    }
+    throw err; // propagate unexpected errors
   }
-
-  return corsResponse(NextResponse.json(accepted), request);
 }

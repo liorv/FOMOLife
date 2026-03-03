@@ -263,6 +263,42 @@ describe('contacts API route', () => {
       });
     });
 
+    it('rejects accepting own invite link', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        // create a contact and invite as u1
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: createContact } = require('@/app/api/contacts/route');
+        const createRes = await createContact(makeRequest('POST', { name: 'Self' }));
+        expect(createRes.status).toBe(201);
+        const created = await createRes.json();
+
+        const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
+        const inviteRes = await sendInvite(makeRequest('POST', { contactId: created.id }));
+        expect(inviteRes.status).toBe(200);
+        const { inviteToken } = await inviteRes.json();
+
+        // accept using same user id – should be rejected with clear error
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: acceptInvite } = require('@/app/api/contacts/accept/route');
+        const acceptRes = await acceptInvite(makeAcceptRequest(inviteToken));
+        expect(acceptRes.status).toBe(400);
+        const body = await acceptRes.json();
+        expect(body.error).toBe('self_invite');
+        expect(body.message).toMatch(/cannot accept your own/i);
+
+        // listing should still return the original contact in pending state
+        const { GET: listContacts } = require('@/app/api/contacts/route');
+        const listRes = await listContacts(makeRequest('GET'));
+        expect(listRes.status).toBe(200);
+        const listData = await listRes.json();
+        expect(Array.isArray(listData.contacts)).toBe(true);
+        // we don't assert the total count (seed data may add extras)
+        const pending = listData.contacts.filter((c: any) => c.status === 'link_pending');
+        expect(pending.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
     it('returns 404 for unknown token', async () => {
       await jest.isolateModulesAsync(async () => {
         const auth = require('@/lib/server/auth');
@@ -314,6 +350,79 @@ describe('contacts API route', () => {
     });
   });
 
+  describe('GET /api/contacts/invite/:token', () => {
+    it('returns inviter/contact names when token is valid', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        // create a contact and invite
+        const { POST: createContact } = require('@/app/api/contacts/route');
+        const createRes = await createContact(makeRequest('POST', { name: 'Invitee', login: 'invite@example.com' }));
+        const created = await createRes.json();
+        const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
+        const inviteRes = await sendInvite(makeRequest('POST', { contactId: created.id }));
+        const { inviteToken } = await inviteRes.json();
+
+        const { GET: getInfo } = require('@/app/api/contacts/invite/[token]/route');
+        const infoRes = await getInfo(makeRequest('GET'), { params: { token: inviteToken } });
+        expect(infoRes.status).toBe(200);
+        const infoBody = await infoRes.json();
+        expect(infoBody.inviterName).toBe('u1');
+        expect(infoBody.contactName).toBe('Invitee');
+      });
+    });
+
+    it('marks selfInvite for the inviter even if contact name differs', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        // create a contact with a different display name than the user id
+        const { POST: createContact } = require('@/app/api/contacts/route');
+        const createRes = await createContact(makeRequest('POST', { name: 'Mia' }));
+        const created = await createRes.json();
+        const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
+        const inviteRes = await sendInvite(makeRequest('POST', { contactId: created.id }));
+        const { inviteToken } = await inviteRes.json();
+
+        const { GET: getInfo } = require('@/app/api/contacts/invite/[token]/route');
+        const infoRes = await getInfo(makeRequest('GET'), { params: { token: inviteToken } });
+        expect(infoRes.status).toBe(200);
+        const infoBody = await infoRes.json();
+        expect(infoBody.selfInvite).toBe(true);
+      });
+    });
+
+    it('returns 404 with not_found message when token is unknown', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const { GET: getInfo } = require('@/app/api/contacts/invite/[token]/route');
+        const res = await getInfo(makeRequest('GET'), { params: { token: 'nope' } });
+        expect(res.status).toBe(404);
+        const body = await res.json();
+        expect(body.error).toBe('not_found');
+      });
+    });
+
+    it('returns 410 with expired message when token has expired', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: createContact } = require('@/app/api/contacts/route');
+        const createRes = await createContact(makeRequest('POST', { name: 'X' }));
+        const created = await createRes.json();
+        // manually create an expired JWT and store it on the contact
+        const store = require('@/lib/server/contactsStore');
+        const expiredToken = jwt.sign({ inviter: 'u1', contactId: created.id }, 'test-secret', { expiresIn: '-1s' });
+        await store.updateContact('u1', created.id, { inviteToken: expiredToken });
+
+        const { GET: getInfo } = require('@/app/api/contacts/invite/[token]/route');
+        const res = await getInfo(makeRequest('GET'), { params: { token: expiredToken } });
+        expect(res.status).toBe(410);
+        const body = await res.json();
+        expect(body.error).toBe('expired');
+      });
+    });
+  });
+
   describe('POST /api/contacts/invite', () => {
     it('generates a signed JWT and returns a link', async () => {
       await jest.isolateModulesAsync(async () => {
@@ -357,6 +466,33 @@ describe('contacts API route', () => {
         const { GET } = require('@/app/api/contacts/groups/route');
         const res = await GET(makeGroupRequest('GET'));
         expect(res.status).toBe(401);
+      });
+    });
+
+    it('allows unauthed users to reject invites', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        // simulate not logged in
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: '', isAuthenticated: false });
+        // create a contact and invite as before
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: createContact } = require('@/app/api/contacts/route');
+        const createRes = await createContact(makeRequest('POST', { name: 'Invitee' }));
+        const created = await createRes.json();
+        const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
+        const inviteRes = await sendInvite(makeRequest('POST', { contactId: created.id }));
+        const { inviteToken } = await inviteRes.json();
+
+        // now reject while unauthenticated
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: '', isAuthenticated: false });
+        const { DELETE: rejectInviteRoute } = require('@/app/api/contacts/invite/[token]/route');
+        const rej = await rejectInviteRoute(makeRequest('DELETE'), { params: { token: inviteToken } });
+        expect(rej.status).toBe(200);
+
+        // subsequent GET should 404
+        const { GET: getInfo } = require('@/app/api/contacts/invite/[token]/route');
+        const infoRes = await getInfo(makeRequest('GET'), { params: { token: inviteToken } });
+        expect(infoRes.status).toBe(404);
       });
     });
 

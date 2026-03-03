@@ -10,6 +10,13 @@ export interface ContactTileProps {
   autoFocus?: boolean;
   onNameChange?: (newName: string) => void;
   onUnlink?: () => void;
+  /**
+   * invoked when user clicks the link button; should return a token (or
+   * null) when available.  if omitted, the component will call the
+   * shared API client itself.  this hook makes the component easier to
+   * test and keeps network logic outside of the UI package.
+   */
+  onInvite?: () => Promise<string | null>;
   onLink?: () => void;
   linkPending?: boolean;
   /** called when an invite link has been successfully copied */
@@ -19,13 +26,11 @@ export interface ContactTileProps {
 // ContactTile component skeleton for contacts redesign
 
 
-export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChange, onUnlink, onLink, onLinkSuccess }: ContactTileProps) {
+export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess }: ContactTileProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
   const [linkPending, setLinkPending] = useState(false);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [copySuccess, setCopySuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -70,42 +75,46 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
 
   async function handleLinkClick(e: React.MouseEvent) {
     e.stopPropagation();
-    setLinkPending(true);
-    setCopySuccess(false);
-    try {
-      const res = await inviteContact(id);
-      setInviteToken(res.inviteToken);
-      if (res.inviteLink) {
-        setInviteLink(res.inviteLink);
-        try {
-          await navigator.clipboard.writeText(res.inviteLink);
-          setCopySuccess(true);
-        } catch {
-          // fallback prompt if clipboard unavailable
-          window.prompt('Copy this invite link:', res.inviteLink);
-          setCopySuccess(false);
-        }
-      } else {
-        try {
-          await navigator.clipboard.writeText(res.inviteToken);
-          setCopySuccess(true);
-        } catch {
-          window.prompt('Copy this invite token:', res.inviteToken);
-          setCopySuccess(false);
-        }
-      }
-      // let parent know that a link was generated (status change, banner)
-      if (onLink) {
+    // inform parent that a link request has started (e.g. update status)
+    if (onLink) {
+      try {
         onLink();
+      } catch {
+        // swallow
       }
-      if (onLinkSuccess) {
-        onLinkSuccess();
+    }
+    setLinkPending(true);
+    try {
+      let token: string | null = null;
+      if (onInvite) {
+        token = await onInvite();
+      } else {
+        const res = await inviteContact(id);
+        token = res.inviteToken || null;
+      }
+      setInviteToken(token);
+      if (token) {
+        // copy the complete acceptance URL to the clipboard
+        const link = `${window.location.origin}/accept-invite?token=${encodeURIComponent(
+          token
+        )}`;
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          navigator.clipboard.writeText(link).catch(() => {
+            // ignore clipboard failures (e.g. permission denied)
+          });
+        }
+        if (onLinkSuccess) {
+          try {
+            onLinkSuccess();
+          } catch {
+            // ignore
+          }
+        }
       }
     } catch (err) {
-      // Optionally, show error UI
+      // ignore errors for now
     } finally {
       setLinkPending(false);
-      setTimeout(() => setCopySuccess(false), 2000);
     }
   }
 
@@ -192,6 +201,11 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
               🔗
             </button>
           )}
+          {inviteToken && (
+            <p className="contact-tile__invite-link" style={{fontSize: '0.8rem', marginLeft: 8}}>
+              {`${window.location.origin}/accept-invite?token=${encodeURIComponent(inviteToken)}`}
+            </p>
+          )}
           <button
             className="contact-tile__unlink-btn"
             aria-label="Delete contact"
@@ -201,15 +215,18 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
             ❌
           </button>
         </div>
-        {inviteLink && (
+        {inviteToken && (
           <div className="contact-tile__invite-link" style={{ marginLeft: 8, fontSize: 12, color: '#1976d2' }}>
-            <a href={inviteLink} target="_blank" rel="noopener noreferrer">Invite link</a>
+            <a
+              href={`${window.location.origin}/accept-invite?token=${encodeURIComponent(
+                inviteToken
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Invite link
+            </a>
           </div>
-        )}
-        {copySuccess && (
-          <span className="contact-tile__copy-success" style={{ marginLeft: 8, fontSize: 12, color: '#388e3c' }}>
-            Copied to clipboard
-          </span>
         )}
       </div>
     </div>

@@ -58,9 +58,15 @@ describe('ContactTile', () => {
     );
 
     const btn = screen.getByLabelText('Generate invite link');
+    // stub clipboard too
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: jest.fn().mockResolvedValue(undefined) },
+      writable: true,
+    });
     btn.click();
     await screen.findByText(/Invite link copied to clipboard!/i);
     expect(screen.getByText('Invite link')).toHaveAttribute('href', 'http://app/accept?token=tok123');
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/accept-invite?token=tok123'));
     fake.mockRestore();
   });
 });

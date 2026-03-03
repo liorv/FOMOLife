@@ -20,6 +20,7 @@ export async function OPTIONS(request: Request) {
   return corsResponse(NextResponse.json({}), request);
 }
 
+
 export async function POST(request: Request) {
   const session = await getContactsSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
@@ -35,10 +36,17 @@ export async function POST(request: Request) {
   }
 
   // construct a user-facing URL (in real app this would be emailed)
-  const base = process.env.NEXT_PUBLIC_BASE_URL || '';
+  // prefer explicit base from env, otherwise derive from incoming request
+  const url = new URL(request.url);
+  const base =
+    process.env.NEXT_PUBLIC_BASE_URL || `${url.protocol}//${url.host}`;
   const inviteLink = `${base}/accept-invite?token=${encodeURIComponent(inviteToken)}`;
   console.log(`Invitation link: ${inviteLink}`);
 
-  const response: InviteTokenResponse & { inviteLink?: string } = { inviteToken, inviteLink };
+  const response: InviteTokenResponse & { inviteLink?: string } = {
+    inviteToken,
+    inviteLink,
+  };
   return corsResponse(NextResponse.json(response), request);
 }
+
