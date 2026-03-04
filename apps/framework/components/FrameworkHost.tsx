@@ -44,8 +44,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     router.replace(`${pathname}?${nextParams.toString()}`);
   };
 
-  const hostedSrc = useMemo(() => {
-    const href = activeTabConfig?.href;
+  const getHostedSrc = (tab: typeof activeTabConfig) => {
+    const href = tab?.href;
     if (!href) return undefined;
 
     const queryParts = ['embedded=1'];
@@ -59,18 +59,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     const base = href.split('#')[0] ?? href;
     const separator = base.includes('?') ? '&' : '?';
     return `${href}${separator}${queryParts.join('&')}`;
-  }, [activeTabConfig?.href, headerSearchQuery, showHeaderSearch, userId]);
+  };
 
   const frameKey = activeTabConfig?.key ?? activeTab;
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const iframeRefs = useRef<Map<string, HTMLIFrameElement | null>>(new Map());
   const [thumbIcon, setThumbIcon] = useState<string>('add');
   const [thumbAction, setThumbAction] = useState<string>('thumb-fab');
-  const [isFrameLoading, setIsFrameLoading] = useState<boolean>(false);
-  const [previousFrameKey, setPreviousFrameKey] = useState<string>(frameKey);
 
   const handleThumb = () => {
     try {
-      const win = iframeRef.current?.contentWindow;
+      const win = iframeRefs.current.get(activeTab)?.contentWindow;
       if (win) {
         // send whichever action the app registered (defaults to thumb-fab)
         win.postMessage({ type: thumbAction || 'thumb-fab' }, '*');
@@ -136,7 +134,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setThumbAction('thumb-fab');
 
     // ask embedded app what it wants the thumb button to do
-    const win = iframeRef.current?.contentWindow;
+    const win = iframeRefs.current.get(activeTab)?.contentWindow;
     if (win) {
       try {
         win.postMessage({ type: 'get-thumb-config' }, '*');
@@ -144,19 +142,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         // ignore
       }
     }
-  }, [activeTab, frameKey]);
-
-  // handle tab switching and frame loading
-  useEffect(() => {
-    if (frameKey !== previousFrameKey) {
-      setIsFrameLoading(true);
-      setPreviousFrameKey(frameKey);
-    }
-  }, [frameKey, previousFrameKey]);
-
-  const handleFrameLoad = () => {
-    setIsFrameLoading(false);
-  };
+  }, [activeTab]);
 
   const handleSwitchUsers = async () => {
     try {
@@ -171,9 +157,38 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   };
 
+  const setIframeRef = (tabKey: string) => (el: HTMLIFrameElement | null) => {
+    iframeRefs.current.set(tabKey, el);
+  };
+
   const handleDevSwitchUsers = async (switchId: string) => {
     document.cookie = `framework_dev_user=${encodeURIComponent(switchId)}; path=/`;
     window.location.reload();
+  };
+
+  const renderIframe = (tab: typeof activeTabConfig) => {
+    if (!tab) return null;
+    const src = getHostedSrc(tab);
+    if (!src) return null;
+
+    const isActive = tab.key === activeTab;
+    return (
+      <iframe
+        key={tab.key}
+        ref={setIframeRef(tab.key)}
+        title={`${tab.label} app`}
+        src={src}
+        className="host-frame"
+        allow="clipboard-write"
+        style={{
+          display: isActive ? 'block' : 'none',
+          width: '100%',
+          height: '100%',
+          border: 'none',
+          background: '#fff'
+        }}
+      />
+    );
   };
 
   return (
@@ -198,27 +213,12 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       <div className="app-outer">
         <div className="container framework-container">
           <section className="host-pane" aria-label="Hosted app content">
-            {hostedSrc ? (
-              <div className="frame-container">
-                <iframe
-                  ref={iframeRef}
-                  key={frameKey}
-                  title={`${frameLabel} app`}
-                  src={hostedSrc}
-                  className="host-frame"
-                  allow="clipboard-write"
-                  onLoad={handleFrameLoad}
-                  style={{ opacity: isFrameLoading ? 0 : 1, transition: 'opacity 0.2s ease-in-out' }}
-                />
-                {isFrameLoading && (
-                  <div className="frame-loading-overlay">
-                    <div className="frame-loading-spinner"></div>
-                  </div>
-                )}
-              </div>
-            ) : (
+            <div className="frame-container">
+              {tabs.map(tab => renderIframe(tab))}
+            </div>
+            {!tabs.some(tab => getHostedSrc(tab)) && (
               <div className="host-empty">
-                <h2>{activeTabConfig?.label ?? 'App'} URL not configured</h2>
+                <h2>Apps not configured</h2>
                 <p>Set NEXT_PUBLIC_*_APP_URL variables in this app to host the migrated tabs.</p>
               </div>
             )}
