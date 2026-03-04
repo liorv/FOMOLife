@@ -68,6 +68,8 @@ export default function TasksPage({ canManage }: Props) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // display ready state - only show content after framework acknowledges loading
+  const [displayReady, setDisplayReady] = useState(false);
   const deletingTaskIdsRef = useRef<Set<string>>(new Set());
   const isEmbedded = searchParams.get('embedded') === '1';
 
@@ -185,7 +187,8 @@ export default function TasksPage({ canManage }: Props) {
 
     const checkAck = (event: MessageEvent) => {
       if (event.data?.type === 'app-loaded-ack' && event.data?.appId === 'tasks') {
-        // Acknowledged, stop retrying
+        // Acknowledged, stop retrying and show content
+        setDisplayReady(true);
         window.removeEventListener('message', checkAck);
         clearInterval(intervalId);
       }
@@ -407,7 +410,10 @@ export default function TasksPage({ canManage }: Props) {
 
   return (
     <main className="main-layout">
-      <div className={`container ${styles.inlineContainer}`}>
+      {!displayReady ? (
+        <div style={{ height: '100vh' }} />
+      ) : (
+        <div className={`container ${styles.inlineContainer}`}>
         {!isEmbedded ? (
           <div className={styles.searchBar}>
             <input
@@ -580,7 +586,8 @@ export default function TasksPage({ canManage }: Props) {
             focusStyle={{ background: '#e6f7ff' }}
           />
         </div>
-      </div>
+        </div>
+      )}
     </main>
   );
 }

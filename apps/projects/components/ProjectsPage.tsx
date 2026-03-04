@@ -63,6 +63,8 @@ export default function ProjectsPage({ canManage }: Props) {
   const [projectSearch, setProjectSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // display ready state - only show content after framework acknowledges loading
+  const [displayReady, setDisplayReady] = useState(false);
   const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void; onConfirm?: () => void } | null>(null);
   const pendingBlankSubRef = useRef(false);
   const isEmbedded = searchParams.get('embedded') === '1';
@@ -177,7 +179,8 @@ export default function ProjectsPage({ canManage }: Props) {
 
     const checkAck = (event: MessageEvent) => {
       if (event.data?.type === 'app-loaded-ack' && event.data?.appId === 'projects') {
-        // Acknowledged, stop retrying
+        // Acknowledged, stop retrying and show content
+        setDisplayReady(true);
         window.removeEventListener('message', checkAck);
         clearInterval(intervalId);
       }
@@ -388,80 +391,51 @@ export default function ProjectsPage({ canManage }: Props) {
 
   return (
     <main className="main-layout">
-      <div className={`container ${layoutStyles.container}`}>
-        {!isEmbedded ? (
-          <div className={layoutStyles.searchBar}>
-            <input
-              value={projectSearch}
-              onChange={(event) => setProjectSearch(event.target.value)}
-              placeholder={editingProjectId ? 'Search tasks' : 'Search projects'}
-              className={layoutStyles.searchInput}
-            />
-          </div>
-        ) : null}
+      {!displayReady ? (
+        <div style={{ height: '100vh' }} />
+      ) : (
+        <section>
+          {!isEmbedded ? (
+            <div className={layoutStyles.searchBar}>
+              <input
+                value={projectSearch}
+                onChange={(event) => setProjectSearch(event.target.value)}
+                placeholder={editingProjectId ? 'Search tasks' : 'Search projects'}
+                className={layoutStyles.searchInput}
+              />
+            </div>
+          ) : null}
 
-        {!canManage ? <div className={`${layoutStyles.message} ${layoutStyles.readOnlyMessage}`}>Read-only mode: sign in is required to manage projects.</div> : null}
-        {loading ? <div className={layoutStyles.message}>Loading projects…</div> : null}
-        {errorMessage ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{errorMessage}</div> : null}
-        {contactsError ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{contactsError}</div> : null}
+          {!canManage ? <div className={`${layoutStyles.message} ${layoutStyles.readOnlyMessage}`}>Read-only mode: sign in is required to manage projects.</div> : null}
+          {loading ? <div className={layoutStyles.message}>Loading projects…</div> : null}
+          {errorMessage ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{errorMessage}</div> : null}
+          {contactsError ? <div className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{contactsError}</div> : null}
 
-        <ProjectsDashboard
-          projects={projects}
-          people={people}
-          selectedProjectId={editingProjectId}
-          onSelectProject={setEditingProjectId}
-          onApplyChange={handleProjectApplyChange}
-          onAddSubproject={handleAddSubproject}
-          newlyAddedSubprojectId={newlyAddedSubprojectId}
-          onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
-          onSubprojectDeleted={handleSubprojectDeleted}
-          onColorChange={handleProjectColorChange}
-          onReorder={handleReorderProjects}
-          onDeleteProject={handleDeleteProject}
-          pendingDeleteProjectId={pendingDeleteProjectId}
-          onConfirmDeleteProject={handleConfirmDeleteProject}
-          onAddProject={handleAddProject}
-          onOpenPeople={openContacts}
-          onCreatePerson={handleCreatePerson}
-          onTitleChange={handleProjectTitleChange}
-          projectSearch={projectSearch}
-          filters={filters}
-          onToggleFilter={handleToggleFilter}
-        />
-      </div>
-
-      <div className="undo-snackbar" role="status" aria-live="polite" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, maxWidth: '90vw', visibility: undoSnackbar ? 'visible' : 'hidden' }}>
-        <div className="snack-content">
-          <span className="snack-message">{undoSnackbar?.message || ''}</span>
-          <div className="snack-actions">
-            <button
-              type="button"
-              className="snack-button undo-button"
-              onClick={() => {
-                undoSnackbar?.onUndo();
-                setUndoSnackbar(null);
-              }}
-              disabled={!undoSnackbar}
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              className="snack-button dismiss-button"
-              onClick={() => {
-                if (undoSnackbar?.onConfirm) {
-                  undoSnackbar.onConfirm();
-                } else {
-                  setUndoSnackbar(null);
-                }
-              }}
-              disabled={!undoSnackbar}
-            >
-              {undoSnackbar?.onConfirm ? 'Confirm' : 'Dismiss'}
-            </button>
-          </div>
-        </div>
-      </div>
+          <ProjectsDashboard
+            projects={projects}
+            people={people}
+            selectedProjectId={editingProjectId}
+            onSelectProject={setEditingProjectId}
+            onApplyChange={handleProjectApplyChange}
+            onAddSubproject={handleAddSubproject}
+            newlyAddedSubprojectId={newlyAddedSubprojectId}
+            onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
+            onSubprojectDeleted={handleSubprojectDeleted}
+            onColorChange={handleProjectColorChange}
+            onReorder={handleReorderProjects}
+            onDeleteProject={handleDeleteProject}
+            pendingDeleteProjectId={pendingDeleteProjectId}
+            onConfirmDeleteProject={handleConfirmDeleteProject}
+            onAddProject={handleAddProject}
+            onOpenPeople={openContacts}
+            onCreatePerson={handleCreatePerson}
+            onTitleChange={handleProjectTitleChange}
+            projectSearch={projectSearch}
+            filters={filters}
+            onToggleFilter={handleToggleFilter}
+          />
+        </section>
+      )}
     </main>
   );
 }
