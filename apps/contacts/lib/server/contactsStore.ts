@@ -42,7 +42,13 @@ export async function inviteContact(userId: string, contactId: string): Promise<
   // Create a signed JWT containing inviter and contact id.  Because the
   // token is stored in the contact row we can also look it up later if
   // needed, but the JWT itself is authoritative (and expires automatically).
-  const payload = { inviter: userId, contactId };
+  // Include inviter's info for reciprocal contact creation
+  const payload = { 
+    inviter: userId, 
+    contactId,
+    inviterName: existing.name,
+    inviterLogin: existing.login || null
+  };
   const token = jwt.sign(payload, INVITE_SECRET, { expiresIn: '30d' });
   current[idx] = {
     id: existing.id,
@@ -61,7 +67,7 @@ export async function listContacts(userId: string): Promise<Contact[]> {
 
 export async function createContact(
   userId: string,
-  input: Pick<Contact, 'name'> & Partial<Pick<Contact, 'login' | 'status' | 'inviteToken'>>,
+  input: Pick<Contact, 'name'> & Partial<Pick<Contact, 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
 ): Promise<Contact> {
   const current = getOrInitUserContacts(userId);
   const contact: Contact = {
@@ -70,6 +76,7 @@ export async function createContact(
     login: input.login ?? '',
     status: input.status ?? 'not_linked',
     inviteToken: input.inviteToken ?? null,
+    ...(input.linkedUserId ? { linkedUserId: input.linkedUserId } : {}),
   };
   current.push(contact);
   contactsByUser.set(userId, current);
@@ -79,7 +86,7 @@ export async function createContact(
 export async function updateContact(
   userId: string,
   id: string,
-  patch: Partial<Pick<Contact, 'name' | 'login' | 'status' | 'inviteToken'>>,
+  patch: Partial<Pick<Contact, 'name' | 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
 ): Promise<Contact | null> {
   const current = getOrInitUserContacts(userId);
   const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
@@ -88,11 +95,53 @@ export async function updateContact(
   return updated;
 }
 
-export async function deleteContact(userId: string, id: string): Promise<boolean> {
+export async function unlinkContact(userId: string, contactId: string): Promise<boolean> {
   const current = getOrInitUserContacts(userId);
-  const next = current.filter((item) => item.id !== id);
+  const contactIndex = current.findIndex((item) => item.id === contactId);
+  if (contactIndex === -1) return false;
+
+  const contact = current[contactIndex];
+  
+  // Change this contact's status to 'not_linked'
+  current[contactIndex] = { ...contact, status: 'not_linked', inviteToken: null };
+  contactsByUser.set(userId, current);
+
+  // If this contact represents a linked user, also unlink the reciprocal contact
+  if (contact.linkedUserId) {
+    const reciprocalContacts = getOrInitUserContacts(contact.linkedUserId);
+    // update all reciprocal contacts that point back to this user
+    const updatedRecips = reciprocalContacts.map((c) =>
+      c.linkedUserId === userId ? { ...c, status: 'not_linked', inviteToken: null } : c
+    );
+    contactsByUser.set(contact.linkedUserId, updatedRecips);
+  }
+
+  return true;
+}
+
+export async function deleteContact(userId: string, contactId: string): Promise<boolean> {
+  const current = getOrInitUserContacts(userId);
+  const contactIndex = current.findIndex((item) => item.id === contactId);
+  if (contactIndex === -1) return false;
+
+  const contact = current[contactIndex];
+
+  // Remove the contact from this user's list
+  const next = current.filter((item) => item.id !== contactId);
   contactsByUser.set(userId, next);
-  return next.length !== current.length;
+
+  // If this contact represents a linked user, also unlink the reciprocal contact
+  // (change status to 'not_linked' but keep it in their list)
+  if (contact.linkedUserId) {
+    const reciprocalContacts = getOrInitUserContacts(contact.linkedUserId);
+    // update all reciprocal contacts that point back to this user
+    const updatedRecips = reciprocalContacts.map((c) =>
+      c.linkedUserId === userId ? { ...c, status: 'not_linked', inviteToken: null } : c
+    );
+    contactsByUser.set(contact.linkedUserId, updatedRecips);
+  }
+
+  return true;
 }
 
 // invite acceptance helpers
@@ -198,15 +247,16 @@ export async function acceptInvite(userId: string, token: InviteToken): Promise<
     throw new SelfInvitationError();
   }
 
-  // mark inviter side as linked and clear token
-  await updateContact(match.userId, match.contact.id, { status: 'linked', inviteToken: null });
+  // mark inviter side as linked, clear token, and record reciprocal linked user id
+  // so that deletes/unlinks on either side can find the reciprocal contact.
+  await updateContact(match.userId, match.contact.id, { status: 'linked', inviteToken: null, linkedUserId: userId });
 
-  // create reciprocal contact for acceptor
-  const nameForAcceptor = match.contact.login || match.contact.name || '';
+  // create reciprocal contact for acceptor using inviter's information
+  const inviter = await findUserById(decoded.inviter);
   const newContact: Contact = await createContact(userId, {
-    name: nameForAcceptor,
-    ...(match.contact.login ? { login: match.contact.login } : {}),
+    name: inviter.name || inviter.email || decoded.inviter,
     status: 'linked',
+    linkedUserId: decoded.inviter,
   });
 
   return newContact;

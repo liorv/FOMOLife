@@ -325,7 +325,7 @@ export default function ProjectsPage({ canManage }: Props) {
             <input
               value={projectSearch}
               onChange={(event) => setProjectSearch(event.target.value)}
-              placeholder={editingProjectId ? 'Search tasks…' : 'Search projects…'}
+              placeholder={editingProjectId ? 'Search tasks' : 'Search projects'}
               className={layoutStyles.searchInput}
             />
           </div>

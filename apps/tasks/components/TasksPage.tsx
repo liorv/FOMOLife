@@ -367,7 +367,7 @@ export default function TasksPage({ canManage }: Props) {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search tasks…"
+              placeholder="Search tasks"
               className={styles.searchInput}
             />
           </div>

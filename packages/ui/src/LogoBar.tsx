@@ -22,7 +22,7 @@ export default function LogoBar({
   logoUrl = '/assets/logo_fomo.png',
   showSearch = false,
   searchValue = '',
-  searchPlaceholder = 'Search…',
+  searchPlaceholder = 'Search',
   onSearchChange,
   userName = 'User',
   userEmail = '',

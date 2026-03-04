@@ -23,7 +23,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const activeTab = normalizeTab(searchParams.get('tab') ?? undefined);
   const tabs = useMemo(() => getFrameworkTabLinks(), []);
   const activeTabConfig = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
-  const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects';
+  const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
   const handleTabChange = (tab: FrameworkTab) => {
@@ -160,7 +160,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       <LogoBar
         showSearch={showHeaderSearch}
         searchValue={headerSearchQuery}
-        searchPlaceholder={activeTab === 'tasks' ? 'Search tasks…' : 'Search projects…'}
+        searchPlaceholder={activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects'}
         onSearchChange={handleHeaderSearchChange}
         userName={userName}
         userEmail={userEmail ?? ''}

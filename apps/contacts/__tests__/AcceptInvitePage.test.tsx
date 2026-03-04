@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 // helpers lifted from contactsClient.test.ts for response mocking
 function makeResponse(ok: boolean, status = ok ? 200 : 500, body: any = {}) {
@@ -66,8 +66,10 @@ describe('AcceptInvitePage component', () => {
     params.set('token', 'tok');
     render(<AcceptInvitePage />);
     await waitFor(() => screen.getByText(/Joe/));
-    const accept = screen.getByText('Accept');
-    accept.click();
+    const accept = screen.getByText('Accept Invitation');
+    await act(async () => {
+      accept.click();
+    });
     await waitFor(() => screen.getByText(/You cannot accept your own invitation/));
   });
 
@@ -98,9 +100,11 @@ describe('AcceptInvitePage component', () => {
     params.set('token', 'tok1');
     render(<AcceptInvitePage />);
     await waitFor(() => screen.getByText(/Alice/));
-    const acceptButton = screen.getByText('Accept');
-    acceptButton.click();
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/?accepted=true'));
+    const acceptButton = screen.getByText('Accept Invitation');
+    await act(async () => {
+      acceptButton.click();
+    });
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('http://localhost/?accepted=true&tab=people'));
 
     // reject path
     replaceMock.mockReset();
@@ -111,10 +115,12 @@ describe('AcceptInvitePage component', () => {
     params.set('token', 'tok2');
     render(<AcceptInvitePage />);
     await waitFor(() => screen.getByText(/Alice/));
-    const rejectButton = screen.getByText('Reject');
-    rejectButton.click();
+    const rejectButton = screen.getByText('Decline');
+    await act(async () => {
+      rejectButton.click();
+    });
     // since our code builds origin using window.location, mimic that in test
     const expectedOrigin = 'http://localhost'.replace(':3002', ':3001');
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith(`${expectedOrigin}/?rejected=true`));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith(`${expectedOrigin}/?rejected=true&tab=people`));
   });
 });

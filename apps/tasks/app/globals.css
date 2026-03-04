@@ -101,3 +101,129 @@ body {
 #add-tasks-input:focus {
   background: white;
 }
+
+/* Not Found Page Styles */
+.not-found-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  background: #f1f3f4;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+.not-found-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 16px rgba(60, 64, 67, 0.12),
+    0 2px 8px rgba(60, 64, 67, 0.08);
+  padding: 40px 36px 32px;
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.not-found-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.not-found-icon {
+  font-size: 32px;
+  line-height: 1;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+}
+
+.not-found-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #202124;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.not-found-message {
+  font-size: 16px;
+  color: #5f6368;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.not-found-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-family: Roboto, "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  min-height: 48px;
+}
+
+.not-found-button--primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.not-found-button--primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+}
+
+.not-found-button--secondary {
+  background: #fff;
+  color: #202124;
+  border: 1.5px solid rgba(60, 64, 67, 0.24);
+}
+
+.not-found-button--secondary:hover {
+  background: #f5f5f5;
+  border-color: #1a73e8;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.12);
+}
+
+@media (max-width: 480px) {
+  .not-found-card {
+    padding: 32px 24px 24px;
+    margin: 0 8px;
+  }
+
+  .not-found-actions {
+    gap: 8px;
+  }
+
+  .not-found-button {
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+}

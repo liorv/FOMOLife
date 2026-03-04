@@ -29,6 +29,8 @@ export interface Contact {
   status: ContactStatus;
   /** Token for invitation flow, null if not invited */
   inviteToken?: InviteToken | null;
+  /** ID of the user this contact represents (for linked contacts) */
+  linkedUserId?: string;
 }
 
 /**
@@ -39,6 +41,7 @@ export interface ContactCreateInput {
   login?: string;
   status?: ContactStatus;
   inviteToken?: InviteToken | null;
+  linkedUserId?: string;
 }
 
 /**
@@ -93,6 +96,16 @@ export interface InviteTokenResponse {
    * NEXT_PUBLIC_BASE_URL.
    */
   inviteLink?: string;
+}
+
+/**
+ * InviteInfo - Metadata about a pending invite token
+ */
+export interface InviteInfo {
+  inviterName: string;
+  contactName: string;
+  /** true when the current user is the one who generated the invite */
+  selfInvite?: boolean;
 }
 /**
  * ContactGroup - named collection of contacts

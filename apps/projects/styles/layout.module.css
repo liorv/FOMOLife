@@ -22,21 +22,32 @@
 }
 
 .message {
-  margin: 0 16px 8px;
+  margin: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .readOnlyMessage {
-  composes: message;
-  color: #8a6d3b;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
 }
 
 .loadingMessage {
-  composes: message;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
 }
 
 .errorMessage {
-  composes: message;
-  color: #b3261e;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
 }
 
 /* Add Bar Wrapper */

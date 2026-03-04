@@ -228,7 +228,8 @@ describe('contacts API route', () => {
 
         const listAfter = await GET(makeRequest('GET'));
         const payloadAfter = await listAfter.json();
-        expect(payloadAfter.contacts.find((c: any) => c.id === 'c1')).toBeUndefined();
+        const deletedContact = payloadAfter.contacts.find((c: any) => c.id === 'c1');
+        expect(deletedContact).toBeUndefined();
       });
     });
   });
@@ -346,6 +347,56 @@ describe('contacts API route', () => {
         const p1 = await list1.json();
         const orig = p1.contacts.find((c: any) => c.inviteToken === null && c.login === 'invite@ex.com');
         expect(orig?.status).toBe('linked');
+      });
+    });
+
+    it('deleting inviter contact unlinks the acceptor contact', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        // create a contact and invite as u1
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: createContact, GET: listContacts1 } = require('@/app/api/contacts/route');
+        const createRes = await createContact(makeRequest('POST', { name: 'Invited Person', login: 'invite@ex.com' }));
+        expect(createRes.status).toBe(201);
+        const created = await createRes.json();
+
+        const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
+        const inviteRes = await sendInvite(makeRequest('POST', { contactId: created.id }));
+        expect(inviteRes.status).toBe(200);
+        const inviteBody = await inviteRes.json();
+        const token = inviteBody.inviteToken;
+
+        // accept as u2
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u2', isAuthenticated: true });
+        const { POST: acceptInvite } = require('@/app/api/contacts/accept/route');
+        const acceptRes = await acceptInvite(makeAcceptRequest(token));
+        expect(acceptRes.status).toBe(200);
+        const accepted = await acceptRes.json();
+        expect(accepted.status).toBe('linked');
+
+        // find the inviter's contact id as seen by u1
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const list1 = await listContacts1(makeRequest('GET'));
+        const p1 = await list1.json();
+        const orig = p1.contacts.find((c: any) => c.login === 'invite@ex.com');
+        expect(orig).toBeDefined();
+        // inviter contact should reference the acceptor as linkedUserId
+        expect(orig.linkedUserId).toBe('u2');
+
+        // delete inviter's contact (user1 deletes)
+        const { DELETE } = require('@/app/api/contacts/route');
+        const delRes = await DELETE(makeRequest('DELETE', { id: orig.id }));
+        expect(delRes.status).toBe(200);
+
+        // now check user2's contacts: the reciprocal contact should be present but not linked
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u2', isAuthenticated: true });
+        const { GET: listContacts2 } = require('@/app/api/contacts/route');
+        const list2 = await listContacts2(makeRequest('GET'));
+        const p2 = await list2.json();
+        // find the reciprocal contact created on accept by id and verify it was unlinked
+        const recip = p2.contacts.find((c: any) => c.id === accepted.id);
+        expect(recip).toBeDefined();
+        expect(recip.status).toBe('not_linked');
       });
     });
   });

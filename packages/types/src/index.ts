@@ -20,6 +20,7 @@ export type {
 	ContactGroupInput,
 	Group,
 	InviteTokenResponse,
+	InviteInfo,
 } from './contact';
 
 // Project types

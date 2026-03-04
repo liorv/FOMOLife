@@ -4,7 +4,7 @@ import type {
   CreateContactRequest,
   UpdateContactRequest,
 } from '@myorg/api-client';
-import type { Contact, ContactGroupInput, Group, InviteToken, InviteTokenResponse } from '@myorg/types';
+import type { Contact, ContactGroupInput, Group, InviteToken, InviteTokenResponse, InviteInfo } from '@myorg/types';
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -66,6 +66,22 @@ export function createContactsApiClient(baseUrl = ''): ContactsApiClient {
         body: JSON.stringify({ contactId }),
       });
       return parseResponse<InviteTokenResponse>(response);
+    },
+
+    async inviteInfo(token: string): Promise<InviteInfo> {
+      const response = await fetch(`${baseUrl}/api/contacts/invite/${encodeURIComponent(token)}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      return parseResponse<InviteInfo>(response);
+    },
+
+    async rejectInvite(token: string): Promise<void> {
+      const response = await fetch(`${baseUrl}/api/contacts/invite/${encodeURIComponent(token)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      await parseResponse<{ ok: true }>(response);
     },
 
     async acceptInvite(token: InviteToken): Promise<Contact> {

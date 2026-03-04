@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import { isNonEmptyString } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
@@ -31,6 +32,11 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // banner shown when an invite link is copied anywhere on the page
   const [linkCopied, setLinkCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<string>('');
+  // small banner shown when arriving after accepting an invite
+  const [acceptedBanner, setAcceptedBanner] = useState(false);
+  // search functionality
+  const [searchTerm, setSearchTerm] = useState('');
 
   // development-mode account switching
   const [switchId, setSwitchId] = useState(currentUserId);
@@ -38,6 +44,14 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
     document.cookie = `contacts_dev_user=${encodeURIComponent(switchId)}; path=/`;
     window.location.reload();
   };
+
+  // filter contacts based on search term
+  const filteredContacts = useMemo(() => {
+    if (!searchTerm.trim()) return contacts;
+    return contacts.filter(contact =>
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [contacts, searchTerm]);
 
   // helper that creates a contact with a default placeholder name. the new
   // tile is then focused so the user can immediately edit its name. this is
@@ -89,6 +103,25 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
     };
   }, [apiClient]);
 
+  // read query params to show an accepted-invite banner
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isEmbedded = searchParams.get('embedded') === '1';
+  useEffect(() => {
+    if (searchParams.get('accepted') === 'true') {
+      setAcceptedBanner(true);
+      setTimeout(() => setAcceptedBanner(false), 3000);
+
+      // clear the params so the banner doesn't persist on reload
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete('accepted');
+      newParams.delete('tab');
+      const base = window.location.pathname;
+      const query = newParams.toString();
+      router.replace(base + (query ? `?${query}` : ''));
+    }
+  }, [searchParams, router]);
+
   // if user navigates back to this tab (or window regains focus), refresh list
   useEffect(() => {
     if (!canManage) return;
@@ -120,6 +153,11 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
       window.removeEventListener('storage', onStorage);
     };
   }, [apiClient, canManage]);
+
+  useEffect(() => {
+    if (!isEmbedded) return;
+    setSearchTerm(searchParams.get('q') ?? '');
+  }, [isEmbedded, searchParams]);
 
   // configure thumb button for contacts tab and listen for presses
   useEffect(() => {
@@ -155,6 +193,22 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
     <main className={styles.page}>
       <section className={styles.shell}>
         <header className={styles.header}>
+          <div></div> {/* empty left spacer */}
+          
+          {/* search bar */}
+          {!isEmbedded ? (
+            <div className={styles.searchContainer}>
+              <span className={`material-icons ${styles.searchIcon}`}>search</span>
+              <input
+                type="text"
+                placeholder="Search contacts"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+            </div>
+          ) : null}
+
           {/* switch-account UI in dev mode */}
           {devMode ? (
             <div>
@@ -173,7 +227,7 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
                 (default: {defaultUserId})
               </span>
             </div>
-          ) : null}
+          ) : <div></div> /* empty right spacer when not dev mode */}
         </header>
 
         {!canManage ? <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div> : null}
@@ -181,6 +235,13 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
         {loading ? <div className={styles.notice}>Loading contacts…</div> : null}
 
         {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
+
+        {acceptedBanner ? (
+          <div className={styles.banner}>
+            <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
+            Invitation accepted — contact added!
+          </div>
+        ) : null}
 
         {linkCopied ? (
           <div className={styles.banner}>
@@ -190,48 +251,59 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
         ) : null}
 
 
-        {contacts.length === 0 ? (
+        {filteredContacts.length === 0 && contacts.length > 0 ? (
           <div className={styles.empty}>
-            <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people</span>
+            <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">search_off</span>
+            <p>No contacts match your search.</p>
+            <p className={styles.emptySub}>Try a different search term.</p>
+          </div>
+        ) : contacts.length === 0 ? (
+          <div className={styles.empty}>
+            <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people_outline</span>
             <p>No contacts yet.</p>
             <p className={styles.emptySub}>Use the add button to create a new contact.</p>
           </div>
         ) : (
-          <div className={styles.list}>
-            {contacts.map((contact) => (
-              <ContactTile
-                key={contact.id}
-                id={contact.id}
-                name={contact.name}
-                status={contact.status}
-                avatarUrl={null}
-                autoFocus={newContactId === contact.id}
-                onNameChange={async (newName) => {
-                  if (!isNonEmptyString(newName)) return;
-                  const updated = await apiClient.updateContact(contact.id, { name: newName.trim() });
-                  setContacts((prev) => prev.map((item) => (item.id === contact.id ? updated : item)));
-                  if (newContactId === contact.id) {
-                    setNewContactId(null);
-                  }
-                }}
-                onUnlink={async () => {
-                  await apiClient.deleteContact(contact.id);
-                  setContacts((prev) => prev.filter((item) => item.id !== contact.id));
-                }}
-                onLink={async () => {
-                  // update local status immediately for user feedback
-                  setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, status: 'link_pending' } : c));
-                }}
-                onInvite={async () => {
-                  const resp = await apiClient.inviteContact(contact.id);
-                  return resp.inviteToken || null;
-                }}
-                onLinkSuccess={() => {
-                  setLinkCopied(true);
-                  setTimeout(() => setLinkCopied(false), 2500);
-                }}
-              />
-            ))}
+          <div className={styles.tableContainer}>
+            <table className={styles.contactsTable}>
+              <tbody>
+                {filteredContacts.map((contact) => (
+                  <ContactTile
+                    key={contact.id}
+                    id={contact.id}
+                    name={contact.name}
+                    status={contact.status}
+                    avatarUrl={null}
+                    autoFocus={newContactId === contact.id}
+                    onNameChange={async (newName) => {
+                      if (!isNonEmptyString(newName)) return;
+                      const updated = await apiClient.updateContact(contact.id, { name: newName.trim() });
+                      setContacts((prev) => prev.map((item) => (item.id === contact.id ? updated : item)));
+                      if (newContactId === contact.id) {
+                        setNewContactId(null);
+                      }
+                    }}
+                    onUnlink={async () => {
+                      await apiClient.deleteContact(contact.id);
+                      setContacts((prev) => prev.filter((item) => item.id !== contact.id));
+                    }}
+                    onLink={async () => {
+                      // update local status immediately for user feedback
+                      setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, status: 'link_pending' } : c));
+                    }}
+                    onInvite={async () => {
+                      const resp = await apiClient.inviteContact(contact.id);
+                      return resp.inviteToken || null;
+                    }}
+                    onLinkSuccess={(link) => {
+                      setCopiedLink(link);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2500);
+                    }}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

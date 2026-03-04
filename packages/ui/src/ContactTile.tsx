@@ -20,7 +20,7 @@ export interface ContactTileProps {
   onLink?: () => void;
   linkPending?: boolean;
   /** called when an invite link has been successfully copied */
-  onLinkSuccess?: () => void;
+  onLinkSuccess?: (link: string) => void;
 }
 
 // ContactTile component skeleton for contacts redesign
@@ -31,6 +31,7 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
   const [editValue, setEditValue] = useState(name);
   const [linkPending, setLinkPending] = useState(false);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -73,6 +74,29 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
     }
   }
 
+  async function handleCopyClick(ev: React.MouseEvent) {
+    ev.stopPropagation();
+    const link = `${window.location.origin}/accept-invite?token=${encodeURIComponent(
+      inviteToken!
+    )}`;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch {
+        // fallback: ignore or prompt
+      }
+    }
+    if (onLinkSuccess) {
+      try {
+        onLinkSuccess(link);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   async function handleLinkClick(e: React.MouseEvent) {
     e.stopPropagation();
     // inform parent that a link request has started (e.g. update status)
@@ -99,13 +123,17 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
           token
         )}`;
         if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-          navigator.clipboard.writeText(link).catch(() => {
+          try {
+            await navigator.clipboard.writeText(link);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+          } catch {
             // ignore clipboard failures (e.g. permission denied)
-          });
+          }
         }
         if (onLinkSuccess) {
           try {
-            onLinkSuccess();
+            onLinkSuccess(link);
           } catch {
             // ignore
           }
@@ -119,18 +147,28 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
   }
 
   return (
-    <div className="contact-tile" data-contact-id={id}>
-      <div className="contact-tile__avatar" aria-label="Avatar">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="Avatar" style={{ width: 40, height: 40, borderRadius: '50%' }} />
-        ) : (
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" fill="#e0e0e0" />
-            <text x="50%" y="55%" textAnchor="middle" fill="#888" fontSize="18" fontFamily="Arial" dy=".3em">?</text>
-          </svg>
-        )}
-      </div>
-      <div className="contact-tile__main">
+    <tr className="contact-tile" data-contact-id={id}>
+      <td className="contact-tile__avatar-cell">
+        <div className="contact-tile__avatar" aria-label="Avatar">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+          ) : (
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--ui-primary-bg, #1976d2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white'
+            }}>
+              <span className="material-icons" style={{ fontSize: '16px' }}>person</span>
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="contact-tile__name-cell">
         {editing ? (
           <input
             ref={inputRef}
@@ -151,12 +189,12 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
               type="button"
               onClick={handleEditClick}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12.146 2.854a.5.5 0 0 1 0-.708l.708-.708a1 1 0 0 1 1.414 1.414l-.708.708a.5.5 0 0 1-.708 0zM2 13.5V14h.5l9.086-9.086-1.5-1.5L2 13.5z" fill="#888" />
-              </svg>
+              <span className="material-icons" style={{ fontSize: '14px' }}>edit</span>
             </button>
           </span>
         )}
+      </td>
+      <td className="contact-tile__status-cell">
         <span
           className={
             'contact-tile__status' +
@@ -171,40 +209,37 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
           {/* status icon + text */}
           {status === 'linked' ? (
             <>
-              <svg width="14" height="14" viewBox="0 0 16 16" style={{marginRight: 4, verticalAlign: 'middle'}}><circle cx="8" cy="8" r="7" fill="#4caf50" /><path d="M5.5 8.5l2 2 3-3" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
+              <span className="material-icons" style={{ fontSize: '14px' }}>check_circle</span>
               Linked
+            </>
+          ) : status === 'link_pending' ? (
+            <>
+              <span className="material-icons" style={{ fontSize: '14px' }}>schedule</span>
+              Link Pending
             </>
           ) : (
             <>
-              <svg width="14" height="14" viewBox="0 0 16 16" style={{marginRight: 4, verticalAlign: 'middle'}}>
-                <circle cx="8" cy="8" r="7" fill={status === 'not_linked' ? '#bdbdbd' : '#ffb300'} />
-                {status === 'not_linked' ? (
-                  <path d="M5 8h6" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-                ) : (
-                  <path d="M8 4v4l2.5 2.5" stroke="#fff" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-                )}
-              </svg>
-              {status === 'not_linked' ? 'Not Linked' : 'Link Pending'}
+              <span className="material-icons" style={{ fontSize: '14px' }}>link_off</span>
+              Not Linked
             </>
           )}
         </span>
-        {/* action buttons */}
-        <div className="contact-tile__actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+      </td>
+      <td className="contact-tile__actions-cell">
+        <div className="contact-tile__actions">
           {(status === 'not_linked' || status === 'link_pending') && (
             <button
-              className="contact-tile__link-btn"
-              aria-label="Generate invite link"
+              className={inviteToken ? "contact-tile__link-btn" : "contact-tile__link-btn"}
+              aria-label={inviteToken ? (copied ? 'Copied invite link' : 'Copy invite link') : 'Generate invite link'}
               type="button"
-              onClick={handleLinkClick}
+              onClick={inviteToken ? handleCopyClick : handleLinkClick}
               disabled={linkPending}
+              title={inviteToken ? (copied ? 'Copied!' : 'Copy invite link') : 'Generate invite link'}
             >
-              🔗
+              <span className="material-icons" style={{ fontSize: '16px' }}>
+                {inviteToken ? (copied ? 'check' : 'link') : 'link'}
+              </span>
             </button>
-          )}
-          {inviteToken && (
-            <p className="contact-tile__invite-link" style={{fontSize: '0.8rem', marginLeft: 8}}>
-              {`${window.location.origin}/accept-invite?token=${encodeURIComponent(inviteToken)}`}
-            </p>
           )}
           <button
             className="contact-tile__unlink-btn"
@@ -212,23 +247,10 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
             type="button"
             onClick={e => { e.stopPropagation(); onUnlink && onUnlink(); }}
           >
-            ❌
+            <span className="material-icons" style={{ fontSize: '16px' }}>delete</span>
           </button>
         </div>
-        {inviteToken && (
-          <div className="contact-tile__invite-link" style={{ marginLeft: 8, fontSize: 12, color: '#1976d2' }}>
-            <a
-              href={`${window.location.origin}/accept-invite?token=${encodeURIComponent(
-                inviteToken
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Invite link
-            </a>
-          </div>
-        )}
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
