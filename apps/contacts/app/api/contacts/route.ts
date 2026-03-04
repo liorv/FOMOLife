@@ -45,13 +45,25 @@ export async function POST(request: Request) {
     return corsResponse(NextResponse.json({ error: 'Name is required' }, { status: 400 }), request);
   }
 
-  const created = await createContact(session.userId, {
-    name: body.name.trim(),
-    ...(typeof body.login === 'string' ? { login: body.login } : {}),
-    inviteToken: body.inviteToken ?? null,
-    status: body.inviteToken ? 'link_pending' : 'not_linked',
-  });
-  return corsResponse(NextResponse.json(created, { status: 201 }), request);
+  const trimmedName = body.name.trim();
+  if (trimmedName === session.userId) {
+    return corsResponse(NextResponse.json({ error: 'Cannot name a contact as yourself' }, { status: 400 }), request);
+  }
+
+  try {
+    const created = await createContact(session.userId, {
+      name: trimmedName,
+      ...(typeof body.login === 'string' ? { login: body.login } : {}),
+      inviteToken: body.inviteToken ?? null,
+      status: body.inviteToken ? 'link_pending' : 'not_linked',
+    });
+    return corsResponse(NextResponse.json(created, { status: 201 }), request);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'A contact with this name already exists') {
+      return corsResponse(NextResponse.json({ error: error.message }, { status: 400 }), request);
+    }
+    throw error;
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -63,12 +75,23 @@ export async function PATCH(request: Request) {
     return corsResponse(NextResponse.json({ error: 'id and patch are required' }, { status: 400 }), request);
   }
 
-  const updated = await updateContact(session.userId, body.id, body.patch);
-  if (!updated) {
-    return corsResponse(NextResponse.json({ error: 'Contact not found' }, { status: 404 }), request);
+  if (body.patch.name && body.patch.name.trim() === session.userId) {
+    return corsResponse(NextResponse.json({ error: 'Cannot name a contact as yourself' }, { status: 400 }), request);
   }
 
-  return corsResponse(NextResponse.json(updated), request);
+  try {
+    const updated = await updateContact(session.userId, body.id, body.patch);
+    if (!updated) {
+      return corsResponse(NextResponse.json({ error: 'Contact not found' }, { status: 404 }), request);
+    }
+
+    return corsResponse(NextResponse.json(updated), request);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'A contact with this name already exists') {
+      return corsResponse(NextResponse.json({ error: error.message }, { status: 400 }), request);
+    }
+    throw error;
+  }
 }
 
 export async function DELETE(request: Request) {

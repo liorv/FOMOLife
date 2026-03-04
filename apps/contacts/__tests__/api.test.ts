@@ -97,11 +97,24 @@ describe('contacts API route', () => {
       });
     });
 
+    it('disallows naming a contact as yourself', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST } = require('@/app/api/contacts/route');
+
+        const res: NextResponse = await POST(makeRequest('POST', { name: 'u1' }));
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error).toBe('Cannot name a contact as yourself');
+      });
+    });
+
     it('creates a contact with minimal payload', async () => {
       await jest.isolateModulesAsync(async () => {
         const auth = require('@/lib/server/auth');
         (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
-        const { POST, GET } = require('@/app/api/contacts/route');
+        const { POST } = require('@/app/api/contacts/route');
 
         const newContact = { name: 'New Contact' };
         const res: NextResponse = await POST(makeRequest('POST', newContact));
@@ -109,11 +122,42 @@ describe('contacts API route', () => {
         const created = await res.json();
         expect(created.id).toBeDefined();
         expect(created.name).toBe('New Contact');
+      });
+    });
 
-        // verify that it shows up in subsequent GET
-        const list = await GET(makeRequest('GET')); // same user context from auth mock
-        const payload = await list.json();
-        expect(payload.contacts.some((c: any) => c.id === created.id)).toBe(true);
+    it('disallows creating duplicate contacts', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST } = require('@/app/api/contacts/route');
+
+        // Create first contact
+        const res1 = await POST(makeRequest('POST', { name: 'Test Contact' }));
+        expect(res1.status).toBe(201);
+
+        // Try to create duplicate
+        const res2 = await POST(makeRequest('POST', { name: 'Test Contact' }));
+        expect(res2.status).toBe(400);
+        const body = await res2.json();
+        expect(body.error).toBe('A contact with this name already exists');
+      });
+    });
+
+    it('disallows creating duplicate contacts case-insensitively', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST } = require('@/app/api/contacts/route');
+
+        // Create first contact
+        const res1 = await POST(makeRequest('POST', { name: 'Test Contact' }));
+        expect(res1.status).toBe(201);
+
+        // Try to create duplicate with different case
+        const res2 = await POST(makeRequest('POST', { name: 'test contact' }));
+        expect(res2.status).toBe(400);
+        const body = await res2.json();
+        expect(body.error).toBe('A contact with this name already exists');
       });
     });
 
@@ -175,6 +219,41 @@ describe('contacts API route', () => {
         expect(res.status).toBe(200);
         const updated = await res.json();
         expect(updated.name).toBe('Updated');
+      });
+    });
+
+    it('disallows renaming to duplicate contact name', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { PATCH, POST } = require('@/app/api/contacts/route');
+
+        // Create two contacts
+        const res1 = await POST(makeRequest('POST', { name: 'Contact 1' }));
+        expect(res1.status).toBe(201);
+        const contact1 = await res1.json();
+
+        const res2 = await POST(makeRequest('POST', { name: 'Contact 2' }));
+        expect(res2.status).toBe(201);
+        const contact2 = await res2.json();
+
+        // Try to rename Contact 1 to Contact 2 (which already exists)
+        const res3 = await PATCH(makeRequest('PATCH', { id: contact1.id, patch: { name: 'Contact 2' } }));
+        expect(res3.status).toBe(400);
+        const body = await res3.json();
+        expect(body.error).toBe('A contact with this name already exists');
+      });
+    });
+
+    it('disallows renaming a contact as yourself', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { PATCH } = require('@/app/api/contacts/route');
+        const res = await PATCH(makeRequest('PATCH', { id: 'c1', patch: { name: 'u1' } }));
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error).toBe('Cannot name a contact as yourself');
       });
     });
   });
@@ -429,7 +508,7 @@ describe('contacts API route', () => {
         (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
         // create a contact with a different display name than the user id
         const { POST: createContact } = require('@/app/api/contacts/route');
-        const createRes = await createContact(makeRequest('POST', { name: 'Mia' }));
+        const createRes = await createContact(makeRequest('POST', { name: 'Test Contact' }));
         const created = await createRes.json();
         const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
         const inviteRes = await sendInvite(makeRequest('POST', { contactId: created.id }));

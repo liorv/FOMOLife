@@ -191,4 +191,28 @@ describe('ContactsPage', () => {
       expect.stringContaining('/accept-invite?token=')
     ));
   });
+
+  it('shows error message when contact name update fails', async () => {
+    // prepare API client spies
+    const api = fakeApi as any;
+    (api.listContacts as jest.Mock).mockResolvedValueOnce([{ id: 'c1', name: 'Test Contact', status: 'not_linked' }]);
+    (api.updateContact as jest.Mock).mockRejectedValueOnce(new Error('Cannot name a contact as yourself'));
+
+    render(<ContactsPage canManage={true} />);
+    await waitFor(() => expect(api.listContacts).toHaveBeenCalled());
+
+    // Find the edit button and click it to enter edit mode
+    const editBtn = screen.getByLabelText('Edit name');
+    act(() => editBtn.click());
+
+    // Now find the name input and change its value
+    const nameInput = screen.getByDisplayValue('Test Contact');
+    act(() => {
+      fireEvent.change(nameInput, { target: { value: 'u1' } });
+      fireEvent.blur(nameInput);
+    });
+
+    // Error message should be displayed
+    await waitFor(() => expect(screen.getByText('You cannot name a contact with your own name.')).toBeInTheDocument());
+  });
 });

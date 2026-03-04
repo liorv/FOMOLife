@@ -21,12 +21,14 @@ export interface ContactTileProps {
   linkPending?: boolean;
   /** called when an invite link has been successfully copied */
   onLinkSuccess?: (link: string) => void;
+  /** if true, this contact is the current user, disable invite */
+  isSelf?: boolean;
 }
 
 // ContactTile component skeleton for contacts redesign
 
 
-export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess }: ContactTileProps) {
+export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess, isSelf }: ContactTileProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
   const [linkPending, setLinkPending] = useState(false);
@@ -230,11 +232,11 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
           {(status === 'not_linked' || status === 'link_pending') && (
             <button
               className={inviteToken ? "contact-tile__link-btn" : "contact-tile__link-btn"}
-              aria-label={inviteToken ? (copied ? 'Copied invite link' : 'Copy invite link') : 'Generate invite link'}
+              aria-label={isSelf ? 'Cannot invite yourself' : inviteToken ? (copied ? 'Copied invite link' : 'Copy invite link') : 'Generate invite link'}
               type="button"
               onClick={inviteToken ? handleCopyClick : handleLinkClick}
-              disabled={linkPending}
-              title={inviteToken ? (copied ? 'Copied!' : 'Copy invite link') : 'Generate invite link'}
+              disabled={isSelf || linkPending}
+              title={isSelf ? 'Cannot invite yourself' : inviteToken ? (copied ? 'Copied!' : 'Copy invite link') : 'Generate invite link'}
             >
               <span className="material-icons" style={{ fontSize: '16px' }}>
                 {inviteToken ? (copied ? 'check' : 'link') : 'link'}

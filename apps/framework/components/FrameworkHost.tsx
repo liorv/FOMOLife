@@ -52,6 +52,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     if (userId.trim()) {
       queryParts.push(`uid=${encodeURIComponent(userId)}`);
     }
+    if (userEmail.trim()) {
+      queryParts.push(`userEmail=${encodeURIComponent(userEmail)}`);
+    }
     if (showHeaderSearch && headerSearchQuery.trim()) {
       queryParts.push(`q=${encodeURIComponent(headerSearchQuery)}`);
     }

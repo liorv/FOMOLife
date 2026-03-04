@@ -70,6 +70,15 @@ export async function createContact(
   input: Pick<Contact, 'name'> & Partial<Pick<Contact, 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
 ): Promise<Contact> {
   const current = getOrInitUserContacts(userId);
+  
+  // Check for duplicate names (case-insensitive)
+  const existingContact = current.find(contact => 
+    contact.name.toLowerCase() === input.name.toLowerCase()
+  );
+  if (existingContact) {
+    throw new Error('A contact with this name already exists');
+  }
+  
   const contact: Contact = {
     id: generateId(),
     name: input.name,
@@ -89,6 +98,17 @@ export async function updateContact(
   patch: Partial<Pick<Contact, 'name' | 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
 ): Promise<Contact | null> {
   const current = getOrInitUserContacts(userId);
+  
+  // If updating name, check for duplicates
+  if (patch.name) {
+    const existingContact = current.find(contact => 
+      contact.id !== id && contact.name.toLowerCase() === patch.name!.toLowerCase()
+    );
+    if (existingContact) {
+      throw new Error('A contact with this name already exists');
+    }
+  }
+  
   const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
   const updated = next.find((item) => item.id === id) ?? null;
   contactsByUser.set(userId, next);
