@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import TabNav from '../TabNav';
+import { TabNav } from '@myorg/ui';
 
 describe('TabNav', () => {
   const tabs = [

@@ -8,6 +8,7 @@ export interface LogoBarProps {
   showSearch?: boolean;
   searchValue?: string;
   searchPlaceholder?: string;
+  searchDisabled?: boolean;
   onSearchChange?: (value: string) => void;
   userName?: string;
   userEmail?: string;
@@ -27,6 +28,7 @@ export default function LogoBar({
   showSearch = false,
   searchValue = '',
   searchPlaceholder = 'Search',
+  searchDisabled = false,
   onSearchChange,
   userName = 'User',
   userEmail = '',
@@ -88,6 +90,7 @@ export default function LogoBar({
                 onChange={(event) => onSearchChange?.(event.target.value)}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
+                disabled={searchDisabled}
               />
             </div>
           ) : null}

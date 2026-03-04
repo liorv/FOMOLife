@@ -21,9 +21,10 @@ export interface TabNavProps<T extends string> {
    * icon in response to a click.
    */
   thumbIcon?: string;
+  thumbIconClassName?: string;
 }
 
-export default function TabNav<T extends string>({ active, tabs, onChange, onThumbButtonClick, onCenterButtonClick, thumbIcon }: TabNavProps<T>) {
+export default function TabNav<T extends string>({ active, tabs, onChange, onThumbButtonClick, onCenterButtonClick, thumbIcon, thumbIconClassName }: TabNavProps<T>) {
   const handleThumbClick = onThumbButtonClick ?? onCenterButtonClick;
 
   // keep last provided icon to avoid rendering default plus when prop is
@@ -62,6 +63,7 @@ export default function TabNav<T extends string>({ active, tabs, onChange, onThu
         className="tabs-thumb-btn"
         icon={currentThumb}
         ariaLabel="Thumb"
+        {...(thumbIconClassName ? { iconClassName: thumbIconClassName } : {})}
         {...(handleThumbClick ? { onClick: handleThumbClick } : {})}
       />
 

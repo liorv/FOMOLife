@@ -136,6 +136,75 @@ export default function ProjectsPage({ canManage }: Props) {
     setProjectSearch(searchParams.get('q') ?? '');
   }, [isEmbedded, searchParams]);
 
+  // configure thumb button for projects tab and listen for presses
+  useEffect(() => {
+    const icon = 'add';
+    const action = 'add-project';
+
+    const handler = (event: MessageEvent) => {
+      if (!event?.data) return;
+      if (event.data.type === 'get-thumb-config') {
+        try {
+          window.parent?.postMessage?.({ type: 'thumb-config', icon, action }, '*');
+        } catch (err) {
+          // ignore
+        }
+      } else if ((event.data.type === action || event.data.type === 'thumb-fab') && canManage) {
+        // invoke project creation when thumb button is pressed
+        handleAddProject();
+      }
+    };
+
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [canManage]);
+
+  // Send app-loaded message when loading completes
+  useEffect(() => {
+    if (!isEmbedded || loading) return;
+
+    let retryCount = 0;
+    const maxRetries = 10;
+    const retryInterval = 2000; // 2 seconds
+
+    const sendLoadedMessage = () => {
+      try {
+        window.parent?.postMessage?.({ type: 'app-loaded', appId: 'projects' }, '*');
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const checkAck = (event: MessageEvent) => {
+      if (event.data?.type === 'app-loaded-ack' && event.data?.appId === 'projects') {
+        // Acknowledged, stop retrying
+        window.removeEventListener('message', checkAck);
+        clearInterval(intervalId);
+      }
+    };
+
+    window.addEventListener('message', checkAck);
+
+    // Send initial message
+    sendLoadedMessage();
+
+    // Set up retry interval
+    const intervalId = setInterval(() => {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        clearInterval(intervalId);
+        window.removeEventListener('message', checkAck);
+        return;
+      }
+      sendLoadedMessage();
+    }, retryInterval);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('message', checkAck);
+    };
+  }, [isEmbedded, loading]);
+
   useEffect(() => {
     return () => {
       // cleanup not needed for pending delete

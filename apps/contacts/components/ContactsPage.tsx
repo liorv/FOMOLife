@@ -186,6 +186,52 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
     return () => window.removeEventListener('message', handler);
   }, [canManage]);
 
+  // Send app-loaded message when loading completes
+  useEffect(() => {
+    if (!isEmbedded || loading) return;
+
+    let retryCount = 0;
+    const maxRetries = 10;
+    const retryInterval = 2000; // 2 seconds
+
+    const sendLoadedMessage = () => {
+      try {
+        window.parent?.postMessage?.({ type: 'app-loaded', appId: 'people' }, '*');
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const checkAck = (event: MessageEvent) => {
+      if (event.data?.type === 'app-loaded-ack' && event.data?.appId === 'people') {
+        // Acknowledged, stop retrying
+        window.removeEventListener('message', checkAck);
+        clearInterval(intervalId);
+      }
+    };
+
+    window.addEventListener('message', checkAck);
+
+    // Send initial message
+    sendLoadedMessage();
+
+    // Set up retry interval
+    const intervalId = setInterval(() => {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        clearInterval(intervalId);
+        window.removeEventListener('message', checkAck);
+        return;
+      }
+      sendLoadedMessage();
+    }, retryInterval);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('message', checkAck);
+    };
+  }, [isEmbedded, loading]);
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>

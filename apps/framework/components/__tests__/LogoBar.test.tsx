@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import LogoBar from '../LogoBar';
+import { LogoBar } from '@myorg/ui';
 
 describe('LogoBar', () => {
   it('renders search field when showSearch is true', () => {

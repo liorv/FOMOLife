@@ -167,6 +167,52 @@ export default function TasksPage({ canManage }: Props) {
     return () => window.removeEventListener('message', handler);
   }, [api, canManage]);
 
+  // Send app-loaded message when loading completes
+  useEffect(() => {
+    if (!isEmbedded || loading) return;
+
+    let retryCount = 0;
+    const maxRetries = 10;
+    const retryInterval = 2000; // 2 seconds
+
+    const sendLoadedMessage = () => {
+      try {
+        window.parent?.postMessage?.({ type: 'app-loaded', appId: 'tasks' }, '*');
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const checkAck = (event: MessageEvent) => {
+      if (event.data?.type === 'app-loaded-ack' && event.data?.appId === 'tasks') {
+        // Acknowledged, stop retrying
+        window.removeEventListener('message', checkAck);
+        clearInterval(intervalId);
+      }
+    };
+
+    window.addEventListener('message', checkAck);
+
+    // Send initial message
+    sendLoadedMessage();
+
+    // Set up retry interval
+    const intervalId = setInterval(() => {
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        clearInterval(intervalId);
+        window.removeEventListener('message', checkAck);
+        return;
+      }
+      sendLoadedMessage();
+    }, retryInterval);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('message', checkAck);
+    };
+  }, [isEmbedded, loading]);
+
   useEffect(() => {
     if (!isEmbedded) return;
     setSearch(searchParams.get('q') ?? '');

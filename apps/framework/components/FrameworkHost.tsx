@@ -28,6 +28,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
+  // Track loaded apps
+  const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
+
   const handleTabChange = (tab: FrameworkTab) => {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('tab', tab);
@@ -52,7 +55,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     if (userId.trim()) {
       queryParts.push(`uid=${encodeURIComponent(userId)}`);
     }
-    if (userEmail.trim()) {
+    if (userEmail && userEmail.trim()) {
       queryParts.push(`userEmail=${encodeURIComponent(userEmail)}`);
     }
     if (showHeaderSearch && headerSearchQuery.trim()) {
@@ -68,6 +71,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const iframeRefs = useRef<Map<string, HTMLIFrameElement | null>>(new Map());
   const [thumbIcon, setThumbIcon] = useState<string>('add');
   const [thumbAction, setThumbAction] = useState<string>('thumb-fab');
+
+  const isCurrentTabLoaded = loadedApps.has(activeTab);
+  const effectiveThumbIcon = isCurrentTabLoaded ? thumbIcon : 'refresh';
+  const effectiveThumbClass = isCurrentTabLoaded ? '' : 'ui-icon--spin';
+  const isSearchDisabled = !isCurrentTabLoaded;
 
   const handleThumb = () => {
     try {
@@ -98,10 +106,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (!event?.data) return;
-      const { type, icon, action } = event.data as {
+      const { type, icon, action, appId } = event.data as {
         type?: string;
         icon?: unknown;
         action?: unknown;
+        appId?: string;
       };
       if (type === 'thumb-icon' && typeof icon === 'string') {
         setThumbIcon(icon);
@@ -118,12 +127,36 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         if (typeof action === 'string') {
           setThumbAction(action);
         }
+      } else if (type === 'app-loaded' && typeof appId === 'string') {
+        setLoadedApps(prev => new Set(prev).add(appId));
+        // Acknowledge the message
+        try {
+          if (event.source && typeof event.source === 'object' && 'postMessage' in event.source) {
+            (event.source as Window).postMessage({ type: 'app-loaded-ack', appId }, '*');
+          }
+        } catch (err) {
+          // ignore
+        }
       }
     };
 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  // when an app becomes loaded, request its thumb config
+  useEffect(() => {
+    if (loadedApps.has(activeTab)) {
+      const win = iframeRefs.current.get(activeTab)?.contentWindow;
+      if (win) {
+        try {
+          win.postMessage({ type: 'get-thumb-config' }, '*');
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [loadedApps, activeTab]);
 
   // reset thumb icon/action when switching tabs and request fresh config
   useEffect(() => {
@@ -136,16 +169,18 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
     setThumbAction('thumb-fab');
 
-    // ask embedded app what it wants the thumb button to do
-    const win = iframeRefs.current.get(activeTab)?.contentWindow;
-    if (win) {
-      try {
-        win.postMessage({ type: 'get-thumb-config' }, '*');
-      } catch {
-        // ignore
+    // ask embedded app what it wants the thumb button to do, but only if it's loaded
+    if (loadedApps.has(activeTab)) {
+      const win = iframeRefs.current.get(activeTab)?.contentWindow;
+      if (win) {
+        try {
+          win.postMessage({ type: 'get-thumb-config' }, '*');
+        } catch {
+          // ignore
+        }
       }
     }
-  }, [activeTab]);
+  }, [activeTab, loadedApps]);
 
   const handleSwitchUsers = async () => {
     try {
@@ -200,6 +235,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         showSearch={showHeaderSearch}
         searchValue={headerSearchQuery}
         searchPlaceholder={activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects'}
+        searchDisabled={isSearchDisabled}
         onSearchChange={handleHeaderSearchChange}
         userName={userName}
         userEmail={userEmail ?? ''}
@@ -227,7 +263,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
             )}
           </section>
         </div>
-        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={thumbIcon} />
+        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={effectiveThumbIcon} thumbIconClassName={effectiveThumbClass} />
       </div>
     </main>
   );
