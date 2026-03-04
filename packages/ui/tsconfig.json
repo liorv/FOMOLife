@@ -5,6 +5,14 @@
     "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "../../",
+    "paths": {
+      "@myorg/api-client": ["packages/api-client/dist"],
+      "@myorg/api-client/*": ["packages/api-client/dist/*"],
+      "@myorg/types": ["packages/types/dist"],
+      "@myorg/types/*": ["packages/types/dist/*"],
+      "@myorg/utils": ["packages/utils/dist"],
+      "@myorg/utils/*": ["packages/utils/dist/*"]
+    },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["react", "react-dom"],
     "declaration": true,
