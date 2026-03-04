@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter tasks build",  // adjust "tasks" to your actual filter/package name, e.g. "{APPNAME}"
+  "buildCommand": "cd ../.. && pnpm --filter contacts build",
   "devCommand": "cd ../.. && pnpm --filter tasks dev",
   "git": {
     "deploymentEnabled": false
