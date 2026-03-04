@@ -22,11 +22,9 @@ export interface TabNavProps<T extends string> {
    */
   thumbIcon?: string;
   thumbIconClassName?: string;
-  /** whether the thumb button should show the loading spinner */
-  thumbLoading?: boolean;
 }
 
-export default function TabNav<T extends string>({ active, tabs, onChange, onThumbButtonClick, onCenterButtonClick, thumbIcon, thumbIconClassName, thumbLoading = false }: TabNavProps<T>) {
+export default function TabNav<T extends string>({ active, tabs, onChange, onThumbButtonClick, onCenterButtonClick, thumbIcon, thumbIconClassName }: TabNavProps<T>) {
   const handleThumbClick = onThumbButtonClick ?? onCenterButtonClick;
 
   // keep last provided icon to avoid rendering default plus when prop is
@@ -65,7 +63,6 @@ export default function TabNav<T extends string>({ active, tabs, onChange, onThu
         className="tabs-thumb-btn"
         icon={currentThumb}
         ariaLabel="Thumb"
-        loading={thumbLoading}
         {...(thumbIconClassName ? { iconClassName: thumbIconClassName } : {})}
         {...(handleThumbClick ? { onClick: handleThumbClick } : {})}
       />

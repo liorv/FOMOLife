@@ -28,43 +28,36 @@
 }
 
 .loader {
-  width: 96px;
-  box-sizing: content-box;
-  height: 48px;
-  background: #FFF;
-  border-color: #ffa4e4;
-  border-style: solid;
-  border-width: 2px 2px 50px 2px;
-  border-radius: 100%;
   position: relative;
-  animation: 3s yinYang linear infinite;
+  width: 40px;
+  height: 60px;
+  animation: heartBeat 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
 }
-.loader:before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  background: #FFF;
-  border: 18px solid #f796d2;
-  border-radius: 100%;
-  width: 12px;
-  height: 12px;
-  box-sizing: content-box;
-}
+
+.loader:before,
 .loader:after {
   content: "";
+  background: #ff3d00 ;
+  width: 40px;
+  height: 60px;
+  border-radius: 50px 50px 0 0;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  background: #fd9ce8;
-  border: 18px solid #FFF;
-  border-radius: 100%;
-  width: 12px;
-  height: 12px;
-  box-sizing: content-box;
+  left: 0;
+  bottom: 0;
+  transform: rotate(45deg);
+  transform-origin: 50% 68%;
+  box-shadow: 5px 4px 5px #0004 inset;
 }
-@keyframes yinYang {
-  100%{transform: rotate(360deg)}
+.loader:after {
+  transform: rotate(-45deg);
+}
+@keyframes heartBeat {
+  0% { transform: scale(0.95) }
+  5% { transform: scale(1.1) }
+  39% { transform: scale(0.85) }
+  45% { transform: scale(1) }
+  60% { transform: scale(0.95) }
+  100% { transform: scale(0.9) }
 }
 
 /* EmptyState styles */

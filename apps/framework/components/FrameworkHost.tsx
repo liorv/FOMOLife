@@ -263,7 +263,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
             )}
           </section>
         </div>
-        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={effectiveThumbIcon} thumbIconClassName={effectiveThumbClass} thumbLoading={!isCurrentTabLoaded} />
+        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={effectiveThumbIcon} thumbIconClassName={effectiveThumbClass} />
       </div>
     </main>
   );
