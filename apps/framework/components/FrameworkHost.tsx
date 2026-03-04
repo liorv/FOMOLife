@@ -65,6 +65,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [thumbIcon, setThumbIcon] = useState<string>('add');
   const [thumbAction, setThumbAction] = useState<string>('thumb-fab');
+  const [isFrameLoading, setIsFrameLoading] = useState<boolean>(false);
+  const [previousFrameKey, setPreviousFrameKey] = useState<string>(frameKey);
 
   const handleThumb = () => {
     try {
@@ -144,6 +146,18 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   }, [activeTab, frameKey]);
 
+  // handle tab switching and frame loading
+  useEffect(() => {
+    if (frameKey !== previousFrameKey) {
+      setIsFrameLoading(true);
+      setPreviousFrameKey(frameKey);
+    }
+  }, [frameKey, previousFrameKey]);
+
+  const handleFrameLoad = () => {
+    setIsFrameLoading(false);
+  };
+
   const handleSwitchUsers = async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -185,14 +199,23 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         <div className="container framework-container">
           <section className="host-pane" aria-label="Hosted app content">
             {hostedSrc ? (
-              <iframe
-                ref={iframeRef}
-                key={frameKey}
-                title={`${frameLabel} app`}
-                src={hostedSrc}
-                className="host-frame"
-                allow="clipboard-write"
-              />
+              <div className="frame-container">
+                <iframe
+                  ref={iframeRef}
+                  key={frameKey}
+                  title={`${frameLabel} app`}
+                  src={hostedSrc}
+                  className="host-frame"
+                  allow="clipboard-write"
+                  onLoad={handleFrameLoad}
+                  style={{ opacity: isFrameLoading ? 0 : 1, transition: 'opacity 0.2s ease-in-out' }}
+                />
+                {isFrameLoading && (
+                  <div className="frame-loading-overlay">
+                    <div className="frame-loading-spinner"></div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="host-empty">
                 <h2>{activeTabConfig?.label ?? 'App'} URL not configured</h2>
