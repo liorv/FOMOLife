@@ -4,6 +4,7 @@
     "composite": true,
     "rootDir": "src",
     "outDir": "dist",
+    "baseUrl": "../../",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["react", "react-dom"],
     "declaration": true,

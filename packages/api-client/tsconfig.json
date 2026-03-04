@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "composite": true,
     // include tests in compilation to avoid rootDir errors
     "rootDir": ".",
     "outDir": "dist",
