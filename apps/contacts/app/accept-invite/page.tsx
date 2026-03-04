@@ -48,11 +48,12 @@ export default function AcceptInvitePage() {
       // redirect to the framework app (main application) with success flag and contacts tab
       const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
       const frameworkUrl = origin.replace(':3002', ':3001');
-      window.location.replace(`${frameworkUrl}/?accepted=true&tab=people`);
+      router.replace(`${frameworkUrl}/?accepted=true&tab=people`);
     } catch (err: any) {
-      let msg = "Failed to accept invitation.";
-      if (err?.body?.message) msg = err.body.message;
-      setError(msg);
+      // redirect to the framework app with failure flag and contacts tab
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
+      const frameworkUrl = origin.replace(':3002', ':3001');
+      router.replace(`${frameworkUrl}/?failed=true&tab=people`);
     } finally {
       setProcessing(false);
     }
@@ -64,7 +65,7 @@ export default function AcceptInvitePage() {
       await rejectInvite(token);
       // redirect the user to the framework app (port 3001) with a flag and contacts tab
       const origin = window.location.origin.replace(':3002', ':3001');
-      window.location.replace(`${origin}/?rejected=true&tab=people`);
+      router.replace(`${origin}/?rejected=true&tab=people`);
     } catch {
       setError("Failed to reject invitation.");
     } finally {
@@ -82,7 +83,10 @@ export default function AcceptInvitePage() {
           </div>
           <p className="invite-message invite-message--error">{error}</p>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => {
+              const origin = window.location.origin.replace(':3002', ':3001');
+              window.location.replace(`${origin}/?tab=people`);
+            }}
             className="invite-button invite-button--secondary"
           >
             Return to Contacts

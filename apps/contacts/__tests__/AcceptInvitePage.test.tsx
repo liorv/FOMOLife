@@ -28,6 +28,7 @@ describe('AcceptInvitePage component', () => {
   beforeEach(() => {
     (global as any).fetch = jest.fn();
     params = new URLSearchParams();
+    replaceMock.mockReset();
   });
 
   it('displays invitation when server returns 200', async () => {
@@ -58,7 +59,7 @@ describe('AcceptInvitePage component', () => {
     expect(screen.queryByText(/Invitation not found/)).toBeNull();
   });
 
-  it('shows server message when accept fails', async () => {
+  it('redirects to framework when accept fails', async () => {
     (fetch as jest.Mock)
       .mockResolvedValueOnce(makeResponse(true, 200, { inviterName: 'Joe', contactName: 'Jen' }))
       .mockResolvedValueOnce(makeResponse(false, 400, { error: 'self_invite', message: 'You cannot accept your own invitation.' }));
@@ -70,7 +71,9 @@ describe('AcceptInvitePage component', () => {
     await act(async () => {
       accept.click();
     });
-    await waitFor(() => screen.getByText(/You cannot accept your own invitation/));
+    // since our code builds origin using window.location, mimic that in test
+    const expectedOrigin = 'http://localhost'.replace(':3002', ':3001');
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith(`${expectedOrigin}/?failed=true&tab=people`));
   });
 
   it('displays notice if the link belongs to the current user', async () => {
