@@ -7,9 +7,11 @@ export interface ThumbButtonProps {
   onClick?: () => void;
   className?: string;
   iconClassName?: string;
+  /** whether to show the custom loader instead of the icon */
+  loading?: boolean;
 }
 
-export default function ThumbButton({ icon, ariaLabel = 'Thumb', onClick, className, iconClassName }: ThumbButtonProps) {
+export default function ThumbButton({ icon, ariaLabel = 'Thumb', onClick, className, iconClassName, loading = false }: ThumbButtonProps) {
   // if the icon string appears to be a URL/path to an SVG we render an <img>
   // rather than relying on the material-icons font. this lets individual apps
   // ship custom icons without touching shared styles.
@@ -18,7 +20,9 @@ export default function ThumbButton({ icon, ariaLabel = 'Thumb', onClick, classN
   return (
     <button type="button" className={className} aria-label={ariaLabel} onClick={onClick}>
       <span className="tabs-thumb-fab" aria-hidden="true">
-        {isSvgPath ? (
+        {loading ? (
+          <span className="loader"></span>
+        ) : isSvgPath ? (
           <img src={icon} alt="" className={`tab-icon ${iconClassName || ''}`} />
         ) : (
           <span className={`material-icons tab-icon ${iconClassName || ''}`}>{icon}</span>
