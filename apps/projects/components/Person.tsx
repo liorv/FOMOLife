@@ -40,7 +40,7 @@ export default function Person({
     .toUpperCase();
 
   const isEditing = editingPersonId === id;
-  const isAccepted = person.status === "accepted";
+  const isAccepted = person.status === "linked";
   const hasPendingInvite = !!person.inviteToken && !isAccepted;
 
   const copyLink = (token: string) => {

@@ -69,11 +69,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   const frameKey = activeTabConfig?.key ?? activeTab;
   const iframeRefs = useRef<Map<string, HTMLIFrameElement | null>>(new Map());
-  const [thumbIcon, setThumbIcon] = useState<string>('add');
-  const [thumbAction, setThumbAction] = useState<string>('thumb-fab');
+  const [appConfigs, setAppConfigs] = useState<Map<string, { icon: string; action: string }>>(new Map());
 
   const isCurrentTabLoaded = loadedApps.has(activeTab);
-  const effectiveThumbIcon = isCurrentTabLoaded ? thumbIcon : 'refresh';
+  const config = appConfigs.get(activeTab) || { icon: '', action: 'thumb-fab' };
+  const effectiveThumbIcon = isCurrentTabLoaded ? config.icon : 'refresh';
   const effectiveThumbClass = isCurrentTabLoaded ? '' : 'ui-icon--spin';
   const isSearchDisabled = !isCurrentTabLoaded;
 
@@ -82,7 +82,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       const win = iframeRefs.current.get(activeTab)?.contentWindow;
       if (win) {
         // send whichever action the app registered (defaults to thumb-fab)
-        win.postMessage({ type: thumbAction || 'thumb-fab' }, '*');
+        win.postMessage({ type: config.action }, '*');
       }
     } catch (err) {
       // ignore
@@ -103,6 +103,15 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   };
 
+  const getTabFromSource = (source: MessageEventSource | null): string | undefined => {
+    for (const [tab, iframe] of iframeRefs.current.entries()) {
+      if (iframe?.contentWindow === source) {
+        return tab;
+      }
+    }
+    return undefined;
+  };
+
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (!event?.data) return;
@@ -112,21 +121,20 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         action?: unknown;
         appId?: string;
       };
+      const senderTab = getTabFromSource(event.source);
+      if (!senderTab) return; // Ignore messages from unknown sources
+
       if (type === 'thumb-icon' && typeof icon === 'string') {
-        setThumbIcon(icon);
+        setAppConfigs(prev => new Map(prev).set(senderTab, { ...prev.get(senderTab)!, icon }));
       } else if (type === 'thumb-config') {
+        let resolvedIcon = '';
         if (typeof icon === 'string') {
           // if the icon is a path (starts with /) we should fetch it from the
           // sender's origin so that assets hosted by other apps resolve
-          let resolved = icon;
-          if (icon.startsWith('/') && event.origin) {
-            resolved = `${event.origin}${icon}`;
-          }
-          setThumbIcon(resolved);
+          resolvedIcon = icon.startsWith('/') && event.origin ? `${event.origin}${icon}` : icon;
         }
-        if (typeof action === 'string') {
-          setThumbAction(action);
-        }
+        const newAction = typeof action === 'string' ? action : 'thumb-fab';
+        setAppConfigs(prev => new Map(prev).set(senderTab, { icon: resolvedIcon, action: newAction }));
       } else if (type === 'app-loaded' && typeof appId === 'string') {
         setLoadedApps(prev => new Set(prev).add(appId));
         // Acknowledge the message
@@ -158,18 +166,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   }, [loadedApps, activeTab]);
 
-  // reset thumb icon/action when switching tabs and request fresh config
+  // ask embedded app what it wants the thumb button to do, but only if it's loaded
   useEffect(() => {
-    // provide an immediate fallback for apps that default to add (tasks/projects)
-    if (activeTab === 'tasks') {
-      setThumbIcon('add');
-    } else {
-      // non-content tabs start blank until the frame replies
-      setThumbIcon('');
-    }
-    setThumbAction('thumb-fab');
-
-    // ask embedded app what it wants the thumb button to do, but only if it's loaded
     if (loadedApps.has(activeTab)) {
       const win = iframeRefs.current.get(activeTab)?.contentWindow;
       if (win) {
@@ -180,7 +178,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         }
       }
     }
-  }, [activeTab, loadedApps]);
+  }, [loadedApps, activeTab]);
 
   const handleSwitchUsers = async () => {
     try {

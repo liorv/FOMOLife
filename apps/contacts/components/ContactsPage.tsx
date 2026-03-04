@@ -354,7 +354,7 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
                         setLinkCopied(true);
                         setTimeout(() => setLinkCopied(false), 2500);
                       }}
-                      isSelf={contact.login && contact.login === currentUserEmail}
+                      isSelf={!!(contact.login && contact.login === currentUserEmail)}
                     />
                   ))}
                 </tbody>

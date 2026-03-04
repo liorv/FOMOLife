@@ -120,10 +120,11 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
   const contactIndex = current.findIndex((item) => item.id === contactId);
   if (contactIndex === -1) return false;
 
-  const contact = current[contactIndex];
+  const contact = current[contactIndex]!;
   
   // Change this contact's status to 'not_linked'
-  current[contactIndex] = { ...contact, status: 'not_linked', inviteToken: null };
+  contact.status = 'not_linked';
+  contact.inviteToken = null;
   contactsByUser.set(userId, current);
 
   // If this contact represents a linked user, also unlink the reciprocal contact
@@ -131,9 +132,9 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
     const reciprocalContacts = getOrInitUserContacts(contact.linkedUserId);
     // update all reciprocal contacts that point back to this user
     const updatedRecips = reciprocalContacts.map((c) =>
-      c.linkedUserId === userId ? { ...c, status: 'not_linked', inviteToken: null } : c
+      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null } : c
     );
-    contactsByUser.set(contact.linkedUserId, updatedRecips);
+    contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
   }
 
   return true;
@@ -144,7 +145,7 @@ export async function deleteContact(userId: string, contactId: string): Promise<
   const contactIndex = current.findIndex((item) => item.id === contactId);
   if (contactIndex === -1) return false;
 
-  const contact = current[contactIndex];
+  const contact = current[contactIndex]!;
 
   // Remove the contact from this user's list
   const next = current.filter((item) => item.id !== contactId);
@@ -156,9 +157,9 @@ export async function deleteContact(userId: string, contactId: string): Promise<
     const reciprocalContacts = getOrInitUserContacts(contact.linkedUserId);
     // update all reciprocal contacts that point back to this user
     const updatedRecips = reciprocalContacts.map((c) =>
-      c.linkedUserId === userId ? { ...c, status: 'not_linked', inviteToken: null } : c
+      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null } : c
     );
-    contactsByUser.set(contact.linkedUserId, updatedRecips);
+    contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
   }
 
   return true;
@@ -199,7 +200,7 @@ export async function findInviteByToken(token: InviteToken): Promise<{
     decoded = jwt.decode(token) as { inviter: string; contactId: string } | null;
     console.log('[store] decoded', decoded);
   } catch (err) {
-    console.log('[store] jwt.decode failed', err?.name || err);
+    console.log('[store] jwt.decode failed', err);
     return null;
   }
   if (!decoded) {
@@ -286,7 +287,7 @@ export async function acceptInvite(userId: string, token: InviteToken): Promise<
     reciprocalContact = await updateContact(userId, existingContact.id, { 
       status: 'linked', 
       linkedUserId: decoded.inviter 
-    })!;
+    }) as Contact;
   } else {
     // create reciprocal contact for acceptor using inviter's information
     const inviter = await findUserById(decoded.inviter);

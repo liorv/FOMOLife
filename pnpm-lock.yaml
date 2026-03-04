@@ -278,6 +278,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@myorg/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@myorg/types':
         specifier: workspace:*
         version: link:../types

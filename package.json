@@ -20,7 +20,7 @@
     "setup:githooks": "git config core.hooksPath .githooks",
     "check:large-files": "node scripts/guard-large-files.js repo",
     "dev:mono": "turbo dev --filter=framework --filter=contacts --filter=projects --filter=tasks",
-    "build:mono": "turbo build",
+    "build:mono": "turbo build --filter=./apps/* --filter=./packages/*",
     "lint:mono": "turbo lint --filter=./apps/*",
     "test:mono": "turbo test",
     "typecheck:mono": "turbo typecheck --filter=./apps/* --filter=./packages/*",
