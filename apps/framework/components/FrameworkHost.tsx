@@ -13,9 +13,11 @@ type FrameworkHostProps = {
   userInitials: string;
   userAvatarUrl?: string;
   canSignOut: boolean;
+  devMode?: boolean;
+  defaultUserId?: string;
 };
 
-export default function FrameworkHost({ appName: _appName, userId, userName, userEmail, userInitials, userAvatarUrl, canSignOut }: FrameworkHostProps) {
+export default function FrameworkHost({ appName: _appName, userId, userName, userEmail, userInitials, userAvatarUrl, canSignOut, devMode = false, defaultUserId = '' }: FrameworkHostProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -155,6 +157,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   };
 
+  const handleDevSwitchUsers = async (switchId: string) => {
+    document.cookie = `framework_dev_user=${encodeURIComponent(switchId)}; path=/`;
+    window.location.reload();
+  };
+
   return (
     <main className="main-layout">
       <LogoBar
@@ -169,6 +176,10 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         canSignOut={canSignOut}
         onSoftLogout={handleSignOut}
         onSwitchUsers={handleSwitchUsers}
+        devMode={devMode}
+        devCurrentUserId={userId}
+        devDefaultUserId={defaultUserId}
+        onDevSwitchUsers={handleDevSwitchUsers}
       />
       <div className="app-outer">
         <div className="container framework-container">

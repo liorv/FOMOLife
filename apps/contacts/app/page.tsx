@@ -8,9 +8,7 @@ export default async function ContactsHomePage() {
   return (
     <ContactsPage
       canManage={session.isAuthenticated}
-      devMode={env.authMode === 'none'}
       currentUserId={session.userId}
-      defaultUserId={env.defaultUserId}
     />
   );
 }

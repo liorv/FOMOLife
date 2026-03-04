@@ -15,9 +15,12 @@ export interface FrameworkSession {
 export async function getFrameworkSession(): Promise<FrameworkSession> {
   const env = getFrameworkServerEnv();
   if (env.authMode === 'none') {
+    const cookieStore = await cookies();
+    const devUserId = cookieStore.get('framework_dev_user')?.value?.trim();
+    const userId = devUserId || env.defaultUserId;
     return {
-      userId: env.defaultUserId,
-      userEmail: env.defaultUserId,
+      userId,
+      userEmail: userId,
       isAuthenticated: true,
       authMode: env.authMode,
     };

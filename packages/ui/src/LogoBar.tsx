@@ -16,6 +16,10 @@ export interface LogoBarProps {
   canSignOut?: boolean;
   onSoftLogout?: () => void;
   onSwitchUsers?: () => void;
+  devMode?: boolean;
+  devCurrentUserId?: string;
+  devDefaultUserId?: string;
+  onDevSwitchUsers?: (userId: string) => void;
 }
 
 export default function LogoBar({
@@ -31,8 +35,13 @@ export default function LogoBar({
   canSignOut = false,
   onSoftLogout,
   onSwitchUsers,
+  devMode = false,
+  devCurrentUserId = '',
+  devDefaultUserId = '',
+  onDevSwitchUsers,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [devSwitchId, setDevSwitchId] = useState(devCurrentUserId);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -155,7 +164,27 @@ export default function LogoBar({
                   Logout
                 </button>
               ) : null}
-              {onSwitchUsers ? (
+              {devMode ? (
+                <div className="logobar-menu-item" style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
+                    Switch user:
+                    <input
+                      style={{ marginLeft: 8, width: '120px' }}
+                      value={devSwitchId}
+                      onChange={(e) => setDevSwitchId(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setMenuOpen(false);
+                          onDevSwitchUsers?.(devSwitchId);
+                        }
+                      }}
+                    />
+                  </label>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                    (default: {devDefaultUserId})
+                  </span>
+                </div>
+              ) : onSwitchUsers ? (
                 <button
                   type="button"
                   className="logobar-menu-item"

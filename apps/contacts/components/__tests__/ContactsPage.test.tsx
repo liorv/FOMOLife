@@ -118,7 +118,7 @@ describe('ContactsPage', () => {
     const msgs: any[] = [];
     window.addEventListener('message', (e) => msgs.push(e.data));
 
-    render(<ContactsPage canManage={true} devMode={false} currentUserId="u1" defaultUserId="u1" />);
+    render(<ContactsPage canManage={true} currentUserId="u1" />);
     await waitFor(() => expect(screen.queryByText('Loading contacts…')).not.toBeInTheDocument());
 
     // initial thumb-icon message
@@ -190,31 +190,5 @@ describe('ContactsPage', () => {
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining('/accept-invite?token=')
     ));
-  });
-
-
-  it('shows switcher when devMode is enabled and updates cookie/reloads', async () => {
-    // Skip this test in jsdom since window.location.reload cannot be mocked
-    if (typeof window !== 'undefined' && window.navigator?.userAgent?.includes('jsdom')) {
-      console.log('Skipping reload test in jsdom environment');
-      return;
-    }
-
-    Object.defineProperty(document, 'cookie', {
-      configurable: true,
-      set: (val) => {
-        (document as any)._cookie = val;
-      },
-      get: () => (document as any)._cookie || '',
-    });
-
-    render(<ContactsPage canManage={true} devMode={true} currentUserId="local-user" defaultUserId="local-user" />);
-    const switcherInput = screen.getByLabelText(/Current user/i) as HTMLInputElement;
-    expect(switcherInput).toBeInTheDocument();
-    fireEvent.change(switcherInput, { target: { value: 'other-user' } });
-    const btn = screen.getByText('Switch');
-    fireEvent.click(btn);
-    expect((document as any)._cookie).toMatch(/contacts_dev_user=other-user/);
-    // reload call happens but we can't test it in jsdom
   });
 });

@@ -15,12 +15,10 @@ export const DEFAULT_CONTACT_NAME = 'New contact';
 
 type Props = {
   canManage: boolean;
-  devMode: boolean;
   currentUserId: string;
-  defaultUserId: string;
 };
 
-export default function ContactsPage({ canManage, devMode, currentUserId, defaultUserId }: Props) {
+export default function ContactsPage({ canManage, currentUserId }: Props) {
   const clientEnv = useMemo(() => getContactsClientEnv(), []);
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
 
@@ -37,13 +35,6 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
   const [acceptedBanner, setAcceptedBanner] = useState(false);
   // search functionality
   const [searchTerm, setSearchTerm] = useState('');
-
-  // development-mode account switching
-  const [switchId, setSwitchId] = useState(currentUserId);
-  const handleSwitch = () => {
-    document.cookie = `contacts_dev_user=${encodeURIComponent(switchId)}; path=/`;
-    window.location.reload();
-  };
 
   // filter contacts based on search term
   const filteredContacts = useMemo(() => {
@@ -209,25 +200,7 @@ export default function ContactsPage({ canManage, devMode, currentUserId, defaul
             </div>
           ) : null}
 
-          {/* switch-account UI in dev mode */}
-          {devMode ? (
-            <div>
-              <label style={{ fontSize: '0.9rem' }}>
-                Current user:
-                <input
-                  style={{ marginLeft: 8 }}
-                  value={switchId}
-                  onChange={(e) => setSwitchId(e.target.value)}
-                />
-              </label>
-              <button style={{ marginLeft: 8 }} onClick={handleSwitch}>
-                Switch
-              </button>
-              <span style={{ marginLeft: 16, fontSize: '0.8rem' }}>
-                (default: {defaultUserId})
-              </span>
-            </div>
-          ) : <div></div> /* empty right spacer when not dev mode */}
+          <div></div> {/* empty right spacer */}
         </header>
 
         {!canManage ? <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div> : null}
