@@ -11,8 +11,14 @@ export interface TasksSession {
 export async function getTasksSession(): Promise<TasksSession> {
   const env = getTasksServerEnv();
   if (env.authMode === 'none') {
+    // development mode: allow overriding via special cookie so tests and
+    // manual dev flows can switch users on the fly without restarting.
+    const cookieStore = await cookies();
+    const frameworkDevUser = cookieStore.get('framework_dev_user')?.value;
+    const tasksDevUser = cookieStore.get('tasks_dev_user')?.value;
+    const devUser = (frameworkDevUser && frameworkDevUser.trim()) || (tasksDevUser && tasksDevUser.trim()) || env.defaultUserId;
     return {
-      userId: env.defaultUserId,
+      userId: devUser,
       isAuthenticated: true,
     };
   }

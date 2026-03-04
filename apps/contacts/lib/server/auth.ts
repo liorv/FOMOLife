@@ -14,10 +14,11 @@ export async function getContactsSession(): Promise<ContactsSession> {
     // development mode: allow overriding via special cookie so tests and
     // manual dev flows can switch users on the fly without restarting.
     const cookieStore = await cookies();
-    const devUser = cookieStore.get('contacts_dev_user')?.value;
-    const userId = devUser && devUser.trim() ? devUser : env.defaultUserId;
+    const frameworkDevUser = cookieStore.get('framework_dev_user')?.value;
+    const contactsDevUser = cookieStore.get('contacts_dev_user')?.value;
+    const devUser = (frameworkDevUser && frameworkDevUser.trim()) || (contactsDevUser && contactsDevUser.trim()) || env.defaultUserId;
     return {
-      userId,
+      userId: devUser,
       isAuthenticated: true,
     };
   }

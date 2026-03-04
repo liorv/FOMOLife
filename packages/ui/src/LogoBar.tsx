@@ -166,10 +166,10 @@ export default function LogoBar({
               ) : null}
               {devMode ? (
                 <div className="logobar-menu-item" style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
+                  <label style={{ fontSize: '0.9rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     Switch user:
                     <input
-                      style={{ marginLeft: 8, width: '120px' }}
+                      style={{ width: '120px' }}
                       value={devSwitchId}
                       onChange={(e) => setDevSwitchId(e.target.value)}
                       onKeyDown={(e) => {
@@ -179,6 +179,16 @@ export default function LogoBar({
                         }
                       }}
                     />
+                    <button
+                      type="button"
+                      style={{ padding: '4px 8px', fontSize: '0.8rem', cursor: 'pointer' }}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDevSwitchUsers?.(devSwitchId);
+                      }}
+                    >
+                      OK
+                    </button>
                   </label>
                   <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                     (default: {devDefaultUserId})

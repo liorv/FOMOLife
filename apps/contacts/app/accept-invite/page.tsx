@@ -48,7 +48,7 @@ export default function AcceptInvitePage() {
       // redirect to the framework app (main application) with success flag and contacts tab
       const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
       const frameworkUrl = origin.replace(':3002', ':3001');
-      router.replace(`${frameworkUrl}/?accepted=true&tab=people`);
+      window.location.replace(`${frameworkUrl}/?accepted=true&tab=people`);
     } catch (err: any) {
       let msg = "Failed to accept invitation.";
       if (err?.body?.message) msg = err.body.message;
@@ -64,7 +64,7 @@ export default function AcceptInvitePage() {
       await rejectInvite(token);
       // redirect the user to the framework app (port 3001) with a flag and contacts tab
       const origin = window.location.origin.replace(':3002', ':3001');
-      router.replace(`${origin}/?rejected=true&tab=people`);
+      window.location.replace(`${origin}/?rejected=true&tab=people`);
     } catch {
       setError("Failed to reject invitation.");
     } finally {
