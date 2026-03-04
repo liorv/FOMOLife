@@ -478,6 +478,57 @@ describe('contacts API route', () => {
         expect(recip.status).toBe('not_linked');
       });
     });
+
+    it('handles mutual invitations without creating duplicates', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const auth = require('@/lib/server/auth');
+        
+        // User1 creates contact for User2
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: createContact1, GET: listContacts1 } = require('@/app/api/contacts/route');
+        const createRes1 = await createContact1(makeRequest('POST', { name: 'u2' }));
+        expect(createRes1.status).toBe(201);
+        const contactU1forU2 = await createRes1.json();
+
+        // User2 creates contact for User1
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u2', isAuthenticated: true });
+        const { POST: createContact2, GET: listContacts2 } = require('@/app/api/contacts/route');
+        const createRes2 = await createContact2(makeRequest('POST', { name: 'u1' }));
+        expect(createRes2.status).toBe(201);
+        const contactU2forU1 = await createRes2.json();
+
+        // User1 sends invite to User2
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const { POST: sendInvite } = require('@/app/api/contacts/invite/route');
+        const inviteRes = await sendInvite(makeRequest('POST', { contactId: contactU1forU2.id }));
+        expect(inviteRes.status).toBe(200);
+        const { inviteToken } = await inviteRes.json();
+
+        // User2 accepts the invite
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u2', isAuthenticated: true });
+        const { POST: acceptInvite } = require('@/app/api/contacts/accept/route');
+        const acceptRes = await acceptInvite(makeAcceptRequest(inviteToken));
+        expect(acceptRes.status).toBe(200);
+        const accepted = await acceptRes.json();
+        expect(accepted.status).toBe('linked');
+
+        // Check that User2's existing contact (User1) was updated, not a new one created
+        const list2 = await listContacts2(makeRequest('GET'));
+        const p2 = await list2.json();
+        const user1Contacts = p2.contacts.filter((c: any) => c.name === 'u1');
+        expect(user1Contacts.length).toBe(1); // Should be exactly one
+        expect(user1Contacts[0].status).toBe('linked');
+        expect(user1Contacts[0].linkedUserId).toBe('u1');
+
+        // Check User1's contact was linked
+        (auth.getContactsSession as jest.Mock).mockResolvedValue({ userId: 'u1', isAuthenticated: true });
+        const list1 = await listContacts1(makeRequest('GET'));
+        const p1 = await list1.json();
+        const user2Contact = p1.contacts.find((c: any) => c.name === 'u2');
+        expect(user2Contact.status).toBe('linked');
+        expect(user2Contact.linkedUserId).toBe('u2');
+      });
+    });
   });
 
   describe('GET /api/contacts/invite/:token', () => {

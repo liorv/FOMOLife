@@ -271,15 +271,33 @@ export async function acceptInvite(userId: string, token: InviteToken): Promise<
   // so that deletes/unlinks on either side can find the reciprocal contact.
   await updateContact(match.userId, match.contact.id, { status: 'linked', inviteToken: null, linkedUserId: userId });
 
-  // create reciprocal contact for acceptor using inviter's information
+  // check if acceptor already has a contact for the inviter
+  const acceptorContacts = getOrInitUserContacts(userId);
   const inviter = await findUserById(decoded.inviter);
-  const newContact: Contact = await createContact(userId, {
-    name: inviter.name || inviter.email || decoded.inviter,
-    status: 'linked',
-    linkedUserId: decoded.inviter,
-  });
+  const existingContact = acceptorContacts.find(contact => 
+    contact.name.toLowerCase() === inviter.name?.toLowerCase() ||
+    (contact.login && contact.login.toLowerCase() === inviter.email?.toLowerCase()) ||
+    contact.linkedUserId === decoded.inviter
+  );
 
-  return newContact;
+  let reciprocalContact: Contact;
+  if (existingContact) {
+    // update existing contact to linked
+    reciprocalContact = await updateContact(userId, existingContact.id, { 
+      status: 'linked', 
+      linkedUserId: decoded.inviter 
+    })!;
+  } else {
+    // create reciprocal contact for acceptor using inviter's information
+    const inviter = await findUserById(decoded.inviter);
+    reciprocalContact = await createContact(userId, {
+      name: inviter.name || inviter.email || decoded.inviter,
+      status: 'linked',
+      linkedUserId: decoded.inviter,
+    });
+  }
+
+  return reciprocalContact;
 }
 
 // group helpers
