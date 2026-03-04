@@ -16,7 +16,9 @@
       "@myorg/utils": ["../../packages/utils/src"],
       "@myorg/utils/*": ["../../packages/utils/src/*"],
       "@myorg/types": ["../../packages/types/src"],
-      "@myorg/types/*": ["../../packages/types/src/*"]
+      "@myorg/types/*": ["../../packages/types/src/*"],
+      "@myorg/api-client": ["../../packages/api-client/src"],
+      "@myorg/api-client/*": ["../../packages/api-client/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.js", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
