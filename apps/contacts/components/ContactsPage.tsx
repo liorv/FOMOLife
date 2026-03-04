@@ -16,7 +16,7 @@ export const DEFAULT_CONTACT_NAME = 'New contact';
 type Props = {
   canManage: boolean;
   currentUserId: string;
-  currentUserEmail: string;
+  currentUserEmail: string | undefined;
 };
 
 export default function ContactsPage({ canManage, currentUserId, currentUserEmail }: Props) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   inviteInfo,
@@ -14,7 +14,7 @@ interface InviteInfo {
   selfInvite?: boolean;
 }
 
-export default function AcceptInvitePage() {
+function AcceptInvitePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
@@ -184,5 +184,13 @@ export default function AcceptInvitePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AcceptInvitePageInner />
+    </Suspense>
   );
 }
