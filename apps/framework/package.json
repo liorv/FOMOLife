@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
-    "build": "pnpm --filter @myorg/api-client build && pnpm --filter @myorg/types build && pnpm --filter @myorg/utils build && pnpm --filter @myorg/ui build && next build",
+    "build": "pnpm --filter @myorg/types build && pnpm --filter @myorg/api-client build && pnpm --filter @myorg/utils build && pnpm --filter @myorg/ui build && next build",
     "start": "next start --port 3001",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
     "test": "jest",
