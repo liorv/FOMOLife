@@ -74,14 +74,8 @@ function getOrInitUserContacts(userId: string): Contact[] {
   const existing = contactsByUser.get(userId);
   if (existing) return existing;
 
-  const seed: Contact[] = [
-    // example seeded contacts using new status values
-    { id: 'c1', name: 'Alex', login: 'alex@example.com', status: 'linked', inviteToken: null },
-    { id: 'c2', name: 'Mia', login: '', status: 'link_pending', inviteToken: 'mia_invite_123' },
-  ];
-  contactsByUser.set(userId, seed);
-  savePersisted();
-  return seed;
+  contactsByUser.set(userId, []);
+  return [];
 }
 
 // Generates and assigns an invite token to a contact, returns the token string
