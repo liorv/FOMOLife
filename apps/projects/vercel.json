@@ -1,8 +1,9 @@
 {
+  "projectId": "prj_v9Cav0ornpXRKwmpQm4WOidRAocN",
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter projects build",
-  "devCommand": "cd ../.. && pnpm --filter tasks dev",
+  "devCommand": "cd ../.. && pnpm --filter projects dev",
   "git": {
     "deploymentEnabled": false
   }
