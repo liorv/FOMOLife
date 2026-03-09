@@ -30,7 +30,11 @@
     "find-imgs": "node scripts/find-imgs.js",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "deploy:all": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1",
-    "deploy:all:force": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -Force"
+    "deploy:all:force": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -Force",
+    "deploy:contacts": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App contacts",
+    "deploy:framework": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App framework",
+    "deploy:projects": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App projects",
+    "deploy:tasks": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App tasks"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

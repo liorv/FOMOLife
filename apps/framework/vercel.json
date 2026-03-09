@@ -1,5 +1,4 @@
 {
-  "projectId": "prj_LeAZKdLcc3WGMs4WnuADiV6hS7ba",
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter framework build",

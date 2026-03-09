@@ -1,4 +1,5 @@
 {
+  "name": "fomo-life-projects",
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter projects build",
