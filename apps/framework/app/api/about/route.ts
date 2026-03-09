@@ -99,7 +99,6 @@ export async function GET() {
   const frameworkVersion = getDeployTimestamp();
 
   const versions = {
-    'fomo-life': frameworkVersion, // Use framework's timestamp for root
     framework: frameworkVersion,
     contacts: contactsVersion,
     tasks: tasksVersion,
