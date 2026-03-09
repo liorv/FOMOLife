@@ -657,23 +657,10 @@ body {
 
 /* groups control spacing now; no need for absolute positioning of tabs */
 .tabs-group {
-  flex: 1 0 0;
-  display: flex;
+  flex: 1;
+  display: inline-flex;
   justify-content: space-evenly;
   align-items: center;
-}
-
-.tabs-left {
-  /* keep a little gap so left items don't butt against the thumb */
-  padding-right: 24px;
-}
-
-.tabs-right {
-  padding-left: 24px;
-}
-
-.tabs button.tabs-thumb-btn::before {
-  display: none;
 }
 
 .tabs button.tabs-thumb-btn .tabs-thumb-fab {
