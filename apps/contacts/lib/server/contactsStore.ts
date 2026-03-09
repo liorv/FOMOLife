@@ -3,14 +3,65 @@ import 'server-only';
 import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myorg/types';
 
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 
 const contactsByUser = new Map<string, Contact[]>();
 // simple in-memory groups per user
 const groupsByUser = new Map<string, ContactGroup[]>();
 const groupInviteByToken = new Map<string, { ownerUserId: string; groupId: string; contactId: string }>();
 
+// persist to disk to survive dev reloads
+const CONTACTS_PERSIST_PATH = path.resolve(process.cwd(), 'apps/contacts/data/contacts.json');
+const GROUPS_PERSIST_PATH = path.resolve(process.cwd(), 'apps/contacts/data/groups.json');
+
 // secret used to sign invite JWTs; should be set in environment
 const INVITE_SECRET = process.env.INVITE_SECRET || 'default-invite-secret';
+
+function loadPersisted() {
+  try {
+    const rawContacts = fs.readFileSync(CONTACTS_PERSIST_PATH, 'utf-8');
+    const arrContacts: [string, Contact[]][] = JSON.parse(rawContacts);
+    arrContacts.forEach(([user, contacts]) => {
+      contactsByUser.set(user, contacts);
+    });
+    console.log('contactsStore: loaded persisted contacts');
+  } catch (err) {
+    // ignore if file missing or parse fails
+  }
+  try {
+    const rawGroups = fs.readFileSync(GROUPS_PERSIST_PATH, 'utf-8');
+    const arrGroups: [string, ContactGroup[]][] = JSON.parse(rawGroups);
+    arrGroups.forEach(([user, groups]) => {
+      groupsByUser.set(user, groups);
+    });
+    console.log('contactsStore: loaded persisted groups');
+  } catch (err) {
+    // ignore if file missing or parse fails
+  }
+}
+
+function savePersisted() {
+  try {
+    const arrContacts = Array.from(contactsByUser.entries());
+    fs.mkdirSync(path.dirname(CONTACTS_PERSIST_PATH), { recursive: true });
+    fs.writeFileSync(CONTACTS_PERSIST_PATH, JSON.stringify(arrContacts), 'utf-8');
+    console.log('contactsStore: persisted contacts');
+  } catch (err) {
+    console.error('contactsStore: failed to persist contacts', err);
+  }
+  try {
+    const arrGroups = Array.from(groupsByUser.entries());
+    fs.mkdirSync(path.dirname(GROUPS_PERSIST_PATH), { recursive: true });
+    fs.writeFileSync(GROUPS_PERSIST_PATH, JSON.stringify(arrGroups), 'utf-8');
+    console.log('contactsStore: persisted groups');
+  } catch (err) {
+    console.error('contactsStore: failed to persist groups', err);
+  }
+}
+
+// initialize map from disk
+loadPersisted();
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -29,6 +80,7 @@ function getOrInitUserContacts(userId: string): Contact[] {
     { id: 'c2', name: 'Mia', login: '', status: 'link_pending', inviteToken: 'mia_invite_123' },
   ];
   contactsByUser.set(userId, seed);
+  savePersisted();
   return seed;
 }
 
@@ -58,6 +110,7 @@ export async function inviteContact(userId: string, contactId: string): Promise<
     inviteToken: token,
   };
   contactsByUser.set(userId, current);
+  savePersisted();
   return token;
 }
 
@@ -89,6 +142,7 @@ export async function createContact(
   };
   current.push(contact);
   contactsByUser.set(userId, current);
+  savePersisted();
   return contact;
 }
 
@@ -112,6 +166,7 @@ export async function updateContact(
   const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
   const updated = next.find((item) => item.id === id) ?? null;
   contactsByUser.set(userId, next);
+  savePersisted();
   return updated;
 }
 
@@ -137,6 +192,7 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
     contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
   }
 
+  savePersisted();
   return true;
 }
 
@@ -162,6 +218,7 @@ export async function deleteContact(userId: string, contactId: string): Promise<
     contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
   }
 
+  savePersisted();
   return true;
 }
 
@@ -326,6 +383,7 @@ export async function createGroup(userId: string, input: ContactGroupInput): Pro
   };
   current.push(group);
   groupsByUser.set(userId, current);
+  savePersisted();
   return group;
 }
 
@@ -356,6 +414,7 @@ export async function acceptGroupInvite(userId: string, token: string): Promise<
   if (!group.contactIds.includes(invite.contactId)) {
     group.contactIds = [...group.contactIds, invite.contactId];
     groupsByUser.set(invite.ownerUserId, ownerGroups);
+    savePersisted();
   }
 
   groupInviteByToken.delete(token);
@@ -367,6 +426,7 @@ export async function updateGroup(userId: string, id: string, patch: Partial<Con
   const next = current.map((g) => (g.id === id ? { ...g, ...(patch.name ? { name: patch.name } : {}), ...(patch.contactIds ? { contactIds: patch.contactIds } : {}) } : g));
   const updated = next.find((g) => g.id === id) ?? null;
   groupsByUser.set(userId, next);
+  savePersisted();
   return updated;
 }
 
@@ -374,6 +434,7 @@ export async function deleteGroup(userId: string, id: string): Promise<boolean> 
   const current = getOrInitUserGroups(userId);
   const next = current.filter((g) => g.id !== id);
   groupsByUser.set(userId, next);
+  savePersisted();
   return next.length !== current.length;
 }
 
@@ -384,5 +445,6 @@ export async function leaveGroup(userId: string, groupId: string): Promise<boole
 
   const next = current.filter((item) => item.id !== groupId);
   groupsByUser.set(userId, next);
+  savePersisted();
   return true;
 }

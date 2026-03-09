@@ -1,10 +1,10 @@
 {
   "name": "contacts",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3002",
-    "build": "next build",
+    "build": "echo '{\"version\":\"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'\"}' > version.json && next build",
     "start": "next start --port 3002",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
     "test": "jest",

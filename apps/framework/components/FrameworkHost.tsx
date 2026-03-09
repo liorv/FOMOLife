@@ -30,6 +30,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   // Track loaded apps
   const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
+  const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
 
   const handleTabChange = (tab: FrameworkTab) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -180,6 +181,17 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   }, [loadedApps, activeTab]);
 
+  // Fetch about info
+  useEffect(() => {
+    fetch('/api/about')
+      .then(res => res.json())
+      .then(setAboutInfo)
+      .catch(err => {
+        console.error('Failed to fetch about info:', err);
+        setAboutInfo({ versions: {}, dbSource: 'Error loading data' });
+      });
+  }, []);
+
   const handleSwitchUsers = async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -246,6 +258,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         devCurrentUserId={userId}
         devDefaultUserId={defaultUserId}
         onDevSwitchUsers={handleDevSwitchUsers}
+        {...(aboutInfo ? { aboutInfo } : {})}
       />
       <div className="app-outer">
         <div className="container framework-container">

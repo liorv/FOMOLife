@@ -1,3 +1,4 @@
+@import '@myorg/ui/styles.css';
 :root {
   --color-primary: #1a73e8;
   --color-accent: #d32998;

@@ -21,6 +21,10 @@ export interface LogoBarProps {
   devCurrentUserId?: string;
   devDefaultUserId?: string;
   onDevSwitchUsers?: (userId: string) => void;
+  aboutInfo?: {
+    versions: Record<string, string>;
+    dbSource: string;
+  };
 }
 
 export default function LogoBar({
@@ -41,8 +45,10 @@ export default function LogoBar({
   devCurrentUserId = '',
   devDefaultUserId = '',
   onDevSwitchUsers,
+  aboutInfo,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [devSwitchId, setDevSwitchId] = useState(devCurrentUserId);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -151,6 +157,22 @@ export default function LogoBar({
                 </div>
               </div>
               <div className="logobar-menu-divider" />
+              {aboutInfo ? (
+                <button
+                  type="button"
+                  className="logobar-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setAboutOpen(true);
+                  }}
+                >
+                  <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
+                    info
+                  </span>
+                  About
+                </button>
+              ) : null}
               {onSoftLogout ? (
                 <button
                   type="button"
@@ -217,6 +239,51 @@ export default function LogoBar({
           ) : null}
         </div>
       </div>
+      {aboutOpen && aboutInfo ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+          }}
+          onClick={() => setAboutOpen(false)}
+        >
+          <div
+            style={{
+              width: 'min(92vw, 320px)',
+              background: 'white',
+              borderRadius: '8px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>About FOMO Life</h3>
+            <div style={{ marginBottom: '16px' }}>
+              <strong>Versions:</strong>
+              <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                {Object.keys(aboutInfo.versions).length === 0 ? (
+                  <li>Loading...</li>
+                ) : (
+                  Object.entries(aboutInfo.versions).map(([app, version]) => (
+                    <li key={app}>{app}: {version}</li>
+                  ))
+                )}
+              </ul>
+            </div>
+            <div>
+              <strong>Database Source:</strong> {aboutInfo.dbSource}
+            </div>
+            <div style={{ marginTop: '16px', textAlign: 'right' }}>
+              <button type="button" onClick={() => setAboutOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

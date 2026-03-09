@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styles from './ModalOverlay.module.css';
 
 export interface ModalOverlayProps {
   open: boolean;
@@ -23,7 +22,7 @@ export default function ModalOverlay({
 
   return ReactDOM.createPortal(
     <div
-      className={[styles.overlay, className].filter(Boolean).join(' ')}
+      className={['modal-overlay', className].filter(Boolean).join(' ')}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -32,7 +31,7 @@ export default function ModalOverlay({
       role="presentation"
     >
       <div
-        className={[styles.content, contentClassName].filter(Boolean).join(' ')}
+        className={['modal-content', contentClassName].filter(Boolean).join(' ')}
         onClick={(event) => event.stopPropagation()}
         ref={contentRef}
         role="dialog"
