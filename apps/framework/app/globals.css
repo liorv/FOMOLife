@@ -33,7 +33,8 @@ body {
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  overflow: hidden;
+  overflow: auto;
+  background-color: var(--color-bg);
 }
 
 .app-outer {

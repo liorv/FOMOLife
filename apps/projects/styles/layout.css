@@ -113,7 +113,8 @@ body {
   height: 100vh;
   height: 100dvh;
   padding: 0;
-  overflow: hidden;
+  overflow: auto;
+  background-color: var(--color-bg);
 }
 
 /* Outer wrapper holding top bar + content; fills between logo bar and nav */

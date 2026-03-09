@@ -1161,7 +1161,7 @@
 
 .projects-dashboard:not(.dashboard--has-project) {
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 /* ── Summary strip ─────────────────────────────────────────── */

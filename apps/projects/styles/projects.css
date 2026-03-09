@@ -574,6 +574,31 @@
 /* ============================================================
   24. ADDBAR WRAPPER (Subproject Task List)
    ============================================================ */
+
+/* when the add-bar is shown at the bottom of the viewport we want it to look
+   exactly like the version used by the tasks app.  reapply the helpers that
+   TasksPage.globals.css adds (these rules are normally imported there but not
+   in projects). */
+.tasks-bottom-add {
+  margin: 0;
+  border-radius: 0;
+}
+
+.tasks-bottom-add .add-bar {
+  margin: 0;
+  padding: 0;
+  position: static;
+  top: auto;
+}
+
+/* same blue→white focus styling used by tasks input */
+#add-tasks-input {
+  background: var(--color-google-btn-bg, var(--btn-google-bg-color, #4285f4));
+  transition: background 0.2s ease;
+}
+#add-tasks-input:focus {
+  background: white;
+}
 /* wrapper exists primarily to ensure full width within the subproject
    container.  visual styling should be minimal so the input looks identical
    to other rows. */
