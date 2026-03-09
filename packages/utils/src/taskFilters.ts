@@ -3,9 +3,8 @@
  * 
  * Utility for filtering a list of tasks according to active filters and an
  * optional text query. The logic is shared between Apps. Filters are applied 
- * conjunctively: a task must satisfy every active filter. No special case is 
- * applied to completed tasks – they are shown unless the "completed" filter 
- * is used.
+ * conjunctively: a task must satisfy every active filter. By default, completed 
+ * tasks are excluded unless the "completed" filter is explicitly selected.
  */
 
 import type { TaskItem, TaskFilter } from '@myorg/types';
@@ -30,8 +29,26 @@ export function applyFilters(
   inSeven.setDate(now.getDate() + 7);
 
   return tasks.filter((t) => {
-    // only apply completed filter when explicitly requested
+    // By default, exclude completed tasks unless "completed" filter is selected
+    if (!active.includes("completed") && t.done) return false;
+    // When "completed" filter is active, only show completed tasks
     if (active.includes("completed") && !t.done) return false;
+    if (active.includes("overdue")) {
+      if (!(t.dueDate && new Date(t.dueDate) < now)) return false;
+    }
+    if (active.includes("upcoming")) {
+      if (t.done || !t.dueDate) return false;
+      const d = new Date(t.dueDate);
+      if (d < now || d > inSeven) return false;
+    }
+    if (active.includes("starred")) {
+      // Support both 'starred' and 'favorite' properties for backward compatibility
+      if (!(t.favorite || (t as unknown as { starred?: boolean }).starred)) return false;
+    }
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      if (!((t.text || "").toLowerCase().includes(q))) return false;
+    }
     if (active.includes("overdue")) {
       if (!(t.dueDate && new Date(t.dueDate) < now)) return false;
     }

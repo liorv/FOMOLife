@@ -8,8 +8,9 @@ describe('applyFilters', () => {
     { id: '3', text: 'baz', done: false, favorite: true, description: '', people: [] },
   ];
 
-  it('returns all tasks when no filter', () => {
-    expect(applyFilters(sample, [], '')).toHaveLength(3);
+  it('returns all incomplete tasks when no filter', () => {
+    expect(applyFilters(sample, [], '')).toHaveLength(2);
+    expect(applyFilters(sample, [], '').map(t => t.id)).toEqual(['1', '3']);
   });
 
   it('filters completed', () => {
@@ -21,6 +22,7 @@ describe('applyFilters', () => {
   });
 
   it('searches text', () => {
-    expect(applyFilters(sample, [], 'ba')).toHaveLength(2);
+    expect(applyFilters(sample, [], 'ba')).toHaveLength(1);
+    expect(applyFilters(sample, [], 'ba').map(t => t.id)).toEqual(['3']);
   });
 });
