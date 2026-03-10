@@ -66,33 +66,31 @@
 
 .empty {
   text-align: center;
+  padding: 48px 24px;
   color: var(--ui-text-muted, #666);
-  background: var(--ui-card-bg, #fff);
-  border: 1px solid var(--ui-card-border, #e0e0e0);
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .empty p {
-  margin: 0 0 8px;
-  font-size: 18px;
-  font-weight: 600;
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--ui-text, #212121);
 }
 
 .emptyIcon {
-  font-size: 4rem !important;
+  font-size: 3rem !important;
   display: block;
   color: var(--ui-text-muted, #c6d0e4) !important;
-  opacity: 0.6;
+  opacity: 0.5;
+  margin-bottom: 16px;
 }
 
 .emptySub {
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
   color: var(--ui-text-muted, #666) !important;
-  max-width: 400px;
-  margin: 0 auto;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .banner {
