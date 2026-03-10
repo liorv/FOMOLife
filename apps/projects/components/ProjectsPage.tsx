@@ -145,29 +145,6 @@ export default function ProjectsPage({ canManage }: Props) {
     return () => window.removeEventListener('message', handleMessage);
   }, [isEmbedded]);
 
-  // configure thumb button for projects tab and listen for presses
-  useEffect(() => {
-    const icon = 'add';
-    const action = 'add-project';
-
-    const handler = (event: MessageEvent) => {
-      if (!event?.data) return;
-      if (event.data.type === 'get-thumb-config') {
-        try {
-          window.parent?.postMessage?.({ type: 'thumb-config', icon, action }, '*');
-        } catch (err) {
-          // ignore
-        }
-      } else if ((event.data.type === action || event.data.type === 'thumb-fab') && canManage) {
-        // invoke project creation when thumb button is pressed
-        handleAddProject();
-      }
-    };
-
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [canManage]);
-
   // Send app-loaded message when loading completes
   useEffect(() => {
     if (!isEmbedded || loading) return;
