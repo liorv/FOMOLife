@@ -412,7 +412,8 @@ export default function ProjectsPage({ canManage }: Props) {
       {!displayReady ? (
         <div style={{ height: '100vh' }} />
       ) : (
-        <section>
+        <div className="content-panel">
+          <section className="content">
           {!isEmbedded ? (
             <div className={layoutStyles.searchBar}>
               <input
@@ -453,6 +454,7 @@ export default function ProjectsPage({ canManage }: Props) {
             onToggleFilter={handleToggleFilter}
           />
         </section>
+        </div>
       )}
     </main>
   );

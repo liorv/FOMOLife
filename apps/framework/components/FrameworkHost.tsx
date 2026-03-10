@@ -32,8 +32,20 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
 
-  const defaultSearchPlaceholder = activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects';
+  // Check screen size for responsive placeholder
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth <= 480);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects');
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
   const handleTabChange = (tab: FrameworkTab) => {

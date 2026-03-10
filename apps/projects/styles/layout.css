@@ -114,7 +114,19 @@ body {
   height: 100dvh;
   padding: 0;
   overflow: auto;
-  background-color: var(--color-bg);
+  background: #e0e0e0; /* light gray */
+  width: 100vw;
+}
+
+.content-panel {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  background: #ffe0e0; /* light red */
+}
+
+.content {
+  background: #e0ffe0; /* light green */
 }
 
 /* Outer wrapper holding top bar + content; fills between logo bar and nav */
@@ -495,7 +507,7 @@ body {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 8px 0;
+  padding: 0;
   z-index: 100;
 }
 

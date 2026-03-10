@@ -1,21 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import { isNonEmptyString } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
+import { ContactTile } from '@myorg/ui';
 import { createContactsApiClient } from '@/lib/client/contactsApi';
 import { getContactsClientEnv } from '@/lib/env.client';
-import SearchBar from './SearchBar';
-import EmptyState from './EmptyState';
-import Banner from './Banner';
-import Notice from './Notice';
-import ContactTable from './ContactTable';
+
 import styles from '../styles/layout.module.css';
 
 
-export const DEFAULT_CONTACT_NAME = 'New contact';
+export const DEFAULT_CONTACT_NAME = 'New Contact (1)';
 
 type Props = {
   canManage: boolean;
@@ -42,6 +39,8 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const [acceptedBanner, setAcceptedBanner] = useState(false);
   // search functionality
   const [searchTerm, setSearchTerm] = useState('');
+  // ref to track the next contact number for incremental naming
+  const nextContactNumberRef = useRef(1);
 
   // filter contacts based on search term
   const filteredContacts = useMemo(() => {
@@ -57,8 +56,11 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const addContact = async () => {
     if (!canManage) return;
 
+    // Use the ref to get the next number and increment it immediately
+    const nextNumber = nextContactNumberRef.current++;
+    const name = `New Contact (${nextNumber})`;
+
     // placeholder contact with no invite; status not_linked
-    const name = DEFAULT_CONTACT_NAME;
     const contact: Contact = {
       id: '',
       name,
@@ -77,8 +79,23 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create contact');
+      // If creation failed, decrement the ref to avoid skipping numbers
+      nextContactNumberRef.current--;
     }
   };
+
+  // Keep the next contact number ref in sync with existing contacts
+  useEffect(() => {
+    const existingNumbers = contacts
+      .map(c => c.name)
+      .filter(name => /^New Contact \(\d+\)$/.test(name))
+      .map(name => {
+        const match = name.match(/New Contact \((\d+)\)/);
+        return match && match[1] ? parseInt(match[1], 10) : 0;
+      });
+    const maxExisting = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+    nextContactNumberRef.current = maxExisting + 1;
+  }, [contacts]);
 
   useEffect(() => {
     let active = true;
@@ -247,63 +264,137 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   }, [isEmbedded, loading]);
 
   return (
-    <main className={styles.page}>
-      {!displayReady ? (
-        // Show nothing while waiting for framework acknowledgment to prevent layout flicker
-        <div style={{ height: '100vh' }} />
-      ) : (
-        <section className={styles.shell}>
+    <main className="main-layout">
+      <div className="content-panel">
+        <div className={styles.page}>
+          {!displayReady ? (
+            // Show nothing while waiting for framework acknowledgment to prevent layout flicker
+            <div style={{ height: '100vh' }} />
+          ) : (
+            <section className={styles.shell}>
           <header className={styles.header}>
             <div></div> {/* empty left spacer */}
             
             {/* search bar */}
-            <SearchBar
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              isEmbedded={isEmbedded}
-            />
+            {!isEmbedded && (
+              <div className={styles.search}>
+                <span className={`material-icons ${styles.searchIcon}`}>search</span>
+                <input
+                  type="text"
+                  placeholder="Search contacts"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={styles.searchInput}
+                />
+              </div>
+            )}
 
             <div></div> {/* empty right spacer */}
           </header>
 
-          {!canManage && <Notice type="info">Read-only mode: sign in is required to manage contacts.</Notice>}
+          {!canManage && <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div>}
 
-          {loading && <Notice type="loading">Loading contacts…</Notice>}
+          {loading && <div className={styles.notice}>Loading contacts…</div>}
 
-          {errorMessage && <Notice type="error">{errorMessage}</Notice>}
+          {errorMessage && <div className={styles.error}>{errorMessage}</div>}
 
           {acceptedBanner && (
-            <Banner icon="check_circle">
+            <div className={styles.banner}>
+              <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
               Invitation accepted — contact added!
-            </Banner>
+            </div>
           )}
 
           {linkCopied && (
-            <Banner icon="check_circle">
+            <div className={styles.banner}>
+              <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
               Invite link copied to clipboard!
-            </Banner>
+            </div>
           )}
 
 
           {filteredContacts.length === 0 && contacts.length > 0 ? (
-            <EmptyState type="no-search-results" />
+            <div className={styles.empty}>
+              <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">search_off</span>
+              <p>No contacts match your search.</p>
+              <p className={styles.emptySub}>Try a different search term.</p>
+            </div>
           ) : contacts.length === 0 ? (
-            <EmptyState type="no-contacts" />
+            <div className={styles.empty}>
+              <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people_outline</span>
+              <p>No contacts yet.</p>
+              <p className={styles.emptySub}>Use the add button to create a new contact.</p>
+            </div>
           ) : (
-            <ContactTable
-              contacts={filteredContacts}
-              newContactId={newContactId}
-              currentUserEmail={currentUserEmail}
-              apiClient={apiClient}
-              setContacts={setContacts}
-              setErrorMessage={setErrorMessage}
-              setCopiedLink={setCopiedLink}
-              setLinkCopied={setLinkCopied}
-              setNewContactId={setNewContactId}
-            />
+            <div className={styles.table}>
+              <table className={styles.contactsTable}>
+                <tbody>
+                  {filteredContacts.map((contact) => (
+                    <ContactTile
+                      key={contact.id}
+                      id={contact.id}
+                      name={contact.name}
+                      status={contact.status}
+                      avatarUrl={null}
+                      autoFocus={newContactId === contact.id}
+                      onNameChange={async (newName) => {
+                        if (!isNonEmptyString(newName)) return;
+                        try {
+                          const updated = await apiClient.updateContact(contact.id, { name: newName.trim() });
+                          setContacts((prev) => prev.map((item) => (item.id === contact.id ? updated : item)));
+                          if (newContactId === contact.id) {
+                            setNewContactId(null);
+                          }
+                          // Clear any previous error
+                          setErrorMessage(null);
+                        } catch (error) {
+                          if (error instanceof Error && error.message.includes('Cannot name a contact as yourself')) {
+                            setErrorMessage('You cannot name a contact with your own name.');
+                          } else if (error instanceof Error && error.message.includes('A contact with this name already exists')) {
+                            setErrorMessage('A contact with this name already exists.');
+                          } else {
+                            setErrorMessage(error instanceof Error ? error.message : 'Failed to update contact name');
+                          }
+                        }
+                      }}
+                      onUnlink={async () => {
+                        try {
+                          await apiClient.deleteContact(contact.id);
+                          setContacts((prev) => prev.filter((item) => item.id !== contact.id));
+                          setErrorMessage(null);
+                        } catch (error) {
+                          setErrorMessage(error instanceof Error ? error.message : 'Failed to delete contact');
+                        }
+                      }}
+                      onLink={async () => {
+                        // update local status immediately for user feedback
+                        setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, status: 'link_pending' } : c));
+                      }}
+                      onInvite={async () => {
+                        try {
+                          const resp = await apiClient.inviteContact(contact.id);
+                          return resp.inviteToken || null;
+                        } catch (error) {
+                          setErrorMessage(error instanceof Error ? error.message : 'Failed to send invitation');
+                          return null;
+                        }
+                      }}
+                      onLinkSuccess={(link) => {
+                        setCopiedLink(link);
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2500);
+                      }}
+                      isSelf={!!(contact.login && contact.login === currentUserEmail)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       )}
-    </main>
-  );
+    </div>
+    </div>
+  </main>
+);
 }

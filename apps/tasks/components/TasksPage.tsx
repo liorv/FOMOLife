@@ -420,7 +420,8 @@ export default function TasksPage({ canManage }: Props) {
       {!displayReady ? (
         <div style={{ height: '100vh' }} />
       ) : (
-        <div className={`container ${styles.inlineContainer}`}>
+        <div className="content-panel">
+          <div className={`container ${styles.inlineContainer}`}>
         {!isEmbedded ? (
           <div className={styles.searchBar}>
             <input
@@ -592,6 +593,7 @@ export default function TasksPage({ canManage }: Props) {
             onAdd={() => void addTask()}
             focusStyle={{ background: '#e6f7ff' }}
           />
+        </div>
         </div>
         </div>
       )}
