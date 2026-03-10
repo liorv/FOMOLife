@@ -1,0 +1,19 @@
+.notice {
+  border: 1px solid var(--ui-card-border, rgba(15, 23, 42, 0.2));
+  background: var(--ui-card-bg, #fff);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: var(--ui-text, #334155);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+}
+
+.error {
+  border: 1px solid #f44336;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+}

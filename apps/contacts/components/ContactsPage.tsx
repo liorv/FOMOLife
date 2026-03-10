@@ -5,21 +5,25 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import { isNonEmptyString } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
-import { ContactTile } from '@myorg/ui';
 import { createContactsApiClient } from '@/lib/client/contactsApi';
 import { getContactsClientEnv } from '@/lib/env.client';
-import styles from './ContactsPage.module.css';
+import SearchBar from './SearchBar';
+import EmptyState from './EmptyState';
+import Banner from './Banner';
+import Notice from './Notice';
+import ContactTable from './ContactTable';
+import styles from '../styles/layout.module.css';
 
 
 export const DEFAULT_CONTACT_NAME = 'New contact';
 
 type Props = {
   canManage: boolean;
-  currentUserId: string;
-  currentUserEmail: string | undefined;
+  currentUserId?: string;
+  currentUserEmail?: string | undefined;
 };
 
-export default function ContactsPage({ canManage, currentUserId, currentUserEmail }: Props) {
+export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail }: Props) {
   const clientEnv = useMemo(() => getContactsClientEnv(), []);
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
 
@@ -253,120 +257,50 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
             <div></div> {/* empty left spacer */}
             
             {/* search bar */}
-            {!isEmbedded ? (
-              <div className={styles.searchContainer}>
-                <span className={`material-icons ${styles.searchIcon}`}>search</span>
-                <input
-                  type="text"
-                  placeholder="Search contacts"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={styles.searchInput}
-                />
-              </div>
-            ) : null}
+            <SearchBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              isEmbedded={isEmbedded}
+            />
 
             <div></div> {/* empty right spacer */}
           </header>
 
-          {!canManage ? <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div> : null}
+          {!canManage && <Notice type="info">Read-only mode: sign in is required to manage contacts.</Notice>}
 
-          {loading ? <div className={styles.notice}>Loading contacts…</div> : null}
+          {loading && <Notice type="loading">Loading contacts…</Notice>}
 
-          {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
+          {errorMessage && <Notice type="error">{errorMessage}</Notice>}
 
-          {acceptedBanner ? (
-            <div className={styles.banner}>
-              <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
+          {acceptedBanner && (
+            <Banner icon="check_circle">
               Invitation accepted — contact added!
-            </div>
-          ) : null}
+            </Banner>
+          )}
 
-          {linkCopied ? (
-            <div className={styles.banner}>
-              <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
+          {linkCopied && (
+            <Banner icon="check_circle">
               Invite link copied to clipboard!
-            </div>
-          ) : null}
+            </Banner>
+          )}
 
 
           {filteredContacts.length === 0 && contacts.length > 0 ? (
-            <div className={styles.empty}>
-              <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">search_off</span>
-              <p>No contacts match your search.</p>
-              <p className={styles.emptySub}>Try a different search term.</p>
-            </div>
+            <EmptyState type="no-search-results" />
           ) : contacts.length === 0 ? (
-            <div className={styles.empty}>
-              <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people_outline</span>
-              <p>No contacts yet.</p>
-              <p className={styles.emptySub}>Use the add button to create a new contact.</p>
-            </div>
+            <EmptyState type="no-contacts" />
           ) : (
-            <div className={styles.tableContainer}>
-              <table className={styles.contactsTable}>
-                <tbody>
-                  {filteredContacts.map((contact) => (
-                    <ContactTile
-                      key={contact.id}
-                      id={contact.id}
-                      name={contact.name}
-                      status={contact.status}
-                      avatarUrl={null}
-                      autoFocus={newContactId === contact.id}
-                      onNameChange={async (newName) => {
-                        if (!isNonEmptyString(newName)) return;
-                        try {
-                          const updated = await apiClient.updateContact(contact.id, { name: newName.trim() });
-                          setContacts((prev) => prev.map((item) => (item.id === contact.id ? updated : item)));
-                          if (newContactId === contact.id) {
-                            setNewContactId(null);
-                          }
-                          // Clear any previous error
-                          setErrorMessage(null);
-                        } catch (error) {
-                          if (error instanceof Error && error.message.includes('Cannot name a contact as yourself')) {
-                            setErrorMessage('You cannot name a contact with your own name.');
-                          } else if (error instanceof Error && error.message.includes('A contact with this name already exists')) {
-                            setErrorMessage('A contact with this name already exists.');
-                          } else {
-                            setErrorMessage(error instanceof Error ? error.message : 'Failed to update contact name');
-                          }
-                        }
-                      }}
-                      onUnlink={async () => {
-                        try {
-                          await apiClient.deleteContact(contact.id);
-                          setContacts((prev) => prev.filter((item) => item.id !== contact.id));
-                          setErrorMessage(null);
-                        } catch (error) {
-                          setErrorMessage(error instanceof Error ? error.message : 'Failed to delete contact');
-                        }
-                      }}
-                      onLink={async () => {
-                        // update local status immediately for user feedback
-                        setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, status: 'link_pending' } : c));
-                      }}
-                      onInvite={async () => {
-                        try {
-                          const resp = await apiClient.inviteContact(contact.id);
-                          return resp.inviteToken || null;
-                        } catch (error) {
-                          setErrorMessage(error instanceof Error ? error.message : 'Failed to send invitation');
-                          return null;
-                        }
-                      }}
-                      onLinkSuccess={(link) => {
-                        setCopiedLink(link);
-                        setLinkCopied(true);
-                        setTimeout(() => setLinkCopied(false), 2500);
-                      }}
-                      isSelf={!!(contact.login && contact.login === currentUserEmail)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ContactTable
+              contacts={filteredContacts}
+              newContactId={newContactId}
+              currentUserEmail={currentUserEmail}
+              apiClient={apiClient}
+              setContacts={setContacts}
+              setErrorMessage={setErrorMessage}
+              setCopiedLink={setCopiedLink}
+              setLinkCopied={setLinkCopied}
+              setNewContactId={setNewContactId}
+            />
           )}
         </section>
       )}

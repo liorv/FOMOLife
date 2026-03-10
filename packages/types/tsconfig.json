@@ -7,7 +7,7 @@
     "lib": ["ES2022"],
     "types": ["node", "jest"],
     "declaration": true,
-    "emitDeclarationOnly": false,
+    "emitDeclarationOnly": true,
     "noEmit": false
   },
   "include": ["src/**/*.ts"],
