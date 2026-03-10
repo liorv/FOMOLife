@@ -270,9 +270,15 @@ export default function ProjectsPage({ canManage }: Props) {
   };
 
   const handleProjectColorChange = async (projectId: string, newColor: string) => {
-    if (!canManage) return;
-    const updated = await apiClient.updateProject(projectId, { color: newColor });
-    setProjects((prev) => prev.map((item) => (item.id === projectId ? updated : item)));
+    if (!canManage) {
+      return;
+    }
+    try {
+      const updated = await apiClient.updateProject(projectId, { color: newColor });
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? updated : item)));
+    } catch (err) {
+      console.error('Failed to update project color:', err);
+    }
   };
 
   const handleReorderProjects = async (draggedProjectId: string, targetProjectId: string) => {

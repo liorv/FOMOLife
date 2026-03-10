@@ -4,6 +4,26 @@ import { useMemo, useRef, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { LogoBar, TabNav } from '@myorg/ui';
 import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '../lib/frameworkConfig';
+import FrameworkColorPickerOverlay from './ColorPickerOverlay';
+
+const COLOR_PICKER_COLORS = [
+  "#D32F2F", // dark red
+  "#0D47A1", // dark blue
+  "#1976D2", // medium blue
+  "#3F51B5", // indigo
+  "#2196F3", // blue
+  "#455A64", // blue grey dark
+  "#607D8B", // blue grey
+  "#9E9E9E", // grey
+  "#424242", // dark grey
+  "#FFC107", // amber (gold)
+  "#FFA000", // dark amber
+  "#FF8F00", // darker gold
+  "#795548", // brown (dark)
+  "#7B1FA2", // dark purple
+  "#00796B", // dark teal
+  "#F57F17", // dark orange
+];
 
 type FrameworkHostProps = {
   appName?: string;
@@ -33,6 +53,10 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [colorPickerSender, setColorPickerSender] = useState<Window | null>(null);
+  const colorPickerSenderRef = useRef<Window | null>(null);
+  const colorPickerItemIdRef = useRef<string | null>(null);
+  const colorPickerItemTypeRef = useRef<'project' | 'subproject' | null>(null);
 
   // Check screen size for responsive placeholder
   useEffect(() => {
@@ -140,14 +164,46 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (!event?.data) return;
-      const { type, icon, action, appId } = event.data as {
+      const { type, icon, action, appId, color, projectId, subprojectId } = event.data as {
         type?: string;
         icon?: unknown;
         action?: unknown;
         appId?: string;
+        color?: string;
+        projectId?: string;
+        subprojectId?: string;
       };
       const senderTab = getTabFromSource(event.source);
-      if (!senderTab) return; // Ignore messages from unknown sources
+      
+      // Handle color-selected messages even if they come from the framework itself
+      if (type === 'color-selected') {
+        if (colorPickerSenderRef.current) {
+          // Forward the color selection to the app that opened the picker
+          if (typeof color === 'string') {
+            try {
+              const message: any = {
+                type: 'color-selected',
+                color: color
+              };
+              if (colorPickerItemTypeRef.current === 'project') {
+                message.projectId = colorPickerItemIdRef.current;
+              } else if (colorPickerItemTypeRef.current === 'subproject') {
+                message.subprojectId = colorPickerItemIdRef.current;
+              }
+              colorPickerSenderRef.current.postMessage(message, '*');
+            } catch (err) {
+              console.warn('Failed to send color selection to app:', err);
+            }
+          }
+          setColorPickerSender(null); // Clear the sender
+          colorPickerSenderRef.current = null;
+          colorPickerItemIdRef.current = null;
+          colorPickerItemTypeRef.current = null;
+          return; // Don't process further
+        }
+      }
+      
+      if (!senderTab) return; // Ignore messages from unknown sources for other message types
 
       if (type === 'thumb-icon' && typeof icon === 'string') {
         setAppConfigs(prev => new Map(prev).set(senderTab, { ...prev.get(senderTab)!, icon }));
@@ -177,6 +233,17 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         } catch (err) {
           // ignore
         }
+      } else if (type === 'colorpicker-open') {
+        // Store the sender so we can send the color back to them
+        const itemId = projectId || subprojectId;
+        const itemType = projectId ? 'project' : 'subproject';
+        const sender = event.source as Window;
+        setColorPickerSender(sender);
+        colorPickerSenderRef.current = sender;
+        colorPickerItemIdRef.current = itemId || null;
+        colorPickerItemTypeRef.current = itemType;
+        // Also send message to open the framework color picker
+        window.postMessage({ type: 'colorpicker-open' }, '*');
       }
     };
 
@@ -314,6 +381,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         </div>
         <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={effectiveThumbIcon} thumbIconClassName={effectiveThumbClass} />
       </div>
+      <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
     </main>
   );
 }

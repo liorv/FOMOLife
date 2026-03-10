@@ -13,6 +13,8 @@
       "@/*": ["./*"],
       "@myorg/ui": ["../../packages/ui/src"],
       "@myorg/ui/*": ["../../packages/ui/src/*"],
+      "@myorg/api-client": ["../../packages/api-client/src"],
+      "@myorg/api-client/*": ["../../packages/api-client/src/*"],
       "@myorg/utils": ["../../packages/utils/src"],
       "@myorg/utils/*": ["../../packages/utils/src/*"],
       "@myorg/types": ["../../packages/types/src"],

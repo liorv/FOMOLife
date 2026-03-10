@@ -14,7 +14,8 @@
     "next": "latest",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "@myorg/ui": "workspace:*"
+    "@myorg/ui": "workspace:*",
+    "@myorg/api-client": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
