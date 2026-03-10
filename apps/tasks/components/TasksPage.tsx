@@ -216,10 +216,17 @@ export default function TasksPage({ canManage }: Props) {
     };
   }, [isEmbedded, loading]);
 
+  // Listen for search query updates from framework
   useEffect(() => {
     if (!isEmbedded) return;
-    setSearch(searchParams.get('q') ?? '');
-  }, [isEmbedded, searchParams]);
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'search-query') {
+        setSearch(event.data.query || '');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isEmbedded]);
 
   const openContacts = () => {
     if (contactsBaseUrl) {

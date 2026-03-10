@@ -133,10 +133,17 @@ export default function ProjectsPage({ canManage }: Props) {
     return () => window.removeEventListener('focus', handleFocus);
   }, [contactsBaseUrl, contactsClient]);
 
+  // Listen for search query updates from framework
   useEffect(() => {
     if (!isEmbedded) return;
-    setProjectSearch(searchParams.get('q') ?? '');
-  }, [isEmbedded, searchParams]);
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'search-query') {
+        setProjectSearch(event.data.query || '');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isEmbedded]);
 
   // configure thumb button for projects tab and listen for presses
   useEffect(() => {
@@ -207,6 +214,17 @@ export default function ProjectsPage({ canManage }: Props) {
       window.removeEventListener('message', checkAck);
     };
   }, [isEmbedded, loading]);
+
+  // Configure search placeholder based on editing state
+  useEffect(() => {
+    if (!isEmbedded) return;
+    const placeholder = editingProjectId ? 'Search tasks' : null; // null resets to default
+    try {
+      window.parent?.postMessage?.({ type: 'search-config', placeholder }, '*');
+    } catch (err) {
+      // ignore
+    }
+  }, [isEmbedded, editingProjectId]);
 
   useEffect(() => {
     return () => {

@@ -31,6 +31,10 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   // Track loaded apps
   const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
+  const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
+
+  const defaultSearchPlaceholder = activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects';
+  const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
   const handleTabChange = (tab: FrameworkTab) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -46,6 +50,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       nextParams.delete('q');
     }
     router.replace(`${pathname}?${nextParams.toString()}`);
+
+    // Send search query to the embedded app
+    const win = iframeRefs.current.get(activeTab)?.contentWindow;
+    if (win) {
+      try {
+        win.postMessage({ type: 'search-query', query: value }, '*');
+      } catch (err) {
+        // ignore
+      }
+    }
   };
 
   const getHostedSrc = (tab: typeof activeTabConfig) => {
@@ -59,9 +73,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     if (userEmail && userEmail.trim()) {
       queryParts.push(`userEmail=${encodeURIComponent(userEmail)}`);
     }
-    if (showHeaderSearch && headerSearchQuery.trim()) {
-      queryParts.push(`q=${encodeURIComponent(headerSearchQuery)}`);
-    }
+    // Removed 'q' param to prevent iframe reloads on search changes
 
     const base = href.split('#')[0] ?? href;
     const separator = base.includes('?') ? '&' : '?';
@@ -136,6 +148,13 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         }
         const newAction = typeof action === 'string' ? action : 'thumb-fab';
         setAppConfigs(prev => new Map(prev).set(senderTab, { icon: resolvedIcon, action: newAction }));
+      } else if (type === 'search-config') {
+        const { placeholder } = event.data as { placeholder?: string };
+        if (typeof placeholder === 'string') {
+          setSearchPlaceholder(placeholder);
+        } else if (placeholder === null) {
+          setSearchPlaceholder(null); // Reset to default
+        }
       } else if (type === 'app-loaded' && typeof appId === 'string') {
         setLoadedApps(prev => new Set(prev).add(appId));
         // Acknowledge the message
@@ -153,19 +172,21 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // when an app becomes loaded, request its thumb config
+  // when an app becomes loaded, request its thumb config and send initial search query
   useEffect(() => {
     if (loadedApps.has(activeTab)) {
       const win = iframeRefs.current.get(activeTab)?.contentWindow;
       if (win) {
         try {
           win.postMessage({ type: 'get-thumb-config' }, '*');
+          // Send initial search query
+          win.postMessage({ type: 'search-query', query: headerSearchQuery }, '*');
         } catch {
           // ignore
         }
       }
     }
-  }, [loadedApps, activeTab]);
+  }, [loadedApps, activeTab, headerSearchQuery]);
 
   // ask embedded app what it wants the thumb button to do, but only if it's loaded
   useEffect(() => {
@@ -180,6 +201,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       }
     }
   }, [loadedApps, activeTab]);
+
+  // Reset search placeholder when tab changes
+  useEffect(() => {
+    setSearchPlaceholder(null);
+  }, [activeTab]);
 
   // Fetch about info
   useEffect(() => {
@@ -244,7 +270,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       <LogoBar
         showSearch={showHeaderSearch}
         searchValue={headerSearchQuery}
-        searchPlaceholder={activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects'}
+        searchPlaceholder={effectiveSearchPlaceholder}
         searchDisabled={isSearchDisabled}
         onSearchChange={handleHeaderSearchChange}
         userName={userName}

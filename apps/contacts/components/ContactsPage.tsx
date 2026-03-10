@@ -153,10 +153,17 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
     };
   }, [apiClient, canManage]);
 
+  // Listen for search query updates from framework
   useEffect(() => {
     if (!isEmbedded) return;
-    setSearchTerm(searchParams.get('q') ?? '');
-  }, [isEmbedded, searchParams]);
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'search-query') {
+        setSearchTerm(event.data.query || '');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isEmbedded]);
 
   // configure thumb button for contacts tab and listen for presses
   useEffect(() => {
