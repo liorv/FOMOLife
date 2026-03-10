@@ -632,13 +632,16 @@ export default function ProjectEditor({
 
   // --- Render --------------------------------------------------------------
 
+  // Show flat filter view whenever any filter is active
+  const showFlatFilterView = taskFilters.length > 0;
+
   return (
     <div
       className="project-editor"
       ref={editorContainerRef}
       style={{ position: 'relative', overflow: 'auto' }}
     >
-      {(taskFilters.length > 0 || (searchQuery && searchQuery.trim() !== "")) ? (
+      {showFlatFilterView || (searchQuery && searchQuery.trim() !== "") ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
           {filteredFlatTasks.length === 0 ? (
