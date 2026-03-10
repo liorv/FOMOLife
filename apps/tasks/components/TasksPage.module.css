@@ -206,7 +206,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: #e0ffe0; /* light green */
 }
 
 .searchBar {

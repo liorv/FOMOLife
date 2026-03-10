@@ -114,7 +114,7 @@ body {
   height: 100dvh;
   padding: 0;
   overflow: auto;
-  background: #e0e0e0; /* light gray */
+  background: var(--color-bg);
   width: 100vw;
 }
 
@@ -122,11 +122,6 @@ body {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  background: #ffe0e0; /* light red */
-}
-
-.content {
-  background: #e0ffe0; /* light green */
 }
 
 /* Outer wrapper holding top bar + content; fills between logo bar and nav */

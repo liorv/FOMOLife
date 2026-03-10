@@ -1157,6 +1157,9 @@
   min-height: 0;
   overflow: hidden;
   background: var(--color-bg);
+  border-radius: 12px;
+  border: 1px solid var(--ui-card-border, #e0e0e0);
+  margin-top: 20px;
 }
 
 .projects-dashboard:not(.dashboard--has-project) {
