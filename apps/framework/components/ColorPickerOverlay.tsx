@@ -8,6 +8,7 @@ interface ColorPickerOverlayProps {
 export default function FrameworkColorPickerOverlay({ colors }: ColorPickerOverlayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string | undefined>();
+  const selectedItemIdRef = React.useRef<string | null>(null);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -16,10 +17,9 @@ export default function FrameworkColorPickerOverlay({ colors }: ColorPickerOverl
   const handleColorSelect = useCallback((color: string) => {
     // Send the selected color to the framework, which will forward it to the app
     try {
-      window.postMessage({
-        type: 'color-selected',
-        color: color
-      }, '*');
+      const message: any = { type: 'color-selected', color };
+      if (selectedItemIdRef.current) message.projectId = selectedItemIdRef.current;
+      window.postMessage(message, '*');
     } catch (err) {
       console.warn('Failed to send color selection:', err);
     }
@@ -30,9 +30,12 @@ export default function FrameworkColorPickerOverlay({ colors }: ColorPickerOverl
     const handleMessage = (event: MessageEvent) => {
       if (!event?.data) return;
 
-      const { type } = event.data;
+      const { type, projectId, selectedColor: incomingColor } = event.data as any;
 
       if (type === 'colorpicker-open') {
+        // remember which project/subproject opened the picker so selection can be forwarded
+        selectedItemIdRef.current = projectId ?? null;
+        if (typeof incomingColor === 'string') setSelectedColor(incomingColor);
         setIsOpen(true);
       } else if (type === 'colorpicker-close') {
         handleClose();

@@ -244,8 +244,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         colorPickerSenderRef.current = sender;
         colorPickerItemIdRef.current = itemId || null;
         colorPickerItemTypeRef.current = itemType;
-        // Also send message to open the framework color picker
-        window.postMessage({ type: 'colorpicker-open' }, '*');
+        // Also send message to open the framework color picker and include the item id
+        window.postMessage({ type: 'colorpicker-open', projectId: itemId, itemType }, '*');
       }
     };
 
