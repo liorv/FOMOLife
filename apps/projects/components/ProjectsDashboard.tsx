@@ -148,6 +148,16 @@ export default function ProjectsDashboard({
             onAddProject?.();
           }
         }
+        else if (data.type === 'thumb-fab') {
+          // legacy thumb-fab event (used by older hosts) — treat like pressing the
+          // configured thumb action: if a project is selected, add subproject,
+          // otherwise add a project.
+          if (selectedProject) {
+            onAddSubproject?.(selectedProject.id, '');
+          } else {
+            onAddProject?.();
+          }
+        }
         else if (data.type === 'get-thumb-config') {
           // reply with our current icon/action
           try {
