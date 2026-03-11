@@ -178,6 +178,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       // Handle color-selected messages even if they come from the framework itself
       if (type === 'color-selected') {
         if (colorPickerSenderRef.current) {
+          console.debug('[FrameworkHost] received color-selected from overlay:', { color, from: senderTab, itemId: colorPickerItemIdRef.current, itemType: colorPickerItemTypeRef.current, origin: event.origin });
           // Forward the color selection to the app that opened the picker
           if (typeof color === 'string') {
             try {
@@ -190,6 +191,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
               } else if (colorPickerItemTypeRef.current === 'subproject') {
                 message.subprojectId = colorPickerItemIdRef.current;
               }
+              console.debug('[FrameworkHost] forwarding color-selected to app iframe', { target: colorPickerSenderRef.current, message });
               colorPickerSenderRef.current.postMessage(message, '*');
             } catch (err) {
               console.warn('Failed to send color selection to app:', err);
@@ -240,12 +242,14 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         const itemId = projectId || subprojectId;
         const itemType = projectId ? 'project' : 'subproject';
         const sender = event.source as Window;
+        console.debug('[FrameworkHost] received colorpicker-open from', { senderTab, itemId, itemType, origin: event.origin });
         setColorPickerSender(sender);
         colorPickerSenderRef.current = sender;
         colorPickerItemIdRef.current = itemId || null;
         colorPickerItemTypeRef.current = itemType;
-        // Also send message to open the framework color picker and include the item id
-        window.postMessage({ type: 'colorpicker-open', projectId: itemId, itemType }, '*');
+        // Also send message to open the framework color picker
+        // include originating tab and item info for tracing
+        window.postMessage({ type: 'colorpicker-open', _from: senderTab, _itemId: itemId, _itemType: itemType }, '*');
       }
     };
 
