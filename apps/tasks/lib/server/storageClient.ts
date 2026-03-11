@@ -1,8 +1,8 @@
 import 'server-only';
 
-import { createStorageProvider } from '../../../lib/server/storage-factory';
+import { createStorageProvider } from '@myorg/storage';
 import { createFrameworkStorageProvider } from '@myorg/storage-client';
-import type { StorageProvider } from '../../../lib/server/storage-provider';
+import type { StorageProvider } from '@myorg/storage';
 
 /**
  * Returns the appropriate StorageProvider for this app.

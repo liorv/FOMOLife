@@ -2,7 +2,7 @@ import 'server-only';
 
 import { getStorage } from './storageClient';
 import { generateId } from '@myorg/utils';
-import type { PersistedUserData } from '../../../lib/server/storage';
+import type { PersistedUserData } from '@myorg/storage';
 
 const storage = getStorage();
 

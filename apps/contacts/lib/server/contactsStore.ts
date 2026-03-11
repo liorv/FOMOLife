@@ -5,7 +5,7 @@ import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myo
 import jwt from 'jsonwebtoken';
 import { getStorage } from './storageClient';
 import { generateId } from '@myorg/utils';
-import type { PersistedUserData } from '../../../lib/server/storage';
+import type { PersistedUserData } from '@myorg/storage';
 
 const storage = getStorage();
 

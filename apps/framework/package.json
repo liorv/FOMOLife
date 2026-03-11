@@ -14,6 +14,7 @@
     "next": "latest",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "@myorg/storage": "workspace:*",
     "@myorg/ui": "workspace:*",
     "@myorg/api-client": "workspace:*"
   },

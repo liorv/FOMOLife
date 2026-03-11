@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { NextResponse } from 'next/server';
-import { createStorageProvider } from '../../../../lib/server/storage-factory';
+import { createStorageProvider } from '@myorg/storage';
 
 const ALLOWED_DOMAINS = ['tasks', 'projects', 'people'] as const;
 type AllowedDomain = (typeof ALLOWED_DOMAINS)[number];

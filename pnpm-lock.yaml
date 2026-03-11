@@ -90,6 +90,9 @@ importers:
       '@myorg/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@myorg/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@myorg/storage-client':
         specifier: workspace:*
         version: link:../../packages/storage-client
@@ -142,6 +145,9 @@ importers:
       '@myorg/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@myorg/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@myorg/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -182,6 +188,9 @@ importers:
       '@myorg/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@myorg/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@myorg/storage-client':
         specifier: workspace:*
         version: link:../../packages/storage-client
@@ -234,6 +243,9 @@ importers:
       '@myorg/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@myorg/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@myorg/storage-client':
         specifier: workspace:*
         version: link:../../packages/storage-client
@@ -293,6 +305,25 @@ importers:
       ts-jest:
         specifier: ^29.4.6
         version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@22.19.13))(typescript@5.9.3)
+
+  packages/storage:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: '*'
+        version: 2.98.0
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.37
+      jest:
+        specifier: ^30.2.0
+        version: 30.2.0(@types/node@20.19.37)
+      ts-jest:
+        specifier: ^29.4.6
+        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@20.19.37))(typescript@5.9.3)
 
   packages/storage-client:
     devDependencies:

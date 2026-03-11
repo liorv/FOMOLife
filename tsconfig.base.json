@@ -21,6 +21,8 @@
       "@myorg/ui/*": ["packages/ui/dist/*"],
       "@myorg/utils": ["packages/utils/dist"],
       "@myorg/utils/*": ["packages/utils/dist/*"],
+      "@myorg/storage": ["packages/storage/dist"],
+      "@myorg/storage/*": ["packages/storage/dist/*"],
       "@myorg/storage-client": ["packages/storage-client/dist"],
       "@myorg/storage-client/*": ["packages/storage-client/dist/*"]
     }

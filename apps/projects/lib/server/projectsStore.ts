@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { getStorage } from './storageClient';
-import type { PersistedUserData } from '../../../lib/server/storage';
+import type { PersistedUserData } from '@myorg/storage';
 
 const storage = getStorage();
 
