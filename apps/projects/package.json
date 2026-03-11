@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@myorg/api-client": "workspace:*",
+    "@myorg/storage-client": "workspace:*",
     "@myorg/types": "workspace:*",
     "@myorg/utils": "workspace:*",
     "@myorg/ui": "workspace:*",

@@ -1,9 +1,9 @@
 import 'server-only';
 
-import { createStorageProvider } from '../../../lib/server/storage-factory';
+import { getStorage } from './storageClient';
 import type { PersistedUserData } from '../../../lib/server/storage';
 
-const storage = createStorageProvider();
+const storage = getStorage();
 
 export interface ProjectTaskPerson {
   name: string;

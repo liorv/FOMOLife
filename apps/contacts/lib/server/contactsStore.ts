@@ -3,11 +3,11 @@ import 'server-only';
 import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myorg/types';
 
 import jwt from 'jsonwebtoken';
-import { createStorageProvider } from '../../../lib/server/storage-factory';
+import { getStorage } from './storageClient';
 import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '../../../lib/server/storage';
 
-const storage = createStorageProvider();
+const storage = getStorage();
 
 const contactsByUser = new Map<string, Contact[]>();
 // simple in-memory groups per user
