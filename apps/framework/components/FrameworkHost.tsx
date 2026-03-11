@@ -48,8 +48,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
-  // Track loaded apps
+  // Track loaded apps and which tabs have been visited (for lazy iframe mounting)
   const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -360,6 +361,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
   }, [loadedApps, activeTab]);
 
+  // Mark tab as visited the first time it becomes active (lazy iframe mounting)
+  useEffect(() => {
+    setVisitedTabs((prev) => prev.has(activeTab) ? prev : new Set(prev).add(activeTab));
+  }, [activeTab]);
+
   // Reset search placeholder when tab changes
   useEffect(() => {
     setSearchPlaceholder(null);
@@ -448,7 +454,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         <div className="container framework-container">
           <section className="host-pane" aria-label="Hosted app content">
             <div className="frame-container">
-              {tabs.map(tab => renderIframe(tab))}
+              {tabs.filter(tab => visitedTabs.has(tab.key)).map(tab => renderIframe(tab))}
             </div>
             {!tabs.some(tab => getHostedSrc(tab)) && (
               <div className="host-empty">

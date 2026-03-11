@@ -7,7 +7,7 @@ import { createTasksApiClient } from '../lib/client/tasksApi';
 import { createContactsApiClient } from '../lib/client/contactsApi';
 import type { TaskItem, ProjectTask, Contact } from '@myorg/types';
 import { TaskList, AddBar } from '@myorg/ui';
-import { applyFilters } from '@myorg/utils';
+import { applyFilters, generateId } from '@myorg/utils';
 
 // using shared TaskList from ui package; it is fully typed
 
@@ -289,16 +289,32 @@ export default function TasksPage({ canManage }: Props) {
 
   const addTask = async () => {
     if (!canManage) return;
-    if (!input.trim()) return;
-    const created = await api.createTask({
-      text: input.trim(),
+    const text = input.trim();
+    if (!text) return;
+    const tempId = generateId();
+    const optimisticTask: TaskItem = {
+      id: tempId,
+      text,
+      done: false,
+      dueDate: null,
       favorite: false,
       description: '',
-    });
-    setTasks((prev) => [...prev, created]);
-    setNewlyAddedTaskId(created.id);
-    setEditorTaskId(created.id);
+    };
+    setTasks((prev) => [...prev, optimisticTask]);
+    setNewlyAddedTaskId(tempId);
+    setEditorTaskId(tempId);
     setInput('');
+    try {
+      const created = await api.createTask({ text, favorite: false, description: '' });
+      setTasks((prev) => prev.map((t) => (t.id === tempId ? created : t)));
+      setNewlyAddedTaskId(created.id);
+      setEditorTaskId((prev) => (prev === tempId ? created.id : prev));
+    } catch (err) {
+      setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      setNewlyAddedTaskId(null);
+      setEditorTaskId((prev) => (prev === tempId ? null : prev));
+      console.error('[Tasks] failed to create task', err);
+    }
   };
 
   const handleDragStart = (taskId: string) => {
@@ -348,10 +364,15 @@ export default function TasksPage({ canManage }: Props) {
   const removeTask = async (taskId: string) => {
     if (!canManage) return;
     deletingTaskIdsRef.current.add(taskId);
-    await api.deleteTask(taskId);
+    const snapshotTasks = tasks;
     setTasks((prev) => prev.filter((item) => item.id !== taskId));
-    if (editorTaskId === taskId) {
-      setEditorTaskId(null);
+    if (editorTaskId === taskId) setEditorTaskId(null);
+    try {
+      await api.deleteTask(taskId);
+    } catch (err) {
+      setTasks(snapshotTasks);
+      deletingTaskIdsRef.current.delete(taskId);
+      console.error('[Tasks] failed to delete task', err);
     }
   };
 

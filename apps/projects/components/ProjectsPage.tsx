@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createProjectsApiClient } from '../lib/client/projectsApi';
 import { createContactsApiClient } from '../../contacts/lib/client/contactsApi';
-import type { ProjectItem, Contact } from '@myorg/types';
+import type { ProjectItem, ProjectSubproject, Contact } from '@myorg/types';
+import { generateId } from '@myorg/utils';
 import ProjectsDashboard from './ProjectsDashboard';
 import layoutStyles from '../styles/layout.module.css';
 import { PROJECT_COLORS } from '@myorg/ui';
@@ -238,12 +239,17 @@ export default function ProjectsPage({ canManage }: Props) {
     const idx = len % PROJECT_COLORS.length;
     const color = PROJECT_COLORS[idx];
 
-    const baseName = text.trim();
-    const created = await apiClient.createProject({
-      text: baseName || 'New Project',
-      ...(color ? { color } : {}),
-    });
-    setProjects((prev) => [...prev, created]);
+    const baseName = text.trim() || 'New Project';
+    const tempId = generateId();
+    const optimisticProject: ProjectItem = { id: tempId, text: baseName, color: color ?? '', subprojects: [] };
+    setProjects((prev) => [...prev, optimisticProject]);
+    try {
+      const created = await apiClient.createProject({ text: baseName, ...(color ? { color } : {}) });
+      setProjects((prev) => prev.map((item) => (item.id === tempId ? created : item)));
+    } catch (err) {
+      setProjects((prev) => prev.filter((item) => item.id !== tempId));
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to create project');
+    }
   };
 
   // Always persist project changes (including task edits) to backend
@@ -322,21 +328,27 @@ export default function ProjectsPage({ canManage }: Props) {
           if (num > maxNum) maxNum = num;
         }
       }
-      const nextNum = maxNum + 1;
-      name = `subproject (${nextNum})`;
+      name = `subproject (${maxNum + 1})`;
     }
 
-    const newSub = {
-      id: crypto.randomUUID(),
+    const newSub: ProjectSubproject = {
+      id: generateId(),
       text: name.trim(),
       tasks: [],
       collapsed: true,
       isProjectLevel: false,
     };
-    const updatedSubprojects = [...(project.subprojects || []), newSub];
-    const updatedProject = await apiClient.updateProject(projectId, { subprojects: updatedSubprojects });
+    const optimisticSubs = [...(project.subprojects || []), newSub];
+    setProjects((prev) => prev.map((item) => item.id === projectId ? { ...item, subprojects: optimisticSubs } : item));
     setNewlyAddedSubprojectId(newSub.id);
-    setProjects((prev) => prev.map((item) => (item.id === projectId ? updatedProject : item)));
+    try {
+      const updatedProject = await apiClient.updateProject(projectId, { subprojects: optimisticSubs });
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? updatedProject : item)));
+    } catch (err) {
+      setProjects((prev) => prev.map((item) => item.id === projectId ? { ...item, subprojects: project.subprojects || [] } : item));
+      setNewlyAddedSubprojectId(null);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to add subproject');
+    }
   };
 
   const handleDeleteProject = (projectId: string) => {
@@ -352,16 +364,16 @@ export default function ProjectsPage({ canManage }: Props) {
 
   const handleConfirmDeleteProject = async (projectId: string) => {
     if (!canManage) return;
+    const snapshotProjects = projects;
+    setProjects((prev) => prev.filter((item) => item.id !== projectId));
+    if (editingProjectId === projectId) setEditingProjectId(null);
+    setPendingDeleteProjectId(null);
     try {
       await apiClient.deleteProject(projectId);
-      setProjects((prev) => prev.filter((item) => item.id !== projectId));
-      if (editingProjectId === projectId) {
-        setEditingProjectId(null);
-      }
     } catch (error) {
+      setProjects(snapshotProjects);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to delete project');
     }
-    setPendingDeleteProjectId(null);
   };
 
   const handleSubprojectDeleted = async (payload: {
