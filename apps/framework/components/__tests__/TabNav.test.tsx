@@ -5,8 +5,8 @@ import { TabNav } from '@myorg/ui';
 
 describe('TabNav', () => {
   const tabs = [
-    { key: 'a', label: 'A', icon: 'home' },
-    { key: 'b', label: 'B', icon: 'settings' },
+    { key: 'tasks', label: 'A', icon: 'home' },
+    { key: 'people', label: 'B', icon: 'settings' },
   ];
 
   it('renders buttons and calls onChange when clicked', () => {
@@ -16,12 +16,12 @@ describe('TabNav', () => {
     const buttonB = screen.getByText('B').closest('button');
     expect(buttonB).toBeInTheDocument();
     fireEvent.click(buttonB!);
-    expect(onChange).toHaveBeenCalledWith('b');
+    expect(onChange).toHaveBeenCalledWith('people');
   });
 
   it('applies active class and aria-current', () => {
-    render(<TabNav active="b" tabs={tabs} onChange={() => {}} />);
-    const activeBtn = screen.getByRole('button', { name: /b/i });
+    render(<TabNav active="people" tabs={tabs} onChange={() => {}} />);
+    const activeBtn = screen.getByText('B').closest('button')!;
     expect(activeBtn).toHaveClass('active');
     expect(activeBtn).toHaveAttribute('aria-current', 'page');
   });

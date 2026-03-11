@@ -1,11 +1,16 @@
+/* CSS Variables */
+:root {
+  --color-inline-editor-bg: #e8f4ff;
+}
+
 .page {
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--color-inline-editor-bg);
   padding: 24px;
 }
 
 .shell {
-  width: min(980px, 100%);
+  width: min(800px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 14px;
@@ -201,6 +206,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-radius: 10px;
 }
 
 .searchBar {

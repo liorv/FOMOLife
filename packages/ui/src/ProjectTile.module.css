@@ -126,7 +126,6 @@
 .tile {
   width: 100%;
   min-width: 300px;
-  min-height: 280px;
   position: relative;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 182, 193, 0.08) 50%, rgba(221, 160, 221, 0.06) 100%);

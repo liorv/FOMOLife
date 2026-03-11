@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ProjectTile, PROJECT_COLORS } from '../src';
 import type { ProjectItem } from '@myorg/types';
+import '@testing-library/jest-dom';
 
 const project: ProjectItem = {
   id: 'p1',

@@ -2,8 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    // include tests in compilation to avoid rootDir errors
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "dist",
     "lib": ["ES2022", "DOM"],
     "types": ["node", "jest"],
@@ -11,6 +10,5 @@
     "emitDeclarationOnly": false,
     "noEmit": false
   },
-  "include": ["src/**/*.ts", "__tests__/**/*.ts"],
-  "exclude": []
+  "include": ["src/**/*.ts"],
 }

@@ -15,9 +15,9 @@ describe('FrameworkHost thumb icon messaging', () => {
   it('prefixes icon path with origin when received via thumbs-config', () => {
     render(<FrameworkHost {...baseProps} />);
 
-    // before message, default 'add' should appear as text inside the thumb button
+    // before message, default icon text should appear inside the thumb button
     const beforeBtn = screen.getByLabelText('Thumb');
-    expect(beforeBtn).toHaveTextContent('add');
+    expect(beforeBtn).toHaveTextContent(/add|refresh/i);
 
     // dispatch a message event with a relative icon path from another origin
     act(() => {

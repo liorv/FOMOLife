@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import { isNonEmptyString } from '@myorg/utils';
@@ -8,20 +8,24 @@ import type { Contact } from '@myorg/types';
 import { ContactTile } from '@myorg/ui';
 import { createContactsApiClient } from '@/lib/client/contactsApi';
 import { getContactsClientEnv } from '@/lib/env.client';
-import styles from './ContactsPage.module.css';
+
+import styles from '../styles/layout.module.css';
 
 
-export const DEFAULT_CONTACT_NAME = 'New contact';
+export const DEFAULT_CONTACT_NAME = 'New Contact (1)';
 
 type Props = {
   canManage: boolean;
-  currentUserId: string;
-  currentUserEmail: string | undefined;
+  currentUserId?: string;
+  currentUserEmail?: string | undefined;
 };
 
-export default function ContactsPage({ canManage, currentUserId, currentUserEmail }: Props) {
+export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail }: Props) {
   const clientEnv = useMemo(() => getContactsClientEnv(), []);
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isEmbedded = searchParams.get('embedded') === '1';
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   // track an id for a freshly-created contact so we can auto-focus its name input
@@ -30,7 +34,8 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // display ready state - only show content after framework acknowledges loading
-  const [displayReady, setDisplayReady] = useState(false);
+  // If not embedded, immediately show content for standalone usage and tests
+  const [displayReady, setDisplayReady] = useState(!isEmbedded);
   // banner shown when an invite link is copied anywhere on the page
   const [linkCopied, setLinkCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string>('');
@@ -38,6 +43,8 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
   const [acceptedBanner, setAcceptedBanner] = useState(false);
   // search functionality
   const [searchTerm, setSearchTerm] = useState('');
+  // ref to track the next contact number for incremental naming
+  const nextContactNumberRef = useRef(1);
 
   // filter contacts based on search term
   const filteredContacts = useMemo(() => {
@@ -53,8 +60,11 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
   const addContact = async () => {
     if (!canManage) return;
 
+    // Use the ref to get the next number and increment it immediately
+    const nextNumber = nextContactNumberRef.current++;
+    const name = `New Contact (${nextNumber})`;
+
     // placeholder contact with no invite; status not_linked
-    const name = DEFAULT_CONTACT_NAME;
     const contact: Contact = {
       id: '',
       name,
@@ -73,8 +83,23 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create contact');
+      // If creation failed, decrement the ref to avoid skipping numbers
+      nextContactNumberRef.current--;
     }
   };
+
+  // Keep the next contact number ref in sync with existing contacts
+  useEffect(() => {
+    const existingNumbers = contacts
+      .map(c => c.name)
+      .filter(name => /^New Contact \(\d+\)$/.test(name))
+      .map(name => {
+        const match = name.match(/New Contact \((\d+)\)/);
+        return match && match[1] ? parseInt(match[1], 10) : 0;
+      });
+    const maxExisting = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+    nextContactNumberRef.current = maxExisting + 1;
+  }, [contacts]);
 
   useEffect(() => {
     let active = true;
@@ -103,9 +128,6 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
   }, [apiClient]);
 
   // read query params to show an accepted-invite banner
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const isEmbedded = searchParams.get('embedded') === '1';
   useEffect(() => {
     if (searchParams.get('accepted') === 'true') {
       setAcceptedBanner(true);
@@ -243,18 +265,20 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
   }, [isEmbedded, loading]);
 
   return (
-    <main className={styles.page}>
-      {!displayReady ? (
-        // Show nothing while waiting for framework acknowledgment to prevent layout flicker
-        <div style={{ height: '100vh' }} />
-      ) : (
-        <section className={styles.shell}>
+    <main className="main-layout">
+      <div className="content-panel">
+        <div className={styles.page}>
+          {!displayReady ? (
+            // Show nothing while waiting for framework acknowledgment to prevent layout flicker
+            <div style={{ height: '100vh' }} />
+          ) : (
+            <section className={styles.shell}>
           <header className={styles.header}>
             <div></div> {/* empty left spacer */}
             
             {/* search bar */}
-            {!isEmbedded ? (
-              <div className={styles.searchContainer}>
+            {!isEmbedded && (
+              <div className={styles.search}>
                 <span className={`material-icons ${styles.searchIcon}`}>search</span>
                 <input
                   type="text"
@@ -264,30 +288,30 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
                   className={styles.searchInput}
                 />
               </div>
-            ) : null}
+            )}
 
             <div></div> {/* empty right spacer */}
           </header>
 
-          {!canManage ? <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div> : null}
+          {!canManage && <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div>}
 
-          {loading ? <div className={styles.notice}>Loading contacts…</div> : null}
+          {loading && <div className={styles.notice}>Loading contacts…</div>}
 
-          {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
+          {errorMessage && <div className={styles.error}>{errorMessage}</div>}
 
-          {acceptedBanner ? (
+          {acceptedBanner && (
             <div className={styles.banner}>
               <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
               Invitation accepted — contact added!
             </div>
-          ) : null}
+          )}
 
-          {linkCopied ? (
+          {linkCopied && (
             <div className={styles.banner}>
               <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">check_circle</span>
               Invite link copied to clipboard!
             </div>
-          ) : null}
+          )}
 
 
           {filteredContacts.length === 0 && contacts.length > 0 ? (
@@ -303,7 +327,7 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
               <p className={styles.emptySub}>Use the add button to create a new contact.</p>
             </div>
           ) : (
-            <div className={styles.tableContainer}>
+            <div className={styles.table}>
               <table className={styles.contactsTable}>
                 <tbody>
                   {filteredContacts.map((contact) => (
@@ -370,6 +394,8 @@ export default function ContactsPage({ canManage, currentUserId, currentUserEmai
           )}
         </section>
       )}
-    </main>
-  );
+    </div>
+    </div>
+  </main>
+);
 }

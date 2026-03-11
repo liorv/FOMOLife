@@ -51,11 +51,11 @@ function SummaryCard({
       onKeyDown={
         clickable && onClick
           ? (e: KeyboardEvent<HTMLDivElement>) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick();
             }
+          }
           : undefined
       }
     >
@@ -117,7 +117,7 @@ export default function ProjectsDashboard({
   onTitleChange,
   projectSearch = "",
   filters = [] as string[],
-  onToggleFilter = () => {},
+  onToggleFilter = () => { },
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -138,33 +138,40 @@ export default function ProjectsDashboard({
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       try {
-        const data = e.data || {};
-        // accept either our configured action or the legacy thumb-fab when a
-        // project is selected; the latter covers cases where the host hasn't yet
-        // updated its thumbAction state.
-        if (
-          data &&
-          (data.type === getThumbAction() || (selectedProject && data.type === 'thumb-fab'))
-        ) {
-          if (!selectedProject) {
-            onAddProject?.();
-          } else if (selectedProjectId) {
-            // when a project is selected, treat the button as "add subproject"
-            onAddSubproject?.(selectedProjectId, '');
+        const data = e.data;
+        if (data.type == getThumbAction()) {
+          // not matching the thumb action should be impossible
+          if (selectedProject) {
+            onAddSubproject?.(selectedProject.id, '');
           }
-        } else if (data && data.type === 'get-thumb-config') {
+          else {
+            onAddProject?.();
+          }
+        }
+        else if (data.type === 'thumb-fab') {
+          // legacy thumb-fab event (used by older hosts) — treat like pressing the
+          // configured thumb action: if a project is selected, add subproject,
+          // otherwise add a project.
+          if (selectedProject) {
+            onAddSubproject?.(selectedProject.id, '');
+          } else {
+            onAddProject?.();
+          }
+        }
+        else if (data.type === 'get-thumb-config') {
           // reply with our current icon/action
           try {
             window.parent?.postMessage?.(
               { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
               '*',
             );
-          } catch (err) {
-            // ignore
+          }
+          catch (err) {
+            console.error('Error posting thumb-config message from ProjectsDashboard:', err);
           }
         }
       } catch (err) {
-        // ignore
+        console.error('Error handling message event in ProjectsDashboard:', err);
       }
     }
 
@@ -190,8 +197,8 @@ export default function ProjectsDashboard({
       !projectSearch.trim()
         ? projects
         : projects.filter((p) =>
-            (p.text || "").toLowerCase().includes(projectSearch.toLowerCase()),
-          ),
+          (p.text || "").toLowerCase().includes(projectSearch.toLowerCase()),
+        ),
     [projects, projectSearch],
   );
 
@@ -348,11 +355,11 @@ export default function ProjectsDashboard({
               }
               onAddSubproject={(name: string) => onAddSubproject?.(selectedProject.id, name)}
               newlyAddedSubprojectId={newlyAddedSubprojectId ?? null}
-              onClearNewSubproject={onClearNewSubproject ?? (() => {})}
+              onClearNewSubproject={onClearNewSubproject ?? (() => { })}
               allPeople={people}
-              onOpenPeople={onOpenPeople ?? (() => {})}
-              onCreatePerson={onCreatePerson ?? (() => {})}
-              onSubprojectDeleted={onSubprojectDeleted ?? (() => {})}
+              onOpenPeople={onOpenPeople ?? (() => { })}
+              onCreatePerson={onCreatePerson ?? (() => { })}
+              onSubprojectDeleted={onSubprojectDeleted ?? (() => { })}
               taskFilters={filters}
               searchQuery={projectSearch}
             />

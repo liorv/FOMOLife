@@ -8,4 +8,6 @@ for port in 3001 3002 3003 3004; do
     fi
 done
 
+pnpm dlx @turbo/codemod@latest update . --force
+
 pnpm dev:mono

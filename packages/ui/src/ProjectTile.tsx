@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, MouseEvent } from "react";
 import ReactDOM from "react-dom";
 import styles from './ProjectTile.module.css';
-import ColorPickerOverlay from './ColorPickerOverlay';
 
 import type { ProjectItem } from '@myorg/types';
 
@@ -33,7 +32,7 @@ function hashString(str: string) {
 }
 
 // restricted palette: darker blues, grays, golds, and dark complementary colors
-const DEFAULT_COLORS = [
+export const PROJECT_COLORS = [
   "#D32F2F", // dark red
   "#0D47A1", // dark blue
   "#1976D2", // medium blue
@@ -51,8 +50,6 @@ const DEFAULT_COLORS = [
   "#00796B", // dark teal
   "#F57F17", // dark orange
 ];
-
-export const PROJECT_COLORS = DEFAULT_COLORS;
 
 export default function ProjectTile({
   project,
@@ -78,7 +75,6 @@ export default function ProjectTile({
   }, [project.subprojects]);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
   const [editingName, setEditingName] = useState(false);
@@ -86,12 +82,10 @@ export default function ProjectTile({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const colorPickerRef = useRef<HTMLDivElement | null>(null);
 
   const color = useMemo(() => {
-    if (project.color) return project.color;
-    const idx = hashString(project.id || project.text || "") % DEFAULT_COLORS.length;
-    return DEFAULT_COLORS[idx];
+    const computedColor = project.color || PROJECT_COLORS[hashString(project.id || project.text || "") % PROJECT_COLORS.length];
+    return computedColor;
   }, [project.id, project.text, project.color]);
 
   useEffect(() => {
@@ -103,19 +97,17 @@ export default function ProjectTile({
     function handleClickOutside(event: MouseEvent | globalThis.MouseEvent) {
       const clickedInsideMenu =
         (menuRef.current && menuRef.current.contains(event.target as Node)) ||
-        (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) ||
-        (colorPickerRef.current && colorPickerRef.current.contains(event.target as Node));
+        (dropdownRef.current && dropdownRef.current.contains(event.target as Node));
       if (!clickedInsideMenu) {
         setMenuOpen(false);
-        setShowColorPicker(false);
       }
     }
 
-    if (menuOpen || showColorPicker) {
+    if (menuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [menuOpen, showColorPicker]);
+  }, [menuOpen]);
 
   // Close modal when clicking overlay (but not the modal itself)
   // Removed document listener - using React onClick instead for better event handling
@@ -171,7 +163,6 @@ export default function ProjectTile({
       const detail = (event as CustomEvent<{ projectId: string }>).detail;
       if (detail && detail.projectId !== project.id) {
         setMenuOpen(false);
-        setShowColorPicker(false);
       }
     }
 
@@ -210,9 +201,31 @@ export default function ProjectTile({
 
   const handleColorChange = (newColor: string) => {
     onChangeColor(project.id, newColor);
-    setShowColorPicker(false);
     setMenuOpen(false);
   };
+
+  const handleOpenColorPicker = () => {
+    // Send message to framework to open color picker
+    window.parent?.postMessage?.({
+      type: 'colorpicker-open',
+      projectId: project.id
+    }, '*');
+  };
+
+  // Listen for color selection from framework
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event?.data) return;
+
+      const { type, color, projectId } = event.data;
+      if (type === 'color-selected' && typeof color === 'string' && projectId === project.id) {
+        handleColorChange(color);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [project.id]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.effectAllowed = "move";
@@ -254,7 +267,7 @@ export default function ProjectTile({
         height: heightStr,
         "--project-color": color,
         opacity: isDragging ? 0.5 : 1,
-        zIndex: menuOpen || showColorPicker ? 999 : undefined,
+        zIndex: menuOpen ? 999 : undefined,
       } as any}
       data-testid="project-tile"
       ref={dragRef}
@@ -376,7 +389,10 @@ export default function ProjectTile({
                   >
                   <button
                     className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
-                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      handleOpenColorPicker();
+                    }}
                     title="Change color"
                   >
                     <span className="material-icons">palette</span>
@@ -469,16 +485,6 @@ export default function ProjectTile({
       <div className="project-footer" style={{ display: 'none' }}>
         <div className="project-accent-bar" style={{ backgroundColor: color }} />
       </div>
-
-      {/* Color picker modal - rendered at document root to avoid scroll clipping */}
-      <ColorPickerOverlay
-        open={showColorPicker}
-        onClose={() => setShowColorPicker(false)}
-        colors={DEFAULT_COLORS}
-        selectedColor={color}
-        contentRef={colorPickerRef}
-        onSelect={handleColorChange}
-      />
     </div>
   );
 }

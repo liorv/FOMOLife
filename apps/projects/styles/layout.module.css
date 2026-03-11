@@ -1,3 +1,8 @@
+/* CSS Variables */
+:root {
+  --color-inline-editor-bg: #e8f4ff;
+}
+
 /* Layout Styles - Shared layout styles extracted from projects.css */
 
 /* Projects Page specific styles */

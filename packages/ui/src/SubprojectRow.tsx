@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import ReactDOM from "react-dom";
 import { PROJECT_COLORS } from './ProjectTile';
 import styles from './SubprojectRow.module.css';
-import ColorPickerOverlay from './ColorPickerOverlay';
 import type { ProjectSubproject, ProjectItem } from "@myorg/types";
 
 export interface SubprojectRowProps {
@@ -38,12 +37,10 @@ export default function SubprojectRow({
   isDragging = false,
 }: SubprojectRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const colorPickerRef = useRef<HTMLDivElement>(null);
   // state for inline renaming when expanded
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(sub.text || "");
@@ -110,19 +107,42 @@ export default function SubprojectRow({
     function handleClickOutside(event: MouseEvent) {
       const clickedInsideMenu =
         (menuRef.current && menuRef.current.contains(event.target as Node)) ||
-        (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) ||
-        (colorPickerRef.current && colorPickerRef.current.contains(event.target as Node));
+        (dropdownRef.current && dropdownRef.current.contains(event.target as Node));
       if (!clickedInsideMenu) {
         setMenuOpen(false);
-        setShowColorPicker(false);
       }
     }
 
-    if (menuOpen || showColorPicker) {
+    if (menuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [menuOpen, showColorPicker]);
+  }, [menuOpen]);
+
+  const handleOpenColorPicker = () => {
+    // Send message to framework to open color picker
+    window.parent?.postMessage?.({
+      type: 'colorpicker-open',
+      subprojectId: sub.id
+    }, '*');
+  };
+
+  // Listen for color selection from framework
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event?.data) return;
+
+      const { type, color, subprojectId } = event.data;
+      if (type === 'color-selected' && typeof color === 'string' && subprojectId === sub.id) {
+
+        onColorChange?.(sub.id, color);
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onColorChange, sub.id]);
 
   // Position the dropdown in a fixed portal and update on resize/scroll
   useLayoutEffect(() => {
@@ -276,7 +296,7 @@ export default function SubprojectRow({
 
       {/* hamburger menu on far right — outside of right-group so it's not constrained by its z-index */}
       {!sub.isProjectLevel && (
-        <div className={`${styles.menu} project-menu`} ref={menuRef} style={menuOpen || showColorPicker ? { zIndex: 10000 } : {}}>
+        <div className={`${styles.menu} project-menu`} ref={menuRef} style={menuOpen ? { zIndex: 10000 } : {}}>
           <button
             className={`${styles.menuButton} menu-button`}
             title="More options"
@@ -309,7 +329,10 @@ export default function SubprojectRow({
               {!sub.isProjectLevel && onColorChange && (
                 <button
                   className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
-                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleOpenColorPicker();
+                  }}
                   title="Change color"
                 >
                   <span className="material-icons">palette</span>
@@ -351,22 +374,6 @@ export default function SubprojectRow({
           )
         )}
         </div>
-      )}
-
-      {/* Color picker modal - rendered at document root to avoid scroll clipping */}
-      {!sub.isProjectLevel && onColorChange && (
-        <ColorPickerOverlay
-          open={showColorPicker}
-          onClose={() => setShowColorPicker(false)}
-          colors={PROJECT_COLORS}
-          selectedColor={sub.color}
-          contentRef={colorPickerRef}
-          onSelect={(color) => {
-            onColorChange?.(sub.id, color);
-            setShowColorPicker(false);
-            setMenuOpen(false);
-          }}
-        />
       )}
     </div>
   );
