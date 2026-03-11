@@ -123,6 +123,9 @@ describe('TasksPage', () => {
 
   it('sends people when updating task through editor', async () => {
     const storageSpy = jest.spyOn(Storage.prototype, 'setItem');
+    // ensure contacts service returns empty list for this scenario so
+    // selecting the suggestion triggers the "create and add" flow
+    contactsListMock.mockResolvedValueOnce([]);
     // seed list with one task
     listMock.mockResolvedValueOnce([
       { id: 'a', text: 'foo', done: false, dueDate: null, favorite: false, description: '' },

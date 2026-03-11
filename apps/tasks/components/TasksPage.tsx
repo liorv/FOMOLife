@@ -35,7 +35,12 @@ export default function TasksPage({ canManage }: Props) {
   const handleCreatePerson = async (name: string) => {
     if (!contactsBaseUrl) return null;
     try {
+      // debug: log when create person is invoked in tests
+      // eslint-disable-next-line no-console
+      console.log('[TEST DEBUG] handleCreatePerson called with', name, 'contactsBaseUrl=', contactsBaseUrl);
       const created = await contactsApi.createContact({ name });
+      // eslint-disable-next-line no-console
+      console.log('[TEST DEBUG] contactsApi.createContact returned', created);
       setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
       // notify other frames or tabs that contacts changed
       try {
