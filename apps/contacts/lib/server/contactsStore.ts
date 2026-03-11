@@ -3,84 +3,61 @@ import 'server-only';
 import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myorg/types';
 
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
+import { loadPersistedUserData, savePersistedUserData, PersistedUserData } from '../../../lib/server/storage';
 
 const contactsByUser = new Map<string, Contact[]>();
 // simple in-memory groups per user
 const groupsByUser = new Map<string, ContactGroup[]>();
 const groupInviteByToken = new Map<string, { ownerUserId: string; groupId: string; contactId: string }>();
 
-// persist to disk to survive dev reloads
-const CONTACTS_PERSIST_PATH = path.resolve(process.cwd(), 'apps/contacts/data/contacts.json');
-const GROUPS_PERSIST_PATH = path.resolve(process.cwd(), 'apps/contacts/data/groups.json');
 
-// secret used to sign invite JWTs; should be set in environment
-const INVITE_SECRET = process.env.INVITE_SECRET || 'default-invite-secret';
 
-function loadPersisted() {
+async function savePersisted(userId: string): Promise<void> {
   try {
-    const rawContacts = fs.readFileSync(CONTACTS_PERSIST_PATH, 'utf-8');
-    const arrContacts: [string, Contact[]][] = JSON.parse(rawContacts);
-    arrContacts.forEach(([user, contacts]) => {
-      contactsByUser.set(user, contacts);
-    });
-    console.log('contactsStore: loaded persisted contacts');
+    const existing = await loadPersistedUserData(userId) || { tasks: [], projects: [], people: [], groups: [] };
+    const data: PersistedUserData = { 
+      ...existing, 
+      people: contactsByUser.get(userId) || [],
+      groups: groupsByUser.get(userId) || []
+    };
+    await savePersistedUserData(userId, data);
+    console.log('contactsStore: persisted data');
   } catch (err) {
-    // ignore if file missing or parse fails
-  }
-  try {
-    const rawGroups = fs.readFileSync(GROUPS_PERSIST_PATH, 'utf-8');
-    const arrGroups: [string, ContactGroup[]][] = JSON.parse(rawGroups);
-    arrGroups.forEach(([user, groups]) => {
-      groupsByUser.set(user, groups);
-    });
-    console.log('contactsStore: loaded persisted groups');
-  } catch (err) {
-    // ignore if file missing or parse fails
+    console.error('contactsStore: failed to persist', err);
   }
 }
 
-function savePersisted() {
-  try {
-    const arrContacts = Array.from(contactsByUser.entries());
-    fs.mkdirSync(path.dirname(CONTACTS_PERSIST_PATH), { recursive: true });
-    fs.writeFileSync(CONTACTS_PERSIST_PATH, JSON.stringify(arrContacts), 'utf-8');
-    console.log('contactsStore: persisted contacts');
-  } catch (err) {
-    console.error('contactsStore: failed to persist contacts', err);
-  }
-  try {
-    const arrGroups = Array.from(groupsByUser.entries());
-    fs.mkdirSync(path.dirname(GROUPS_PERSIST_PATH), { recursive: true });
-    fs.writeFileSync(GROUPS_PERSIST_PATH, JSON.stringify(arrGroups), 'utf-8');
-    console.log('contactsStore: persisted groups');
-  } catch (err) {
-    console.error('contactsStore: failed to persist groups', err);
-  }
-}
-
-// initialize map from disk
-loadPersisted();
-
-function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-}
-
-function getOrInitUserContacts(userId: string): Contact[] {
+async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
   const existing = contactsByUser.get(userId);
   if (existing) return existing;
+
+  const persisted = await loadPersistedUserData(userId);
+  if (persisted && Array.isArray(persisted.people)) {
+    contactsByUser.set(userId, persisted.people);
+    return persisted.people;
+  }
 
   contactsByUser.set(userId, []);
   return [];
 }
 
+async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {
+  const existing = groupsByUser.get(userId);
+  if (existing) return existing;
+
+  const persisted = await loadPersistedUserData(userId);
+  if (persisted && Array.isArray(persisted.groups)) {
+    groupsByUser.set(userId, persisted.groups);
+    return persisted.groups;
+  }
+
+  groupsByUser.set(userId, []);
+  return [];
+}
+
 // Generates and assigns an invite token to a contact, returns the token string
 export async function inviteContact(userId: string, contactId: string): Promise<string | null> {
-  const current = getOrInitUserContacts(userId);
+  const current = await getOrInitUserContacts(userId);
   const idx = current.findIndex((c) => c.id === contactId);
   if (idx === -1) return null;
   const existing = current[idx];
@@ -104,19 +81,19 @@ export async function inviteContact(userId: string, contactId: string): Promise<
     inviteToken: token,
   };
   contactsByUser.set(userId, current);
-  savePersisted();
+  await savePersisted(userId);
   return token;
 }
 
 export async function listContacts(userId: string): Promise<Contact[]> {
-  return [...getOrInitUserContacts(userId)];
+  return [...await getOrInitUserContacts(userId)];
 }
 
 export async function createContact(
   userId: string,
   input: Pick<Contact, 'name'> & Partial<Pick<Contact, 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
 ): Promise<Contact> {
-  const current = getOrInitUserContacts(userId);
+  const current = await getOrInitUserContacts(userId);
   
   // Check for duplicate names (case-insensitive)
   const existingContact = current.find(contact => 
@@ -136,7 +113,7 @@ export async function createContact(
   };
   current.push(contact);
   contactsByUser.set(userId, current);
-  savePersisted();
+  await savePersisted(userId);
   return contact;
 }
 
@@ -145,7 +122,7 @@ export async function updateContact(
   id: string,
   patch: Partial<Pick<Contact, 'name' | 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
 ): Promise<Contact | null> {
-  const current = getOrInitUserContacts(userId);
+  const current = await getOrInitUserContacts(userId);
   
   // If updating name, check for duplicates
   if (patch.name) {
@@ -160,12 +137,12 @@ export async function updateContact(
   const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
   const updated = next.find((item) => item.id === id) ?? null;
   contactsByUser.set(userId, next);
-  savePersisted();
+  await savePersisted(userId);
   return updated;
 }
 
 export async function unlinkContact(userId: string, contactId: string): Promise<boolean> {
-  const current = getOrInitUserContacts(userId);
+  const current = await getOrInitUserContacts(userId);
   const contactIndex = current.findIndex((item) => item.id === contactId);
   if (contactIndex === -1) return false;
 
@@ -178,7 +155,7 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
 
   // If this contact represents a linked user, also unlink the reciprocal contact
   if (contact.linkedUserId) {
-    const reciprocalContacts = getOrInitUserContacts(contact.linkedUserId);
+    const reciprocalContacts = await getOrInitUserContacts(contact.linkedUserId);
     // update all reciprocal contacts that point back to this user
     const updatedRecips = reciprocalContacts.map((c) =>
       c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null } : c
@@ -186,12 +163,12 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
     contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
   }
 
-  savePersisted();
+  await savePersisted(userId);
   return true;
 }
 
 export async function deleteContact(userId: string, contactId: string): Promise<boolean> {
-  const current = getOrInitUserContacts(userId);
+  const current = await getOrInitUserContacts(userId);
   const contactIndex = current.findIndex((item) => item.id === contactId);
   if (contactIndex === -1) return false;
 
@@ -204,7 +181,7 @@ export async function deleteContact(userId: string, contactId: string): Promise<
   // If this contact represents a linked user, also unlink the reciprocal contact
   // (change status to 'not_linked' but keep it in their list)
   if (contact.linkedUserId) {
-    const reciprocalContacts = getOrInitUserContacts(contact.linkedUserId);
+    const reciprocalContacts = await getOrInitUserContacts(contact.linkedUserId);
     // update all reciprocal contacts that point back to this user
     const updatedRecips = reciprocalContacts.map((c) =>
       c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null } : c
@@ -212,7 +189,7 @@ export async function deleteContact(userId: string, contactId: string): Promise<
     contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
   }
 
-  savePersisted();
+  await savePersisted(userId);
   return true;
 }
 
@@ -229,7 +206,7 @@ export async function findContactByInviteToken(token: InviteToken): Promise<{ us
     return null;
   }
   if (!decoded) return null;
-  const contacts = getOrInitUserContacts(decoded.inviter);
+  const contacts = await getOrInitUserContacts(decoded.inviter);
   const contact = contacts.find((c) => c.id === decoded.contactId);
   if (contact && contact.inviteToken === token) {
     return { userId: decoded.inviter, contact };
