@@ -23,6 +23,9 @@ type Props = {
 export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail }: Props) {
   const clientEnv = useMemo(() => getContactsClientEnv(), []);
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isEmbedded = searchParams.get('embedded') === '1';
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   // track an id for a freshly-created contact so we can auto-focus its name input
@@ -31,7 +34,8 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // display ready state - only show content after framework acknowledges loading
-  const [displayReady, setDisplayReady] = useState(false);
+  // If not embedded, immediately show content for standalone usage and tests
+  const [displayReady, setDisplayReady] = useState(!isEmbedded);
   // banner shown when an invite link is copied anywhere on the page
   const [linkCopied, setLinkCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string>('');
@@ -124,9 +128,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   }, [apiClient]);
 
   // read query params to show an accepted-invite banner
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const isEmbedded = searchParams.get('embedded') === '1';
   useEffect(() => {
     if (searchParams.get('accepted') === 'true') {
       setAcceptedBanner(true);
