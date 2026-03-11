@@ -31,6 +31,16 @@ jest.mock('../../contacts/lib/client/contactsApi', () => ({
   }),
 }));
 
+// Mock projects API client used by the component directly (avoid fetch stubs)
+jest.mock('../../lib/client/projectsApi', () => ({
+  createProjectsApiClient: () => ({
+    listProjects: projectsListMock,
+    createProject: jest.fn(),
+    updateProject: jest.fn(),
+    deleteProject: jest.fn(),
+  }),
+}));
+
 // Mock projects API client used by the component
 // Use a fetch stub in tests so the component's client calls succeed
 ProjectsPage = require('../ProjectsPage').default;
@@ -49,21 +59,7 @@ describe('ProjectsPage', () => {
     jest.clearAllMocks();
     projectsListMock.mockResolvedValue([sampleProject]);
     contactsListMock.mockResolvedValue([{ id: 'c1', name: 'John Doe', status: 'linked' }]);
-    // Stub global.fetch for createProjectsApiClient usage
-    // Return project list for requests to /api/projects as a real Response
-    global.fetch = jest.fn(async (input) => {
-      let url = '';
-      if (typeof input === 'string') url = input;
-      else if (typeof Request !== 'undefined' && input instanceof Request) url = input.url;
-      else if (typeof URL !== 'undefined' && input instanceof URL) url = input.href;
-      else if (input && typeof (input as any).url === 'string') url = (input as any).url;
-      else url = String(input || '');
-
-      if (url.includes('/api/projects')) {
-        return ({ ok: true, status: 200, json: async () => ({ projects: [sampleProject] }) } as unknown) as Response;
-      }
-      return ({ ok: true, status: 200, json: async () => ({}) } as unknown) as Response;
-    }) as unknown as typeof global.fetch;
+    // No global.fetch stub needed; projects client mocked above
   });
   it('loads and displays projects from the API', async () => {
     render(<ProjectsPage canManage={true} />);
