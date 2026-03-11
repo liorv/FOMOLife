@@ -55,8 +55,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [colorPickerSender, setColorPickerSender] = useState<Window | null>(null);
   const colorPickerSenderRef = useRef<Window | null>(null);
+  const colorPickerSenderTabRef = useRef<string | null>(null);
   const colorPickerItemIdRef = useRef<string | null>(null);
   const colorPickerItemTypeRef = useRef<'project' | 'subproject' | null>(null);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [overlaySelectedColor, setOverlaySelectedColor] = useState<string | undefined>(undefined);
 
   // Check screen size for responsive placeholder
   useEffect(() => {
@@ -161,9 +164,27 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return undefined;
   };
 
+  // Generic action handlers registry for thumb-config actions.
+  // Register new actions here to keep `message` handling extensible.
+  const actionHandlers = useMemo(() => ({
+    'open-colorpicker': (data: any, sender: Window, senderTab: string) => {
+      const itemId = data.itemId || null;
+      const itemType = data.itemType === 'subproject' ? 'subproject' : 'project';
+      setColorPickerSender(sender);
+      colorPickerSenderRef.current = sender;
+      colorPickerSenderTabRef.current = senderTab || null;
+      colorPickerItemIdRef.current = itemId;
+      colorPickerItemTypeRef.current = itemType;
+      setOverlaySelectedColor(typeof data.selectedColor === 'string' ? data.selectedColor : undefined);
+      setOverlayOpen(true);
+    },
+  }), [] as any);
+
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (!event?.data) return;
+      // Ignore messages that originated from this window to avoid echo loops
+      if (event.source === window) return;
       const { type, icon, action, appId, color, projectId, subprojectId } = event.data as {
         type?: string;
         icon?: unknown;
@@ -175,35 +196,10 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       };
       const senderTab = getTabFromSource(event.source) || activeTab;
       
-      // Handle color-selected messages even if they come from the framework itself
-      if (type === 'color-selected') {
-        if (colorPickerSenderRef.current) {
-          console.debug('[FrameworkHost] received color-selected from overlay:', { color, from: senderTab, itemId: colorPickerItemIdRef.current, itemType: colorPickerItemTypeRef.current, origin: event.origin });
-          // Forward the color selection to the app that opened the picker
-          if (typeof color === 'string') {
-            try {
-              const message: any = {
-                type: 'color-selected',
-                color: color
-              };
-              if (colorPickerItemTypeRef.current === 'project') {
-                message.projectId = colorPickerItemIdRef.current;
-              } else if (colorPickerItemTypeRef.current === 'subproject') {
-                message.subprojectId = colorPickerItemIdRef.current;
-              }
-              console.debug('[FrameworkHost] forwarding color-selected to app iframe', { target: colorPickerSenderRef.current, message });
-              colorPickerSenderRef.current.postMessage(message, '*');
-            } catch (err) {
-              console.warn('Failed to send color selection to app:', err);
-            }
-          }
-          setColorPickerSender(null); // Clear the sender
-          colorPickerSenderRef.current = null;
-          colorPickerItemIdRef.current = null;
-          colorPickerItemTypeRef.current = null;
-          return; // Don't process further
-        }
-      }
+      // NOTE: color selection from the overlay will be handled via the
+      // `onSelect` prop passed to the overlay. We no longer expect the
+      // overlay to post a `color-selected` message to window; instead the
+      // host will forward selected colors directly to the originating iframe.
       
       if (!senderTab) return; // Ignore messages from unknown sources for other message types
 
@@ -222,6 +218,15 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         setAppConfigs(prev => new Map(prev).set(senderTab, { icon: resolvedIcon, action: newAction }));
         // mark sender tab as loaded so thumb config is active in tests
         setLoadedApps(prev => new Set(prev).add(senderTab));
+        // Route action to registered handler if present
+        const handler = (actionHandlers as any)[newAction];
+        if (typeof handler === 'function') {
+          try {
+            handler(event.data, event.source as Window, senderTab);
+          } catch (err) {
+            console.warn('FrameworkHost action handler failed for', newAction, err);
+          }
+        }
       } else if (type === 'search-config') {
         const { placeholder } = event.data as { placeholder?: string };
         if (typeof placeholder === 'string') {
@@ -240,24 +245,62 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
           // ignore
         }
       } else if (type === 'colorpicker-open') {
-        // Store the sender so we can send the color back to them
+        // Store the sender so we can send the color back to them and open
+        // the overlay via React state rather than rebroadcasting the
+        // message on `window` (which caused echo loops).
         const itemId = projectId || subprojectId;
         const itemType = projectId ? 'project' : 'subproject';
         const sender = event.source as Window;
         console.debug('[FrameworkHost] received colorpicker-open from', { senderTab, itemId, itemType, origin: event.origin });
         setColorPickerSender(sender);
         colorPickerSenderRef.current = sender;
+        colorPickerSenderTabRef.current = senderTab || null;
         colorPickerItemIdRef.current = itemId || null;
         colorPickerItemTypeRef.current = itemType;
-        // Also send message to open the framework color picker
-        // include originating tab and item info for tracing
-        window.postMessage({ type: 'colorpicker-open', _from: senderTab, _itemId: itemId, _itemType: itemType }, '*');
+        // Open overlay via state; include any provided selectedColor for UX
+        setOverlaySelectedColor(typeof (event.data as any).selectedColor === 'string' ? (event.data as any).selectedColor : undefined);
+        setOverlayOpen(true);
       }
     };
 
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  // Forward selected color from overlay to the originating iframe and clear sender
+  const handleOverlaySelect = (color: string) => {
+    const message: any = { type: 'color-selected', color };
+    if (colorPickerItemTypeRef.current === 'project') {
+      message.projectId = colorPickerItemIdRef.current;
+    } else if (colorPickerItemTypeRef.current === 'subproject') {
+      message.subprojectId = colorPickerItemIdRef.current;
+    }
+
+    // Prefer posting to the iframe's contentWindow (stable reference), fall back to saved sender window
+    const targetTab = colorPickerSenderTabRef.current;
+    const iframeWin = targetTab ? iframeRefs.current.get(targetTab)?.contentWindow : null;
+    const target = iframeWin || colorPickerSenderRef.current;
+    if (!target) {
+      console.warn('[FrameworkHost] no target available to forward color-selected', { targetTab, senderRef: !!colorPickerSenderRef.current });
+    } else {
+      try {
+        // Avoid including the Window object directly in logs (can trigger
+        // cross-origin access when the devtools tries to inspect it).
+        console.debug('[FrameworkHost] forwarding color-selected to app iframe', { targetTab, hasIframe: !!iframeWin, hasSenderRef: !!colorPickerSenderRef.current, message });
+        (target as any).postMessage(message, '*');
+      } catch (err) {
+        console.warn('Failed to send color selection to app:', err);
+      }
+    }
+
+    setColorPickerSender(null);
+    colorPickerSenderRef.current = null;
+    colorPickerSenderTabRef.current = null;
+    colorPickerItemIdRef.current = null;
+    colorPickerItemTypeRef.current = null;
+    setOverlayOpen(false);
+    setOverlaySelectedColor(undefined);
+  };
 
   // when an app becomes loaded, request its thumb config and send initial search query
   useEffect(() => {
@@ -389,7 +432,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         </div>
         <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={effectiveThumbIcon} thumbIconClassName={effectiveThumbClass} />
       </div>
-      <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
+      <FrameworkColorPickerOverlay
+        colors={COLOR_PICKER_COLORS}
+        open={overlayOpen}
+        selectedColor={overlaySelectedColor}
+        onSelect={handleOverlaySelect}
+        onClose={() => {
+          setOverlayOpen(false);
+          setOverlaySelectedColor(undefined);
+        }}
+      />
     </main>
   );
 }

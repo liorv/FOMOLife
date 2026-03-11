@@ -3,36 +3,68 @@ import { ColorPickerOverlay } from '@myorg/ui';
 
 interface ColorPickerOverlayProps {
   colors: string[];
+  // Controlled props — when provided the overlay will be controlled by the
+  // parent instead of listening for window messages.
+  open?: boolean;
+  selectedColor?: string;
+  onSelect?: (color: string) => void;
+  onClose?: () => void;
 }
 
-export default function FrameworkColorPickerOverlay({ colors }: ColorPickerOverlayProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedColor, setSelectedColor] = useState<string | undefined>();
+export default function FrameworkColorPickerOverlay({ colors, open: controlledOpen, selectedColor: controlledSelectedColor, onSelect, onClose }: ColorPickerOverlayProps) {
+  const [isOpen, setIsOpen] = useState<boolean>(!!controlledOpen);
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(controlledSelectedColor);
+
+  const isControlled = typeof controlledOpen === 'boolean';
+
+  useEffect(() => {
+    if (isControlled) {
+      setIsOpen(!!controlledOpen);
+    }
+  }, [controlledOpen, isControlled]);
+
+  useEffect(() => {
+    if (typeof controlledSelectedColor === 'string') {
+      setSelectedColor(controlledSelectedColor);
+    }
+  }, [controlledSelectedColor]);
 
   const handleClose = useCallback(() => {
     console.debug('[FrameworkColorPickerOverlay] handleClose invoked — closing overlay');
-    setIsOpen(false);
-  }, []);
+    if (onClose) {
+      onClose();
+    } else {
+      setIsOpen(false);
+    }
+  }, [onClose]);
 
   const handleColorSelect = useCallback((color: string) => {
-    // Send the selected color to the framework, which will forward it to the app
-    try {
-      console.debug('[FrameworkColorPickerOverlay] handleColorSelect — sending color-selected', { color });
-      window.postMessage({ type: 'color-selected', color }, '*');
-    } catch (err) {
-      console.warn('Failed to send color selection:', err);
+    if (onSelect) {
+      onSelect(color);
+    } else {
+      // Legacy behavior: post message to window so host can forward it
+      try {
+        console.debug('[FrameworkColorPickerOverlay] handleColorSelect — sending color-selected', { color });
+        window.postMessage({ type: 'color-selected', color }, '*');
+      } catch (err) {
+        console.warn('Failed to send color selection:', err);
+      }
     }
     handleClose();
-  }, [handleClose]);
+  }, [handleClose, onSelect]);
 
+  // If not controlled, listen for window messages for backwards-compatibility
   useEffect(() => {
+    if (isControlled) return;
     const handleMessage = (event: MessageEvent) => {
       if (!event?.data) return;
-      const { type, _from, _itemId, _itemType, selectedColor } = event.data as any;
+      const { type } = event.data as any;
+      // Only handle colorpicker control messages here — ignore other app messages
+      if (type !== 'colorpicker-open' && type !== 'colorpicker-close') return;
+      const { _from, _itemId, _itemType, selectedColor } = event.data as any;
       console.debug('[FrameworkColorPickerOverlay] received message', { type, _from, _itemId, _itemType, selectedColor, origin: event.origin });
 
       if (type === 'colorpicker-open') {
-        // optional: framework may include the originating item for visibility
         if (typeof selectedColor === 'string') setSelectedColor(selectedColor);
         setIsOpen(true);
       } else if (type === 'colorpicker-close') {
@@ -42,7 +74,7 @@ export default function FrameworkColorPickerOverlay({ colors }: ColorPickerOverl
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [handleClose]);
+  }, [handleClose, isControlled]);
 
   return (
     <ColorPickerOverlay
