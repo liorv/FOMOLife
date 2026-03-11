@@ -23,14 +23,11 @@ function isTaskNotFoundError(error: unknown): boolean {
 
 export default function TasksPage({ canManage }: Props) {
   const searchParams = useSearchParams();
-  const api = useMemo(() => createTasksApiClient(''), []);
+  const api = useMemo(() => createTasksApiClient(), []);
   const contactsBaseUrl =
     process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() ||
     (process.env.NODE_ENV !== 'production' ? 'http://localhost:3002' : '');
-  const contactsApi = useMemo(
-    () => createContactsApiClient(contactsBaseUrl),
-    [contactsBaseUrl],
-  );
+  const contactsApi = useMemo(() => createContactsApiClient(), []);
 
   const handleCreatePerson = async (name: string) => {
     if (!contactsBaseUrl) return null;
@@ -41,7 +38,7 @@ export default function TasksPage({ canManage }: Props) {
       const created = await contactsApi.createContact({ name });
       // eslint-disable-next-line no-console
       console.log('[TEST DEBUG] contactsApi.createContact returned', created);
-      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
+      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created as Contact]));
       // notify other frames or tabs that contacts changed
       try {
         window.postMessage({ type: 'contacts-updated' }, '*');

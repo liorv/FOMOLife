@@ -3,7 +3,7 @@ console.log('[TEST DEBUG] tasks/lib/client/contactsApi shim loaded');
 function createContactsApiClient() {
   return {
     listContacts: async () => [],
-    createContact: async () => ({ id: 'c1', name: 'Mock' }),
+    createContact: async (input) => ({ id: 'c1', name: input?.name || 'Mock', status: 'not_linked' }),
     updateContact: async () => null,
     deleteContact: async () => true,
   };

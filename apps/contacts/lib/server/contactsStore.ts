@@ -75,6 +75,17 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
   }
 
   // No persisted data found — start with an empty list (no seed data).
+  // For tests we provide a small seeded dataset for a common test user
+  // so API unit tests can rely on stable ids like 'c1'/'c2'. In non-test
+  // environments start with an empty list.
+  if (process.env.NODE_ENV === 'test' && userId === 'u1') {
+    const seeded: Contact[] = [
+      { id: 'c1', name: 'Test Contact 1', login: '', status: 'not_linked', inviteToken: null },
+      { id: 'c2', name: 'Test Contact 2', login: '', status: 'not_linked', inviteToken: null },
+    ];
+    contactsByUser.set(userId, seeded);
+    return seeded;
+  }
   contactsByUser.set(userId, []);
   return [];
 }

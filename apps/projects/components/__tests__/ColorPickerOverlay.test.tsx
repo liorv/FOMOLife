@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import ProjectsDashboard from '../../ProjectsDashboard';
+import ProjectsDashboard from '../ProjectsDashboard';
 
 describe('Projects color picker (component smoke)', () => {
   it('wires onChangeColor prop and can be invoked', () => {
