@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createStorageProvider } from '../../../lib/server/storage-factory';
+import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '../../../lib/server/storage';
 
 const storage = createStorageProvider();
