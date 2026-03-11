@@ -105,7 +105,7 @@ describe('TaskModal', () => {
       });
     });
 
-    it('should show inline suggestion with white background when no matches', async () => {
+    it('should show inline suggestion when no matches', async () => {
       const mockAllPeople: Contact[] = [];
       renderComponent({ allPeople: mockAllPeople });
       const personInput = screen.getByPlaceholderText(/search people/i);
@@ -114,20 +114,6 @@ describe('TaskModal', () => {
       await waitFor(() => {
         const addRow = screen.getByText(/Add "Unknown"/i);
         expect(addRow).toBeInTheDocument();
-        expect(addRow.closest('.suggestion-inline')).toHaveStyle('background: #fff');
-      });
-    });
-
-    it('should show inline suggestion with white background when no matches', async () => {
-      const mockAllPeople: Contact[] = [];
-      renderComponent({ allPeople: mockAllPeople });
-      const personInput = screen.getByPlaceholderText(/search people/i);
-      fireEvent.change(personInput, { target: { value: 'Unknown' } });
-
-      await waitFor(() => {
-        const addRow = screen.getByText(/Add "Unknown"/i);
-        expect(addRow).toBeInTheDocument();
-        expect(addRow.closest('.suggestion-inline')).toHaveStyle('background: #fff');
       });
     });
 

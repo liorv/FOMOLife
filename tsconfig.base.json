@@ -13,8 +13,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@myorg/api-client": ["packages/api-client/dist"],
-      "@myorg/api-client/*": ["packages/api-client/dist/*"],
+      "@myorg/api-client": ["packages/api-client/dist/src"],
+      "@myorg/api-client/*": ["packages/api-client/dist/src/*"],
       "@myorg/types": ["packages/types/dist"],
       "@myorg/types/*": ["packages/types/dist/*"],
       "@myorg/ui": ["packages/ui/dist"],

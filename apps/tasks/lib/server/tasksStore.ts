@@ -1,5 +1,11 @@
 import 'server-only';
 
+import { createStorageProvider } from '../../../lib/server/storage-factory';
+import { generateId } from '@myorg/utils';
+import type { PersistedUserData } from '../../../lib/server/storage';
+
+const storage = createStorageProvider();
+
 export interface TaskItem {
   id: string;
   text: string;
@@ -11,78 +17,47 @@ export interface TaskItem {
   people?: import('@myorg/types').ProjectTaskPerson[];
 }
 
+
+
+
+
+
+
+
+
+
 const tasksByUser = new Map<string, TaskItem[]>();
 
-// persist to disk to survive dev reloads
-import fs from 'fs';
-import path from 'path';
-const PERSIST_PATH = path.resolve(process.cwd(), 'apps/tasks/data/tasks.json');
-
-function loadPersisted() {
+async function savePersisted(userId: string): Promise<void> {
   try {
-    const raw = fs.readFileSync(PERSIST_PATH, 'utf-8');
-    const arr: [string, TaskItem[]][] = JSON.parse(raw);
-    arr.forEach(([user, tasks]) => {
-      tasksByUser.set(user, tasks);
-    });
-    console.log('tasksStore: loaded persisted data');
-  } catch (err) {
-    // ignore if file missing or parse fails
-  }
-}
-
-function savePersisted() {
-  try {
-    const arr = Array.from(tasksByUser.entries());
-    fs.mkdirSync(path.dirname(PERSIST_PATH), { recursive: true });
-    fs.writeFileSync(PERSIST_PATH, JSON.stringify(arr), 'utf-8');
+    const existing = (await storage.load(userId)) || { tasks: [], projects: [], people: [], groups: [] };
+    const data: PersistedUserData = { ...existing, tasks: tasksByUser.get(userId) || [] };
+    await storage.save(userId, data);
     console.log('tasksStore: persisted data');
   } catch (err) {
     console.error('tasksStore: failed to persist', err);
   }
 }
 
-// initialize map from disk
-loadPersisted();
-
-function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-}
-
-function getOrInitUserTasks(userId: string): TaskItem[] {
+async function getOrInitUserTasks(userId: string): Promise<TaskItem[]> {
   console.log("tasksStore: getOrInitUserTasks", userId);
   const existing = tasksByUser.get(userId);
   if (existing) return existing;
 
   console.log("tasksStore: initializing tasks for user", userId);
-  const seeded: TaskItem[] = [
-    {
-      id: 'task-1',
-      text: 'Review weekly priorities',
-      done: false,
-      dueDate: null,
-      favorite: true,
-      description: 'Align this list with current project commitments.',
-    },
-    {
-      id: 'task-2',
-      text: 'Schedule deep-work block',
-      done: false,
-      dueDate: null,
-      favorite: false,
-      description: '',
-    },
-  ];
+  const persisted = await storage.load(userId);
+  if (persisted && Array.isArray(persisted.tasks) && persisted.tasks.length > 0) {
+    tasksByUser.set(userId, persisted.tasks);
+    return persisted.tasks;
+  }
 
-  tasksByUser.set(userId, seeded);
-  return seeded;
+  // No persisted tasks — start with an empty list (no seed data).
+  tasksByUser.set(userId, []);
+  return [];
 }
 
 export async function listTasks(userId: string): Promise<TaskItem[]> {
-  const tasks = [...getOrInitUserTasks(userId)];
+  const tasks = [...await getOrInitUserTasks(userId)];
   return tasks;
 }
 
@@ -91,7 +66,7 @@ export async function createTask(
   input: Pick<TaskItem, 'text'> &
     Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description' | 'people'>>,
 ): Promise<TaskItem> {
-  const current = getOrInitUserTasks(userId);
+  const current = await getOrInitUserTasks(userId);
   const created: TaskItem = {
     id: generateId(),
     text: input.text,
@@ -103,7 +78,7 @@ export async function createTask(
   };
   current.push(created);
   tasksByUser.set(userId, current);
-  savePersisted();
+  await savePersisted(userId);
   return created;
 }
 
@@ -113,20 +88,20 @@ export async function updateTask(
   patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people'>>,
 ): Promise<TaskItem | null> {
   console.log("tasksStore: updateTask", userId, id, patch);
-  const current = getOrInitUserTasks(userId);
+  const current = await getOrInitUserTasks(userId);
   const next = current.map((item) =>
     item.id === id ? { ...item, ...patch, id } : item,
   );
   const updated = next.find((item) => item.id === id) ?? null;
   tasksByUser.set(userId, next);
-  savePersisted();
+  await savePersisted(userId);
   return updated;
 }
 
 export async function deleteTask(userId: string, id: string): Promise<boolean> {
-  const current = getOrInitUserTasks(userId);
+  const current = await getOrInitUserTasks(userId);
   const next = current.filter((item) => item.id !== id);
   tasksByUser.set(userId, next);
-  savePersisted();
+  await savePersisted(userId);
   return next.length !== current.length;
 }

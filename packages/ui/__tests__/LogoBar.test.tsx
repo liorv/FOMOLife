@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { LogoBar } from '../src/LogoBar';
+import { LogoBar } from '../src';
 
 test('LogoBar renders and responds to search change', () => {
   const change = jest.fn();

@@ -43,7 +43,8 @@ describe('ProjectsDashboard thumb integration', () => {
     expect(cfg?.action).toBe('add-project');
 
     // selecting a project should change both icon and action
-    rerender(<ProjectsDashboard {...baseProps} selectedProjectId="foo" />);
+    const sample = { id: 'foo', text: 'Foo', color: '', progress: 0, order: 0, subprojects: [] } as ProjectItem;
+    rerender(<ProjectsDashboard {...baseProps} selectedProjectId="foo" projects={[sample]} />);
     act(() => {
       window.postMessage({ type: 'get-thumb-config' }, '*');
     });

@@ -5,10 +5,8 @@ const puppeteer = require('puppeteer');
   const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const page = await browser.newPage();
   try {
-    // seed app with known people
-    const seed = { tasks: [{ text: 'seed task', done: false, people: [] }], people: [{ name: 'Alice', methods: { sms: false, discord: false, whatsapp: false } }, { name: 'Bob', methods: { sms: true, discord: false, whatsapp: false } }], projects: [], dreams: [] };
+    // do not pre-seed localStorage; run against a clean app state
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
-    await page.evaluate(s => localStorage.setItem('fomo_life_data', JSON.stringify(s)), seed);
     await page.reload({ waitUntil: 'networkidle2' });
 
     // open task editor

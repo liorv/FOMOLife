@@ -3,6 +3,12 @@
   align-items: flex-end;
   justify-content: center;
   animation: fadeIn 0.2s ease;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: auto;
+  height: auto;
 }
 
 .modal {
@@ -15,6 +21,11 @@
   animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 80vh;
   overflow-y: auto;
+  z-index: 1300;
+}
+
+.modal.closing {
+  animation: slideDownModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .header {
@@ -109,5 +120,14 @@
   }
   to {
     transform: translateY(0);
+  }
+}
+
+@keyframes slideDownModal {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
   }
 }

@@ -322,25 +322,32 @@
 }
 
 .contact-tile__avatar-cell {
-  padding: 12px 16px;
+  padding: 5px 10px;
   text-align: center;
-  width: 60px;
+  width: 32px;
 }
 
 .contact-tile__name-cell {
-  padding: 12px 16px;
-  min-width: 200px;
+  padding: 5px 0px;
 }
 
 .contact-tile__status-cell {
-  padding: 12px 16px;
-  min-width: 140px;
+  padding: 0px;
 }
 
 .contact-tile__actions-cell {
-  padding: 12px 16px;
+  padding: 0px;
   text-align: right;
-  min-width: 200px;
+}
+
+@media (max-width: 480px) {
+  .contact-tile__status-cell .contact-tile__status {
+    /* Hide text but keep icon */
+    font-size: 0;
+  }
+  .contact-tile__status-cell .contact-tile__status .material-icons {
+    font-size: 14px;
+  }
 }
 
 .contact-tile__avatar {
@@ -369,7 +376,7 @@
   color: var(--ui-text, #212121);
   border: 1px solid var(--ui-primary, #1976d2);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 0px;
   background: #fff;
   outline: none;
   width: 100%;
@@ -418,7 +425,6 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
 }
 
 .contact-tile__link-btn,

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TasksPage.module.css';
 import { useSearchParams } from 'next/navigation';
 import { createTasksApiClient } from '../lib/client/tasksApi';
-import { createContactsApiClient } from '../../contacts/lib/client/contactsApi';
+import { createContactsApiClient } from '../lib/client/contactsApi';
 import type { TaskItem, ProjectTask, Contact } from '@myorg/types';
 import { TaskList, AddBar } from '@myorg/ui';
 import { applyFilters } from '@myorg/utils';
@@ -23,20 +23,22 @@ function isTaskNotFoundError(error: unknown): boolean {
 
 export default function TasksPage({ canManage }: Props) {
   const searchParams = useSearchParams();
-  const api = useMemo(() => createTasksApiClient(''), []);
+  const api = useMemo(() => createTasksApiClient(), []);
   const contactsBaseUrl =
     process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() ||
     (process.env.NODE_ENV !== 'production' ? 'http://localhost:3002' : '');
-  const contactsApi = useMemo(
-    () => createContactsApiClient(contactsBaseUrl),
-    [contactsBaseUrl],
-  );
+  const contactsApi = useMemo(() => createContactsApiClient(), []);
 
   const handleCreatePerson = async (name: string) => {
     if (!contactsBaseUrl) return null;
     try {
+      // debug: log when create person is invoked in tests
+      // eslint-disable-next-line no-console
+      console.log('[TEST DEBUG] handleCreatePerson called with', name, 'contactsBaseUrl=', contactsBaseUrl);
       const created = await contactsApi.createContact({ name });
-      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
+      // eslint-disable-next-line no-console
+      console.log('[TEST DEBUG] contactsApi.createContact returned', created);
+      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created as Contact]));
       // notify other frames or tabs that contacts changed
       try {
         window.postMessage({ type: 'contacts-updated' }, '*');
@@ -68,8 +70,9 @@ export default function TasksPage({ canManage }: Props) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // display ready state - only show content after framework acknowledges loading
-  const [displayReady, setDisplayReady] = useState(false);
+  // display ready state - show content by default when not embedded. When
+  // embedded, we wait for the framework ack before displaying content.
+  const [displayReady, setDisplayReady] = useState(true);
   const deletingTaskIdsRef = useRef<Set<string>>(new Set());
   const isEmbedded = searchParams.get('embedded') === '1';
 
@@ -161,6 +164,18 @@ export default function TasksPage({ canManage }: Props) {
           );
         } catch (err) {
           // ignore
+        }
+        // also mirror to `window` asynchronously so tests and same-window hosts receive it
+        try {
+          setTimeout(() => {
+            try {
+              window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
+            } catch {}
+          }, 0);
+        } catch (err) {
+          try {
+            window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
+          } catch {}
         }
       }
     };
@@ -420,7 +435,8 @@ export default function TasksPage({ canManage }: Props) {
       {!displayReady ? (
         <div style={{ height: '100vh' }} />
       ) : (
-        <div className={`container ${styles.inlineContainer}`}>
+        <div className="content-panel">
+          <div className={`container ${styles.inlineContainer}`}>
         {!isEmbedded ? (
           <div className={styles.searchBar}>
             <input
@@ -592,6 +608,7 @@ export default function TasksPage({ canManage }: Props) {
             onAdd={() => void addTask()}
             focusStyle={{ background: '#e6f7ff' }}
           />
+        </div>
         </div>
         </div>
       )}

@@ -49,7 +49,7 @@ body {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 10px;
+  column-gap: 2px;
   background: var(--color-surface);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 10;
@@ -69,8 +69,7 @@ body {
 
 .right-column {
   justify-content: flex-end;
-  min-width: 80px;
-  padding-right: 8px;
+  min-width: 50px;
 }
 
 .mid-column {
@@ -645,7 +644,7 @@ body {
 .tabs button.tabs-thumb-btn {
   /* thumb sits between the two groups with some horizontal breathing room */
   flex: 0 0 auto;
-  margin: 0 16px;
+  margin: 0px;
   padding: 0;
   gap: 0;
   overflow: visible;

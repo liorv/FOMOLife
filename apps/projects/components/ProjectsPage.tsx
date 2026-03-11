@@ -64,10 +64,12 @@ export default function ProjectsPage({ canManage }: Props) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // display ready state - only show content after framework acknowledges loading
-  const [displayReady, setDisplayReady] = useState(false);
+  // If not embedded, immediately show content for standalone usage and tests
+  const isEmbedded = searchParams.get('embedded') === '1';
+  const [displayReady, setDisplayReady] = useState(!isEmbedded);
   const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void; onConfirm?: () => void } | null>(null);
   const pendingBlankSubRef = useRef(false);
-  const isEmbedded = searchParams.get('embedded') === '1';
+
 
   useEffect(() => {
     let active = true;
@@ -144,29 +146,6 @@ export default function ProjectsPage({ canManage }: Props) {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [isEmbedded]);
-
-  // configure thumb button for projects tab and listen for presses
-  useEffect(() => {
-    const icon = 'add';
-    const action = 'add-project';
-
-    const handler = (event: MessageEvent) => {
-      if (!event?.data) return;
-      if (event.data.type === 'get-thumb-config') {
-        try {
-          window.parent?.postMessage?.({ type: 'thumb-config', icon, action }, '*');
-        } catch (err) {
-          // ignore
-        }
-      } else if ((event.data.type === action || event.data.type === 'thumb-fab') && canManage) {
-        // invoke project creation when thumb button is pressed
-        handleAddProject();
-      }
-    };
-
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [canManage]);
 
   // Send app-loaded message when loading completes
   useEffect(() => {
@@ -293,9 +272,15 @@ export default function ProjectsPage({ canManage }: Props) {
   };
 
   const handleProjectColorChange = async (projectId: string, newColor: string) => {
-    if (!canManage) return;
-    const updated = await apiClient.updateProject(projectId, { color: newColor });
-    setProjects((prev) => prev.map((item) => (item.id === projectId ? updated : item)));
+    if (!canManage) {
+      return;
+    }
+    try {
+      const updated = await apiClient.updateProject(projectId, { color: newColor });
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? updated : item)));
+    } catch (err) {
+      console.error('Failed to update project color:', err);
+    }
   };
 
   const handleReorderProjects = async (draggedProjectId: string, targetProjectId: string) => {
@@ -412,7 +397,8 @@ export default function ProjectsPage({ canManage }: Props) {
       {!displayReady ? (
         <div style={{ height: '100vh' }} />
       ) : (
-        <section>
+        <div className="content-panel">
+          <section className="content">
           {!isEmbedded ? (
             <div className={layoutStyles.searchBar}>
               <input
@@ -453,6 +439,7 @@ export default function ProjectsPage({ canManage }: Props) {
             onToggleFilter={handleToggleFilter}
           />
         </section>
+        </div>
       )}
     </main>
   );
