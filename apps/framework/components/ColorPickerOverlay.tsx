@@ -81,7 +81,7 @@ export default function FrameworkColorPickerOverlay({ colors, open: controlledOp
     <ColorPickerOverlay
       open={isOpen}
       colors={colors}
-      selectedColor={selectedColor}
+      selectedColor={selectedColor ?? ''}
       onClose={handleClose}
       onSelect={handleColorSelect}
     />

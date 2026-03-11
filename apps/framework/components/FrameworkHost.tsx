@@ -463,7 +463,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       <FrameworkColorPickerOverlay
         colors={COLOR_PICKER_COLORS}
         open={overlayOpen}
-        selectedColor={overlaySelectedColor}
+        selectedColor={overlaySelectedColor ?? ''}
         onSelect={handleOverlaySelect}
         onClose={() => {
           setOverlayOpen(false);
