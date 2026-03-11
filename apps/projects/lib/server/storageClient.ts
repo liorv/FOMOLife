@@ -21,7 +21,7 @@ export function getStorage(): StorageProvider {
   const bypassSecret = process.env.FRAMEWORK_BYPASS_SECRET?.trim();
 
   if (frameworkUrl && serviceKey) {
-    return createFrameworkStorageProvider({ frameworkUrl, serviceKey, domain: 'projects', bypassSecret });
+    return createFrameworkStorageProvider({ frameworkUrl, serviceKey, domain: 'projects', ...(bypassSecret ? { bypassSecret } : {}) });
   }
 
   if (process.env.NODE_ENV === 'production') {
