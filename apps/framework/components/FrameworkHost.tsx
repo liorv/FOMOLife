@@ -173,7 +173,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         projectId?: string;
         subprojectId?: string;
       };
-      const senderTab = getTabFromSource(event.source);
+      const senderTab = getTabFromSource(event.source) || activeTab;
       
       // Handle color-selected messages even if they come from the framework itself
       if (type === 'color-selected') {
@@ -216,6 +216,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         }
         const newAction = typeof action === 'string' ? action : 'thumb-fab';
         setAppConfigs(prev => new Map(prev).set(senderTab, { icon: resolvedIcon, action: newAction }));
+        // mark sender tab as loaded so thumb config is active in tests
+        setLoadedApps(prev => new Set(prev).add(senderTab));
       } else if (type === 'search-config') {
         const { placeholder } = event.data as { placeholder?: string };
         if (typeof placeholder === 'string') {
