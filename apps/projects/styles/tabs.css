@@ -1156,10 +1156,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-bg);
   border-radius: 12px;
-  border: 1px solid var(--ui-card-border, #e0e0e0);
-  margin-top: 20px;
 }
 
 .projects-dashboard:not(.dashboard--has-project) {
@@ -1355,7 +1352,7 @@
   outline: none;
   /* Override tile dimensions so tiles fill the grid cell */
   --project-tile-width: 100%;
-  --project-tile-height: 220px;
+  --project-tile-height: 200px;
   min-width: 0;
 }
 .dashboard-tile-wrapper:hover {
@@ -1491,6 +1488,10 @@
   /* Ensure editor columns take full width on mobile */
   .editor-columns {
     flex-direction: column;
+  }
+
+  .dashboard-home-bg {
+    display: none;
   }
 
   .editor-columns .left-column {
