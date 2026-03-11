@@ -4,8 +4,6 @@ export function invariant(condition: unknown, message: string): asserts conditio
   }
 }
 
-// async
-export { useAsyncState, type UseAsyncStateReturn } from './async';
 
 // filters
 export { applyFilters } from './taskFilters';

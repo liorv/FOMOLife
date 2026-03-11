@@ -3,8 +3,6 @@ export function invariant(condition, message) {
         throw new Error(message);
     }
 }
-// async
-export { useAsyncState } from './async';
 // filters
 export { applyFilters } from './taskFilters';
 // id
