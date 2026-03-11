@@ -96,7 +96,7 @@ async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   const persisted = await storage.load(userId).catch(() => null);
   if (persisted) {
     const persistedProjects = Array.isArray(persisted.projects) ? persisted.projects : [];
-    const normalizedPersisted = persistedProjects.map((project) => ensureProjectLevelTasks(project));
+    const normalizedPersisted = persistedProjects.map((project) => ensureProjectLevelTasks(project as ProjectItem));
     projectsByUser.set(userId, normalizedPersisted);
     return normalizedPersisted;
   }
