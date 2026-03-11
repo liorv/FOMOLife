@@ -14,7 +14,7 @@
     "react-dom": "^18.0.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm run dev:mono",
     "build": "next build",
     "start": "next start",
     "setup:githooks": "git config core.hooksPath .githooks",
@@ -53,6 +53,6 @@
     "prettier": "^3.1.0",
     "ts-jest": "^29.4.6",
     "turbo": "^2.8.16",
-    "typescript": "^5.7.3"
+    "typescript": "^5.9.3"
   }
 }
