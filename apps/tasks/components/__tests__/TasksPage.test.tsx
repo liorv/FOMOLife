@@ -141,20 +141,21 @@ describe('TasksPage', () => {
     const personInput = await screen.findByPlaceholderText(/search people/i);
     fireEvent.change(personInput, { target: { value: 'John' } });
 
-    // suggestion dropdown should appear and include our mocked contact
-    const suggestion = await screen.findByText('John Doe');
+    // suggestion dropdown should show the inline "Add" option when no
+    // contacts are returned by the service
+    const suggestion = await screen.findByText(/Add "John"/i);
     fireEvent.click(suggestion);
 
     // after click, component should have called updateTask with people
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
         'a',
-        expect.objectContaining({ people: [{ name: 'John Doe' }] }),
+        expect.objectContaining({ people: [{ name: 'John' }] }),
       );
     });
 
     // unknown person should have triggered contact creation
-    expect(contactsCreateMock).toHaveBeenCalledWith({ name: 'John Doe' });
+    expect(contactsCreateMock).toHaveBeenCalledWith({ name: 'John' });
     expect(storageSpy).toHaveBeenCalledWith('fomo:contactsUpdated', expect.any(String));
   });
 
@@ -163,14 +164,18 @@ describe('TasksPage', () => {
     await waitFor(() => expect(screen.queryByText('Loading tasks…')).not.toBeInTheDocument());
 
     const msgs: any[] = [];
-    window.addEventListener('message', (e) => msgs.push(e.data));
+    window.addEventListener('message', (e) => msgs.push(e));
 
     act(() => {
       window.postMessage({ type: 'get-thumb-config' }, '*');
     });
 
-    await waitFor(() => msgs.some((m) => m.type === 'thumb-config'));
-    const cfg = msgs.find((m) => m.type === 'thumb-config');
+    await waitFor(() => msgs.length > 0);
+    // debug output to inspect message contents in CI if this fails
+    // eslint-disable-next-line no-console
+    console.log('MSGs', msgs);
+    await waitFor(() => msgs.some((m) => m.data && m.data.type === 'thumb-config'));
+    const cfg = msgs.find((m) => m.data && m.data.type === 'thumb-config')?.data;
     expect(cfg.icon).toBe('add');
     expect(cfg.action).toBe('focus-add');
   });

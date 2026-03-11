@@ -161,16 +161,24 @@ export default function TasksPage({ canManage }: Props) {
       } else if (event.data.type === 'get-thumb-config') {
         // host is asking what icon/action to use
         try {
-            window.parent?.postMessage?.(
-              { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
-              '*',
-            );
-            // also mirror to `window` so tests and same-window hosts receive it
+          window.parent?.postMessage?.(
+            { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
+            '*',
+          );
+        } catch (err) {
+          // ignore
+        }
+        // also mirror to `window` asynchronously so tests and same-window hosts receive it
+        try {
+          setTimeout(() => {
             try {
               window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
             } catch {}
+          }, 0);
         } catch (err) {
-          // ignore
+          try {
+            window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
+          } catch {}
         }
       }
     };
