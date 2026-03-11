@@ -64,10 +64,12 @@ export default function ProjectsPage({ canManage }: Props) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // display ready state - only show content after framework acknowledges loading
-  const [displayReady, setDisplayReady] = useState(false);
+  // If not embedded, immediately show content for standalone usage and tests
+  const isEmbedded = searchParams.get('embedded') === '1';
+  const [displayReady, setDisplayReady] = useState(!isEmbedded);
   const [undoSnackbar, setUndoSnackbar] = useState<{ message: string; onUndo: () => void; onConfirm?: () => void } | null>(null);
   const pendingBlankSubRef = useRef(false);
-  const isEmbedded = searchParams.get('embedded') === '1';
+
 
   useEffect(() => {
     let active = true;

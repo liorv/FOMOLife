@@ -1,7 +1,8 @@
 /// <reference types="jest" />
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import ProjectsPage from '../ProjectsPage';
+// Import ProjectsPage after mocks below (use require) so module factories can be hoisted
+let ProjectsPage: any;
 import type { ProjectItem, Contact } from '@myorg/types';
 
 // mocks
@@ -29,6 +30,19 @@ jest.mock('../../contacts/lib/client/contactsApi', () => ({
     createContact: contactsCreateMock,
   }),
 }));
+
+// Mock projects API client used by the component
+jest.mock('../lib/client/projectsApi', () => ({
+  createProjectsApiClient: () => ({
+    listProjects: projectsListMock,
+    createProject: jest.fn(),
+    updateProject: jest.fn(),
+    deleteProject: jest.fn(),
+  }),
+}));
+
+// Now require the component so mocks take effect
+ProjectsPage = require('../ProjectsPage').default;
 
 const sampleProject: ProjectItem = {
   id: 'p1',
