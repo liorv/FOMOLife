@@ -47,8 +47,8 @@ async function getOrInitUserTasks(userId: string): Promise<TaskItem[]> {
   console.log("tasksStore: initializing tasks for user", userId);
   const persisted = await storage.load(userId);
   if (persisted && Array.isArray(persisted.tasks) && persisted.tasks.length > 0) {
-    tasksByUser.set(userId, persisted.tasks);
-    return persisted.tasks;
+    tasksByUser.set(userId, persisted.tasks as TaskItem[]);
+    return persisted.tasks as TaskItem[];
   }
 
   // No persisted tasks — start with an empty list (no seed data).
