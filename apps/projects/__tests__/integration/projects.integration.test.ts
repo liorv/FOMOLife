@@ -72,4 +72,29 @@ describe('projects integration (in-memory store)', () => {
     const delBody = await delRes.json();
     expect(delBody.ok).toBe(true);
   });
+
+  it('updates project color end-to-end', async () => {
+    mockGetProjectsSession.mockResolvedValue({ isAuthenticated: true, userId: 'test-user' });
+
+    // create project without color
+    const createRes = await routes.POST(makeRequest({ text: 'ColorTest' }));
+    expect(createRes.status).toBe(201);
+    const created = await createRes.json();
+    const id = created.id;
+
+    // update color
+    const color = '#123456';
+    const patchRes = await routes.PATCH(makeRequest({ id, patch: { color } }));
+    expect(patchRes.status).toBe(200);
+    const updated = await patchRes.json();
+    expect(updated.color).toBe(color);
+
+    // verify via list
+    const listRes = await routes.GET(makeRequest());
+    expect(listRes.status).toBe(200);
+    const listBody = await listRes.json();
+    const found = listBody.projects.find((p: any) => p.id === id);
+    expect(found).toBeTruthy();
+    expect(found.color).toBe(color);
+  });
 });
