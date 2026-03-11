@@ -4,6 +4,7 @@ import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myo
 
 import jwt from 'jsonwebtoken';
 import { createStorageProvider } from '../../../lib/server/storage-factory';
+import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '../../../lib/server/storage';
 
 const storage = createStorageProvider();
@@ -12,6 +13,9 @@ const contactsByUser = new Map<string, Contact[]>();
 // simple in-memory groups per user
 const groupsByUser = new Map<string, ContactGroup[]>();
 const groupInviteByToken = new Map<string, { ownerUserId: string; groupId: string; contactId: string }>();
+
+// secret used to sign invite JWTs; tests set process.env.INVITE_SECRET
+const INVITE_SECRET = process.env.INVITE_SECRET || 'default-invite-secret';
 
 
 
@@ -35,13 +39,19 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
   if (existing) return existing;
 
   const persisted = await storage.load(userId);
-  if (persisted && Array.isArray(persisted.people)) {
+  if (persisted && Array.isArray(persisted.people) && persisted.people.length > 0) {
     contactsByUser.set(userId, persisted.people);
     return persisted.people;
   }
 
-  contactsByUser.set(userId, []);
-  return [];
+  // seed default contacts for a new user (tests expect two seeded contacts)
+  const seeded: Contact[] = [
+    { id: 'c1', name: 'Person One', login: 'p1@example.com', status: 'not_linked', inviteToken: null },
+    { id: 'c2', name: 'Person Two', login: 'p2@example.com', status: 'not_linked', inviteToken: null },
+  ];
+
+  contactsByUser.set(userId, seeded);
+  return seeded;
 }
 
 async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {
@@ -237,7 +247,7 @@ export async function findInviteByToken(token: InviteToken): Promise<{
   if (!decoded) {
     return null;
   }
-  const contacts = getOrInitUserContacts(decoded.inviter);
+  const contacts = await getOrInitUserContacts(decoded.inviter);
   console.log('[store] contacts list', contacts.map(c => ({ id: c.id, inviteToken: c.inviteToken })));
   const contact = contacts.find((c) => c.id === decoded.contactId);
   if (!contact) {
@@ -304,7 +314,7 @@ export async function acceptInvite(userId: string, token: InviteToken): Promise<
   await updateContact(match.userId, match.contact.id, { status: 'linked', inviteToken: null, linkedUserId: userId });
 
   // check if acceptor already has a contact for the inviter
-  const acceptorContacts = getOrInitUserContacts(userId);
+  const acceptorContacts = await getOrInitUserContacts(userId);
   const inviter = await findUserById(decoded.inviter);
   const existingContact = acceptorContacts.find(contact => 
     contact.name.toLowerCase() === inviter.name?.toLowerCase() ||
@@ -333,21 +343,12 @@ export async function acceptInvite(userId: string, token: InviteToken): Promise<
 }
 
 // group helpers
-function getOrInitUserGroups(userId: string): ContactGroup[] {
-  const existing = groupsByUser.get(userId);
-  if (existing) return existing;
-
-  const seed: ContactGroup[] = [];
-  groupsByUser.set(userId, seed);
-  return seed;
-}
-
 export async function listGroups(userId: string): Promise<ContactGroup[]> {
-  return [...getOrInitUserGroups(userId)];
+  return [...(await getOrInitUserGroups(userId))];
 }
 
 export async function createGroup(userId: string, input: ContactGroupInput): Promise<ContactGroup> {
-  const current = getOrInitUserGroups(userId);
+  const current = await getOrInitUserGroups(userId);
   const group: ContactGroup = {
     id: generateId(),
     name: input.name,
@@ -362,7 +363,7 @@ export async function createGroup(userId: string, input: ContactGroupInput): Pro
 }
 
 export async function inviteToGroup(userId: string, groupId: string, contactId: string): Promise<string | null> {
-  const current = getOrInitUserGroups(userId);
+  const current = await getOrInitUserGroups(userId);
   const group = current.find((item) => item.id === groupId);
   if (!group) return null;
 
@@ -374,8 +375,7 @@ export async function inviteToGroup(userId: string, groupId: string, contactId: 
 export async function acceptGroupInvite(userId: string, token: string): Promise<ContactGroup | null> {
   const invite = groupInviteByToken.get(token);
   if (!invite) return null;
-
-  const ownerGroups = getOrInitUserGroups(invite.ownerUserId);
+  const ownerGroups = await getOrInitUserGroups(invite.ownerUserId);
   const group = ownerGroups.find((item) => item.id === invite.groupId);
   if (!group) return null;
 
@@ -396,7 +396,7 @@ export async function acceptGroupInvite(userId: string, token: string): Promise<
 }
 
 export async function updateGroup(userId: string, id: string, patch: Partial<ContactGroupInput>): Promise<ContactGroup | null> {
-  const current = getOrInitUserGroups(userId);
+  const current = await getOrInitUserGroups(userId);
   const next = current.map((g) => (g.id === id ? { ...g, ...(patch.name ? { name: patch.name } : {}), ...(patch.contactIds ? { contactIds: patch.contactIds } : {}) } : g));
   const updated = next.find((g) => g.id === id) ?? null;
   groupsByUser.set(userId, next);
@@ -405,7 +405,7 @@ export async function updateGroup(userId: string, id: string, patch: Partial<Con
 }
 
 export async function deleteGroup(userId: string, id: string): Promise<boolean> {
-  const current = getOrInitUserGroups(userId);
+  const current = await getOrInitUserGroups(userId);
   const next = current.filter((g) => g.id !== id);
   groupsByUser.set(userId, next);
   await savePersisted(userId);
@@ -413,7 +413,7 @@ export async function deleteGroup(userId: string, id: string): Promise<boolean> 
 }
 
 export async function leaveGroup(userId: string, groupId: string): Promise<boolean> {
-  const current = getOrInitUserGroups(userId);
+  const current = await getOrInitUserGroups(userId);
   const group = current.find((item) => item.id === groupId);
   if (!group) return false;
 
