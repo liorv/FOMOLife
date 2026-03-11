@@ -47,4 +47,29 @@ describe('contacts integration (in-memory store)', () => {
     expect(created).toHaveProperty('id');
     expect(created.name).toBe('Alice');
   });
+
+  it('lists, updates, and deletes a contact', async () => {
+    mockGetContactsSession.mockResolvedValue({ isAuthenticated: true, userId: 'test-user' });
+
+    const createRes = await routes.POST(makeRequest({ name: 'Bob' }));
+    expect(createRes.status).toBe(201);
+    const created = await createRes.json();
+    const id = created.id;
+
+    const listRes = await routes.GET(makeRequest());
+    expect(listRes.status).toBe(200);
+    const listBody = await listRes.json();
+    expect(Array.isArray(listBody.contacts)).toBe(true);
+    expect(listBody.contacts.find((c: any) => c.id === id)).toBeTruthy();
+
+    const patchRes = await routes.PATCH(makeRequest({ id, patch: { name: 'Bob Updated' } }));
+    expect(patchRes.status).toBe(200);
+    const updated = await patchRes.json();
+    expect(updated.name).toBe('Bob Updated');
+
+    const delRes = await routes.DELETE(makeRequest({ id }));
+    expect(delRes.status).toBe(200);
+    const delBody = await delRes.json();
+    expect(delBody.ok).toBe(true);
+  });
 });

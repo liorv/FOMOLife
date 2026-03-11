@@ -47,4 +47,29 @@ describe('projects integration (in-memory store)', () => {
     expect(created).toHaveProperty('id');
     expect(created.text).toBe('New Project');
   });
+
+  it('lists, updates, and deletes a project', async () => {
+    mockGetProjectsSession.mockResolvedValue({ isAuthenticated: true, userId: 'test-user' });
+
+    const createRes = await routes.POST(makeRequest({ text: 'PJ1' }));
+    expect(createRes.status).toBe(201);
+    const created = await createRes.json();
+    const id = created.id;
+
+    const listRes = await routes.GET(makeRequest());
+    expect(listRes.status).toBe(200);
+    const listBody = await listRes.json();
+    expect(Array.isArray(listBody.projects)).toBe(true);
+    expect(listBody.projects.find((p: any) => p.id === id)).toBeTruthy();
+
+    const patchRes = await routes.PATCH(makeRequest({ id, patch: { text: 'PJ1 Updated' } }));
+    expect(patchRes.status).toBe(200);
+    const updated = await patchRes.json();
+    expect(updated.text).toBe('PJ1 Updated');
+
+    const delRes = await routes.DELETE(makeRequest({ id }));
+    expect(delRes.status).toBe(200);
+    const delBody = await delRes.json();
+    expect(delBody.ok).toBe(true);
+  });
 });
