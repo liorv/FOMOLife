@@ -111,8 +111,10 @@ describe('TasksPage', () => {
     });
     await assertFocused();
 
-    // reset focus
-    (document.activeElement as any)?.blur?.();
+    // reset focus (wrap in act so React state updates are flushed)
+    await act(async () => {
+      (document.activeElement as any)?.blur?.();
+    });
 
     // simulate legacy message
     act(() => {
