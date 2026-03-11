@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TasksPage.module.css';
 import { useSearchParams } from 'next/navigation';
 import { createTasksApiClient } from '../lib/client/tasksApi';
-import { createContactsApiClient } from '../../contacts/lib/client/contactsApi';
+import { createContactsApiClient } from '../lib/client/contactsApi';
 import type { TaskItem, ProjectTask, Contact } from '@myorg/types';
 import { TaskList, AddBar } from '@myorg/ui';
 import { applyFilters } from '@myorg/utils';
@@ -68,8 +68,9 @@ export default function TasksPage({ canManage }: Props) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // display ready state - only show content after framework acknowledges loading
-  const [displayReady, setDisplayReady] = useState(false);
+  // display ready state - show content by default when not embedded. When
+  // embedded, we wait for the framework ack before displaying content.
+  const [displayReady, setDisplayReady] = useState(true);
   const deletingTaskIdsRef = useRef<Set<string>>(new Set());
   const isEmbedded = searchParams.get('embedded') === '1';
 
@@ -155,10 +156,14 @@ export default function TasksPage({ canManage }: Props) {
       } else if (event.data.type === 'get-thumb-config') {
         // host is asking what icon/action to use
         try {
-          window.parent?.postMessage?.(
-            { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
-            '*',
-          );
+            window.parent?.postMessage?.(
+              { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
+              '*',
+            );
+            // also mirror to `window` so tests and same-window hosts receive it
+            try {
+              window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
+            } catch {}
         } catch (err) {
           // ignore
         }

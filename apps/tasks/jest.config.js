@@ -29,6 +29,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^next/server$': '<rootDir>/__mocks__/next-server-mock.js',
     '^@myorg/utils$': path.resolve(__dirname, '../../packages/utils/src/index.ts'),
     '^@myorg/types$': path.resolve(__dirname, '../../packages/types/src/index.ts'),
     '^@myorg/api-client$': path.resolve(__dirname, '../../packages/api-client/src/index.ts'),
