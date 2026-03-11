@@ -1,3 +1,4 @@
+## CI workflow (rewritten to refresh editor diagnostics)
 name: CI
 
 on:
