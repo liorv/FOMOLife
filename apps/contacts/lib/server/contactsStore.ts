@@ -17,6 +17,36 @@ const groupInviteByToken = new Map<string, { ownerUserId: string; groupId: strin
 // secret used to sign invite JWTs; tests set process.env.INVITE_SECRET
 const INVITE_SECRET = process.env.INVITE_SECRET || 'default-invite-secret';
 
+// Runtime type guards for persisted data (storage.load returns unknown)
+function isContact(obj: unknown): obj is Contact {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).name === 'string' &&
+    typeof (obj as any).status === 'string' &&
+    ('inviteToken' in (obj as any) ? (typeof (obj as any).inviteToken === 'string' || (obj as any).inviteToken === null) : true)
+  );
+}
+
+function isContactArray(v: unknown): v is Contact[] {
+  return Array.isArray(v) && v.every(isContact);
+}
+
+function isContactGroup(obj: unknown): obj is ContactGroup {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).name === 'string' &&
+    Array.isArray((obj as any).contactIds)
+  );
+}
+
+function isContactGroupArray(v: unknown): v is ContactGroup[] {
+  return Array.isArray(v) && v.every(isContactGroup);
+}
+
 
 
 async function savePersisted(userId: string): Promise<void> {
@@ -39,7 +69,7 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
   if (existing) return existing;
 
   const persisted = await storage.load(userId);
-  if (persisted && Array.isArray(persisted.people) && persisted.people.length > 0) {
+  if (persisted && isContactArray(persisted.people) && persisted.people.length > 0) {
     contactsByUser.set(userId, persisted.people);
     return persisted.people;
   }
@@ -59,7 +89,7 @@ async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {
   if (existing) return existing;
 
   const persisted = await storage.load(userId);
-  if (persisted && Array.isArray(persisted.groups)) {
+  if (persisted && isContactGroupArray(persisted.groups)) {
     groupsByUser.set(userId, persisted.groups);
     return persisted.groups;
   }
@@ -379,7 +409,8 @@ export async function acceptGroupInvite(userId: string, token: string): Promise<
   const group = ownerGroups.find((item) => item.id === invite.groupId);
   if (!group) return null;
 
-  const contactExists = getOrInitUserContacts(userId).some((item) => item.id === invite.contactId);
+  const userContacts = await getOrInitUserContacts(userId);
+  const contactExists = userContacts.some((item: Contact) => item.id === invite.contactId);
   if (!contactExists) {
     groupInviteByToken.delete(token);
     return null;
