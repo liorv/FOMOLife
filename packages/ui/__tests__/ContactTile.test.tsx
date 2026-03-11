@@ -1,16 +1,18 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ContactTile } from '../src/ContactTile';
+import { ContactTile } from '../src';
 
 describe('ContactTile', () => {
   it('starts editing and focuses name input when autoFocus is true', () => {
     render(
+      <table><tbody>
       <ContactTile
         id="foo"
         name="My Name"
         status="linked"
         autoFocus
       />
+      </tbody></table>
     );
 
     const input = screen.getByLabelText('Edit contact name');
@@ -46,16 +48,17 @@ describe('ContactTile', () => {
   });
 
   it('generates and displays invite link when link button is clicked', async () => {
-    const fake = jest.spyOn(require('@myorg/api-client'), 'inviteContact');
-    fake.mockResolvedValue({ inviteToken: 'tok123', inviteLink: 'http://app/accept?token=tok123' });
+    jest.mock('@myorg/api-client', () => ({ inviteContact: jest.fn() }));
+    const api = require('@myorg/api-client');
+    api.inviteContact.mockResolvedValue({ inviteToken: 'tok123', inviteLink: 'http://app/accept?token=tok123' });
 
-    render(
+    render(<table><tbody>
       <ContactTile
         id="foo"
         name="Charlie"
         status="not_linked"
       />
-    );
+    </tbody></table>);
 
     const btn = screen.getByLabelText('Generate invite link');
     // stub clipboard too

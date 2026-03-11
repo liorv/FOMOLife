@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TabNav } from '../src/TabNav';
+import { TabNav } from '../src';
 
 test('TabNav renders tabs and handles click', () => {
-  type Tab = 'a' | 'b';
+  type Tab = 'tasks' | 'people';
   const tabs = [
-    { key: 'a', label: 'A', icon: 'a' },
-    { key: 'b', label: 'B', icon: 'b' },
+    { key: 'tasks', label: 'A', icon: 'a' },
+    { key: 'people', label: 'B', icon: 'b' },
   ] as const;
   const change = jest.fn();
   render(<TabNav active="a" tabs={tabs} onChange={change} />);

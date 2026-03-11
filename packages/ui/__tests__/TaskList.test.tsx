@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { TaskList } from '../src/TaskList/TaskList';
+import { TaskList } from '../src';
 import type { TaskItem } from '@myorg/types';
 
 test('TaskList renders items and handles click callbacks', () => {
