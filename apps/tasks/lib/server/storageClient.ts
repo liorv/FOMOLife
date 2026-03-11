@@ -18,8 +18,10 @@ export function getStorage(): StorageProvider {
   const frameworkUrl = process.env.FRAMEWORK_INTERNAL_URL?.trim();
   const serviceKey = process.env.INTERNAL_SERVICE_KEY?.trim();
 
+  const bypassSecret = process.env.FRAMEWORK_BYPASS_SECRET?.trim();
+
   if (frameworkUrl && serviceKey) {
-    return createFrameworkStorageProvider({ frameworkUrl, serviceKey, domain: 'tasks' });
+    return createFrameworkStorageProvider({ frameworkUrl, serviceKey, domain: 'tasks', bypassSecret });
   }
 
   if (process.env.NODE_ENV === 'production') {

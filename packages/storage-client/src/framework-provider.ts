@@ -22,16 +22,25 @@ class FrameworkStorageProvider implements StorageProvider {
     private readonly frameworkUrl: string,
     private readonly serviceKey: string,
     private readonly domain: Domain,
+    private readonly bypassSecret?: string,
   ) {}
+
+  private buildHeaders(extra?: Record<string, string>): Record<string, string> {
+    const headers: Record<string, string> = {
+      'X-Internal-Service-Key': this.serviceKey,
+      ...extra,
+    };
+    if (this.bypassSecret) {
+      headers['x-vercel-protection-bypass'] = this.bypassSecret;
+    }
+    return headers;
+  }
 
   async load(userId: string): Promise<UserDataBlob | null> {
     const url = `${this.frameworkUrl}/api/storage?domain=${encodeURIComponent(this.domain)}`;
     const res = await fetch(url, {
       method: 'GET',
-      headers: {
-        'X-Internal-Service-Key': this.serviceKey,
-        'X-User-Id': userId,
-      },
+      headers: this.buildHeaders({ 'X-User-Id': userId }),
     });
 
     if (!res.ok) {
@@ -73,11 +82,7 @@ class FrameworkStorageProvider implements StorageProvider {
 
     const res = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Internal-Service-Key': this.serviceKey,
-        'X-User-Id': userId,
-      },
+      headers: this.buildHeaders({ 'Content-Type': 'application/json', 'X-User-Id': userId }),
       body: JSON.stringify({ data: sliceData }),
     });
 
@@ -91,6 +96,7 @@ export function createFrameworkStorageProvider(config: {
   frameworkUrl: string;
   serviceKey: string;
   domain: Domain;
+  bypassSecret?: string;
 }): StorageProvider {
-  return new FrameworkStorageProvider(config.frameworkUrl, config.serviceKey, config.domain);
+  return new FrameworkStorageProvider(config.frameworkUrl, config.serviceKey, config.domain, config.bypassSecret);
 }
