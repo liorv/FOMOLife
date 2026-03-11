@@ -207,12 +207,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       
       if (!senderTab) return; // Ignore messages from unknown sources for other message types
 
-      // Prevent loops: ignore colorpicker-open events that originate from this window
-      // (those are the framework's own open notifications posted to window)
-      if (type === 'colorpicker-open' && event.source === window) {
-        console.debug('[FrameworkHost] ignoring colorpicker-open originating from same window');
-        return;
-      }
+      
 
       if (type === 'thumb-icon' && typeof icon === 'string') {
         setAppConfigs(prev => new Map(prev).set(senderTab, { ...prev.get(senderTab)!, icon }));
