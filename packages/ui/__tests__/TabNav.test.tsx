@@ -7,7 +7,7 @@ test('TabNav renders tabs and handles click', () => {
   const tabs = [
     { key: 'tasks', label: 'A', icon: 'a' },
     { key: 'people', label: 'B', icon: 'b' },
-  ] as const;
+  ];
   const change = jest.fn();
   const { rerender } = render(<TabNav active="tasks" tabs={tabs} onChange={change} />);
   const btnA = screen.getByText('A').closest('button');
