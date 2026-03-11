@@ -1,6 +1,9 @@
 import 'server-only';
 
-import { loadPersistedUserData, savePersistedUserData, PersistedUserData } from '../../../lib/server/storage';
+import { createStorageProvider } from '../../../lib/server/storage-factory';
+import type { PersistedUserData } from '../../../lib/server/storage';
+
+const storage = createStorageProvider();
 
 export interface TaskItem {
   id: string;
@@ -26,9 +29,9 @@ const tasksByUser = new Map<string, TaskItem[]>();
 
 async function savePersisted(userId: string): Promise<void> {
   try {
-    const existing = await loadPersistedUserData(userId) || { tasks: [], projects: [], people: [], groups: [] };
+    const existing = (await storage.load(userId)) || { tasks: [], projects: [], people: [], groups: [] };
     const data: PersistedUserData = { ...existing, tasks: tasksByUser.get(userId) || [] };
-    await savePersistedUserData(userId, data);
+    await storage.save(userId, data);
     console.log('tasksStore: persisted data');
   } catch (err) {
     console.error('tasksStore: failed to persist', err);
@@ -41,7 +44,7 @@ async function getOrInitUserTasks(userId: string): Promise<TaskItem[]> {
   if (existing) return existing;
 
   console.log("tasksStore: initializing tasks for user", userId);
-  const persisted = await loadPersistedUserData(userId);
+  const persisted = await storage.load(userId);
   if (persisted && Array.isArray(persisted.tasks) && persisted.tasks.length > 0) {
     tasksByUser.set(userId, persisted.tasks);
     return persisted.tasks;

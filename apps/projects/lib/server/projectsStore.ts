@@ -1,6 +1,9 @@
 import 'server-only';
 
-import { loadPersistedUserData, savePersistedUserData, PersistedUserData } from '../../../lib/server/storage';
+import { createStorageProvider } from '../../../lib/server/storage-factory';
+import type { PersistedUserData } from '../../../lib/server/storage';
+
+const storage = createStorageProvider();
 
 export interface ProjectTaskPerson {
   name: string;
@@ -90,7 +93,7 @@ async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   const existing = projectsByUser.get(userId);
   if (existing) return existing;
 
-  const persisted = await loadPersistedUserData(userId).catch(() => null);
+  const persisted = await storage.load(userId).catch(() => null);
   if (persisted) {
     const persistedProjects = Array.isArray(persisted.projects) ? persisted.projects : [];
     const normalizedPersisted = persistedProjects.map((project) => ensureProjectLevelTasks(project));
@@ -187,8 +190,8 @@ export async function createProject(
   const normalized = ensureProjectLevelTasks(project);
   current.push(normalized);
   projectsByUser.set(userId, current);
-  const persisted = (await loadPersistedUserData(userId).catch(() => null)) ?? { tasks: [], people: [] };
-  await savePersistedUserData(userId, { ...persisted, projects: current.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await storage.save(userId, { ...persisted, projects: current.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return normalized;
 }
 
@@ -205,8 +208,8 @@ export async function updateProject(
   });
   const updated = next.find((item) => item.id === id) ?? null;
   projectsByUser.set(userId, next);
-  const persisted = (await loadPersistedUserData(userId).catch(() => null)) ?? { tasks: [], people: [] };
-  await savePersistedUserData(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return updated;
 }
 
@@ -214,7 +217,7 @@ export async function deleteProject(userId: string, id: string): Promise<boolean
   const current = await getOrInitUserProjects(userId);
   const next = current.filter((item) => item.id !== id);
   projectsByUser.set(userId, next);
-  const persisted = (await loadPersistedUserData(userId).catch(() => null)) ?? { tasks: [], people: [] };
-  await savePersistedUserData(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return next.length !== current.length;
 }

@@ -3,7 +3,10 @@ import 'server-only';
 import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myorg/types';
 
 import jwt from 'jsonwebtoken';
-import { loadPersistedUserData, savePersistedUserData, PersistedUserData } from '../../../lib/server/storage';
+import { createStorageProvider } from '../../../lib/server/storage-factory';
+import type { PersistedUserData } from '../../../lib/server/storage';
+
+const storage = createStorageProvider();
 
 const contactsByUser = new Map<string, Contact[]>();
 // simple in-memory groups per user
@@ -14,13 +17,13 @@ const groupInviteByToken = new Map<string, { ownerUserId: string; groupId: strin
 
 async function savePersisted(userId: string): Promise<void> {
   try {
-    const existing = await loadPersistedUserData(userId) || { tasks: [], projects: [], people: [], groups: [] };
+    const existing = (await storage.load(userId)) || { tasks: [], projects: [], people: [], groups: [] };
     const data: PersistedUserData = { 
       ...existing, 
       people: contactsByUser.get(userId) || [],
       groups: groupsByUser.get(userId) || []
     };
-    await savePersistedUserData(userId, data);
+    await storage.save(userId, data);
     console.log('contactsStore: persisted data');
   } catch (err) {
     console.error('contactsStore: failed to persist', err);
@@ -31,7 +34,7 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
   const existing = contactsByUser.get(userId);
   if (existing) return existing;
 
-  const persisted = await loadPersistedUserData(userId);
+  const persisted = await storage.load(userId);
   if (persisted && Array.isArray(persisted.people)) {
     contactsByUser.set(userId, persisted.people);
     return persisted.people;
@@ -45,7 +48,7 @@ async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {
   const existing = groupsByUser.get(userId);
   if (existing) return existing;
 
-  const persisted = await loadPersistedUserData(userId);
+  const persisted = await storage.load(userId);
   if (persisted && Array.isArray(persisted.groups)) {
     groupsByUser.set(userId, persisted.groups);
     return persisted.groups;
@@ -354,7 +357,7 @@ export async function createGroup(userId: string, input: ContactGroupInput): Pro
   };
   current.push(group);
   groupsByUser.set(userId, current);
-  savePersisted();
+  await savePersisted(userId);
   return group;
 }
 
@@ -385,7 +388,7 @@ export async function acceptGroupInvite(userId: string, token: string): Promise<
   if (!group.contactIds.includes(invite.contactId)) {
     group.contactIds = [...group.contactIds, invite.contactId];
     groupsByUser.set(invite.ownerUserId, ownerGroups);
-    savePersisted();
+    await savePersisted(invite.ownerUserId);
   }
 
   groupInviteByToken.delete(token);
@@ -397,7 +400,7 @@ export async function updateGroup(userId: string, id: string, patch: Partial<Con
   const next = current.map((g) => (g.id === id ? { ...g, ...(patch.name ? { name: patch.name } : {}), ...(patch.contactIds ? { contactIds: patch.contactIds } : {}) } : g));
   const updated = next.find((g) => g.id === id) ?? null;
   groupsByUser.set(userId, next);
-  savePersisted();
+  await savePersisted(userId);
   return updated;
 }
 
@@ -405,7 +408,7 @@ export async function deleteGroup(userId: string, id: string): Promise<boolean> 
   const current = getOrInitUserGroups(userId);
   const next = current.filter((g) => g.id !== id);
   groupsByUser.set(userId, next);
-  savePersisted();
+  await savePersisted(userId);
   return next.length !== current.length;
 }
 
@@ -416,6 +419,6 @@ export async function leaveGroup(userId: string, groupId: string): Promise<boole
 
   const next = current.filter((item) => item.id !== groupId);
   groupsByUser.set(userId, next);
-  savePersisted();
+  await savePersisted(userId);
   return true;
 }
