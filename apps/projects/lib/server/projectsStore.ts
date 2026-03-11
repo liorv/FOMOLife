@@ -101,71 +101,9 @@ async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
     return normalizedPersisted;
   }
 
-  const seed: ProjectItem[] = [
-    {
-      id: 'p1',
-      text: 'Launch Website',
-      color: pickColor(0),
-      subprojects: [
-        {
-          id: 'sp1',
-          text: 'Landing Page',
-          tasks: [
-            {
-              id: 't1',
-              text: 'Draft hero copy',
-              done: false,
-              dueDate: null,
-              favorite: false,
-              people: [],
-            },
-          ],
-          collapsed: true,
-        },
-        {
-          id: 'sp2',
-          text: 'Checkout',
-          tasks: [
-            {
-              id: 't2',
-              text: 'Confirm payment success flow',
-              done: false,
-              dueDate: null,
-              favorite: true,
-              people: [],
-            },
-          ],
-          collapsed: true,
-        },
-      ],
-    },
-    {
-      id: 'p2',
-      text: 'Marketing Sprint',
-      color: pickColor(1),
-      subprojects: [
-        {
-          id: 'sp3',
-          text: 'Email Sequence',
-          tasks: [
-            {
-              id: 't3',
-              text: 'Write onboarding email',
-              done: false,
-              dueDate: null,
-              favorite: false,
-              people: [],
-            },
-          ],
-          collapsed: true,
-        },
-      ],
-    },
-  ];
-
-  const hydrated = seed.map((project) => ensureProjectLevelTasks(project));
-  projectsByUser.set(userId, hydrated);
-  return hydrated;
+  // No persisted projects — start empty (no seed data).
+  projectsByUser.set(userId, []);
+  return [];
 }
 
 export async function listProjects(userId: string): Promise<ProjectItem[]> {

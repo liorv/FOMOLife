@@ -30,7 +30,7 @@ export default function FrameworkColorPickerOverlay({ colors, open: controlledOp
   }, [controlledSelectedColor]);
 
   const handleClose = useCallback(() => {
-    console.debug('[FrameworkColorPickerOverlay] handleClose invoked — closing overlay');
+    console.debug('[ColorPickerOverlay] close', { controlled: !!onClose });
     if (onClose) {
       onClose();
     } else {
@@ -39,12 +39,12 @@ export default function FrameworkColorPickerOverlay({ colors, open: controlledOp
   }, [onClose]);
 
   const handleColorSelect = useCallback((color: string) => {
+    console.debug('[ColorPickerOverlay] select', { color, controlled: !!onSelect });
     if (onSelect) {
       onSelect(color);
     } else {
       // Legacy behavior: post message to window so host can forward it
       try {
-        console.debug('[FrameworkColorPickerOverlay] handleColorSelect — sending color-selected', { color });
         window.postMessage({ type: 'color-selected', color }, '*');
       } catch (err) {
         console.warn('Failed to send color selection:', err);
@@ -62,7 +62,8 @@ export default function FrameworkColorPickerOverlay({ colors, open: controlledOp
       // Only handle colorpicker control messages here — ignore other app messages
       if (type !== 'colorpicker-open' && type !== 'colorpicker-close') return;
       const { _from, _itemId, _itemType, selectedColor } = event.data as any;
-      console.debug('[FrameworkColorPickerOverlay] received message', { type, _from, _itemId, _itemType, selectedColor, origin: event.origin });
+      // received colorpicker control message
+      console.debug('[ColorPickerOverlay] message', { type, origin: event.origin, selectedColor });
 
       if (type === 'colorpicker-open') {
         if (typeof selectedColor === 'string') setSelectedColor(selectedColor);

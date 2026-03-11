@@ -74,14 +74,9 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
     return persisted.people;
   }
 
-  // seed default contacts for a new user (tests expect two seeded contacts)
-  const seeded: Contact[] = [
-    { id: 'c1', name: 'Person One', login: 'p1@example.com', status: 'not_linked', inviteToken: null },
-    { id: 'c2', name: 'Person Two', login: 'p2@example.com', status: 'not_linked', inviteToken: null },
-  ];
-
-  contactsByUser.set(userId, seeded);
-  return seeded;
+  // No persisted data found — start with an empty list (no seed data).
+  contactsByUser.set(userId, []);
+  return [];
 }
 
 async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {

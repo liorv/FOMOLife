@@ -72,6 +72,19 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Periodically log collected thumb-config counts in dev mode
+  useEffect(() => {
+    if (!devMode) return;
+    const id = setInterval(() => {
+      const counts = Array.from(msgCountsRef.current.entries());
+      if (counts.length === 0) return;
+      counts.sort((a, b) => b[1] - a[1]);
+      console.debug('[FrameworkHost] thumb-config counts (top)', counts.slice(0, 10));
+      msgCountsRef.current.clear();
+    }, MSG_LOG_INTERVAL);
+    return () => clearInterval(id);
+  }, [devMode]);
+
   const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects');
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
@@ -122,6 +135,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const frameKey = activeTabConfig?.key ?? activeTab;
   const iframeRefs = useRef<Map<string, HTMLIFrameElement | null>>(new Map());
   const [appConfigs, setAppConfigs] = useState<Map<string, { icon: string; action: string }>>(new Map());
+  // Diagnostic counters (dev-mode): count `thumb-config` messages per origin
+  const msgCountsRef = useRef<Map<string, number>>(new Map());
+  const MSG_LOG_INTERVAL = 5000; // ms
 
   const isCurrentTabLoaded = loadedApps.has(activeTab);
   const config = appConfigs.get(activeTab) || { icon: '', action: 'thumb-fab' };
@@ -195,6 +211,15 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         subprojectId?: string;
       };
       const senderTab = getTabFromSource(event.source) || activeTab;
+      // Trace incoming messages (avoid logging event.source/window)
+      console.debug('[FrameworkHost] incoming message', { type, senderTab, origin: event.origin });
+      // Dev-mode diagnostic: count thumb-config messages per origin so we can
+      // detect noisy apps without suppressing logs.
+      if (devMode && type === 'thumb-config') {
+        const key = event.origin || senderTab || 'unknown';
+        const prev = msgCountsRef.current.get(key) || 0;
+        msgCountsRef.current.set(key, prev + 1);
+      }
       
       // NOTE: color selection from the overlay will be handled via the
       // `onSelect` prop passed to the overlay. We no longer expect the
@@ -215,12 +240,14 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
           resolvedIcon = icon.startsWith('/') && event.origin ? `${event.origin}${icon}` : icon;
         }
         const newAction = typeof action === 'string' ? action : 'thumb-fab';
+        console.debug('[FrameworkHost] thumb-config', { senderTab, icon: resolvedIcon, action: newAction });
         setAppConfigs(prev => new Map(prev).set(senderTab, { icon: resolvedIcon, action: newAction }));
         // mark sender tab as loaded so thumb config is active in tests
-        setLoadedApps(prev => new Set(prev).add(senderTab));
+        setLoadedApps(prev => prev.has(senderTab) ? prev : new Set(prev).add(senderTab));
         // Route action to registered handler if present
         const handler = (actionHandlers as any)[newAction];
         if (typeof handler === 'function') {
+          console.debug('[FrameworkHost] invoking action handler', { action: newAction, senderTab });
           try {
             handler(event.data, event.source as Window, senderTab);
           } catch (err) {
@@ -235,7 +262,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
           setSearchPlaceholder(null); // Reset to default
         }
       } else if (type === 'app-loaded' && typeof appId === 'string') {
-        setLoadedApps(prev => new Set(prev).add(appId));
+        console.debug('[FrameworkHost] app-loaded', { appId, senderTab });
+        setLoadedApps(prev => prev.has(appId) ? prev : new Set(prev).add(appId));
         // Acknowledge the message
         try {
           if (event.source && typeof event.source === 'object' && 'postMessage' in event.source) {
@@ -251,14 +279,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         const itemId = projectId || subprojectId;
         const itemType = projectId ? 'project' : 'subproject';
         const sender = event.source as Window;
-        console.debug('[FrameworkHost] received colorpicker-open from', { senderTab, itemId, itemType, origin: event.origin });
+        // Received colorpicker-open from iframe
         setColorPickerSender(sender);
         colorPickerSenderRef.current = sender;
         colorPickerSenderTabRef.current = senderTab || null;
         colorPickerItemIdRef.current = itemId || null;
         colorPickerItemTypeRef.current = itemType;
         // Open overlay via state; include any provided selectedColor for UX
-        setOverlaySelectedColor(typeof (event.data as any).selectedColor === 'string' ? (event.data as any).selectedColor : undefined);
+        const sc = typeof (event.data as any).selectedColor === 'string' ? (event.data as any).selectedColor : undefined;
+        console.debug('[FrameworkHost] opening overlay', { senderTab, itemId, itemType, selectedColor: sc });
+        setOverlaySelectedColor(sc);
         setOverlayOpen(true);
       }
     };
@@ -280,13 +310,11 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     const targetTab = colorPickerSenderTabRef.current;
     const iframeWin = targetTab ? iframeRefs.current.get(targetTab)?.contentWindow : null;
     const target = iframeWin || colorPickerSenderRef.current;
+    console.debug('[FrameworkHost] forwarding color-selected', { targetTab, hasIframe: !!iframeWin, hasSenderRef: !!colorPickerSenderRef.current, message });
     if (!target) {
       console.warn('[FrameworkHost] no target available to forward color-selected', { targetTab, senderRef: !!colorPickerSenderRef.current });
     } else {
       try {
-        // Avoid including the Window object directly in logs (can trigger
-        // cross-origin access when the devtools tries to inspect it).
-        console.debug('[FrameworkHost] forwarding color-selected to app iframe', { targetTab, hasIframe: !!iframeWin, hasSenderRef: !!colorPickerSenderRef.current, message });
         (target as any).postMessage(message, '*');
       } catch (err) {
         console.warn('Failed to send color selection to app:', err);

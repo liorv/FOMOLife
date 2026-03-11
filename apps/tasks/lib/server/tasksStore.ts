@@ -51,27 +51,9 @@ async function getOrInitUserTasks(userId: string): Promise<TaskItem[]> {
     return persisted.tasks;
   }
 
-  const seeded: TaskItem[] = [
-    {
-      id: 'task-1',
-      text: 'Review weekly priorities',
-      done: false,
-      dueDate: null,
-      favorite: true,
-      description: 'Align this list with current project commitments.',
-    },
-    {
-      id: 'task-2',
-      text: 'Schedule deep-work block',
-      done: false,
-      dueDate: null,
-      favorite: false,
-      description: '',
-    },
-  ];
-
-  tasksByUser.set(userId, seeded);
-  return seeded;
+  // No persisted tasks — start with an empty list (no seed data).
+  tasksByUser.set(userId, []);
+  return [];
 }
 
 export async function listTasks(userId: string): Promise<TaskItem[]> {
