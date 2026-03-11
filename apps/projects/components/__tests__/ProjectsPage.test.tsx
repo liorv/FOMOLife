@@ -60,12 +60,9 @@ describe('ProjectsPage', () => {
       else url = String(input || '');
 
       if (url.includes('/api/projects')) {
-        return new Response(JSON.stringify({ projects: [sampleProject] }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        });
+        return ({ ok: true, status: 200, json: async () => ({ projects: [sampleProject] }) } as unknown) as Response;
       }
-      return new Response(JSON.stringify({}), { status: 200, headers: { 'content-type': 'application/json' } });
+      return ({ ok: true, status: 200, json: async () => ({}) } as unknown) as Response;
     }) as unknown as typeof global.fetch;
   });
   it('loads and displays projects from the API', async () => {
