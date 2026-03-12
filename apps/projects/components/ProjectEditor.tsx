@@ -251,14 +251,12 @@ export default function ProjectEditor({
       return;
     }
 
-    const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) =>
-        s.id === id ? { ...s, color } : s,
-      ),
-    };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    const updatedSubprojects = (local.subprojects || []).map((s) =>
+      s.id === id ? { ...s, color } : s,
+    );
+    setLocal({ ...local, subprojects: updatedSubprojects });
+    // Only send the changed subprojects — not the full project — to minimise payload
+    safeOnApplyChange({ subprojects: updatedSubprojects });
   };
 
   const toggleSubCollapse = (id: string) => {

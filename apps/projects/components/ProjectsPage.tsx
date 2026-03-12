@@ -261,7 +261,9 @@ export default function ProjectsPage({ canManage }: Props) {
       pendingBlankSubRef.current = hasBlank;
     }
 
-    // Use the updated project object from ProjectEditor as the source of truth
+    // Optimistic update — apply immediately so the UI reflects the change without waiting for the API
+    setProjects((prev) => prev.map((item) => (item.id === projectId ? { ...item, ...updated } : item)));
+
     try {
       const next = await apiClient.updateProject(projectId, updated);
       setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
@@ -278,12 +280,12 @@ export default function ProjectsPage({ canManage }: Props) {
   };
 
   const handleProjectColorChange = async (projectId: string, newColor: string) => {
-    if (!canManage) {
-      return;
-    }
+    if (!canManage) return;
+    // Optimistic update
+    setProjects((prev) => prev.map((item) => (item.id === projectId ? { ...item, color: newColor } : item)));
     try {
-      const updated = await apiClient.updateProject(projectId, { color: newColor });
-      setProjects((prev) => prev.map((item) => (item.id === projectId ? updated : item)));
+      const next = await apiClient.updateProject(projectId, { color: newColor });
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
     } catch (err) {
       console.error('Failed to update project color:', err);
     }
