@@ -256,6 +256,7 @@ export default function SubprojectRow({
       ) : (
         <span className={`${styles.rowTitle} subproject-row-title subproject-name-display`} title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
           <span className={`${styles.rowNameText} subproject-name-text`}>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
+          <span className={`${styles.taskCount} subproject-task-count`}>({doneCount}/{count})</span>
           {!sub.isProjectLevel && (
             <button
               className="subproject-name-edit-btn"
@@ -268,17 +269,8 @@ export default function SubprojectRow({
         </span>
       )}
 
-      {/* Right group: stats, description icon, owners, and menu button */}
+      {/* Right group: description icon, owners, and menu button */}
       <div className={`${styles.rightGroup} subproject-right-group`}>
-        <span
-          className={`${styles.rowStats} subproject-row-stats`}
-          title={`${count} tasks, ${percent}% complete`}
-        >
-          <span className={`material-icons ${styles.statsIcon} stats-icon`} aria-hidden="true">
-            assignment
-          </span>
-          {count} <span className="task-label">task{count !== 1 ? "s" : ""}</span> <span className="stat-percent">({percent}%)</span>
-        </span>
         {hasDescription && (
           <span className={`material-icons ${styles.descIcon} desc-icon`} title="Has description">
             description

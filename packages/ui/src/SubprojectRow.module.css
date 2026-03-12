@@ -83,12 +83,11 @@
   z-index: 10;
 }
 
-.rowStats {
-  font-size: 0.9em;
-  color: #555;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.taskCount {
+  font-size: 0.85em;
+  color: #777;
+  margin-left: 4px;
+  flex-shrink: 0;
 }
 
 .owners {
