@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Deploy one or all Next.js apps under the 'apps' folder to Vercel.
-# Converted from PowerShell script.
 
 APP=""
 FORCE=""

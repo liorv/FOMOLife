@@ -83,6 +83,7 @@ export default function SubprojectRow({
   const count = tasks.length;
   const doneCount = tasks.filter((t) => t.done).length;
   const percent = count ? Math.round((doneCount / count) * 100) : 0;
+  const taskCountLabel = count === 0 ? "(EMPTY)" : doneCount === count ? "(DONE)" : `(${doneCount}/${count})`;
   const hasDescription = sub.description && sub.description.trim() !== "";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const owners = (sub.owners || (sub as any).people || []) as { name: string }[];
@@ -199,7 +200,6 @@ export default function SubprojectRow({
       style={{ 
         opacity: isDragging ? 0.5 : 1,
         backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : (sub.color ? `${sub.color}15` : 'white'),
-        borderLeft: isDragOverSubprojectTile ? '3px solid #1a73e8' : 'none',
         transition: 'all 0.2s ease',
         cursor: 'pointer',
       }}
@@ -256,6 +256,7 @@ export default function SubprojectRow({
       ) : (
         <span className={`${styles.rowTitle} subproject-row-title subproject-name-display`} title={sub.isProjectLevel ? "Tasks" : sub.text} style={subprojectColor ? { color: subprojectColor } : {}}>
           <span className={`${styles.rowNameText} subproject-name-text`}>{sub.isProjectLevel ? "Tasks" : (sub.text || "Untitled")}</span>
+          <span className={`${styles.taskCount} subproject-task-count`}>{taskCountLabel}</span>
           {!sub.isProjectLevel && (
             <button
               className="subproject-name-edit-btn"
@@ -268,17 +269,8 @@ export default function SubprojectRow({
         </span>
       )}
 
-      {/* Right group: stats, description icon, owners, and menu button */}
+      {/* Right group: description icon, owners, and menu button */}
       <div className={`${styles.rightGroup} subproject-right-group`}>
-        <span
-          className={`${styles.rowStats} subproject-row-stats`}
-          title={`${count} tasks, ${percent}% complete`}
-        >
-          <span className={`material-icons ${styles.statsIcon} stats-icon`} aria-hidden="true">
-            assignment
-          </span>
-          {count} <span className="task-label">task{count !== 1 ? "s" : ""}</span> <span className="stat-percent">({percent}%)</span>
-        </span>
         {hasDescription && (
           <span className={`material-icons ${styles.descIcon} desc-icon`} title="Has description">
             description

@@ -60,11 +60,7 @@ function SummaryCard({
       }
     >
       <span className="material-icons dashboard-card__icon">{icon}</span>
-      <div className="dashboard-card__body">
-        <span className="dashboard-card__value">{value}</span>
-        <span className="dashboard-card__label">{label}</span>
-      </div>
-      {active && <span className="dashboard-card__active-dot" />}
+      <span className="dashboard-card__value">{value}</span>
     </div>
   );
 }
@@ -303,11 +299,6 @@ export default function ProjectsDashboard({
 
             {/* Summary chips — contextual to selected project */}
             <div className="dashboard-summary">
-              <SummaryCard
-                icon="folder_copy"
-                label="Sub-Projects"
-                value={`${completedSubprojects} / ${scopedSubprojects.length}`}
-              />
               <SummaryCard
                 icon="check_circle"
                 label="Completed"

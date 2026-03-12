@@ -696,7 +696,7 @@ export default function ProjectEditor({
         </div>
       ) : (
         /* ── Normal subproject view ──────────────────────────────────────── */
-        <>
+        <div className="subprojects-list">
       {(local.subprojects || []).map((sub) => (
         <SubprojectEditor
           key={sub.id}
@@ -734,7 +734,7 @@ export default function ProjectEditor({
           isDragging={draggedSubprojectId === sub.id}
         />
       ))}
-        </>
+        </div>
       )}
 
     </div>

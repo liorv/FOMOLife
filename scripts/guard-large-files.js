@@ -113,11 +113,14 @@ function collectPushObjects(updates) {
       continue;
     }
 
-    const range = isAllZeroSha(update.remoteSha)
-      ? update.localSha
-      : `${update.remoteSha}..${update.localSha}`;
+    // For a new branch (remoteSha is all zeros), only check objects that are
+    // not already reachable from any existing remote ref — those are already on
+    // the server and don't need to be re-validated.
+    const revListArgs = isAllZeroSha(update.remoteSha)
+      ? ['rev-list', '--objects', update.localSha, '--not', '--remotes']
+      : ['rev-list', '--objects', `${update.remoteSha}..${update.localSha}`];
 
-    const output = runGit(['rev-list', '--objects', range]);
+    const output = runGit(revListArgs);
     if (!output) continue;
 
     const lines = output.split('\n').map((line) => line.trim()).filter(Boolean);

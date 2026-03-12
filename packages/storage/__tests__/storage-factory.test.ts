@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { createStorageProvider } from '../server/storage-factory';
+import { createStorageProvider } from '../src/storage-factory';
 
 describe('storage factory and providers', () => {
   test('returns file provider in development and can save/load', async () => {
@@ -13,7 +13,6 @@ describe('storage factory and providers', () => {
     await provider.save(userId, payload as any);
     const loaded = await provider.load(userId);
     expect(loaded).toEqual(payload);
-    // cleanup
     try {
       fs.rmSync(tmp, { recursive: true, force: true });
     } catch {}
