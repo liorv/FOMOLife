@@ -389,6 +389,16 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       )}
     </div>
     </div>
+    {canManage && displayReady && (
+      <button
+        type="button"
+        className="content-fab"
+        aria-label="Add contact"
+        onClick={() => void addContact()}
+      >
+        <span className="material-icons">person_add</span>
+      </button>
+    )}
   </main>
 );
 }

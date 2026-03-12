@@ -15,8 +15,9 @@
   user-select: none;
 }
 
-.subprojectRow:hover {
-  background: #fafafa;
+.subprojectRow.expanded {
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
 }
 
 .expandBtn {

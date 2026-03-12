@@ -173,6 +173,10 @@ export default function SubprojectRow({
       // Ensure the dropdown doesn't go off the left edge either
       left = Math.max(threshold, left);
 
+      const top = isBottomCutOff
+        ? buttonRect.top - dropdownRect.height
+        : buttonRect.bottom;
+
       setDropdownStyle({ top: `${top}px`, left: `${left}px` });
     };
 
@@ -187,7 +191,7 @@ export default function SubprojectRow({
 
   return (
     <div 
-      className={`${styles.subprojectRow} subproject-row${expanded ? " expanded" : ""}`} 
+      className={`${styles.subprojectRow}${expanded ? ` ${styles.expanded}` : ""} subproject-row${expanded ? " expanded" : ""}`} 
       role="button"
       onClick={() => {
         if (editingName) return;

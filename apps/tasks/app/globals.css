@@ -78,18 +78,6 @@ body {
   font-size: 1.1rem;
 }
 
-.tasks-bottom-add {
-  margin: 0;
-  border-radius: 0;
-}
-
-.tasks-bottom-add .add-bar {
-  margin: 0;
-  padding: 0;
-  position: static;
-  top: auto;
-}
-
 /* focus styling for wrapper is handled by AddBar via props; input bg colors go here */
 
 /* tasks input should default to google button background, white when focused */

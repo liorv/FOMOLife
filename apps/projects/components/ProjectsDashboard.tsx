@@ -414,6 +414,26 @@ export default function ProjectsDashboard({
         </>
       )}
 
+      {(onAddProject || onAddSubproject) && (
+        <button
+          type="button"
+          className="content-fab"
+          aria-label={selectedProject ? 'Add subproject' : 'Add project'}
+          onClick={() => {
+            if (selectedProject) {
+              onAddSubproject?.(selectedProject.id, '');
+            } else {
+              onAddProject?.();
+            }
+          }}
+        >
+          {selectedProject ? (
+            <img src="/assets/add-sub-project.svg" alt="" />
+          ) : (
+            <img src="/assets/add-project.svg" alt="" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

@@ -412,10 +412,10 @@ export default function TasksPage({ canManage }: Props) {
       if (!updated) return;
       setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     } catch (error) {
-      console.error('  update error', error);
       if (isTaskNotFoundError(error)) {
         return;
       }
+      console.error('  update error', error);
       throw error;
     }
   };
@@ -457,8 +457,8 @@ export default function TasksPage({ canManage }: Props) {
         <div style={{ height: '100vh' }} />
       ) : (
         <div className="content-panel">
-          <div className={`container ${styles.inlineContainer}`}>
-        {!isEmbedded ? (
+          <section className="content">
+          {!isEmbedded ? (
           <div className={styles.searchBar}>
             <input
               value={search}
@@ -601,8 +601,9 @@ export default function TasksPage({ canManage }: Props) {
           )}
         </div>
 
+        {filters.length === 0 && (
         <div
-          className={`add-bar-wrapper tasks-bottom-add ${styles.addBarWrapper}`}
+          className={`add-bar-wrapper ${styles.addBarWrapper}`}
         >
           <AddBar
             type="tasks"
@@ -614,7 +615,23 @@ export default function TasksPage({ canManage }: Props) {
             focusStyle={{ background: '#e6f7ff' }}
           />
         </div>
-        </div>
+        )}
+        {canManage && filters.length === 0 && (
+          <button
+            type="button"
+            className="content-fab"
+            aria-label="Add task"
+            onClick={() => {
+              requestAnimationFrame(() => {
+                const el = document.getElementById('add-tasks-input') as HTMLInputElement | null;
+                if (el) el.focus();
+              });
+            }}
+          >
+            <span className="material-icons">add</span>
+          </button>
+        )}
+          </section>
         </div>
       )}
     </main>
