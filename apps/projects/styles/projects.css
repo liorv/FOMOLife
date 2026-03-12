@@ -1,12 +1,25 @@
-.project-edit-accordion summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-
 .project-editor .editor-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+}
+
+.project-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.project-editor .subprojects-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.project-editor .subprojects-list .subproject {
+  width: 100%;
 }
 
 .project-editor input {
@@ -51,7 +64,6 @@
 }
 
 .subproject .task-row {
-  gap: 4px;
   padding-left: 8px;
   padding-right: 60px; /* still leave room for right controls */
   font-size: 0.9rem;
@@ -96,9 +108,9 @@
   20. SUBPROJECT (Expanded & Collapsed)
    ============================================================ */
 .project-editor .subproject {
-  margin: 0;
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
+  margin: 5px;
+  border-radius: 10px;
+  overflow: visible;
   cursor: grab;
   user-select: none;
   transition: opacity 0.2s ease;
@@ -125,7 +137,7 @@
   overflow: visible;
   background: #fff; /* keep content white for readability */
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   transition: none;
   max-height: none;
   padding: 0;
@@ -136,7 +148,7 @@
 /* wrapper receives shadow when subproject is open */
 .project-editor .subproject.expanded {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-radius: 6px;
+  border-radius: 10px;
 }
 
 /* inline renaming inputs */
@@ -150,8 +162,7 @@
 .subproject-name-input-expanded {
   font-size: 14px;
   font-weight: 600;
-  border: none;
-  border-bottom: 2px solid var(--color-primary);
+  border: 2px solid var(--color-primary);
   outline: none;
   background: #fff;
   color: var(--color-text);
@@ -182,32 +193,11 @@
   opacity: 1;
 }
 
-.collapse-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2px;
-  font-size: 1.2rem;
-}
-
-
-
 .subproject-name-text {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.subproject-row-name-input {
-  width: 100%;
-  font-size: 1rem;
-  padding: 2px 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
 }
 
 .subproject-row-stats {
@@ -332,11 +322,6 @@
 
 .project-menu-dropdown .delete-menu-item:hover .material-icons {
   color: #d33b27;
-}
-
-.task-list {
-  list-style: disc inside;
-  padding-left: 0;
 }
 
 
@@ -657,12 +642,6 @@
 /* ============================================================
   25. EDITABLE INDICATOR
    ============================================================ */
-.subproject-name-container,
-.person-name-container {
-  position: relative;
-  display: inline-block;
-}
-
 .editable-indicator {
   font-size: 0.75rem !important;
   color: #a0a0a0 !important;

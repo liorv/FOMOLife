@@ -3,8 +3,9 @@
   align-items: center;
   position: relative;
   background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border: 2px solid var(--color-border);
+
+  border-radius: 10px;
   padding: 0 16px;
   margin: 4px 0;
   box-sizing: border-box;
@@ -83,12 +84,11 @@
   z-index: 10;
 }
 
-.rowStats {
-  font-size: 0.9em;
-  color: #555;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.taskCount {
+  font-size: 0.85em;
+  color: #777;
+  margin-left: 4px;
+  flex-shrink: 0;
 }
 
 .owners {
@@ -135,16 +135,7 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-@media (max-width: 480px) {
-  .rowStats {
-    display: none;
-  }
-}
-
 @media (max-width: 290px) {
-  .rowStats {
-    display: none;
-  }
   .statsIcon {
     display: none;
   }

@@ -490,11 +490,7 @@ export default function TasksPage({ canManage }: Props) {
             }}
           >
             <span className="material-icons dashboard-card__icon">check_circle</span>
-            <div className="dashboard-card__body">
-              <span className="dashboard-card__value">{completedCount}</span>
-              <span className="dashboard-card__label">Completed</span>
-            </div>
-            {filters.includes('completed') ? <span className="dashboard-card__active-dot" /> : null}
+            <span className="dashboard-card__value">{completedCount}</span>
           </div>
 
           <div
@@ -517,11 +513,7 @@ export default function TasksPage({ canManage }: Props) {
             }}
           >
             <span className="material-icons dashboard-card__icon">star</span>
-            <div className="dashboard-card__body">
-              <span className="dashboard-card__value">{starredCount}</span>
-              <span className="dashboard-card__label">Starred</span>
-            </div>
-            {filters.includes('starred') ? <span className="dashboard-card__active-dot" /> : null}
+            <span className="dashboard-card__value">{starredCount}</span>
           </div>
 
           <div
@@ -544,11 +536,7 @@ export default function TasksPage({ canManage }: Props) {
             }}
           >
             <span className="material-icons dashboard-card__icon">warning</span>
-            <div className="dashboard-card__body">
-              <span className="dashboard-card__value">{overdueCount}</span>
-              <span className="dashboard-card__label">Overdue</span>
-            </div>
-            {filters.includes('overdue') ? <span className="dashboard-card__active-dot" /> : null}
+            <span className="dashboard-card__value">{overdueCount}</span>
           </div>
 
           <div
@@ -571,11 +559,7 @@ export default function TasksPage({ canManage }: Props) {
             }}
           >
             <span className="material-icons dashboard-card__icon">upcoming</span>
-            <div className="dashboard-card__body">
-              <span className="dashboard-card__value">{upcomingCount}</span>
-              <span className="dashboard-card__label">Upcoming</span>
-            </div>
-            {filters.includes('upcoming') ? <span className="dashboard-card__active-dot" /> : null}
+            <span className="dashboard-card__value">{upcomingCount}</span>
           </div>
         </div>
 
