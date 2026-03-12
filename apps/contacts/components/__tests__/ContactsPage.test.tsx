@@ -114,39 +114,6 @@ describe('ContactsPage', () => {
   });
 
 
-  it('replies with thumb-config and creates a new contact with focus when thumb is pressed', async () => {
-    const msgs: any[] = [];
-    window.addEventListener('message', (e) => msgs.push(e.data));
-
-    render(<ContactsPage canManage={true} currentUserId="u1" />);
-    await waitFor(() => expect(screen.queryByText('Loading contacts…')).not.toBeInTheDocument());
-
-    // initial thumb-icon message
-    await waitFor(() => msgs.some((m) => m.type === 'thumb-icon' && m.icon === 'person_add'));
-    act(() => window.postMessage({ type: 'get-thumb-config' }, '*'));
-    // we just care that some config event is posted, details aren't important
-    await waitFor(() => msgs.some((m) => m.type === 'thumb-config'));
-
-    // press thumb-fab (legacy) and verify contact added with default name and focused input
-    act(() => window.postMessage({ type: 'thumb-fab' }, '*'));
-    await waitFor(() => expect(screen.getByDisplayValue(DEFAULT_CONTACT_NAME)).toBeInTheDocument());
-    const input = screen.getByDisplayValue(DEFAULT_CONTACT_NAME);
-    expect(input).toHaveFocus();
-
-    // status should initially be "Not Linked" (and no banner is shown)
-    expect(screen.getByText('Not Linked')).toBeInTheDocument();
-    expect(screen.queryByText(/Invite link copied/)).not.toBeInTheDocument();
-
-    // also try the explicit add-contact action; should append another tile.
-    // only the most-recent tile uses an <input> element, so count by text
-    // rather than displayValue.
-    act(() => window.postMessage({ type: 'add-contact' }, '*'));
-    await waitFor(() => {
-      // there should now be two tiles regardless of whether they're inputs or spans
-      expect(document.querySelectorAll('.contact-tile').length).toBe(2);
-    });
-  });
-
   it('delete button removes contact from list', async () => {
     // prepare API client spies
     const api = fakeApi as any;

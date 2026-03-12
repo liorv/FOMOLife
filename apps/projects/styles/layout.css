@@ -137,22 +137,6 @@ body {
   z-index: 1;
 }
 
-/* Decorative splash logo (currently unused but preserved) */
-.logo-splash {
-  position: absolute;
-  top: -4px;
-  left: 0;
-  width: 160px;
-  height: 160px;
-  background-repeat: no-repeat;
-  background-position: 50% -25%;
-  background-size: contain;
-  opacity: 1;
-  pointer-events: none;
-  z-index: 0;
-  filter: none;
-  border-top-left-radius: var(--border-radius-lg);
-}
 
 
 /* ============================================================

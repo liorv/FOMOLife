@@ -136,18 +136,6 @@ export default function ProjectsPage({ canManage }: Props) {
     return () => window.removeEventListener('focus', handleFocus);
   }, [contactsBaseUrl, contactsClient]);
 
-  // Listen for search query updates from framework
-  useEffect(() => {
-    if (!isEmbedded) return;
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'search-query') {
-        setProjectSearch(event.data.query || '');
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [isEmbedded]);
-
   // Send app-loaded message when loading completes
   useEffect(() => {
     if (!isEmbedded || loading) return;
@@ -195,13 +183,25 @@ export default function ProjectsPage({ canManage }: Props) {
     };
   }, [isEmbedded, loading]);
 
-  // Configure search placeholder based on editing state
+  // Listen for search query updates from framework
   useEffect(() => {
     if (!isEmbedded) return;
-    const placeholder = editingProjectId ? 'Search tasks' : null; // null resets to default
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'search-query') {
+        setProjectSearch(event.data.query || '');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isEmbedded]);
+
+  // Notify framework of search context so the placeholder updates accordingly
+  useEffect(() => {
+    if (!isEmbedded) return;
+    const placeholder = editingProjectId ? 'Search tasks' : null;
     try {
       window.parent?.postMessage?.({ type: 'search-config', placeholder }, '*');
-    } catch (err) {
+    } catch {
       // ignore
     }
   }, [isEmbedded, editingProjectId]);

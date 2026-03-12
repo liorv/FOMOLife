@@ -1065,9 +1065,6 @@
   16b. PROJECTS DASHBOARD (new single-page layout)
    ============================================================ */
 
-.projects-search-clear:hover { color: var(--color-text); }
-.projects-search-clear .material-icons { font-size: 16px !important; }
-
 /* Outer wrapper: fills the .container flex space */
 .projects-dashboard {
   position: relative; /* for absolute home-bg watermark */
@@ -1294,27 +1291,6 @@
   white-space: normal;
   overflow: visible;
 }
-.dashboard-project-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.dashboard-project-delete {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 6px;
-  color: var(--color-text-muted);
-  transition: color 0.12s, background 0.12s;
-  display: flex;
-  align-items: center;
-}
-.dashboard-project-delete:hover {
-  color: var(--color-danger);
-  background: #fbe9e9;
-}
-
 /* Back button — deselects project (primary use: mobile) */
 .dashboard-back-btn {
   background: none;
@@ -1333,20 +1309,6 @@
   background: rgba(26, 115, 232, 0.08);
 }
 .dashboard-back-btn .material-icons { font-size: 18px !important; }
-
-/* Empty state when no project selected */
-.dashboard-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  color: var(--color-text-muted);
-  gap: 14px;
-  padding: 40px;
-}
-.dashboard-empty-state .material-icons { font-size: 52px !important; opacity: 0.4; }
-.dashboard-empty-state p { font-size: 15px; margin: 0; text-align: center; }
 
 /* Global stats chips shown in empty state */
 .dashboard-global-stats {

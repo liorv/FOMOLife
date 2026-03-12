@@ -139,51 +139,6 @@ export default function TasksPage({ canManage }: Props) {
     return () => window.removeEventListener('focus', onFocus);
   }, [contactsBaseUrl, contactsApi]);
 
-  // helper functions that describe this app's thumb button behaviour
-  const getThumbIcon = () => 'add';
-  // using a custom action value so the host doesn't accidentally trigger
-  // the old behaviour of creating a task.
-  const getThumbAction = () => 'focus-add';
-
-  useEffect(() => {
-    const handler = async (event: MessageEvent) => {
-      if (!event?.data) return;
-      if (event.data.type === 'focus-add' || event.data.type === 'thumb-fab') {
-        // thumb-fab is the legacy action; treat it the same as focus-add so the
-        // button works even if the host hasn't yet received a config reply.
-        requestAnimationFrame(() => {
-          const el = document.getElementById('add-tasks-input') as HTMLInputElement | null;
-          if (el) el.focus();
-        });
-      } else if (event.data.type === 'get-thumb-config') {
-        // host is asking what icon/action to use
-        try {
-          window.parent?.postMessage?.(
-            { type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() },
-            '*',
-          );
-        } catch (err) {
-          // ignore
-        }
-        // also mirror to `window` asynchronously so tests and same-window hosts receive it
-        try {
-          setTimeout(() => {
-            try {
-              window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
-            } catch {}
-          }, 0);
-        } catch (err) {
-          try {
-            window.postMessage({ type: 'thumb-config', icon: getThumbIcon(), action: getThumbAction() }, '*');
-          } catch {}
-        }
-      }
-    };
-
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [api, canManage]);
-
   // Send app-loaded message when loading completes
   useEffect(() => {
     if (!isEmbedded || loading) return;
