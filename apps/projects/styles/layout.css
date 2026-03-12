@@ -90,7 +90,9 @@ body {
   height: 100dvh;
   padding: 0;
   overflow: auto;
-  background: var(--color-bg);
+  background:
+    linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),
+    url('/assets/circuit-bg.png') center top / cover no-repeat;
   width: 100vw;
 }
 

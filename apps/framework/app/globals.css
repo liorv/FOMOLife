@@ -35,7 +35,9 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: auto;
-  background-color: var(--color-bg);
+  background:
+    linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),
+    url('/assets/circuit-bg.png') center top / cover no-repeat;
 }
 
 .app-outer {

@@ -142,6 +142,7 @@
   padding-right: 80px; /* reserve space for right-group icons */
   overflow: visible;
   box-sizing: border-box;
+  height:100%
 }
 
 .task-row .delete {
@@ -982,6 +983,7 @@
   border-radius: 12px;
   cursor: pointer;
   font-size: 0.9rem;
+  opacity: 1;
 }
 
 .filter-pill.starred {
@@ -1016,6 +1018,7 @@
   border-radius: 12px;
   background: #d0e8ff;
   font-size: 0.85rem;
+  opacity: 1;
 }
 
 .active-filter.starred {
