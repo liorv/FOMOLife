@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
-import { isNonEmptyString } from '@myorg/utils';
+import { isNonEmptyString, generateId } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
 import { ContactTile } from '@myorg/ui';
 import { createContactsApiClient } from '@/lib/client/contactsApi';
@@ -60,31 +60,22 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const addContact = async () => {
     if (!canManage) return;
 
-    // Use the ref to get the next number and increment it immediately
     const nextNumber = nextContactNumberRef.current++;
     const name = `New Contact (${nextNumber})`;
-
-    // placeholder contact with no invite; status not_linked
-    const contact: Contact = {
-      id: '',
-      name,
-      status: 'not_linked',
-      login: '',
-    };
-
+    const tempId = generateId();
+    const optimisticContact: Contact = { id: tempId, name, status: 'not_linked' };
+    setContacts((prev) => [...prev, optimisticContact]);
+    setNewContactId(tempId);
     try {
-      const created = await apiClient.createContact({
-        name: contact.name,
-        ...(contact.login ? { login: contact.login } : {}),
-      });
-
-      setContacts((prev) => [...prev, created]);
+      const created = await apiClient.createContact({ name });
+      setContacts((prev) => prev.map((c) => (c.id === tempId ? created : c)));
       setNewContactId(created.id);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create contact');
-      // If creation failed, decrement the ref to avoid skipping numbers
+      setContacts((prev) => prev.filter((c) => c.id !== tempId));
+      setNewContactId(null);
       nextContactNumberRef.current--;
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to create contact');
     }
   };
 
@@ -359,11 +350,13 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
                         }
                       }}
                       onUnlink={async () => {
+                        const snapshotContacts = contacts;
+                        setContacts((prev) => prev.filter((item) => item.id !== contact.id));
                         try {
                           await apiClient.deleteContact(contact.id);
-                          setContacts((prev) => prev.filter((item) => item.id !== contact.id));
                           setErrorMessage(null);
                         } catch (error) {
+                          setContacts(snapshotContacts);
                           setErrorMessage(error instanceof Error ? error.message : 'Failed to delete contact');
                         }
                       }}

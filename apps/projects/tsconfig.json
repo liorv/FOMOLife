@@ -21,7 +21,11 @@
       "@myorg/types": ["../../packages/types/src"],
       "@myorg/types/*": ["../../packages/types/src/*"],
       "@myorg/api-client": ["../../packages/api-client/src"],
-      "@myorg/api-client/*": ["../../packages/api-client/src/*"]
+      "@myorg/api-client/*": ["../../packages/api-client/src/*"],
+      "@myorg/storage": ["../../packages/storage/src"],
+      "@myorg/storage/*": ["../../packages/storage/src/*"],
+      "@myorg/storage-client": ["../../packages/storage-client/src"],
+      "@myorg/storage-client/*": ["../../packages/storage-client/src/*"]
     }
   },
   "include": [

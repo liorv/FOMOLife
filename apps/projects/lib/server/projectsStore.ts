@@ -1,9 +1,9 @@
 import 'server-only';
 
-import { createStorageProvider } from '../../../lib/server/storage-factory';
-import type { PersistedUserData } from '../../../lib/server/storage';
+import { getStorage } from './storageClient';
+import type { PersistedUserData } from '@myorg/storage';
 
-const storage = createStorageProvider();
+const storage = getStorage();
 
 export interface ProjectTaskPerson {
   name: string;
@@ -96,7 +96,7 @@ async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   const persisted = await storage.load(userId).catch(() => null);
   if (persisted) {
     const persistedProjects = Array.isArray(persisted.projects) ? persisted.projects : [];
-    const normalizedPersisted = persistedProjects.map((project) => ensureProjectLevelTasks(project));
+    const normalizedPersisted = persistedProjects.map((project) => ensureProjectLevelTasks(project as ProjectItem));
     projectsByUser.set(userId, normalizedPersisted);
     return normalizedPersisted;
   }

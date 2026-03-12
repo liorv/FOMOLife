@@ -3,8 +3,9 @@
   align-items: center;
   position: relative;
   background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border: 2px solid var(--color-border);
+
+  border-radius: 10px;
   padding: 0 16px;
   margin: 4px 0;
   box-sizing: border-box;
@@ -134,16 +135,7 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-@media (max-width: 480px) {
-  .rowStats {
-    display: none;
-  }
-}
-
 @media (max-width: 290px) {
-  .rowStats {
-    display: none;
-  }
   .statsIcon {
     display: none;
   }
