@@ -211,7 +211,6 @@
 .subproject-row .owners {
   display: flex;
   align-items: center;
-  gap: 4px;
 }
 
 .subproject-row .avatar.small {

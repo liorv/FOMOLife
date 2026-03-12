@@ -160,10 +160,6 @@ export default function SubprojectRow({
       const isBottomCutOff = buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
       setMenuFlippedVertically(isBottomCutOff);
 
-      const top = isBottomCutOff
-        ? buttonRect.top - dropdownRect.height - 4
-        : buttonRect.bottom + 4;
-
       // Calculate the left position
       // Start with left-aligned to button
       let left = buttonRect.left;
