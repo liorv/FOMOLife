@@ -319,6 +319,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         devCurrentUserId={userId}
         devDefaultUserId={defaultUserId}
         onDevSwitchUsers={handleDevSwitchUsers}
+        className="logobar-top"
         {...(aboutInfo ? { aboutInfo } : {})}
       />
       <div className="app-outer">
@@ -335,7 +336,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
             )}
           </section>
         </div>
-        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} />
+        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" />
       </div>
       <FrameworkColorPickerOverlay
         colors={COLOR_PICKER_COLORS}

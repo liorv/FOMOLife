@@ -32,12 +32,13 @@ body {
 .main-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   overflow: auto;
   background:
     linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),
     url('/assets/circuit-bg.png') center top / cover no-repeat;
+  padding-top: var(--nav-height); /* Account for fixed top header */
 }
 
 .app-outer {
@@ -47,13 +48,12 @@ body {
   min-height: 0;
 }
 
-.tabnav-bottom {
+.tabnav-bottom.tabs {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 100;
-  background: var(--color-surface);
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -294,6 +294,7 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   background: #f8fafc;
+  padding-bottom: var(--nav-height);
 }
 
 .content-menu {
@@ -381,6 +382,23 @@ body {
   border-top: 1px solid rgba(190, 189, 189, 0.473);
   backdrop-filter: blur(12px);
   padding: 2px;
+}
+
+.tabnav-bottom.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.logobar-top.title-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
 /* The curved 'hump' - Updated to a circle to eliminate vertical side-walls */

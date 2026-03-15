@@ -12,9 +12,10 @@ export interface TabNavProps<T extends string> {
   active: T;
   tabs: TabLink<T>[];
   onChange: (tab: T) => void;
+  className?: string;
 }
 
-export default function TabNav<T extends string>({ active, tabs, onChange }: TabNavProps<T>) {
+export default function TabNav<T extends string>({ active, tabs, onChange, className }: TabNavProps<T>) {
   // split the provided tabs into left and right areas around the thumb
   const leftTabs = tabs.filter((t) => t.key === 'tasks' || t.key === 'projects');
   const rightTabs = tabs.filter((t) => t.key === 'people');
@@ -32,7 +33,7 @@ export default function TabNav<T extends string>({ active, tabs, onChange }: Tab
   );
 
   return (
-    <nav className="tabs" role="navigation" aria-label="App navigation">
+    <nav className={`tabs${className ? ` ${className}` : ''}`} role="navigation" aria-label="App navigation">
       <div className="tabs-group tabs-left">
         {leftTabs.map(renderTab)}
       </div>
