@@ -291,27 +291,7 @@ export default function ProjectsDashboard({
       ) : (
         /* ── Home: watermark + direct grid ── */
         <>
-          {/* Subtle background watermark */}
-          <div className="dashboard-home-bg">
-            <span className="material-icons dashboard-home-bg__icon">folder_open</span>
-            <p className="dashboard-home-bg__text">
-              {projects.length === 0 ? (
-                <>No projects yet. Tap <strong>+</strong> to create one.</>
-              ) : (
-                <>Tap a project to open it, or press <strong>+</strong> to create one.</>
-              )}
-            </p>
-            <div className="dashboard-global-stats">
-              <span className="dashboard-stat-chip">
-                <span className="material-icons">folder</span>
-                {projects.length} project{projects.length !== 1 ? "s" : ""}
-              </span>
-              <span className="dashboard-stat-chip">
-                <span className="material-icons">group</span>
-                {people.length} contact{people.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </div>
+          {/* Home watermark removed */}
 
           {/* Project tiles grid */}
           {visibleProjects.length === 0 && projectSearch ? (
