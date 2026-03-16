@@ -161,6 +161,16 @@ body {
   background: #e8f0fe;
 }
 
+.login-provider-btn--twitter {
+  color: var(--color-twitter-btn-fg, #000000);
+  background: var(--color-twitter-btn-bg, #ffffff);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.login-provider-btn--twitter:hover:not(:disabled) {
+  background: #f8f8f8;
+}
+
 .login-provider-icon {
   width: 20px;
   height: 20px;

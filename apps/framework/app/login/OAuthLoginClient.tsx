@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/client/supabaseBrowser';
 
-type OAuthProvider = 'google' | 'twitter';
+type OAuthProvider = 'google' | 'x';
 
 type ProviderConfig = {
   id: OAuthProvider;
@@ -23,7 +23,7 @@ const PROVIDERS: ProviderConfig[] = [
     cssClass: 'login-provider-btn--google',
   },
   {
-    id: 'twitter',
+    id: 'x',
     name: 'X (Twitter)',
     icon: '/assets/auth/twitter.svg',
     label: 'Login with X',
@@ -31,12 +31,12 @@ const PROVIDERS: ProviderConfig[] = [
   },
 ];
 
-type GoogleLoginClientProps = {
+type OAuthLoginClientProps = {
   returnTo: string;
   forceAccountSelect?: boolean;
 };
 
-export default function GoogleLoginClient({ returnTo, forceAccountSelect = false }: GoogleLoginClientProps) {
+export default function OAuthLoginClient({ returnTo, forceAccountSelect = false }: OAuthLoginClientProps) {
   const [isBusy, setIsBusy] = useState(false);
   const [errorText, setErrorText] = useState('');
   const router = useRouter();
