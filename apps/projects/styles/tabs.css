@@ -142,6 +142,7 @@
   padding-right: 80px; /* reserve space for right-group icons */
   overflow: visible;
   box-sizing: border-box;
+  height:100%
 }
 
 .task-row .delete {
@@ -982,6 +983,7 @@
   border-radius: 12px;
   cursor: pointer;
   font-size: 0.9rem;
+  opacity: 1;
 }
 
 .filter-pill.starred {
@@ -1016,6 +1018,7 @@
   border-radius: 12px;
   background: #d0e8ff;
   font-size: 0.85rem;
+  opacity: 1;
 }
 
 .active-filter.starred {
@@ -1061,9 +1064,6 @@
 /* ============================================================
   16b. PROJECTS DASHBOARD (new single-page layout)
    ============================================================ */
-
-.projects-search-clear:hover { color: var(--color-text); }
-.projects-search-clear .material-icons { font-size: 16px !important; }
 
 /* Outer wrapper: fills the .container flex space */
 .projects-dashboard {
@@ -1184,34 +1184,7 @@
   flex-direction: column;
 }
 
-/* note: .dashboard-home class was removed from markup; no styles needed */
-
-/* Watermark-style background message */
-.dashboard-home-bg {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 16px 8px;
-  pointer-events: none;
-  user-select: none;
-}
-.dashboard-home-bg__icon {
-  font-size: 48px !important;
-  opacity: 0.18;
-  color: var(--color-text-muted);
-}
-.dashboard-home-bg__text {
-  font-size: 14px;
-  color: var(--color-text-muted);
-  opacity: 0.55;
-  margin: 0;
-  text-align: center;
-}
-.dashboard-home-bg .dashboard-global-stats {
-  pointer-events: all;
-  opacity: 0.75;
-}
+/* dashboard-home-bg removed — watermark handled elsewhere if needed */
 
 .sidebar-no-results {
   font-size: 13px;
@@ -1291,27 +1264,6 @@
   white-space: normal;
   overflow: visible;
 }
-.dashboard-project-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.dashboard-project-delete {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 6px;
-  color: var(--color-text-muted);
-  transition: color 0.12s, background 0.12s;
-  display: flex;
-  align-items: center;
-}
-.dashboard-project-delete:hover {
-  color: var(--color-danger);
-  background: #fbe9e9;
-}
-
 /* Back button — deselects project (primary use: mobile) */
 .dashboard-back-btn {
   background: none;
@@ -1330,20 +1282,6 @@
   background: rgba(26, 115, 232, 0.08);
 }
 .dashboard-back-btn .material-icons { font-size: 18px !important; }
-
-/* Empty state when no project selected */
-.dashboard-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  color: var(--color-text-muted);
-  gap: 14px;
-  padding: 40px;
-}
-.dashboard-empty-state .material-icons { font-size: 52px !important; opacity: 0.4; }
-.dashboard-empty-state p { font-size: 15px; margin: 0; text-align: center; }
 
 /* Global stats chips shown in empty state */
 .dashboard-global-stats {
@@ -1379,9 +1317,7 @@
     flex-direction: column;
   }
 
-  .dashboard-home-bg {
-    display: none;
-  }
+  /* dashboard-home-bg removed */
 
   .editor-columns .left-column {
     flex: 1 1 100%;
@@ -1409,12 +1345,7 @@
     gap: 14px;
   }
 
-  .dashboard-home-bg {
-    padding: 20px 16px 4px;
-  }
-  .dashboard-home-bg__icon {
-    font-size: 36px !important;
-  }
+  /* dashboard-home-bg removed */
 
   /* Compact summary cards on mobile */
   .dashboard-summary {

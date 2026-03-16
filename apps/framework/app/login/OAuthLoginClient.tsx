@@ -4,12 +4,39 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/client/supabaseBrowser';
 
-type GoogleLoginClientProps = {
+type OAuthProvider = 'google' | 'x';
+
+type ProviderConfig = {
+  id: OAuthProvider;
+  name: string;
+  icon: string;
+  label: string;
+  cssClass: string;
+};
+
+const PROVIDERS: ProviderConfig[] = [
+  {
+    id: 'google',
+    name: 'Google',
+    icon: '/assets/auth/google.svg',
+    label: 'Login with Google',
+    cssClass: 'login-provider-btn--google',
+  },
+  {
+    id: 'x',
+    name: 'X (Twitter)',
+    icon: '/assets/auth/twitter.svg',
+    label: 'Login with X',
+    cssClass: 'login-provider-btn--twitter',
+  },
+];
+
+type OAuthLoginClientProps = {
   returnTo: string;
   forceAccountSelect?: boolean;
 };
 
-export default function GoogleLoginClient({ returnTo, forceAccountSelect = false }: GoogleLoginClientProps) {
+export default function OAuthLoginClient({ returnTo, forceAccountSelect = false }: OAuthLoginClientProps) {
   const [isBusy, setIsBusy] = useState(false);
   const [errorText, setErrorText] = useState('');
   const router = useRouter();
@@ -63,7 +90,7 @@ export default function GoogleLoginClient({ returnTo, forceAccountSelect = false
     };
   }, [returnTo, router, supabase]);
 
-  const handleGoogleLogin = async () => {
+  const handleOAuthLogin = async (provider: OAuthProvider) => {
     setErrorText('');
     setIsBusy(true);
 
@@ -76,12 +103,12 @@ export default function GoogleLoginClient({ returnTo, forceAccountSelect = false
       : { redirectTo };
 
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options,
     });
 
     if (error) {
-      setErrorText('Unable to start Google sign-in. Please check provider configuration.');
+      setErrorText(`Unable to start ${PROVIDERS.find(p => p.id === provider)?.name} sign-in. Please check provider configuration.`);
       setIsBusy(false);
     }
   };
@@ -89,16 +116,19 @@ export default function GoogleLoginClient({ returnTo, forceAccountSelect = false
   return (
     <>
       <div className="login-providers">
-        <button
-          type="button"
-          className="login-provider-btn login-provider-btn--google"
-          onClick={handleGoogleLogin}
-          disabled={isBusy}
-          aria-label="Login with Google"
-        >
-          <img src="/assets/auth/google.svg" alt="" className="login-provider-icon" aria-hidden="true" />
-          <span className="login-provider-label">{isBusy ? 'Redirecting…' : 'Login with Google'}</span>
-        </button>
+        {PROVIDERS.map((provider) => (
+          <button
+            key={provider.id}
+            type="button"
+            className={`login-provider-btn ${provider.cssClass}`}
+            onClick={() => handleOAuthLogin(provider.id)}
+            disabled={isBusy}
+            aria-label={`Login with ${provider.name}`}
+          >
+            <img src={provider.icon} alt="" className="login-provider-icon" aria-hidden="true" />
+            <span className="login-provider-label">{isBusy ? 'Redirecting…' : provider.label}</span>
+          </button>
+        ))}
       </div>
       {errorText ? <p className="login-error">{errorText}</p> : null}
     </>

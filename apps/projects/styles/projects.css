@@ -211,7 +211,6 @@
 .subproject-row .owners {
   display: flex;
   align-items: center;
-  gap: 4px;
 }
 
 .subproject-row .avatar.small {
@@ -386,196 +385,6 @@
 
 
 
-/* ============================================================
-  23. CONFIRM MODAL
-   ============================================================ */
-.confirm-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.confirm-modal {
-  background: white;
-  padding: 20px;
-  border-radius: var(--border-radius);
-  max-width: 90%;
-  width: 300px;
-  text-align: center;
-  box-shadow: var(--elevation-2);
-}
-
-.confirm-modal .warning-icon {
-  font-size: 3rem;
-  color: var(--color-danger);
-  display: block;
-  margin: 0 auto 10px;
-}
-
-.confirm-modal .confirm-message {
-  margin-bottom: 16px;
-}
-
-.confirm-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.confirm-btn {
-  background: var(--color-danger);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cancel-btn {
-  background: #ccc;
-  color: #000;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.undo-snackbar {
-  position: fixed;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #323232;
-  color: white;
-  border-radius: 8px;
-  padding: 16px 20px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  min-width: 300px;
-  max-width: 90%;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
-  animation: slideUp 0.3s ease-in-out;
-}
-
-@keyframes slideUp {
-  from {
-    bottom: -100px;
-    opacity: 0;
-  }
-  to {
-    bottom: 60px;
-    opacity: 1;
-  }
-}
-
-.snack-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.snack-message {
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-}
-
-.snack-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.snack-button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 100px;
-}
-
-.undo-button {
-  background-color: #1976d2;
-  color: white;
-}
-
-.undo-button:hover {
-  background-color: #1565c0;
-  transform: scale(1.02);
-}
-
-.undo-button:active {
-  transform: scale(0.98);
-}
-
-.dismiss-button {
-  background-color: #555555;
-  color: white;
-}
-
-.dismiss-button:hover {
-  background-color: #666666;
-  transform: scale(1.02);
-}
-
-.dismiss-button:active {
-  transform: scale(0.98);
-}
-
-@media (max-width: 600px) {
-  .undo-snackbar {
-    min-width: auto;
-    max-width: 95%;
-    left: 2.5%;
-    right: 2.5%;
-    transform: translateX(0);
-  }
-
-  .snack-actions {
-    flex-direction: row;
-    gap: 8px;
-  }
-
-  .snack-button {
-    flex: 1;
-    min-width: auto;
-  }
-}
-
-
-/* ============================================================
-  24. ADDBAR WRAPPER (Subproject Task List)
-   ============================================================ */
-
-/* when the add-bar is shown at the bottom of the viewport we want it to look
-   exactly like the version used by the tasks app.  reapply the helpers that
-   TasksPage.globals.css adds (these rules are normally imported there but not
-   in projects). */
-.tasks-bottom-add {
-  margin: 0;
-  border-radius: 0;
-}
-
-.tasks-bottom-add .add-bar {
-  margin: 0;
-  padding: 0;
-  position: static;
-  top: auto;
-}
-
 /* same blue→white focus styling used by tasks input */
 #add-tasks-input {
   background: var(--color-google-btn-bg, var(--btn-google-bg-color, #4285f4));
@@ -601,6 +410,8 @@
   /* reduce padding to keep bar compact inside container */
   padding: 5px;
   margin-bottom: 0;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 .add-bar-wrapper .add-bar input {
@@ -617,21 +428,6 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 1px 2px rgba(26, 115, 232, 0.12);
-}
-
-.add-bar-wrapper .add-bar .add-btn {
-  background: var(--color-subproject-header);
-  color: var(--color-subproject-header);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 12px;
-  border-radius: var(--border-radius);
-  flex: none;
-  height: 44px;
-  width: 44px;
 }
 
 .add-bar-wrapper .add-bar .add-btn:hover {
@@ -688,15 +484,6 @@
 /* ============================================================
   26. ANIMATIONS
    ============================================================ */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -715,15 +502,6 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideUpModal {
-  from {
-    transform: translateY(100%);
-  }
-  to {
     transform: translateY(0);
   }
 }
@@ -881,25 +659,5 @@
   }
 }
 
-@media (max-width: 360px) {
-  .projects-panel {
-    padding: 18px 12px 140px;
-    gap: 16px;
-  }
-
-  .project-tile {
-    min-height: 200px;
-    border-radius: 16px;
-  }
-
-  .project-tile .project-header {
-    padding: 12px;
-    gap: 6px;
-  }
-
-  .project-tile .project-body {
-    padding: 0 12px 12px;
-  }
-}
 
 

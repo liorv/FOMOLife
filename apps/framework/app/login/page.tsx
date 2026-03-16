@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { getFrameworkServerEnv } from '@/lib/frameworkEnv.server';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
-import GoogleLoginClient from './GoogleLoginClient';
+import OAuthLoginClient from './OAuthLoginClient';
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -72,7 +72,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </form>
         ) : (
           <>
-            <GoogleLoginClient returnTo={returnTo} forceAccountSelect={forceAccountSelect} />
+            <OAuthLoginClient returnTo={returnTo} forceAccountSelect={forceAccountSelect} />
             <p className="login-fine-print">
               Your data is private and only accessible with your account.
               <br />

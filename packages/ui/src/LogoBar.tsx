@@ -25,6 +25,7 @@ export interface LogoBarProps {
     versions: Record<string, string>;
     dbSource: string;
   };
+  className?: string;
 }
 
 export default function LogoBar({
@@ -46,6 +47,7 @@ export default function LogoBar({
   devDefaultUserId = '',
   onDevSwitchUsers,
   aboutInfo,
+  className,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function LogoBar({
   }, [menuOpen]);
 
   return (
-    <header className="title-bar">
+    <header className={`title-bar${className ? ` ${className}` : ''}`}>
       <div className="left-column">
         <Image src={logoUrl} alt="FOMO logo" className="title-logo" width={168} height={48} priority />
       </div>

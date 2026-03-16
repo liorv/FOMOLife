@@ -41,7 +41,7 @@ fi
 
 for dir in $dirs; do
     appname=$(basename "$dir")
-    linkfile="$dir.vercel/project.json"
+    linkfile="$dir/.vercel/project.json"
     if [ -f "$linkfile" ]; then
         echo -e "\n=== deploying $appname ==="
 

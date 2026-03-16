@@ -58,6 +58,10 @@ export default function ProjectEditor({
         }))
       : [],
   } as LocalProject));
+  // Ref always holds the latest pending local state so toggleSubCollapse
+  // never reads a stale closure value during rapid successive clicks.
+  const localRef = useRef<LocalProject>(null as unknown as LocalProject);
+  localRef.current = local;
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
@@ -145,12 +149,21 @@ export default function ProjectEditor({
   const handleEditorClose = () => setEditorTaskId(null);
 
   useEffect(() => {
-    setLocal({
+    setLocal((prev) => ({
       ...project,
       subprojects: project.subprojects
-        ? project.subprojects.map((s) => ({ ...s, collapsed: s.collapsed ?? false }))
+        ? project.subprojects.map((s) => {
+            const existing = (prev.subprojects || []).find((ps) => ps.id === s.id);
+            return {
+              ...s,
+              // collapsed is UI-only state owned by this component.
+              // Preserve it across prop updates (e.g. async API responses)
+              // so that out-of-order responses don't overwrite the user's toggle.
+              collapsed: existing !== undefined ? existing.collapsed : (s.collapsed ?? false),
+            };
+          })
         : [],
-    } as LocalProject);
+    } as LocalProject));
   }, [project]);
 
   // Scroll expanded task into view
@@ -251,18 +264,19 @@ export default function ProjectEditor({
       return;
     }
 
-    const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) =>
-        s.id === id ? { ...s, color } : s,
-      ),
-    };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    const updatedSubprojects = (local.subprojects || []).map((s) =>
+      s.id === id ? { ...s, color } : s,
+    );
+    setLocal({ ...local, subprojects: updatedSubprojects });
+    // Only send the changed subprojects — not the full project — to minimise payload
+    safeOnApplyChange({ subprojects: updatedSubprojects });
   };
 
   const toggleSubCollapse = (id: string) => {
-    const subToToggle = (local.subprojects || []).find((s) => s.id === id);
+    // Always read from the ref so back-to-back calls before a re-render
+    // each see the result of the previous call, not the stale closure value.
+    const current = localRef.current;
+    const subToToggle = (current.subprojects || []).find((s) => s.id === id);
 
     // If currently expanded (about to collapse) and it's empty — delete it silently
     if (subToToggle && !subToToggle.collapsed && !subToToggle.isProjectLevel) {
@@ -270,9 +284,10 @@ export default function ProjectEditor({
       const hasTasks = (subToToggle.tasks || []).filter((t) => t.text && t.text.trim() !== "").length > 0;
       if (!hasName && !hasTasks) {
         const updated = {
-          ...local,
-          subprojects: (local.subprojects || []).filter((s) => s.id !== id),
+          ...current,
+          subprojects: (current.subprojects || []).filter((s) => s.id !== id),
         };
+        localRef.current = updated;
         setLocal(updated);
         safeOnApplyChange(updated);
         if (id === newlyAddedSubprojectId) {
@@ -283,8 +298,8 @@ export default function ProjectEditor({
     }
 
     const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) => {
+      ...current,
+      subprojects: (current.subprojects || []).map((s) => {
         if (s.id === id) {
           // flip the clicked one
           return { ...s, collapsed: !s.collapsed };
@@ -314,6 +329,7 @@ export default function ProjectEditor({
           return hasName || hasTasks;
         }),
     };
+    localRef.current = cleaned;
     setLocal(cleaned);
     safeOnApplyChange(cleaned);
   };

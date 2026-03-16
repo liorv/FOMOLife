@@ -48,9 +48,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
-  // Track loaded apps and which tabs have been visited (for lazy iframe mounting)
+  // Track which apps have finished loading
   const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -73,19 +72,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Periodically log collected thumb-config counts in dev mode
-  useEffect(() => {
-    if (!devMode) return;
-    const id = setInterval(() => {
-      const counts = Array.from(msgCountsRef.current.entries());
-      if (counts.length === 0) return;
-      counts.sort((a, b) => b[1] - a[1]);
-      console.debug('[FrameworkHost] thumb-config counts (top)', counts.slice(0, 10));
-      msgCountsRef.current.clear();
-    }, MSG_LOG_INTERVAL);
-    return () => clearInterval(id);
-  }, [devMode]);
-
   const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects');
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
@@ -104,12 +90,12 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     }
     router.replace(`${pathname}?${nextParams.toString()}`);
 
-    // Send search query to the embedded app
+    // Forward the search query to the active embedded app
     const win = iframeRefs.current.get(activeTab)?.contentWindow;
     if (win) {
       try {
         win.postMessage({ type: 'search-query', query: value }, '*');
-      } catch (err) {
+      } catch {
         // ignore
       }
     }
@@ -135,28 +121,10 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   const frameKey = activeTabConfig?.key ?? activeTab;
   const iframeRefs = useRef<Map<string, HTMLIFrameElement | null>>(new Map());
-  const [appConfigs, setAppConfigs] = useState<Map<string, { icon: string; action: string }>>(new Map());
-  // Diagnostic counters (dev-mode): count `thumb-config` messages per origin
-  const msgCountsRef = useRef<Map<string, number>>(new Map());
-  const MSG_LOG_INTERVAL = 5000; // ms
 
   const isCurrentTabLoaded = loadedApps.has(activeTab);
-  const config = appConfigs.get(activeTab) || { icon: '', action: 'thumb-fab' };
-  const effectiveThumbIcon = isCurrentTabLoaded ? config.icon : 'refresh';
-  const effectiveThumbClass = isCurrentTabLoaded ? '' : 'ui-icon--spin';
   const isSearchDisabled = !isCurrentTabLoaded;
 
-  const handleThumb = () => {
-    try {
-      const win = iframeRefs.current.get(activeTab)?.contentWindow;
-      if (win) {
-        // send whichever action the app registered (defaults to thumb-fab)
-        win.postMessage({ type: config.action }, '*');
-      }
-    } catch (err) {
-      // ignore
-    }
-  };
   const frameLabel = activeTabConfig?.label ?? 'App';
 
   const handleSignOut = async () => {
@@ -181,87 +149,25 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return undefined;
   };
 
-  // Generic action handlers registry for thumb-config actions.
-  // Register new actions here to keep `message` handling extensible.
-  const actionHandlers = useMemo(() => ({
-    'open-colorpicker': (data: any, sender: Window, senderTab: string) => {
-      const itemId = data.itemId || null;
-      const itemType = data.itemType === 'subproject' ? 'subproject' : 'project';
-      setColorPickerSender(sender);
-      colorPickerSenderRef.current = sender;
-      colorPickerSenderTabRef.current = senderTab || null;
-      colorPickerItemIdRef.current = itemId;
-      colorPickerItemTypeRef.current = itemType;
-      setOverlaySelectedColor(typeof data.selectedColor === 'string' ? data.selectedColor : undefined);
-      setOverlayOpen(true);
-    },
-  }), [] as any);
-
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (!event?.data) return;
       // Ignore messages that originated from this window to avoid echo loops
       if (event.source === window) return;
-      const { type, icon, action, appId, color, projectId, subprojectId } = event.data as {
+      const { type, appId, color, projectId, subprojectId } = event.data as {
         type?: string;
-        icon?: unknown;
-        action?: unknown;
         appId?: string;
         color?: string;
         projectId?: string;
         subprojectId?: string;
       };
       const senderTab = getTabFromSource(event.source) || activeTab;
-      // Trace incoming messages (avoid logging event.source/window)
-      console.debug('[FrameworkHost] incoming message', { type, senderTab, origin: event.origin });
-      // Dev-mode diagnostic: count thumb-config messages per origin so we can
-      // detect noisy apps without suppressing logs.
-      if (devMode && type === 'thumb-config') {
-        const key = event.origin || senderTab || 'unknown';
-        const prev = msgCountsRef.current.get(key) || 0;
-        msgCountsRef.current.set(key, prev + 1);
-      }
-      
-      // NOTE: color selection from the overlay will be handled via the
-      // `onSelect` prop passed to the overlay. We no longer expect the
-      // overlay to post a `color-selected` message to window; instead the
-      // host will forward selected colors directly to the originating iframe.
-      
-      if (!senderTab) return; // Ignore messages from unknown sources for other message types
 
-      
+      if (!senderTab) return;
 
-      if (type === 'thumb-icon' && typeof icon === 'string') {
-        setAppConfigs(prev => new Map(prev).set(senderTab, { ...prev.get(senderTab)!, icon }));
-      } else if (type === 'thumb-config') {
-        let resolvedIcon = '';
-        if (typeof icon === 'string') {
-          // if the icon is a path (starts with /) we should fetch it from the
-          // sender's origin so that assets hosted by other apps resolve
-          resolvedIcon = icon.startsWith('/') && event.origin ? `${event.origin}${icon}` : icon;
-        }
-        const newAction = typeof action === 'string' ? action : 'thumb-fab';
-        console.debug('[FrameworkHost] thumb-config', { senderTab, icon: resolvedIcon, action: newAction });
-        setAppConfigs(prev => new Map(prev).set(senderTab, { icon: resolvedIcon, action: newAction }));
-        // mark sender tab as loaded so thumb config is active in tests
-        setLoadedApps(prev => prev.has(senderTab) ? prev : new Set(prev).add(senderTab));
-        // Route action to registered handler if present
-        const handler = (actionHandlers as any)[newAction];
-        if (typeof handler === 'function') {
-          console.debug('[FrameworkHost] invoking action handler', { action: newAction, senderTab });
-          try {
-            handler(event.data, event.source as Window, senderTab);
-          } catch (err) {
-            console.warn('FrameworkHost action handler failed for', newAction, err);
-          }
-        }
-      } else if (type === 'search-config') {
-        const { placeholder } = event.data as { placeholder?: string };
-        if (typeof placeholder === 'string') {
-          setSearchPlaceholder(placeholder);
-        } else if (placeholder === null) {
-          setSearchPlaceholder(null); // Reset to default
-        }
+      if (type === 'search-config') {
+        const { placeholder } = event.data as { placeholder?: string | null };
+        setSearchPlaceholder(typeof placeholder === 'string' ? placeholder : null);
       } else if (type === 'app-loaded' && typeof appId === 'string') {
         console.debug('[FrameworkHost] app-loaded', { appId, senderTab });
         setLoadedApps(prev => prev.has(appId) ? prev : new Set(prev).add(appId));
@@ -330,41 +236,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setOverlayOpen(false);
     setOverlaySelectedColor(undefined);
   };
-
-  // when an app becomes loaded, request its thumb config and send initial search query
-  useEffect(() => {
-    if (loadedApps.has(activeTab)) {
-      const win = iframeRefs.current.get(activeTab)?.contentWindow;
-      if (win) {
-        try {
-          win.postMessage({ type: 'get-thumb-config' }, '*');
-          // Send initial search query
-          win.postMessage({ type: 'search-query', query: headerSearchQuery }, '*');
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }, [loadedApps, activeTab, headerSearchQuery]);
-
-  // ask embedded app what it wants the thumb button to do, but only if it's loaded
-  useEffect(() => {
-    if (loadedApps.has(activeTab)) {
-      const win = iframeRefs.current.get(activeTab)?.contentWindow;
-      if (win) {
-        try {
-          win.postMessage({ type: 'get-thumb-config' }, '*');
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }, [loadedApps, activeTab]);
-
-  // Mark tab as visited the first time it becomes active (lazy iframe mounting)
-  useEffect(() => {
-    setVisitedTabs((prev) => prev.has(activeTab) ? prev : new Set(prev).add(activeTab));
-  }, [activeTab]);
 
   // Reset search placeholder when tab changes
   useEffect(() => {
@@ -448,13 +319,14 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         devCurrentUserId={userId}
         devDefaultUserId={defaultUserId}
         onDevSwitchUsers={handleDevSwitchUsers}
+        className="logobar-top"
         {...(aboutInfo ? { aboutInfo } : {})}
       />
       <div className="app-outer">
         <div className="container framework-container">
           <section className="host-pane" aria-label="Hosted app content">
             <div className="frame-container">
-              {tabs.filter(tab => visitedTabs.has(tab.key)).map(tab => renderIframe(tab))}
+              {tabs.map(tab => renderIframe(tab))}
             </div>
             {!tabs.some(tab => getHostedSrc(tab)) && (
               <div className="host-empty">
@@ -464,7 +336,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
             )}
           </section>
         </div>
-        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} onThumbButtonClick={handleThumb} thumbIcon={effectiveThumbIcon} thumbIconClassName={effectiveThumbClass} />
+        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" />
       </div>
       <FrameworkColorPickerOverlay
         colors={COLOR_PICKER_COLORS}

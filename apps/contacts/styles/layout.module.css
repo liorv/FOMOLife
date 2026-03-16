@@ -5,6 +5,9 @@
 
 :global(.main-layout) {
   height: 100vh;
+  background:
+    linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),
+    url('/assets/circuit-bg.png') center top / cover no-repeat;
 }
 
 :global(.content-panel) {

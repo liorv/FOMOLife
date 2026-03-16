@@ -1,5 +1,5 @@
 import React from "react";
-import { ContactTile } from "./ContactTile";
+import { ContactTile } from "../ContactTile";
 
 export default function ContactTileDemo() {
   const [contacts, setContacts] = React.useState([

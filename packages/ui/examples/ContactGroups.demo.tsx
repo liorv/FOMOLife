@@ -1,5 +1,5 @@
 import React from "react";
-import { ContactTile } from "./ContactTile";
+import { ContactTile } from "../ContactTile";
 
 export default function ContactGroupsDemo() {
   // Initial groups and contacts for demo

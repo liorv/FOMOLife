@@ -178,36 +178,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     return () => window.removeEventListener('message', handleMessage);
   }, [isEmbedded]);
 
-  // configure thumb button for contacts tab and listen for presses
-  useEffect(() => {
-    const icon = 'person_add';
-    const action = 'add-contact';
-
-    // legacy notification
-    try {
-      window.parent?.postMessage?.({ type: 'thumb-icon', icon }, '*');
-    } catch (err) {
-      // ignore
-    }
-
-    const handler = (event: MessageEvent) => {
-      if (!event?.data) return;
-      if (event.data.type === 'get-thumb-config') {
-        try {
-          window.parent?.postMessage?.({ type: 'thumb-config', icon, action }, '*');
-        } catch (err) {
-          // ignore
-        }
-      } else if ((event.data.type === action || event.data.type === 'thumb-fab') && canManage) {
-        // invoke contact creation when thumb button is pressed
-        addContact();
-      }
-    };
-
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [canManage]);
-
   // Send app-loaded message when loading completes
   useEffect(() => {
     if (!isEmbedded || loading) return;
@@ -389,6 +359,16 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       )}
     </div>
     </div>
+    {canManage && displayReady && (
+      <button
+        type="button"
+        className="content-fab"
+        aria-label="Add contact"
+        onClick={() => void addContact()}
+      >
+        <span className="material-icons">person_add</span>
+      </button>
+    )}
   </main>
 );
 }

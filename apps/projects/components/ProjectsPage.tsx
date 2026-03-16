@@ -136,18 +136,6 @@ export default function ProjectsPage({ canManage }: Props) {
     return () => window.removeEventListener('focus', handleFocus);
   }, [contactsBaseUrl, contactsClient]);
 
-  // Listen for search query updates from framework
-  useEffect(() => {
-    if (!isEmbedded) return;
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'search-query') {
-        setProjectSearch(event.data.query || '');
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [isEmbedded]);
-
   // Send app-loaded message when loading completes
   useEffect(() => {
     if (!isEmbedded || loading) return;
@@ -195,13 +183,25 @@ export default function ProjectsPage({ canManage }: Props) {
     };
   }, [isEmbedded, loading]);
 
-  // Configure search placeholder based on editing state
+  // Listen for search query updates from framework
   useEffect(() => {
     if (!isEmbedded) return;
-    const placeholder = editingProjectId ? 'Search tasks' : null; // null resets to default
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'search-query') {
+        setProjectSearch(event.data.query || '');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isEmbedded]);
+
+  // Notify framework of search context so the placeholder updates accordingly
+  useEffect(() => {
+    if (!isEmbedded) return;
+    const placeholder = editingProjectId ? 'Search tasks' : null;
     try {
       window.parent?.postMessage?.({ type: 'search-config', placeholder }, '*');
-    } catch (err) {
+    } catch {
       // ignore
     }
   }, [isEmbedded, editingProjectId]);
@@ -261,7 +261,9 @@ export default function ProjectsPage({ canManage }: Props) {
       pendingBlankSubRef.current = hasBlank;
     }
 
-    // Use the updated project object from ProjectEditor as the source of truth
+    // Optimistic update — apply immediately so the UI reflects the change without waiting for the API
+    setProjects((prev) => prev.map((item) => (item.id === projectId ? { ...item, ...updated } : item)));
+
     try {
       const next = await apiClient.updateProject(projectId, updated);
       setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
@@ -278,12 +280,12 @@ export default function ProjectsPage({ canManage }: Props) {
   };
 
   const handleProjectColorChange = async (projectId: string, newColor: string) => {
-    if (!canManage) {
-      return;
-    }
+    if (!canManage) return;
+    // Optimistic update
+    setProjects((prev) => prev.map((item) => (item.id === projectId ? { ...item, color: newColor } : item)));
     try {
-      const updated = await apiClient.updateProject(projectId, { color: newColor });
-      setProjects((prev) => prev.map((item) => (item.id === projectId ? updated : item)));
+      const next = await apiClient.updateProject(projectId, { color: newColor });
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
     } catch (err) {
       console.error('Failed to update project color:', err);
     }

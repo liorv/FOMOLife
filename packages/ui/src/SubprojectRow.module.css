@@ -7,7 +7,6 @@
 
   border-radius: 10px;
   padding: 0 16px;
-  margin: 4px 0;
   box-sizing: border-box;
   min-height: 48px;
   gap: 12px;
@@ -16,8 +15,9 @@
   user-select: none;
 }
 
-.subprojectRow:hover {
-  background: #fafafa;
+.subprojectRow.expanded {
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
 }
 
 .expandBtn {
@@ -30,7 +30,6 @@
   align-items: center;
   justify-content: center;
   color: #667;
-  transition: all 0.2s ease;
   flex: 0 0 auto;
 }
 
