@@ -26,6 +26,7 @@ export interface LogoBarProps {
     dbSource: string;
   };
   className?: string;
+  rightContent?: React.ReactNode;
 }
 
 export default function LogoBar({
@@ -48,6 +49,7 @@ export default function LogoBar({
   onDevSwitchUsers,
   aboutInfo,
   className,
+  rightContent,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -106,6 +108,11 @@ export default function LogoBar({
         <div className="mid-row" />
       </div>
       <div className="right-column">
+        {rightContent && (
+          <div className="logobar-right-content">
+            {rightContent}
+          </div>
+        )}
         {/* Always show avatar button; only present menu items when actions are available */}
         <div className="logobar-user" ref={menuRef} title={userEmail || userName}>
           <button

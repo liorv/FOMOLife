@@ -7,7 +7,6 @@ import type { Contact } from '@myorg/types';
 import { ContactTile, ModalOverlay } from '@myorg/ui';
 import { createContactsApiClient } from '@myorg/api-client';
 import { getContactsClientEnv } from '@/lib/env.client';
-import { NotificationDropdown } from './NotificationDropdown';
 
 import styles from '../styles/layout.module.css';
 
@@ -347,35 +346,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
               </div>
             )}
 
-            {/* notification bell */}
-            {canManage && (
-              <div className={styles.notifications}>
-                <button
-                  type="button"
-                  className={styles.bellButton}
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  aria-label="Notifications"
-                >
-                  <span className="material-icons">notifications</span>
-                  {pendingRequestsCount > 0 && (
-                    <span className={styles.badge}>{pendingRequestsCount}</span>
-                  )}
-                </button>
-                {showNotifications && (
-                  <div className={styles.notificationsDropdown}>
-                    <NotificationDropdown
-                      apiClient={apiClient}
-                      onClose={() => setShowNotifications(false)}
-                      onRequestsUpdate={setPendingRequestsCount}
-                      onContactsUpdate={() => {
-                        // Refresh contacts list
-                        apiClient.listContacts().then(setContacts).catch(console.error);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+            {/* no notification bell here, moved to framework titlebar */}
           </header>
 
           {activeInvite && canManage && (

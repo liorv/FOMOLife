@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { LogoBar, TabNav } from '@myorg/ui';
 import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '../lib/frameworkConfig';
 import FrameworkColorPickerOverlay from './ColorPickerOverlay';
+import { NotificationBell } from './NotificationBell';
 
 const COLOR_PICKER_COLORS = [
   "#D32F2F", // dark red
@@ -320,6 +321,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         devDefaultUserId={defaultUserId}
         onDevSwitchUsers={handleDevSwitchUsers}
         className="logobar-top"
+        rightContent={<NotificationBell />}
         {...(aboutInfo ? { aboutInfo } : {})}
       />
       <div className="app-outer">
