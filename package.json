@@ -11,30 +11,25 @@
     "jsonwebtoken": "^9.0.3",
     "next": "latest",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "@myorg/storage": "workspace:*",
+    "@myorg/ui": "workspace:*"
   },
   "scripts": {
-    "dev": "pnpm run dev:mono",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev --port 3001",
+    "build": "echo '{\"version\":\"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'\"}' > version.json && pnpm --filter @myorg/types build && pnpm --filter @myorg/api-client build && pnpm --filter @myorg/utils build && pnpm --filter @myorg/ui build && next build",
+    "start": "next start --port 3001",
     "setup:githooks": "git config core.hooksPath .githooks",
     "check:large-files": "node scripts/guard-large-files.js repo",
-    "dev:mono": "turbo dev --filter=framework --filter=contacts --filter=projects --filter=tasks",
-    "build:mono": "turbo build --filter=./apps/* --filter=./packages/*",
-    "lint:mono": "turbo lint --filter=./apps/*",
-    "test:mono": "turbo test",
-    "typecheck:mono": "turbo typecheck --filter=./apps/* --filter=./packages/*",
     "verify-assets": "node scripts/verify-assets.js",
     "verify-logo": "node scripts/check-logo.js",
     "verify-logo-dom": "node scripts/check-logo-dom.js",
     "find-imgs": "node scripts/find-imgs.js",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
-    "deploy:all": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1",
-    "deploy:all:force": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -Force",
-    "deploy:contacts": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App contacts",
-    "deploy:framework": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App framework",
-    "deploy:projects": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App projects",
-    "deploy:tasks": "powershell -ExecutionPolicy Bypass -File .\\deploy.ps1 -App tasks"
+    "deploy": "bash deploy.sh",
+    "lint:app": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
+    "test:app": "jest",
+    "typecheck:app": "tsc --noEmit"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
@@ -53,6 +48,9 @@
     "prettier": "^3.1.0",
     "ts-jest": "^29.4.6",
     "turbo": "^2.8.17",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "identity-obj-proxy": "^3.0.0"
   }
 }

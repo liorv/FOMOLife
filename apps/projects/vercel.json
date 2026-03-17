@@ -1,9 +1,0 @@
-{
-  "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter projects build",
-  "devCommand": "cd ../.. && pnpm --filter projects dev",
-  "git": {
-    "deploymentEnabled": false
-  }
-}

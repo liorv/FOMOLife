@@ -8,6 +8,8 @@
 import React from 'react';
 
 export interface AddBarProps {
+  /** Optional specific id for the input */
+  id?: string;
   /** Type of item being added (used for placeholder text) */
   type?: 'tasks' | 'people' | string;
   /** Current input value */
@@ -27,6 +29,7 @@ export interface AddBarProps {
 }
 
 export default function AddBar({
+  id,
   type,
   input,
   onInputChange,
@@ -61,7 +64,7 @@ export default function AddBar({
       style={focused ? focusStyle : undefined}
     >
       <input
-        id={`add-${type || 'item'}-input`}
+        id={id || `add-${type || "item"}-input`}
         name={`add-${type || 'item'}`}
         value={input}
         onChange={(e) => onInputChange(e.target.value)}

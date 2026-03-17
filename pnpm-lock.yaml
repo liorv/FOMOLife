@@ -11,9 +11,15 @@ importers:
       '@myorg/api-client':
         specifier: workspace:*
         version: link:packages/api-client
+      '@myorg/storage':
+        specifier: workspace:*
+        version: link:packages/storage
       '@myorg/types':
         specifier: workspace:*
         version: link:packages/types
+      '@myorg/ui':
+        specifier: workspace:*
+        version: link:packages/ui
       '@myorg/utils':
         specifier: workspace:*
         version: link:packages/utils
@@ -42,6 +48,12 @@ importers:
       '@babel/preset-react':
         specifier: ^7.24.0
         version: 7.28.5(@babel/core@7.29.0)
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -66,6 +78,9 @@ importers:
       eslint-plugin-react:
         specifier: ^7.34.0
         version: 7.37.5(eslint@8.57.1)
+      identity-obj-proxy:
+        specifier: ^3.0.0
+        version: 3.0.0
       jest:
         specifier: ^30.2.0
         version: 30.2.0(@types/node@22.19.13)
@@ -84,211 +99,6 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-
-  apps/contacts:
-    dependencies:
-      '@myorg/api-client':
-        specifier: workspace:*
-        version: link:../../packages/api-client
-      '@myorg/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
-      '@myorg/storage-client':
-        specifier: workspace:*
-        version: link:../../packages/storage-client
-      '@myorg/types':
-        specifier: workspace:*
-        version: link:../../packages/types
-      '@myorg/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@myorg/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
-      next:
-        specifier: latest
-        version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.0.0
-        version: 18.3.1(react@18.3.1)
-    devDependencies:
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      identity-obj-proxy:
-        specifier: ^3.0.0
-        version: 3.0.0
-      jest:
-        specifier: ^30.2.0
-        version: 30.2.0(@types/node@22.19.13)
-      jest-environment-jsdom:
-        specifier: ^30.2.0
-        version: 30.2.0
-      node-fetch:
-        specifier: ^3.3.2
-        version: 3.3.2
-      ts-jest:
-        specifier: ^29.4.6
-        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@22.19.13))(typescript@5.9.3)
-
-  apps/framework:
-    dependencies:
-      '@myorg/api-client':
-        specifier: workspace:*
-        version: link:../../packages/api-client
-      '@myorg/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
-      '@myorg/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      next:
-        specifier: latest
-        version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.0.0
-        version: 18.3.1(react@18.3.1)
-    devDependencies:
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      identity-obj-proxy:
-        specifier: ^3.0.0
-        version: 3.0.0
-      jest:
-        specifier: ^30.2.0
-        version: 30.2.0(@types/node@22.19.13)
-      jest-environment-jsdom:
-        specifier: ^30.2.0
-        version: 30.2.0
-      ts-jest:
-        specifier: ^29.4.6
-        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@22.19.13))(typescript@5.9.3)
-
-  apps/projects:
-    dependencies:
-      '@myorg/api-client':
-        specifier: workspace:*
-        version: link:../../packages/api-client
-      '@myorg/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
-      '@myorg/storage-client':
-        specifier: workspace:*
-        version: link:../../packages/storage-client
-      '@myorg/types':
-        specifier: workspace:*
-        version: link:../../packages/types
-      '@myorg/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@myorg/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
-      next:
-        specifier: latest
-        version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      prop-types:
-        specifier: ^15.8.1
-        version: 15.8.1
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.0.0
-        version: 18.3.1(react@18.3.1)
-    devDependencies:
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      identity-obj-proxy:
-        specifier: ^3.0.0
-        version: 3.0.0
-      jest:
-        specifier: ^30.2.0
-        version: 30.2.0(@types/node@22.19.13)
-      jest-environment-jsdom:
-        specifier: ^30.2.0
-        version: 30.2.0
-      ts-jest:
-        specifier: ^29.4.6
-        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@22.19.13))(typescript@5.9.3)
-
-  apps/tasks:
-    dependencies:
-      '@myorg/api-client':
-        specifier: workspace:*
-        version: link:../../packages/api-client
-      '@myorg/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
-      '@myorg/storage-client':
-        specifier: workspace:*
-        version: link:../../packages/storage-client
-      '@myorg/types':
-        specifier: workspace:*
-        version: link:../../packages/types
-      '@myorg/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@myorg/utils':
-        specifier: workspace:*
-        version: link:../../packages/utils
-      next:
-        specifier: latest
-        version: 16.1.6(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.0.0
-        version: 18.3.1(react@18.3.1)
-    devDependencies:
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@testing-library/react':
-        specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      identity-obj-proxy:
-        specifier: ^3.0.0
-        version: 3.0.0
-      jest:
-        specifier: ^30.2.0
-        version: 30.2.0(@types/node@22.19.13)
-      jest-environment-jsdom:
-        specifier: ^30.2.0
-        version: 30.2.0
-      ts-jest:
-        specifier: ^29.4.6
-        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@22.19.13))(typescript@5.9.3)
 
   packages/api-client:
     dependencies:
@@ -311,21 +121,6 @@ importers:
       '@supabase/supabase-js':
         specifier: '*'
         version: 2.98.0
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.37
-      jest:
-        specifier: ^30.2.0
-        version: 30.2.0(@types/node@20.19.37)
-      ts-jest:
-        specifier: ^29.4.6
-        version: 29.4.6(@babel/core@7.29.0)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.29.0))(jest-util@30.2.0)(jest@30.2.0(@types/node@20.19.37))(typescript@5.9.3)
-
-  packages/storage-client:
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1945,10 +1740,6 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
-  data-uri-to-buffer@4.0.1:
-    resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
-    engines: {node: '>= 12'}
-
   data-urls@5.0.0:
     resolution: {integrity: sha512-ZYP5VBHshaDAiVZxjbRVcFJpc+4xGgT0bK3vzy1HLN8jTO975HEbuYzZJcHoQEY5K1a0z8YayJkyVETa08eNTg==}
     engines: {node: '>=18'}
@@ -2185,10 +1976,6 @@ packages:
       picomatch:
         optional: true
 
-  fetch-blob@3.2.0:
-    resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
-    engines: {node: ^12.20 || >= 14.13}
-
   file-entry-cache@6.0.1:
     resolution: {integrity: sha512-7Gps/XWymbLk2QLYK4NzpMOrYjMhdIxXuIvy2QBsLE6ljuodKvdkWs/cpyJJ3CVIVpH0Oi1Hvg1ovbMzLdFBBg==}
     engines: {node: ^10.12.0 || >=12.0.0}
@@ -2219,10 +2006,6 @@ packages:
   foreground-child@3.3.1:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
-
-  formdata-polyfill@4.0.10:
-    resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
-    engines: {node: '>=12.20.0'}
 
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
@@ -2904,18 +2687,9 @@ packages:
       sass:
         optional: true
 
-  node-domexception@1.0.0:
-    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
-    engines: {node: '>=10.5.0'}
-    deprecated: Use your platform's native DOMException instead
-
   node-exports-info@1.6.0:
     resolution: {integrity: sha512-pyFS63ptit/P5WqUkt+UUfe+4oevH+bFeIiPPdfb0pFeYEu/1ELnJu5l+5EcTKYL5M7zaAa7S8ddywgXypqKCw==}
     engines: {node: '>= 0.4'}
-
-  node-fetch@3.3.2:
-    resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
@@ -3564,10 +3338,6 @@ packages:
 
   walker@1.0.8:
     resolution: {integrity: sha512-ts/8E8l5b7kY0vlWLewOkDXMmPdLcVV4GmOQLyxuSswIJsweeFZtAsMF7k1Nszz+TYBQrlYRmzOnr398y1JemQ==}
-
-  web-streams-polyfill@3.3.3:
-    resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
-    engines: {node: '>= 8'}
 
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
@@ -5495,8 +5265,6 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  data-uri-to-buffer@4.0.1: {}
-
   data-urls@5.0.0:
     dependencies:
       whatwg-mimetype: 4.0.0
@@ -5831,11 +5599,6 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.3
 
-  fetch-blob@3.2.0:
-    dependencies:
-      node-domexception: 1.0.0
-      web-streams-polyfill: 3.3.3
-
   file-entry-cache@6.0.1:
     dependencies:
       flat-cache: 3.2.0
@@ -5870,10 +5633,6 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
-
-  formdata-polyfill@4.0.10:
-    dependencies:
-      fetch-blob: 3.2.0
 
   fs.realpath@1.0.0: {}
 
@@ -6822,20 +6581,12 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  node-domexception@1.0.0: {}
-
   node-exports-info@1.6.0:
     dependencies:
       array.prototype.flatmap: 1.3.3
       es-errors: 1.3.0
       object.entries: 1.1.9
       semver: 6.3.1
-
-  node-fetch@3.3.2:
-    dependencies:
-      data-uri-to-buffer: 4.0.1
-      fetch-blob: 3.2.0
-      formdata-polyfill: 4.0.10
 
   node-int64@0.4.0: {}
 
@@ -7577,8 +7328,6 @@ snapshots:
   walker@1.0.8:
     dependencies:
       makeerror: 1.0.12
-
-  web-streams-polyfill@3.3.3: {}
 
   webidl-conversions@7.0.0: {}
 

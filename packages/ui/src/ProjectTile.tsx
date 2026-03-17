@@ -1,8 +1,15 @@
-import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, MouseEvent } from "react";
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  MouseEvent,
+} from "react";
 import ReactDOM from "react-dom";
-import styles from './ProjectTile.module.css';
+import styles from "./ProjectTile.module.css";
 
-import type { ProjectItem } from '@myorg/types';
+import type { ProjectItem } from "@myorg/types";
 
 export interface ProjectTileProps {
   project: ProjectItem;
@@ -15,6 +22,7 @@ export interface ProjectTileProps {
   onConfirmDelete?: ((id: string) => void) | undefined;
   isPendingDelete?: boolean;
   onChangeColor?: ((id: string, color: string) => void) | undefined;
+  onOpenColorPicker?: ((id: string, targetEl: HTMLElement) => void) | undefined;
   onReorder?: ((fromId: string, toId: string) => void) | undefined;
   isDragging?: boolean;
 }
@@ -63,6 +71,7 @@ export default function ProjectTile({
   onConfirmDelete = () => {},
   isPendingDelete = false,
   onChangeColor = () => {},
+  onOpenColorPicker = () => {},
   onReorder = () => {},
   isDragging = false,
 }: ProjectTileProps) {
@@ -71,7 +80,9 @@ export default function ProjectTile({
     const allTasks = (project.subprojects || []).flatMap((s) => s.tasks || []);
     if (allTasks.length === 0) return 0;
 
-    return Math.round((allTasks.filter((t) => t.done).length / allTasks.length) * 100);
+    return Math.round(
+      (allTasks.filter((t) => t.done).length / allTasks.length) * 100,
+    );
   }, [project.subprojects]);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,7 +95,11 @@ export default function ProjectTile({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const color = useMemo(() => {
-    const computedColor = project.color || PROJECT_COLORS[hashString(project.id || project.text || "") % PROJECT_COLORS.length];
+    const computedColor =
+      project.color ||
+      PROJECT_COLORS[
+        hashString(project.id || project.text || "") % PROJECT_COLORS.length
+      ];
     return computedColor;
   }, [project.id, project.text, project.color]);
 
@@ -97,7 +112,8 @@ export default function ProjectTile({
     function handleClickOutside(event: MouseEvent | globalThis.MouseEvent) {
       const clickedInsideMenu =
         (menuRef.current && menuRef.current.contains(event.target as Node)) ||
-        (dropdownRef.current && dropdownRef.current.contains(event.target as Node));
+        (dropdownRef.current &&
+          dropdownRef.current.contains(event.target as Node));
       if (!clickedInsideMenu) {
         setMenuOpen(false);
       }
@@ -105,7 +121,8 @@ export default function ProjectTile({
 
     if (menuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [menuOpen]);
 
@@ -124,7 +141,8 @@ export default function ProjectTile({
       const viewportWidth = window.innerWidth;
       const threshold = viewportWidth < 768 ? 20 : 10;
 
-      const isBottomCutOff = buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
+      const isBottomCutOff =
+        buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
       setMenuFlippedVertically(isBottomCutOff);
 
       const top = isBottomCutOff
@@ -166,15 +184,22 @@ export default function ProjectTile({
       }
     }
 
-    document.addEventListener("closeAllMenus", handleCloseAllMenus as EventListener);
-    return () => document.removeEventListener("closeAllMenus", handleCloseAllMenus as EventListener);
+    document.addEventListener(
+      "closeAllMenus",
+      handleCloseAllMenus as EventListener,
+    );
+    return () =>
+      document.removeEventListener(
+        "closeAllMenus",
+        handleCloseAllMenus as EventListener,
+      );
   }, [project.id]);
 
   // compute final width/height with CSS variable overrides
   const resolvedWidth = width !== undefined ? width : size;
   const resolvedHeight = height !== undefined ? height : size;
-  const widthStr = `var(--project-tile-width, ${typeof resolvedWidth === 'number' ? resolvedWidth + 'px' : resolvedWidth})`;
-  const heightStr = `var(--project-tile-height, ${typeof resolvedHeight === 'number' ? resolvedHeight + 'px' : resolvedHeight})`;
+  const widthStr = `var(--project-tile-width, ${typeof resolvedWidth === "number" ? resolvedWidth + "px" : resolvedWidth})`;
+  const heightStr = `var(--project-tile-height, ${typeof resolvedHeight === "number" ? resolvedHeight + "px" : resolvedHeight})`;
 
   const handleEdit = () => {
     onEdit(project.id);
@@ -204,12 +229,8 @@ export default function ProjectTile({
     setMenuOpen(false);
   };
 
-  const handleOpenColorPicker = () => {
-    // Send message to framework to open color picker
-    window.parent?.postMessage?.({
-      type: 'colorpicker-open',
-      projectId: project.id
-    }, '*');
+  const handleOpenColorPicker = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onOpenColorPicker(project.id, e.currentTarget);
   };
 
   // Listen for color selection from framework
@@ -218,20 +239,27 @@ export default function ProjectTile({
       if (!event?.data) return;
 
       const { type, color, projectId } = event.data;
-      if (type === 'color-selected' && typeof color === 'string' && projectId === project.id) {
+      if (
+        type === "color-selected" &&
+        typeof color === "string" &&
+        projectId === project.id
+      ) {
         handleColorChange(color);
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, [project.id]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("application/json", JSON.stringify({
-      projectId: project.id,
-    }));
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        projectId: project.id,
+      }),
+    );
   };
 
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
@@ -242,7 +270,6 @@ export default function ProjectTile({
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
-
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -262,13 +289,15 @@ export default function ProjectTile({
   return (
     <div
       className={styles.tile}
-      style={{
-        width: widthStr,
-        height: heightStr,
-        "--project-color": color,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: menuOpen ? 999 : undefined,
-      } as any}
+      style={
+        {
+          width: widthStr,
+          height: heightStr,
+          "--project-color": color,
+          opacity: isDragging ? 0.5 : 1,
+          zIndex: menuOpen ? 999 : undefined,
+        } as any
+      }
       data-testid="project-tile"
       ref={dragRef}
       draggable
@@ -279,9 +308,15 @@ export default function ProjectTile({
     >
       {/* Artistic background elements */}
       <div className={`${styles.tileBg} project-tile-bg`}>
-        <div className={`${styles.tileShape} ${styles.shape1} project-tile-shape shape-1`} />
-        <div className={`${styles.tileShape} ${styles.shape2} project-tile-shape shape-2`} />
-        <div className={`${styles.tileShape} ${styles.shape3} project-tile-shape shape-3`} />
+        <div
+          className={`${styles.tileShape} ${styles.shape1} project-tile-shape shape-1`}
+        />
+        <div
+          className={`${styles.tileShape} ${styles.shape2} project-tile-shape shape-2`}
+        />
+        <div
+          className={`${styles.tileShape} ${styles.shape3} project-tile-shape shape-3`}
+        />
       </div>
 
       {/* Main content container */}
@@ -314,7 +349,9 @@ export default function ProjectTile({
                 />
               ) : (
                 <>
-                  <div className={`${styles.name} project-name`}>{project.text}</div>
+                  <div className={`${styles.name} project-name`}>
+                    {project.text}
+                  </div>
                   <button
                     className={`${styles.nameEditBtn} project-name-edit-btn`}
                     title="Rename project"
@@ -330,7 +367,7 @@ export default function ProjectTile({
             </div>
             <div className={`${styles.nameAccent} project-name-accent`} />
           </div>
-          
+
           {isPendingDelete ? (
             <div className={styles.menu} onClick={(e) => e.stopPropagation()}>
               <div className={styles.pendingActions}>
@@ -357,7 +394,11 @@ export default function ProjectTile({
               </div>
             </div>
           ) : (
-            <div className={styles.menu} ref={menuRef} onClick={(e) => e.stopPropagation()}>
+            <div
+              className={styles.menu}
+              ref={menuRef}
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 className={styles.menuButton}
                 title="More options"
@@ -387,49 +428,56 @@ export default function ProjectTile({
                       zIndex: 1001,
                     }}
                   >
-                  <button
-                    className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
-                    onClick={() => {
-                      setMenuOpen(false);
-                      handleOpenColorPicker();
-                    }}
-                    title="Change color"
-                  >
-                    <span className="material-icons">palette</span>
-                    <span>Color</span>
-                    <span className={`${styles.menuArrow} menu-arrow`}>›</span>
-                  </button>
+                    <button
+                      className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
+                      onClick={(e) => {
+                        setMenuOpen(false);
+                        handleOpenColorPicker(e);
+                      }}
+                      title="Change color"
+                    >
+                      <span className="material-icons">palette</span>
+                      <span>Color</span>
+                      <span className={`${styles.menuArrow} menu-arrow`}>
+                        ›
+                      </span>
+                    </button>
 
-                  <div className={`${styles.menuDivider} menu-divider`} />
+                    <div className={`${styles.menuDivider} menu-divider`} />
 
-                  <button
-                    className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
-                    onClick={handleEdit}
-                    title="Edit project"
-                  >
-                    <span className="material-icons">edit</span>
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
-                    onClick={handleDelete}
-                    title="Delete project"
-                  >
-                    <span className="material-icons">delete</span>
-                    <span>Delete</span>
-                  </button>
-                </div>,
-                  document.body
-              )}
+                    <button
+                      className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
+                      onClick={handleEdit}
+                      title="Edit project"
+                    >
+                      <span className="material-icons">edit</span>
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
+                      onClick={handleDelete}
+                      title="Delete project"
+                    >
+                      <span className="material-icons">delete</span>
+                      <span>Delete</span>
+                    </button>
+                  </div>,
+                  document.body,
+                )}
             </div>
           )}
         </div>
 
         {/* Progress visualization */}
         <div className={`${styles.progressSection} project-progress-section`}>
-          <div className={`${styles.progressVisualization} progress-visualization`}>
+          <div
+            className={`${styles.progressVisualization} progress-visualization`}
+          >
             <div className={`${styles.progressCircle} progress-circle`}>
-              <svg className={`${styles.progressSvg} progress-svg`} viewBox="0 0 120 120">
+              <svg
+                className={`${styles.progressSvg} progress-svg`}
+                viewBox="0 0 120 120"
+              >
                 <circle
                   className={`${styles.progressBg} progress-bg`}
                   cx="60"
@@ -449,7 +497,9 @@ export default function ProjectTile({
                 />
               </svg>
               <div className={`${styles.progressText} progress-text`}>
-                <div className={`${styles.progressPercent} progress-percent`}>{progress}%</div>
+                <div className={`${styles.progressPercent} progress-percent`}>
+                  {progress}%
+                </div>
                 {/* label removed per design; remaining CSS kept for potential future use */}
               </div>
             </div>
@@ -468,7 +518,7 @@ export default function ProjectTile({
       </div>
 
       {/* Hidden elements for backward compatibility with tests */}
-      <div className="project-body" style={{ display: 'none' }}>
+      <div className="project-body" style={{ display: "none" }}>
         <div className="project-progress-section">
           <div className="project-progress-container">
             <div
@@ -478,14 +528,17 @@ export default function ProjectTile({
             />
           </div>
           <div className="project-percent" data-testid="project-percent">
-            {progress}%</div>
+            {progress}%
+          </div>
         </div>
       </div>
 
-      <div className="project-footer" style={{ display: 'none' }}>
-        <div className="project-accent-bar" style={{ backgroundColor: color }} />
+      <div className="project-footer" style={{ display: "none" }}>
+        <div
+          className="project-accent-bar"
+          style={{ backgroundColor: color }}
+        />
       </div>
     </div>
   );
 }
-

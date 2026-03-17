@@ -5,7 +5,7 @@ This repository is fully migrated to a multi-app monorepo architecture.
 ## Architecture
 
 Apps:
-- `apps/framework` — framework host app (logo bar, navbar, content menu, hosted tabs)
+- `root` — framework host app (logo bar, navbar, content menu, hosted tabs)
 - `apps/contacts` — contacts management app
 - `apps/projects` — projects app
 - `apps/tasks` — tasks app
@@ -76,7 +76,7 @@ Recommended release flow:
 1. Merge approved changes to `main`.
 2. Run local/CI validation gates.
 3. Trigger production deploy per project:
-  - `Push-Location apps/framework; vercel link --project fomo-life --yes; vercel --prod --yes; Pop-Location`
+  - `vercel link --project fomo-life --yes; vercel --prod --yes`
    - `vercel link --project fomo-life-contacts --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-projects --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-tasks --yes && vercel --prod --yes`

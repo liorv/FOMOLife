@@ -340,6 +340,7 @@
   background: #fff;
   outline: none;
   width: 100%;
+    display: block;
   max-width: 200px;
 }
 
@@ -485,6 +486,7 @@
 
 .mid-row {
   flex: 1;
+    display: block;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -497,8 +499,10 @@
 .title-logo {
   height: 130%;
   width: auto;
+    display: block;
   display: block;
   position: absolute;
+    display: block;
   top: 0;
   left: 0;
 }
@@ -865,7 +869,7 @@
 /* The nav thumb will be removed in a future release once this is established. */
 .content-fab {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(var(--nav-height, 70px) + 20px);
   right: 20px;
   width: 70px;
   height: 70px;
@@ -894,4 +898,33 @@
   filter: invert(1) brightness(2);
   display: block;
   margin: auto;
+}
+
+
+@media (max-width: 480px) {
+  .contact-tile {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 0;
+    position: relative;
+  }
+  .contact-tile__avatar-cell {
+    width: auto;
+    padding: 5px;
+  }
+  .contact-tile__name-cell {
+    flex: 1;
+    padding: 5px;
+    min-width: 0;
+  }
+  .contact-tile__status-cell {
+    width: 100%;
+    padding: 5px 5px 5px 42px; /* indent to match name */
+  }
+  .contact-tile__actions-cell {
+    position: absolute;
+    right: 10px;
+    top: 15px;
+  }
 }
