@@ -24,7 +24,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const isEmbedded = searchParams.get('embedded') === '1';
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   // general loading/error state
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -165,19 +164,20 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     }
   };
 
-  // Load contacts
+  // Load and poll contacts
   useEffect(() => {
     let active = true;
-    (async () => {
-      setLoading(true);
-      setErrorMessage(null);
+    let timeoutId: NodeJS.Timeout;
+
+    const loadContacts = async () => {
       try {
         const loaded = await apiClient.listContacts();
         if (active) {
           setContacts(loaded);
+          setErrorMessage(null);
         }
       } catch (error) {
-        if (active) {
+        if (active && contacts.length === 0) {
           setErrorMessage(error instanceof Error ? error.message : 'Failed to load contacts');
         }
       } finally {
@@ -185,31 +185,20 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
           setLoading(false);
         }
       }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [apiClient]);
-
-  // Load pending requests count
-  useEffect(() => {
-    if (!canManage) return;
-
-    const loadPendingRequests = async () => {
-      try {
-        const pending = await apiClient.getPendingRequests();
-        setPendingRequestsCount(pending.requests.length);
-      } catch (error) {
-        console.warn('Failed to load pending requests:', error);
+      
+      // Poll dynamically for newly created contacts/links every 10 seconds
+      if (active) {
+        timeoutId = setTimeout(loadContacts, 10000);
       }
     };
 
-    loadPendingRequests();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadPendingRequests, 30000);
-    return () => clearInterval(interval);
-  }, [apiClient, canManage]);
+    loadContacts();
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [apiClient]);
 
   // read query params to show an accepted-invite banner
   useEffect(() => {
@@ -234,8 +223,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       try {
         const updated = await apiClient.listContacts();
         setContacts(updated);
-        const pending = await apiClient.getPendingRequests();
-        setPendingRequestsCount(pending.requests.length);
       } catch (err) {
         // ignore; existing errorMessage state covers it when mounted
         console.warn('[Contacts] refresh failed', err);

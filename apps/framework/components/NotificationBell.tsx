@@ -34,7 +34,9 @@ export function NotificationBell() {
       }
       
       // Poll every 10 seconds
-      timeoutId = setTimeout(checkRequests, 10000);
+      if (mounted) {
+        timeoutId = setTimeout(checkRequests, 10000);
+      }
     };
 
     checkRequests();
@@ -94,7 +96,11 @@ export function NotificationBell() {
             onRequestsUpdate={(count) => setPendingRequestsCount(count)}
             onContactsUpdate={() => {
               // The dropdown itself notifies other apps via postMessage.
-              // Update our local count immediately if needed.
+              document.querySelectorAll('iframe').forEach(iframe => {
+                iframe.contentWindow?.postMessage({ type: 'contacts-updated' }, '*');
+              });
+              // Update our local count immediately as well
+              setPendingRequestsCount((prev) => Math.max(0, prev - 1));
             }}
           />
         </div>
