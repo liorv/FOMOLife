@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createProjectsApiClient } from '../lib/client/projectsApi';
-import { createContactsApiClient } from '../../contacts/lib/client/contactsApi';
+import { createContactsApiClient } from '@myorg/api-client';
 import type { ProjectItem, ProjectSubproject, Contact } from '@myorg/types';
 import { generateId } from '@myorg/utils';
 import ProjectsDashboard from './ProjectsDashboard';

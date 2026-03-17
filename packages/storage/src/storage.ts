@@ -7,6 +7,10 @@ export type PersistedUserData = {
   projects?: unknown[];
   people?: unknown[];
   groups?: unknown[];
+  invitationLinks?: unknown[];
+  connections?: unknown[];
+  pendingRequests?: unknown[];
+  [key: string]: unknown;
 };
 
 export function getSupabaseAdminClient() {

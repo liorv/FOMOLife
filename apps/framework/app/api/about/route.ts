@@ -78,13 +78,18 @@ function getDeployTimestamp(): string {
 
 async function fetchAppVersion(url: string): Promise<string> {
   try {
-    const res = await fetch(`${url}/api/about`);
+    const res = await fetch(`${url}/api/about`, { 
+      signal: AbortSignal.timeout(2000) // 2 second timeout
+    });
     if (res.ok) {
       const data = await res.json();
       return data.version || 'unknown';
     }
   } catch (err) {
-    console.error('Failed to fetch version from', url, err);
+    // Don't log errors during development startup - other apps may not be ready yet
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Failed to fetch version from', url, err);
+    }
   }
   return 'unknown';
 }
@@ -92,7 +97,7 @@ async function fetchAppVersion(url: string): Promise<string> {
 export async function GET() {
   const [contactsVersion, tasksVersion, projectsVersion] = await Promise.all([
     fetchAppVersion(process.env.CONTACTS_URL || 'http://localhost:3002'),
-    fetchAppVersion(process.env.TASKS_URL || 'http://localhost:3004'),
+    fetchAppVersion(process.env.TASKS_URL || 'http://localhost:3005'),
     fetchAppVersion(process.env.PROJECTS_URL || 'http://localhost:3003'),
   ]);
 

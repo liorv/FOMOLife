@@ -1,18 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
-import { isNonEmptyString, generateId } from '@myorg/utils';
 import type { Contact } from '@myorg/types';
-import { ContactTile } from '@myorg/ui';
-import { createContactsApiClient } from '@/lib/client/contactsApi';
+import { ContactTile, ModalOverlay } from '@myorg/ui';
+import { createContactsApiClient } from '@myorg/api-client';
 import { getContactsClientEnv } from '@/lib/env.client';
+import { NotificationDropdown } from './NotificationDropdown';
 
 import styles from '../styles/layout.module.css';
-
-
-export const DEFAULT_CONTACT_NAME = 'New Contact (1)';
 
 type Props = {
   canManage: boolean;
@@ -28,8 +25,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const isEmbedded = searchParams.get('embedded') === '1';
 
   const [contacts, setContacts] = useState<Contact[]>([]);
-  // track an id for a freshly-created contact so we can auto-focus its name input
-  const [newContactId, setNewContactId] = useState<string | null>(null);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   // general loading/error state
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -39,59 +35,138 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   // banner shown when an invite link is copied anywhere on the page
   const [linkCopied, setLinkCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string>('');
+  // share invitation modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string>('');
   // small banner shown when arriving after accepting an invite
   const [acceptedBanner, setAcceptedBanner] = useState(false);
   // search functionality
   const [searchTerm, setSearchTerm] = useState('');
-  // ref to track the next contact number for incremental naming
-  const nextContactNumberRef = useRef(1);
+  // notification dropdown state
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  // filter contacts based on search term
+  // filter and sort contacts alphabetically
   const filteredContacts = useMemo(() => {
-    if (!searchTerm.trim()) return contacts;
-    return contacts.filter(contact =>
-      contact.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = contacts;
+    if (searchTerm.trim()) {
+      filtered = contacts.filter(contact =>
+        contact.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
   }, [contacts, searchTerm]);
 
-  // helper that creates a contact with a default placeholder name. the new
-  // tile is then focused so the user can immediately edit its name. this is
-  // invoked only from the thumb button (see message handler below).
-  const addContact = async () => {
+  const [activeInvite, setActiveInvite] = useState<{ url: string; expiresAt: string } | null>(null);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    const storeKey = `fomo_active_invite_${currentUserId}`;
+    
+    const checkExpiration = () => {
+      const stored = localStorage.getItem(storeKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed && new Date(parsed.expiresAt) > new Date()) {
+            setActiveInvite(parsed);
+          } else {
+            setActiveInvite(null);
+            localStorage.removeItem(storeKey);
+          }
+        } catch (e) {}
+      } else {
+        setActiveInvite(null);
+      }
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [currentUserId]);
+
+  // Generate invite link
+  const generateInviteLink = async () => {
     if (!canManage) return;
 
-    const nextNumber = nextContactNumberRef.current++;
-    const name = `New Contact (${nextNumber})`;
-    const tempId = generateId();
-    const optimisticContact: Contact = { id: tempId, name, status: 'not_linked' };
-    setContacts((prev) => [...prev, optimisticContact]);
-    setNewContactId(tempId);
     try {
-      const created = await apiClient.createContact({ name });
-      setContacts((prev) => prev.map((c) => (c.id === tempId ? created : c)));
-      setNewContactId(created.id);
+      const response = await apiClient.generateInviteLink();
+      const inviteUrl = `${window.location.origin}/accept-invite?token=${encodeURIComponent(response.token)}`;
+
+      setInviteUrl(inviteUrl);
+
+      const artifact = { url: inviteUrl, expiresAt: response.expiresAt };
+      const storeKey = `fomo_active_invite_${currentUserId}`;
+      localStorage.setItem(storeKey, JSON.stringify(artifact));
+      setActiveInvite(artifact);
+
+      setShowShareModal(true);
       setErrorMessage(null);
     } catch (error) {
-      setContacts((prev) => prev.filter((c) => c.id !== tempId));
-      setNewContactId(null);
-      nextContactNumberRef.current--;
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create contact');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to generate invite link');
     }
   };
 
-  // Keep the next contact number ref in sync with existing contacts
-  useEffect(() => {
-    const existingNumbers = contacts
-      .map(c => c.name)
-      .filter(name => /^New Contact \(\d+\)$/.test(name))
-      .map(name => {
-        const match = name.match(/New Contact \((\d+)\)/);
-        return match && match[1] ? parseInt(match[1], 10) : 0;
-      });
-    const maxExisting = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
-    nextContactNumberRef.current = maxExisting + 1;
-  }, [contacts]);
+  // Revoke active invite link
+  const revokeActiveInvite = async () => {
+    try {
+      await apiClient.deleteActiveInviteLink();
+      setActiveInvite(null);
+      const storeKey = `fomo_active_invite_${currentUserId}`;
+      localStorage.removeItem(storeKey);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to revoke invite link');
+    }
+  };
 
+  // Copy link to clipboard
+  const copyInviteLink = async (targetUrl: string = inviteUrl) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(targetUrl);
+      } else {
+        // Fallback for non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = targetUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setCopiedLink(targetUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      alert('Failed to copy link. Please select and copy manually.');
+    }
+  };
+
+  // Share using Web Share API
+  const shareInviteLink = async () => {
+    if (!navigator.share) {
+      // Fallback to copy if Web Share API not supported
+      await copyInviteLink();
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: 'FOMO Life Contact Invitation',
+        text: 'Join me on FOMO Life! Click this link to connect.',
+        url: inviteUrl,
+      });
+      setShowShareModal(false);
+    } catch (error) {
+      console.log('Share failed or cancelled:', error);
+      // Fallback to copy if it fails, unless the user intentionally cancelled the dialog
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      await copyInviteLink();
+    }
+  };
+
+  // Load contacts
   useEffect(() => {
     let active = true;
     (async () => {
@@ -118,6 +193,25 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     };
   }, [apiClient]);
 
+  // Load pending requests count
+  useEffect(() => {
+    if (!canManage) return;
+
+    const loadPendingRequests = async () => {
+      try {
+        const pending = await apiClient.getPendingRequests();
+        setPendingRequestsCount(pending.requests.length);
+      } catch (error) {
+        console.warn('Failed to load pending requests:', error);
+      }
+    };
+
+    loadPendingRequests();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadPendingRequests, 30000);
+    return () => clearInterval(interval);
+  }, [apiClient, canManage]);
+
   // read query params to show an accepted-invite banner
   useEffect(() => {
     if (searchParams.get('accepted') === 'true') {
@@ -141,6 +235,8 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       try {
         const updated = await apiClient.listContacts();
         setContacts(updated);
+        const pending = await apiClient.getPendingRequests();
+        setPendingRequestsCount(pending.requests.length);
       } catch (err) {
         // ignore; existing errorMessage state covers it when mounted
         console.warn('[Contacts] refresh failed', err);
@@ -251,8 +347,69 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
               </div>
             )}
 
-            <div></div> {/* empty right spacer */}
+            {/* notification bell */}
+            {canManage && (
+              <div className={styles.notifications}>
+                <button
+                  type="button"
+                  className={styles.bellButton}
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  aria-label="Notifications"
+                >
+                  <span className="material-icons">notifications</span>
+                  {pendingRequestsCount > 0 && (
+                    <span className={styles.badge}>{pendingRequestsCount}</span>
+                  )}
+                </button>
+                {showNotifications && (
+                  <div className={styles.notificationsDropdown}>
+                    <NotificationDropdown
+                      apiClient={apiClient}
+                      onClose={() => setShowNotifications(false)}
+                      onRequestsUpdate={setPendingRequestsCount}
+                      onContactsUpdate={() => {
+                        // Refresh contacts list
+                        apiClient.listContacts().then(setContacts).catch(console.error);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </header>
+
+          {activeInvite && canManage && (
+            <div className={styles.persistedInvite}>
+              <div className={styles.persistedInviteHeader}>
+                <strong><span className="material-icons">link</span> Active Invitation Link</strong>
+                <div className={styles.persistedInviteActions}>
+                  <span className={styles.expiresText}>Expires: {new Date(activeInvite.expiresAt).toLocaleString(undefined, { 
+                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' 
+                  })}</span>
+                  <button 
+                    type="button" 
+                    className={styles.revokeButton} 
+                    onClick={revokeActiveInvite} 
+                    title="Delete link"
+                  >
+                    <span className="material-icons" style={{ fontSize: '16px' }}>delete_outline</span>
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <div className={styles.persistedInviteLink}>
+                <input type="text" readOnly value={activeInvite.url} onClick={(e) => (e.target as HTMLInputElement).select()} />
+                <button
+                  type="button"
+                  className={styles.copyButton}
+                  onClick={() => copyInviteLink(activeInvite.url)}
+                  title="Copy link"
+                >
+                  <span className="material-icons">{linkCopied && copiedLink === activeInvite.url ? 'check' : 'content_copy'}</span> {linkCopied && copiedLink === activeInvite.url ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {!canManage && <div className={styles.notice}>Read-only mode: sign in is required to manage contacts.</div>}
 
@@ -274,7 +431,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
             </div>
           )}
 
-
           {filteredContacts.length === 0 && contacts.length > 0 ? (
             <div className={styles.empty}>
               <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">search_off</span>
@@ -285,7 +441,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
             <div className={styles.empty}>
               <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people_outline</span>
               <p>No contacts yet.</p>
-              <p className={styles.emptySub}>Use the add button to create a new contact.</p>
+              <p className={styles.emptySub}>Generate an invite link to add contacts.</p>
             </div>
           ) : (
             <div className={styles.table}>
@@ -297,28 +453,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
                       id={contact.id}
                       name={contact.name}
                       status={contact.status}
-                      avatarUrl={null}
-                      autoFocus={newContactId === contact.id}
-                      onNameChange={async (newName) => {
-                        if (!isNonEmptyString(newName)) return;
-                        try {
-                          const updated = await apiClient.updateContact(contact.id, { name: newName.trim() });
-                          setContacts((prev) => prev.map((item) => (item.id === contact.id ? updated : item)));
-                          if (newContactId === contact.id) {
-                            setNewContactId(null);
-                          }
-                          // Clear any previous error
-                          setErrorMessage(null);
-                        } catch (error) {
-                          if (error instanceof Error && error.message.includes('Cannot name a contact as yourself')) {
-                            setErrorMessage('You cannot name a contact with your own name.');
-                          } else if (error instanceof Error && error.message.includes('A contact with this name already exists')) {
-                            setErrorMessage('A contact with this name already exists.');
-                          } else {
-                            setErrorMessage(error instanceof Error ? error.message : 'Failed to update contact name');
-                          }
-                        }
-                      }}
                       onUnlink={async () => {
                         const snapshotContacts = contacts;
                         setContacts((prev) => prev.filter((item) => item.id !== contact.id));
@@ -329,24 +463,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
                           setContacts(snapshotContacts);
                           setErrorMessage(error instanceof Error ? error.message : 'Failed to delete contact');
                         }
-                      }}
-                      onLink={async () => {
-                        // update local status immediately for user feedback
-                        setContacts(prev => prev.map(c => c.id === contact.id ? { ...c, status: 'link_pending' } : c));
-                      }}
-                      onInvite={async () => {
-                        try {
-                          const resp = await apiClient.inviteContact(contact.id);
-                          return resp.inviteToken || null;
-                        } catch (error) {
-                          setErrorMessage(error instanceof Error ? error.message : 'Failed to send invitation');
-                          return null;
-                        }
-                      }}
-                      onLinkSuccess={(link) => {
-                        setCopiedLink(link);
-                        setLinkCopied(true);
-                        setTimeout(() => setLinkCopied(false), 2500);
                       }}
                       isSelf={!!(contact.login && contact.login === currentUserEmail)}
                     />
@@ -363,12 +479,64 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       <button
         type="button"
         className="content-fab"
-        aria-label="Add contact"
-        onClick={() => void addContact()}
+        aria-label="Generate invite link"
+        onClick={() => void generateInviteLink()}
       >
         <span className="material-icons">person_add</span>
       </button>
     )}
+
+    <ModalOverlay
+      open={showShareModal}
+      onClose={() => setShowShareModal(false)}
+      className={styles.shareModal}
+    >
+      <div className={styles.shareModalContent}>
+        <h2 className={styles.shareModalTitle}>Share Invitation</h2>
+        <p className={styles.shareModalDescription}>
+          Share this link to invite someone to connect with you on FOMO Life.
+        </p>
+
+        <div className={styles.shareModalUrl}>
+          <input
+            type="text"
+            value={inviteUrl}
+            readOnly
+            className={styles.shareModalUrlInput}
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+          />
+        </div>
+
+        <div className={styles.shareModalActions}>
+          <button
+            type="button"
+            className={styles.shareModalButton}
+            onClick={() => void copyInviteLink()}
+          >
+            <span className="material-icons">{linkCopied ? "check" : "content_copy"}</span>
+            {linkCopied ? "Copied!" : "Copy Link"}
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.shareModalButton} ${styles.shareModalButtonPrimary}`}
+            onClick={() => void shareInviteLink()}
+          >
+            <span className="material-icons">share</span>
+            Share
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className={styles.shareModalClose}
+          onClick={() => setShowShareModal(false)}
+          aria-label="Close"
+        >
+          <span className="material-icons">close</span>
+        </button>
+      </div>
+    </ModalOverlay>
   </main>
 );
 }

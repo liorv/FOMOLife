@@ -412,17 +412,6 @@
   gap: 8px;
 }
 
-.persistedInviteActions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.expiresText {
-  color: var(--blue-700, #1d4ed8);
-  font-size: 13px;
-}
-
 .persistedInviteLink {
   display: flex;
   gap: 8px;
@@ -440,40 +429,18 @@
 }
 
 .revokeButton {
-  background-color: white;
-  color: var(--ui-danger, #dc3545);
-  border: 1px solid var(--ui-danger, #dc3545);
-  padding: 6px 12px;
-  border-radius: 6px;
+  background-color: var(--ui-danger-bg, #dc3545);
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
 }
 
 .revokeButton:hover {
-  background-color: var(--ui-danger-bg-subtle, #fdf4f5);
-}
-
-.copyButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-  border: 1px solid var(--blue-300, #93c5fd);
-  color: var(--blue-700, #1d4ed8);
-}
-
-.copyButton:hover {
-  background: var(--blue-100, #dbeafe);
+  opacity: 0.9;
 }

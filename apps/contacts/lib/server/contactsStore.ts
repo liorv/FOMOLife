@@ -1,6 +1,16 @@
 import 'server-only';
 
-import type { Contact, InviteToken, ContactGroup, ContactGroupInput } from '@myorg/types';
+import type {
+  Contact,
+  InviteToken,
+  ContactGroup,
+  ContactGroupInput,
+  Connection,
+  ConnectionStatus,
+  InvitationLink,
+  InviterProfile,
+  PendingRequest
+} from '@myorg/types';
 
 import jwt from 'jsonwebtoken';
 import { getStorage } from './storageClient';
@@ -9,10 +19,76 @@ import type { PersistedUserData } from '@myorg/storage';
 
 const storage = getStorage();
 
-const contactsByUser = new Map<string, Contact[]>();
-// simple in-memory groups per user
-const groupsByUser = new Map<string, ContactGroup[]>();
-const groupInviteByToken = new Map<string, { ownerUserId: string; groupId: string; contactId: string }>();
+const globalForStore = global as unknown as {
+  _contactsStoreCache?: {
+    contactsByUser: Map<string, Contact[]>;
+    groupsByUser: Map<string, ContactGroup[]>;
+    groupInviteByToken: Map<string, { ownerUserId: string; groupId: string; contactId: string }>;
+    invitationLinks: Map<string, InvitationLink>;
+    connections: Map<string, Connection>;
+    pendingRequests: Map<string, { id: string; inviterId: string; invitedId: string; requestedAt: string }>;
+  }
+};
+
+const cache = globalForStore._contactsStoreCache || {
+  contactsByUser: new Map<string, Contact[]>(),
+  groupsByUser: new Map<string, ContactGroup[]>(),
+  groupInviteByToken: new Map<string, { ownerUserId: string; groupId: string; contactId: string }>(),
+  invitationLinks: new Map<string, InvitationLink>(),
+  connections: new Map<string, Connection>(),
+  pendingRequests: new Map<string, { id: string; inviterId: string; invitedId: string; requestedAt: string }>(),
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForStore._contactsStoreCache = cache;
+}
+
+const contactsByUser = cache.contactsByUser;
+const groupsByUser = cache.groupsByUser;
+const groupInviteByToken = cache.groupInviteByToken;
+
+// New data structures for two-phase handshake
+const invitationLinks = cache.invitationLinks;
+const connections = cache.connections;
+const pendingRequests = cache.pendingRequests;
+
+const SYSTEM_ID = 'system_contacts';
+let systemLoaded = false;
+
+async function loadSystemData() {
+  if (systemLoaded) return;
+  try {
+    const persisted = await storage.load(SYSTEM_ID);
+    if (persisted) {
+      if (Array.isArray(persisted.invitationLinks)) {
+        persisted.invitationLinks.forEach((link: any) => invitationLinks.set(link.token, link));
+      }
+      if (Array.isArray(persisted.connections)) {
+        persisted.connections.forEach((conn: any) => connections.set(conn.id, conn));
+      }
+      if (Array.isArray(persisted.pendingRequests)) {
+        persisted.pendingRequests.forEach((req: any) => pendingRequests.set(req.id, req));
+      }
+    }
+  } catch (err) {
+    console.error('contactsStore: failed to load system data', err);
+  }
+  systemLoaded = true;
+}
+
+async function saveSystemData() {
+  try {
+    const data: PersistedUserData = {
+      invitationLinks: Array.from(invitationLinks.values()),
+      connections: Array.from(connections.values()),
+      pendingRequests: Array.from(pendingRequests.values())
+    };
+    await storage.save(SYSTEM_ID, data);
+    console.log('contactsStore: persisted system data');
+  } catch (err) {
+    console.error('contactsStore: failed to persist system data', err);
+  }
+}
 
 // secret used to sign invite JWTs; tests set process.env.INVITE_SECRET
 const INVITE_SECRET = process.env.INVITE_SECRET || 'default-invite-secret';
@@ -135,7 +211,8 @@ export async function inviteContact(userId: string, contactId: string): Promise<
 }
 
 export async function listContacts(userId: string): Promise<Contact[]> {
-  return [...await getOrInitUserContacts(userId)];
+  const allContacts = await getOrInitUserContacts(userId);
+  return allContacts;
 }
 
 export async function createContact(
@@ -227,18 +304,27 @@ export async function deleteContact(userId: string, contactId: string): Promise<
   const next = current.filter((item) => item.id !== contactId);
   contactsByUser.set(userId, next);
 
-  // If this contact represents a linked user, also unlink the reciprocal contact
-  // (change status to 'not_linked' but keep it in their list)
+  // Bilateral deletion: also remove the reciprocal contact
   if (contact.linkedUserId) {
     const reciprocalContacts = await getOrInitUserContacts(contact.linkedUserId);
-    // update all reciprocal contacts that point back to this user
-    const updatedRecips = reciprocalContacts.map((c) =>
-      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null } : c
+    const updatedRecips = reciprocalContacts.filter((c) => c.linkedUserId !== userId);
+    contactsByUser.set(contact.linkedUserId, updatedRecips);
+
+    // Also remove the connection
+    const connectionToRemove = Array.from(connections.values()).find(
+      conn => (conn.inviterId === userId && conn.invitedId === contact.linkedUserId) ||
+               (conn.inviterId === contact.linkedUserId && conn.invitedId === userId)
     );
-    contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
+    if (connectionToRemove) {
+      connections.delete(connectionToRemove.id);
+    }
   }
 
   await savePersisted(userId);
+  if (contact.linkedUserId) {
+    await savePersisted(contact.linkedUserId);
+  }
+  await saveSystemData();
   return true;
 }
 
@@ -447,6 +533,233 @@ export async function deleteGroup(userId: string, id: string): Promise<boolean> 
   groupsByUser.set(userId, next);
   await savePersisted(userId);
   return next.length !== current.length;
+}
+
+// New functions for two-phase handshake system
+
+export async function generateInviteLink(userId: string): Promise<{ token: string; expiresAt: string }> {
+  await loadSystemData();
+  
+  // Revoke any existing active links for this user
+  for (const [existingToken, link] of Array.from(invitationLinks.entries())) {
+    if (link.creatorId === userId) {
+      invitationLinks.delete(existingToken);
+    }
+  }
+
+  const token = jwt.sign({ userId, jti: generateId() }, INVITE_SECRET, { expiresIn: '7d' });
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+
+  const invitationLink: InvitationLink = {
+    id: generateId(),
+    creatorId: userId,
+    token,
+    expiresAt,
+    isUsed: false,
+  };
+
+  invitationLinks.set(token, invitationLink);
+  await saveSystemData();
+  return { token, expiresAt };
+}
+
+export async function deleteActiveInviteLink(userId: string): Promise<void> {
+  await loadSystemData();
+  let deleted = false;
+  for (const [existingToken, link] of Array.from(invitationLinks.entries())) {
+    if (link.creatorId === userId) {
+      invitationLinks.delete(existingToken);
+      deleted = true;
+    }
+  }
+  if (deleted) {
+    await saveSystemData();
+  }
+}
+
+export async function getInviteDetails(token: string): Promise<InviterProfile | null> {
+  await loadSystemData();
+  try {
+    const decoded = jwt.verify(token, INVITE_SECRET) as { userId: string };
+    const user = await findUserById(decoded.userId);
+
+    // Check if invitation link exists and is not expired
+    const invitation = invitationLinks.get(token);
+    if (!invitation || new Date(invitation.expiresAt) < new Date()) {
+      throw new Error('Invitation expired');
+    }
+
+    // Mock OAuth provider info - in real app this would come from user's OAuth data
+    const oauthProvider = 'google'; // This would be determined from user's auth provider
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
+
+    return {
+      fullName: user.name || user.email || '',
+      email: user.email || '',
+      oauthProvider,
+      avatarUrl,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TokenExpiredError') {
+      throw new Error('Invitation expired');
+    }
+    return null;
+  }
+}
+
+export async function requestLinkage(userId: string, token: string): Promise<{ requestId: string }> {
+  await loadSystemData();
+  const inviterProfile = await getInviteDetails(token);
+  if (!inviterProfile) {
+    throw new Error('Invalid or expired invitation');
+  }
+
+  // Decode token to get inviter ID
+  const decoded = jwt.verify(token, INVITE_SECRET) as { userId: string };
+  const inviterId = decoded.userId;
+
+  if (inviterId === userId) {
+    throw new Error('cannot accept your own invitation (if testing locally, use an Incognito tab for the second user to ensure cookies are separated)');
+  }
+
+  // Check if connection already exists
+  const existingConnection = Array.from(connections.values()).find(
+    conn => (conn.inviterId === inviterId && conn.invitedId === userId) ||
+             (conn.inviterId === userId && conn.invitedId === inviterId)
+  );
+
+  if (existingConnection && existingConnection.status === 'CONNECTED') {
+    throw new Error('Connection already exists');
+  }
+
+  // Create pending request
+  const requestId = generateId();
+  const requestedAt = new Date().toISOString();
+
+  pendingRequests.set(requestId, {
+    id: requestId,
+    inviterId,
+    invitedId: userId,
+    requestedAt,
+  });
+
+  // Mark invitation as used
+  // User logic: invite tokens can be sent to multiple people, so do not mark as used or invalidated.
+  // We keep the link valid until its expiration.
+  // const invitation = invitationLinks.get(token);
+  // if (invitation) {
+  //   invitation.isUsed = true;
+  //   invitationLinks.set(token, invitation);
+  // }
+
+  await saveSystemData();
+  return { requestId };
+}
+
+export async function getPendingRequests(userId: string): Promise<PendingRequest[]> {
+  await loadSystemData();
+  const userRequests = Array.from(pendingRequests.values())
+    .filter(req => req.inviterId === userId)
+    .map(async (req) => {
+      const inviteeProfile = await getInviteDetailsForUser(req.invitedId);
+      return {
+        id: req.id,
+        requesterProfile: inviteeProfile,
+        requestedAt: req.requestedAt,
+      };
+    });
+
+  return Promise.all(userRequests);
+}
+
+async function getInviteDetailsForUser(userId: string): Promise<InviterProfile> {
+  const user = await findUserById(userId);
+  // Mock OAuth provider info
+  const oauthProvider = 'google';
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
+
+  return {
+    fullName: user.name || user.email || '',
+    email: user.email || '',
+    oauthProvider,
+    avatarUrl,
+  };
+}
+
+export async function approveRequest(userId: string, requestId: string): Promise<void> {
+  await loadSystemData();
+  const request = pendingRequests.get(requestId);
+  if (!request || request.inviterId !== userId) {
+    throw new Error('Request not found or unauthorized');
+  }
+
+  // Create connection
+  const connectionId = generateId();
+  const now = new Date().toISOString();
+
+  const connection: Connection = {
+    id: connectionId,
+    inviterId: request.inviterId,
+    invitedId: request.invitedId,
+    status: 'CONNECTED',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  connections.set(connectionId, connection);
+
+  // Create contacts for both users
+  await createContactForConnection(request.inviterId, request.invitedId);
+  await createContactForConnection(request.invitedId, request.inviterId);
+
+  // Remove pending request
+  pendingRequests.delete(requestId);
+  await saveSystemData();
+}
+
+export async function rejectRequest(userId: string, requestId: string): Promise<void> {
+  await loadSystemData();
+  const request = pendingRequests.get(requestId);
+  if (!request || request.inviterId !== userId) {
+    throw new Error('Request not found or unauthorized');
+  }
+
+  // Remove pending request
+  pendingRequests.delete(requestId);
+  await saveSystemData();
+}
+
+async function createContactForConnection(userId: string, connectedUserId: string): Promise<void> {
+  const user = await findUserById(connectedUserId);
+  const existingContacts = await getOrInitUserContacts(userId);
+
+  // Check if contact already exists by linkedUserId
+  let existingContact = existingContacts.find(
+    contact => contact.linkedUserId === connectedUserId
+  );
+
+  const desiredName = user.name || user.email || connectedUserId;
+
+  if (!existingContact) {
+    // Fallback: check if they have a manual contact with exactly this name
+    existingContact = existingContacts.find(
+      contact => contact.name.toLowerCase() === desiredName.toLowerCase()
+    );
+  }
+
+  if (!existingContact) {
+    // We are safe to create a new one
+    await createContact(userId, {
+      name: desiredName,
+      status: 'linked',
+      linkedUserId: connectedUserId,
+    });
+  } else if (existingContact.status !== 'linked' || existingContact.linkedUserId !== connectedUserId) {
+    await updateContact(userId, existingContact.id, { 
+      status: 'linked',
+      linkedUserId: connectedUserId 
+    });
+  }
 }
 
 export async function leaveGroup(userId: string, groupId: string): Promise<boolean> {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import type { InviteTokenResponse } from '@myorg/types';
-import { inviteContact } from '@/lib/server/contactsStore';
+import type { GenerateInviteResponse } from '@myorg/types';
+import { generateInviteLink, deleteActiveInviteLink } from '@/lib/server/contactsStore';
 import { getContactsSession } from '@/lib/server/auth';
 
 function unauthorizedResponse() {
@@ -11,7 +11,7 @@ function corsResponse(response: NextResponse, request?: Request) {
   const origin = request?.headers.get('origin') || '*';
   response.headers.set('Access-Control-Allow-Origin', origin);
   response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  response.headers.set('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
   return response;
 }
@@ -20,19 +20,13 @@ export async function OPTIONS(request: Request) {
   return corsResponse(NextResponse.json({}), request);
 }
 
-
 export async function POST(request: Request) {
   const session = await getContactsSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { contactId?: string };
-  if (!body?.contactId) {
-    return corsResponse(NextResponse.json({ error: 'contactId required' }, { status: 400 }), request);
-  }
-
-  const inviteToken = await inviteContact(session.userId, body.contactId);
-  if (!inviteToken) {
-    return corsResponse(NextResponse.json({ error: 'invalid contactId' }, { status: 404 }), request);
+  const inviteResponse = await generateInviteLink(session.userId);
+  if (!inviteResponse) {
+    return corsResponse(NextResponse.json({ error: 'Failed to generate invite link' }, { status: 500 }), request);
   }
 
   // construct a user-facing URL (in real app this would be emailed)
@@ -40,13 +34,31 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const base =
     process.env.NEXT_PUBLIC_BASE_URL || `${url.protocol}//${url.host}`;
-  const inviteLink = `${base}/accept-invite?token=${encodeURIComponent(inviteToken)}`;
-  console.log(`Invitation link: ${inviteLink}`);
+  const inviteLink = `${base}/accept-invite?token=${encodeURIComponent(inviteResponse.token)}`;
 
-  const response: InviteTokenResponse & { inviteLink?: string } = {
-    inviteToken,
+  const response: GenerateInviteResponse = {
     inviteLink,
+    token: inviteResponse.token,
+    expiresAt: inviteResponse.expiresAt,
   };
   return corsResponse(NextResponse.json(response), request);
 }
 
+
+export async function DELETE(request: Request) {
+  const session = await getContactsSession();
+  if (!session.isAuthenticated) return unauthorizedResponse();
+
+  try {
+    await deleteActiveInviteLink(session.userId);
+    return corsResponse(NextResponse.json({ ok: true }), request);
+  } catch (error: any) {
+    return corsResponse(
+      NextResponse.json(
+        { error: 'deletion_failed', message: error.message || 'Failed to delete active invite link' },
+        { status: 500 }
+      ),
+      request
+    );
+  }
+}

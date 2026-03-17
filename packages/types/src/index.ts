@@ -21,6 +21,14 @@ export type {
 	Group,
 	InviteTokenResponse,
 	InviteInfo,
+	Connection,
+	ConnectionStatus,
+	InvitationLink,
+	InviterProfile,
+	PendingRequest,
+	GenerateInviteResponse,
+	PendingRequestsResponse,
+	RequestLinkageRequest,
 } from './contact';
 
 // Project types

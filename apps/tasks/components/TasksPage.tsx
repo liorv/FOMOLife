@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TasksPage.module.css';
 import { useSearchParams } from 'next/navigation';
 import { createTasksApiClient } from '../lib/client/tasksApi';
-import { createContactsApiClient } from '../lib/client/contactsApi';
+import { createContactsApiClient } from '@myorg/api-client';
 import type { TaskItem, ProjectTask, Contact } from '@myorg/types';
 import { TaskList, AddBar } from '@myorg/ui';
 import { applyFilters, generateId } from '@myorg/utils';
@@ -27,7 +27,7 @@ export default function TasksPage({ canManage }: Props) {
   const contactsBaseUrl =
     process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() ||
     (process.env.NODE_ENV !== 'production' ? 'http://localhost:3002' : '');
-  const contactsApi = useMemo(() => createContactsApiClient(), []);
+  const contactsApi = useMemo(() => createContactsApiClient(contactsBaseUrl), [contactsBaseUrl]);
 
   const handleCreatePerson = async (name: string) => {
     if (!contactsBaseUrl) return null;

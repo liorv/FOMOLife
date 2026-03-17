@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3004",
+    "dev": "next dev --port 3005",
     "build": "echo '{\"version\":\"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'\"}' > version.json && next build",
-    "start": "next start --port 3004",
+    "start": "next start --port 3005",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
     "test": "jest",
     "typecheck": "tsc --noEmit"

@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
-import { inviteContact } from "@myorg/api-client";
 
 export interface ContactTileProps {
   id: string;
   name: string;
   status: 'not_linked' | 'link_pending' | 'linked';
   avatarUrl?: string | null;
+  oauthProvider?: string;
   /** if true, start the tile in edit mode and focus the name input */
   autoFocus?: boolean;
   onNameChange?: (newName: string) => void;
@@ -28,12 +28,9 @@ export interface ContactTileProps {
 // ContactTile component skeleton for contacts redesign
 
 
-export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess, isSelf }: ContactTileProps) {
+export function ContactTile({ id, name, status, avatarUrl, oauthProvider, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess, isSelf }: ContactTileProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
-  const [linkPending, setLinkPending] = useState(false);
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -73,78 +70,6 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       finishEdit();
-    }
-  }
-
-  async function handleCopyClick(ev: React.MouseEvent) {
-    ev.stopPropagation();
-    const link = `${window.location.origin}/accept-invite?token=${encodeURIComponent(
-      inviteToken!
-    )}`;
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(link);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      } catch {
-        // fallback: ignore or prompt
-      }
-    }
-    if (onLinkSuccess) {
-      try {
-        onLinkSuccess(link);
-      } catch {
-        // ignore
-      }
-    }
-  }
-
-  async function handleLinkClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    // inform parent that a link request has started (e.g. update status)
-    if (onLink) {
-      try {
-        onLink();
-      } catch {
-        // swallow
-      }
-    }
-    setLinkPending(true);
-    try {
-      let token: string | null = null;
-      if (onInvite) {
-        token = await onInvite();
-      } else {
-        const res = await inviteContact(id);
-        token = res.inviteToken || null;
-      }
-      setInviteToken(token);
-      if (token) {
-        // copy the complete acceptance URL to the clipboard
-        const link = `${window.location.origin}/accept-invite?token=${encodeURIComponent(
-          token
-        )}`;
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-          try {
-            await navigator.clipboard.writeText(link);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
-          } catch {
-            // ignore clipboard failures (e.g. permission denied)
-          }
-        }
-        if (onLinkSuccess) {
-          try {
-            onLinkSuccess(link);
-          } catch {
-            // ignore
-          }
-        }
-      }
-    } catch (err) {
-      // ignore errors for now
-    } finally {
-      setLinkPending(false);
     }
   }
 
@@ -229,25 +154,12 @@ export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChan
       </td>
       <td className="contact-tile__actions-cell">
         <div className="contact-tile__actions">
-          {(status === 'not_linked' || status === 'link_pending') && (
-            <button
-              className={inviteToken ? "contact-tile__link-btn" : "contact-tile__link-btn"}
-              aria-label={isSelf ? 'Cannot invite yourself' : inviteToken ? (copied ? 'Copied invite link' : 'Copy invite link') : 'Generate invite link'}
-              type="button"
-              onClick={inviteToken ? handleCopyClick : handleLinkClick}
-              disabled={isSelf || linkPending}
-              title={isSelf ? 'Cannot invite yourself' : inviteToken ? (copied ? 'Copied!' : 'Copy invite link') : 'Generate invite link'}
-            >
-              <span className="material-icons" style={{ fontSize: '16px' }}>
-                {inviteToken ? (copied ? 'check' : 'link') : 'link'}
-              </span>
-            </button>
-          )}
           <button
             className="contact-tile__unlink-btn"
             aria-label="Delete contact"
             type="button"
             onClick={e => { e.stopPropagation(); onUnlink && onUnlink(); }}
+            title="Delete contact"
           >
             <span className="material-icons" style={{ fontSize: '16px' }}>delete</span>
           </button>

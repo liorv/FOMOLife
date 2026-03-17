@@ -8,6 +8,10 @@ export interface UserDataBlob {
   projects?: unknown[];
   people?: unknown[];
   groups?: unknown[];
+  invitationLinks?: unknown[];
+  connections?: unknown[];
+  pendingRequests?: unknown[];
+  [key: string]: unknown;
 }
 
 export interface StorageProvider {
