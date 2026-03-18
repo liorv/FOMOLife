@@ -208,6 +208,46 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
   };
 
+  const handleGenerateProject = async (data: any) => {
+    if (!canManage) return;
+
+    try {
+      const subprojects = Array.isArray(data.sub_projects) ? data.sub_projects.map((sp: any) => {
+        return {
+          id: generateId(),
+          text: sp.title || sp.text || 'Untitled Subproject',
+          tasks: Array.isArray(sp.tasks) ? sp.tasks.map((t: any) => {
+            let dueDateVal: string | null = null;
+            if (typeof t.deadline_offset_days === 'number') {
+              const date = new Date();
+              date.setDate(date.getDate() + t.deadline_offset_days);
+              dueDateVal = date.toISOString().split('T')[0] ?? null;
+            }
+            return {
+              id: generateId(),
+              text: t.description,
+              done: false,
+              favorite: t.priority === 'High',
+              dueDate: dueDateVal,
+            };
+          }) : []
+        };
+      }) : [];
+
+      const created = await apiClient.createProject({
+        text: data.project_name?.trim() || 'Untitled AI Project',
+        subprojects,
+      });
+      setProjects(prev => [...prev, created]);
+      setEditingProjectId(created.id);
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to generate project",
+      );
+      throw err;
+    }
+  };
+
   // Always persist project changes (including task edits) to backend
   const handleProjectApplyChange = async (
     projectId: string,
@@ -433,9 +473,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   };
 
   return (
-    <main className="main-layout">
+    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingTop: '40px', paddingBottom: '40px' }}>
       {!displayReady ? (
-        <div style={{ height: "100vh" }} />
+        <div style={{ height: 0 }} />
       ) : (
         <div className="content-panel">
           <section className="content">
@@ -482,6 +522,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               pendingDeleteProjectId={pendingDeleteProjectId}
               onConfirmDeleteProject={handleConfirmDeleteProject}
               onAddProject={handleAddProject}
+              onGenerateProject={handleGenerateProject}
               onOpenColorPicker={handleOpenColorPicker}
               onOpenPeople={openContacts}
               onCreatePerson={handleCreatePerson}
@@ -510,6 +551,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }

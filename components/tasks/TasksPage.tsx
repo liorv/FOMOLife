@@ -375,9 +375,9 @@ export default function TasksPage({ canManage }: Props) {
   };
 
   return (
-    <main className="main-layout">
+    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingTop: '40px', paddingBottom: '40px' }}>
       {!displayReady ? (
-        <div style={{ height: "100vh" }} />
+        <div style={{ height: 0 }} />
       ) : (
         <div className="content-panel">
           <section className="content">
@@ -577,6 +577,6 @@ export default function TasksPage({ canManage }: Props) {
           </section>
         </div>
       )}
-    </main>
+    </div>
   );
 }

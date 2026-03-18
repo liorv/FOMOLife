@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number };
+  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number; subprojects?: any[] };
   if (!body?.text || !body.text.trim()) {
     return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
   }
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     ...(body.color ? { color: body.color } : {}),
     ...(typeof body.progress === 'number' ? { progress: body.progress } : {}),
     ...(typeof body.order === 'number' ? { order: body.order } : {}),
+    ...(Array.isArray(body.subprojects) ? { subprojects: body.subprojects } : {}),
   });
   return NextResponse.json(created, { status: 201 });
 }

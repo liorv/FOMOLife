@@ -1,4 +1,5 @@
 import React, {
+  useState,
   useMemo,
   KeyboardEvent,
   MouseEvent,
@@ -12,6 +13,7 @@ import type {
 import { ProjectTile, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
+import AiBlueprintModal from "./AiBlueprintModal";
 
 // ─── Summary metric card ─────────────────────────────────────────────────────
 
@@ -85,6 +87,7 @@ interface ProjectsDashboardProps {
   pendingDeleteProjectId?: string | null;
   onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
+  onGenerateProject?: (data: any) => Promise<void>;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
   onTitleChange?: (projectId: string, title: string) => void;
@@ -110,6 +113,7 @@ export default function ProjectsDashboard({
   pendingDeleteProjectId,
   onConfirmDeleteProject,
   onAddProject,
+  onGenerateProject,
   onOpenPeople,
   onCreatePerson,
   onTitleChange,
@@ -120,6 +124,9 @@ export default function ProjectsDashboard({
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
+
+  const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   // Filter sidebar by search query
   const visibleProjects = useMemo(
@@ -340,24 +347,112 @@ export default function ProjectsDashboard({
       )}
 
       {(onAddProject || onAddSubproject) && (
-        <button
-          type="button"
-          className="content-fab"
-          aria-label={selectedProject ? 'Add subproject' : 'Add project'}
-          onClick={() => {
-            if (selectedProject) {
-              onAddSubproject?.(selectedProject.id, '');
-            } else {
-              onAddProject?.();
-            }
-          }}
-        >
-          {selectedProject ? (
-            <span className="material-icons">add</span>
-          ) : (
-            <span className="material-icons">add</span>
+        <div className="fab-container">
+          {isFabMenuOpen && (
+            <div
+              className="fab-menu"
+              style={{
+                position: 'fixed',
+                bottom: 'calc(var(--nav-height, 70px) + 100px)',
+                right: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                zIndex: 101,
+              }}
+            >
+              <button
+                style={{
+                  background: '#fff',
+                  border: '1px solid #e0e0e0',
+                  padding: '10px 16px',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#333',
+                  fontFamily: 'inherit',
+                }}
+                onClick={() => {
+                  setIsFabMenuOpen(false);
+                  if (selectedProject) {
+                    onAddSubproject?.(selectedProject.id, '');
+                  } else {
+                    onAddProject?.();
+                  }
+                }}
+              >
+                <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
+                  add
+                </span>
+                {selectedProject ? 'Create Subproject' : 'Create Project'}
+              </button>
+              <button
+                style={{
+                  background: '#fff',
+                  border: '1px solid #e0e0e0',
+                  padding: '10px 16px',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#333',
+                  fontFamily: 'inherit',
+                }}
+                onClick={() => {
+                  setIsFabMenuOpen(false);
+                  setShowAiModal(true);
+                }}
+              >
+                <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
+                  psychology
+                </span>
+                Create with AI
+              </button>
+            </div>
           )}
-        </button>
+
+          {isFabMenuOpen && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 100,
+              }}
+              onClick={() => setIsFabMenuOpen(false)}
+            />
+          )}
+
+          <button
+            type="button"
+            className="content-fab"
+            aria-label={isFabMenuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
+            style={{ zIndex: 102 }}
+          >
+            <span className="material-icons">{isFabMenuOpen ? 'close' : 'menu'}</span>
+          </button>
+        </div>
+      )}
+
+      {showAiModal && (
+        <AiBlueprintModal 
+          onClose={() => setShowAiModal(false)}
+          onConfirm={async (data) => {
+            await onGenerateProject?.(data);
+          }}
+        />
       )}
     </div>
   );

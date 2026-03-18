@@ -1,0 +1,106 @@
+--- app/api/ai/generate/route.ts
++++ app/api/ai/generate/route.ts
+@@ -60,86 +60,11 @@
+     }
+ 
+-    // e.g., const completion = await openai.chat.completions.create({...})
+-
+-    // For this prototype/MVP, we'll return a simulated deterministic response
+-    // that fits the schema, unless a real generic LLM implementation is wired up.
+-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI delay
+-
+-    let mockProjectName = "AI Blueprint Project";
+-    if (goal) {
+-      // Very crude name extraction
+-      mockProjectName = goal.split(' ').slice(0, 4).join(' ') + '...';
+-    }
+-
+-    // Determine subprojects based on complexity
+-    let subProjects = [];
+-    if (complexity === 'Simple') {
+-      subProjects = [
+-        {
+-          title: "Setup & Prep",
+-          tasks: [
+-            { description: "Identify resources needed", priority: "Medium", deadline_offset_days: 1 },
+-            { description: "Gather initial context", priority: "Low", deadline_offset_days: 2 }
+-          ]
+-        },
+-        {
+-          title: "Execution",
+-          tasks: [
+-            { description: "Draft first version", priority: "High", deadline_offset_days: 5 },
+-            { description: "Review and refine", priority: "Medium", deadline_offset_days: 7 }
+-          ]
+-        }
+-      ];
+-    } else if (complexity === 'Detailed') {
+-      subProjects = [
+-        {
+-          title: "Phase 1: Research & Discovery",
+-          tasks: [
+-            { description: "Conduct market analysis", priority: "High", deadline_offset_days: 2 },
+-            { description: "Identify competitor benchmarks", priority: "Medium", deadline_offset_days: 3 },
+-            { description: "Compile requirement docs", priority: "High", deadline_offset_days: 5 }
+-          ]
+-        },
+-        {
+-          title: "Phase 2: Strategy & Planning",
+-          tasks: [
+-            { description: "Draft strategic roadmap", priority: "High", deadline_offset_days: 7 },
+-            { description: "Define KPIs and metrics", priority: "Medium", deadline_offset_days: 8 },
+-            { description: "Allocate budget and resources", priority: "Medium", deadline_offset_days: 10 }
+-          ]
+-        },
+-        {
+-          title: "Phase 3: Execution & Delivery",
+-          tasks: [
+-            { description: "Kickoff implementation", priority: "High", deadline_offset_days: 12 },
+-            { description: "Mid-point review", priority: "Medium", deadline_offset_days: 15 },
+-            { description: "Final QA and launch", priority: "High", deadline_offset_days: 20 }
+-          ]
+-        }
+-      ];
+-    } else {
+-      // Standard
+-      subProjects = [
+-        {
+-          title: "Phase 1: Preparation",
+-          tasks: [
+-            { description: "Define clear objectives", priority: "High", deadline_offset_days: 1 },
+-            { description: "Initial setup", priority: "Medium", deadline_offset_days: 3 }
+-          ]
+-        },
+-        {
+-          title: "Phase 2: Core Work",
+-          tasks: [
+-            { description: "Develop main deliverables", priority: "High", deadline_offset_days: 7 },
+-            { description: "Iterate on feedback", priority: "Medium", deadline_offset_days: 10 }
+-          ]
+-        }
+-      ];
+-    }
+-
+-    const payload = {
+-      project_name: mockProjectName,
+-      sub_projects: subProjects
+-    };
+-
+-    return NextResponse.json(payload);
+-  } catch (error) {
+-    console.error('AI generate error:', error);
+-    return NextResponse.json({ error: 'Failed to generate blueprint' }, { status: 500 });
+-  }
+-}
++    const llmProvider = LLMFactory.getProvider();
++    
++    const payload = await llmProvider.generateBlueprint({
++      goal, targetDate, complexity, context
++    });
++
++    return NextResponse.json(payload);
++  } catch (error: any) {
++    console.error('AI generate error:', error);
++    return NextResponse.json({ error: error.message || 'Failed to generate blueprint' }, { status: 500 });
++  }
++}

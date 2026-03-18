@@ -145,10 +145,11 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     }
 
     try {
+      const message = "Hey! I'd love to connect with you on FOMO Life. Click this link to accept my invite:";
       await navigator.share({
-        title: 'FOMO Life Contact Invitation',
-        text: 'Join me on FOMO Life! Click this link to connect.',
-        url: targetUrl,
+        title: message,
+        text: `${message}\n\n${targetUrl}`,
+        url: targetUrl
       });
       // removed share modal
     } catch (error) {
@@ -244,7 +245,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   
 
   return (
-    <main className="main-layout">
+    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingTop: '40px', paddingBottom: '40px' }}>
       <div className="content-panel">
         <div className={styles.page}>
           {!displayReady ? (
@@ -371,6 +372,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       </button>
     )}
 
-    </main>
+    </div>
 );
 }

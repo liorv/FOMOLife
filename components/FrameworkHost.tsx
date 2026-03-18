@@ -153,7 +153,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const renderComponent = (tab: typeof activeTabConfig) => {
     if (!tab) return null;
     const isActive = tab.key === activeTab;
-    const style = { display: isActive ? 'block' : 'none', width: '100%', height: '100%', overflow: 'hidden' };
+    const style = { display: isActive ? 'block' : 'none' };
 
     if (tab.key === 'tasks') {
       return <div key="tasks" style={style}><TasksPage canManage={true} /></div>;
