@@ -13,7 +13,7 @@ import type {
 } from '@myorg/types';
 
 import jwt from 'jsonwebtoken';
-import { createStorageProvider } from '@myorg/storage';
+import { createStorageProvider, getSupabaseAdminClient } from '@myorg/storage';
 import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 
@@ -398,9 +398,30 @@ export async function invalidateInviteToken(token: InviteToken): Promise<void> {
   await updateContact(match.userId, match.contact.id, { inviteToken: null, status: 'not_linked' });
 }
 
-export async function findUserById(userId: string): Promise<{ id: string; name?: string; email?: string }> {
-  // in this simple in-memory demo we don't have a real user store,
-  // so just return the id as the name/email. replace with real lookup
+export async function findUserById(userId: string): Promise<{ id: string; name?: string; email?: string; avatarUrl?: string; provider?: string }> {
+  try {
+    const supabase = getSupabaseAdminClient();
+    if (supabase) {
+      const { data, error } = await supabase.auth.admin.getUserById(userId);
+      if (data?.user) {
+        const metadata = data.user.user_metadata || {};
+        const identities = data.user.identities || [];
+        const provider = identities.length > 0 ? identities[0].provider : 'email';
+        
+        return {
+          id: userId,
+          name: metadata.full_name || metadata.name || (data.user.email ? data.user.email.split('@')[0] : userId),
+          email: data.user.email,
+          avatarUrl: metadata.avatar_url || metadata.picture,
+          provider
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[ContactsStore] Failed to fetch user from Supabase admin:', err);
+  }
+
+  // fallback if not using Supabase or not found
   return { id: userId, name: userId, email: userId };
 }
 
@@ -589,9 +610,8 @@ export async function getInviteDetails(token: string): Promise<InviterProfile | 
       throw new Error('Invitation expired');
     }
 
-    // Mock OAuth provider info - in real app this would come from user's OAuth data
-    const oauthProvider = 'google'; // This would be determined from user's auth provider
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
+    const oauthProvider = user.provider || 'system';
+    const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
 
     return {
       fullName: user.name || user.email || '',
@@ -674,9 +694,8 @@ export async function getPendingRequests(userId: string): Promise<PendingRequest
 
 async function getInviteDetailsForUser(userId: string): Promise<InviterProfile> {
   const user = await findUserById(userId);
-  // Mock OAuth provider info
-  const oauthProvider = 'google';
-  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
+  const oauthProvider = user.provider || 'system';
+  const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
 
   return {
     fullName: user.name || user.email || '',
