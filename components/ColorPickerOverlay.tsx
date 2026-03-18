@@ -46,13 +46,13 @@ export default function FrameworkColorPickerOverlay({ colors, open: controlledOp
     } else {
       // Legacy behavior: post message to window so host can forward it
       try {
-        window.postMessage({ type: 'color-selected', color, ...(contextData || {}) }, '*');
+        window.postMessage({ ...(contextData || {}), type: 'color-selected', color }, '*');
       } catch (err) {
         console.warn('Failed to send color selection:', err);
       }
     }
     handleClose();
-  }, [handleClose, onSelect]);
+  }, [handleClose, onSelect, contextData]);
 
   // If not controlled, listen for window messages for backwards-compatibility
   useEffect(() => {

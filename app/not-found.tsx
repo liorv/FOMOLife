@@ -19,14 +19,6 @@ export default function NotFound() {
             <span className="material-icons">home</span>
             Go Home
           </Link>
-          <Link href="/projects" className="not-found-button not-found-button--secondary">
-            <span className="material-icons">folder</span>
-            View Projects
-          </Link>
-          <Link href="/tasks" className="not-found-button not-found-button--secondary">
-            <span className="material-icons">checklist</span>
-            View Tasks
-          </Link>
         </div>
       </div>
     </div>

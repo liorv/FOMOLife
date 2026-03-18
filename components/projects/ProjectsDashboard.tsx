@@ -9,7 +9,7 @@ import type {
   ProjectSubproject,
   ProjectTask,
 } from "@myorg/types";
-import { ProjectTile } from "@myorg/ui";
+import { ProjectTile, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
 
@@ -296,10 +296,20 @@ export default function ProjectsDashboard({
           {/* Home watermark removed */}
 
           {/* Project tiles grid */}
-          {visibleProjects.length === 0 && projectSearch ? (
-            <p className="sidebar-no-results">
-              No matches for &ldquo;{projectSearch}&rdquo;
-            </p>
+          {visibleProjects.length === 0 ? (
+            projectSearch ? (
+              <p className="sidebar-no-results">
+                No matches for &ldquo;{projectSearch}&rdquo;
+              </p>
+            ) : (
+              <div className="dashboard-watermark empty-watermark">
+                <EmptyState
+                  icon="folder_open"
+                  title="No projects yet"
+                  description="Create your first project to start organizing your tasks"
+                />
+              </div>
+            )
           ) : (
             <div className="dashboard-tiles-grid">
               {visibleProjects.map((p) => (

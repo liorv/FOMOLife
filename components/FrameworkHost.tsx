@@ -201,7 +201,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         </div>
         <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" />
       </div>
-      
+      <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
     </main>
   );
 }

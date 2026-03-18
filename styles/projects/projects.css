@@ -661,3 +661,11 @@
 
 
 
+
+.empty-watermark {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  opacity: 0.6;
+}
