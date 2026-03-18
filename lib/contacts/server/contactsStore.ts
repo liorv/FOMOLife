@@ -406,13 +406,13 @@ export async function findUserById(userId: string): Promise<{ id: string; name?:
       if (data?.user) {
         const metadata = data.user.user_metadata || {};
         const identities = data.user.identities || [];
-        const provider = identities.length > 0 ? identities[0].provider : 'email';
+        const provider = identities[0]?.provider || 'email';
         
         return {
           id: userId,
-          name: metadata.full_name || metadata.name || (data.user.email ? data.user.email.split('@')[0] : userId),
-          email: data.user.email,
-          avatarUrl: metadata.avatar_url || metadata.picture,
+          name: (metadata.full_name || metadata.name || (data.user.email ? data.user.email.split('@')[0] : userId)) as string,
+          email: data.user.email || '',
+          avatarUrl: (metadata.avatar_url || metadata.picture || '') as string,
           provider
         };
       }
