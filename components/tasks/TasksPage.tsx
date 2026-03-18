@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./TasksPage.module.css";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createTasksApiClient } from "@myorg/api-client";
 import { createContactsApiClient } from "@myorg/api-client";
 import type { TaskItem, ProjectTask, Contact } from "@myorg/types";
@@ -23,24 +23,19 @@ function isTaskNotFoundError(error: unknown): boolean {
 
 export default function TasksPage({ canManage }: Props) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const api = useMemo(() => createTasksApiClient(), []);
-  const contactsBaseUrl =
-    process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() || "";
-  const contactsApi = useMemo(
-    () => createContactsApiClient(contactsBaseUrl),
-    [contactsBaseUrl],
-  );
+  
+  // Contacts are served from the same origin in the monolith.
+  const contactsApi = useMemo(() => createContactsApiClient(""), []);
 
   const handleCreatePerson = async (name: string) => {
-    if (!contactsBaseUrl) return null;
     try {
       // debug: log when create person is invoked in tests
       // eslint-disable-next-line no-console
       console.log(
         "[TEST DEBUG] handleCreatePerson called with",
-        name,
-        "contactsBaseUrl=",
-        contactsBaseUrl,
+        name
       );
       const created = await contactsApi.createContact({ name });
       // eslint-disable-next-line no-console
@@ -87,20 +82,18 @@ export default function TasksPage({ canManage }: Props) {
         const loadedTasks = await api.listTasks();
         let loadedContacts: Contact[] = [];
 
-        if (contactsBaseUrl) {
-          try {
-            loadedContacts = await contactsApi.listContacts();
-          } catch (err) {
-            console.warn("[Tasks] failed to load contacts", err);
-            let msg = "Failed to load contacts";
-            if (err instanceof TypeError && err.message === "Failed to fetch") {
-              msg =
-                "Unable to reach contacts service – make sure it is running";
-            } else if (err instanceof Error) {
-              msg = err.message;
-            }
-            setContactsError(msg);
+        try {
+          loadedContacts = await contactsApi.listContacts();
+        } catch (err) {
+          console.warn("[Tasks] failed to load contacts", err);
+          let msg = "Failed to load contacts";
+          if (err instanceof TypeError && err.message === "Failed to fetch") {
+            msg =
+              "Unable to reach contacts service – make sure it is running";
+          } else if (err instanceof Error) {
+            msg = err.message;
           }
+          setContactsError(msg);
         }
 
         if (active) {
@@ -124,7 +117,6 @@ export default function TasksPage({ canManage }: Props) {
 
   // update contact list when returning to page
   useEffect(() => {
-    if (!contactsBaseUrl) return;
     const onFocus = async () => {
       try {
         const refreshed = await contactsApi.listContacts();
@@ -143,16 +135,14 @@ export default function TasksPage({ canManage }: Props) {
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [contactsBaseUrl, contactsApi]);
+  }, [contactsApi]);
 
   
 
   
 
   const openContacts = () => {
-    if (contactsBaseUrl) {
-      window.open(contactsBaseUrl, "_blank");
-    }
+    router.push("/?tab=people");
   };
 
   const filtered = useMemo(

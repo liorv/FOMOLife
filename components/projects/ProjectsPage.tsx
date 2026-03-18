@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createProjectsApiClient } from "@myorg/api-client";
 import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact } from "@myorg/types";
@@ -18,24 +18,16 @@ type Props = {
 
 export default function ProjectsPage({ canManage }: Props) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const embeddedUid = searchParams.get("uid") ?? "";
   const apiClient = useMemo(
     () => createProjectsApiClient("", { uid: embeddedUid }),
     [embeddedUid],
   );
-  // contacts API may live on a different origin/port (separate Next app).
-  // frameworkConfig already exposes NEXT_PUBLIC_CONTACTS_APP_URL for dev/prod links.
-  // use explicit URL if configured, otherwise during local dev fall back to the default port
-  const contactsBaseUrl =
-    process.env.NEXT_PUBLIC_CONTACTS_APP_URL?.trim() ||
-    ("");
-  const contactsClient = useMemo(
-    () => createContactsApiClient(contactsBaseUrl),
-    [contactsBaseUrl],
-  );
+  // Contacts are served from the same origin in the monolith.
+  const contactsClient = useMemo(() => createContactsApiClient(""), []);
 
   const handleCreatePerson = async (name: string) => {
-    if (!contactsBaseUrl) return null;
     try {
       const created = await contactsClient.createContact({ name });
       setPeople((prev) =>
@@ -92,11 +84,10 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         const loadedProjects = await apiClient.listProjects();
         let loadedContacts: Contact[] = [];
 
-        if (contactsBaseUrl) {
-          try {
-            loadedContacts = await contactsClient.listContacts();
-          } catch (err) {
-            console.warn("[Projects] failed to load contacts", err);
+        try {
+          loadedContacts = await contactsClient.listContacts();
+        } catch (err) {
+          console.warn("[Projects] failed to load contacts", err);
             let msg = "Failed to load contacts";
             if (err instanceof TypeError && err.message === "Failed to fetch") {
               msg =
@@ -106,7 +97,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
             }
             setContactsError(msg);
           }
-        }
+
 
         if (active) {
           setProjects(loadedProjects);
@@ -129,7 +120,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
 
   // re-pull contacts when the user returns to the tab (might have added contacts elsewhere)
   useEffect(() => {
-    if (!contactsBaseUrl) return;
     const handleFocus = async () => {
       try {
         const updated = await contactsClient.listContacts();
@@ -148,7 +138,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [contactsBaseUrl, contactsClient]);
+  }, [contactsClient]);
 
   
 
@@ -165,9 +155,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   const closeUndoSnackbar = () => setUndoSnackbar(null);
 
   const openContacts = () => {
-    if (contactsBaseUrl) {
-      window.open(contactsBaseUrl, "_blank");
-    }
+    router.push("/?tab=people");
   };
 
   const showUndoSnackbar = (
