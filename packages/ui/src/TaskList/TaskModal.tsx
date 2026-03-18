@@ -32,6 +32,7 @@ export default function TaskEditor({
   const [title, setTitle] = useState(task.text || "");
   const [description, setDescription] = useState(task.description || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
+  const [priority, setPriority] = useState<"low" | "medium" | "high" | null | undefined>(task.priority);
 
   // People assigned to this task – stored simply as [{name}].
   const initialPeople: PersonEntry[] = (task.people || []).map((p) => ({
@@ -51,22 +52,24 @@ export default function TaskEditor({
     title: task.text || "",
     description: task.description || "",
     dueDate: task.dueDate || "",
+    priority: task.priority,
     people: initialPeople,
   });
   useEffect(() => {
-    latestRef.current = { title, description, dueDate, people };
-  }, [title, description, dueDate, people]);
+    latestRef.current = { title, description, dueDate, priority, people };
+  }, [title, description, dueDate, priority, people]);
 
   // Sync local state with prop changes (handles external updates)
   useEffect(() => {
     setTitle(task.text || "");
     setDescription(task.description || "");
     setDueDate(task.dueDate || "");
+    setPriority(task.priority);
     const newPeople: PersonEntry[] = (task.people || []).map((p) => ({
       name: typeof p === "string" ? p : p.name || "",
     }));
     setPeople(newPeople);
-  }, [task.id, task.text, task.description, task.dueDate, JSON.stringify(task.people)]);
+  }, [task.id, task.text, task.description, task.dueDate, task.priority, JSON.stringify(task.people)]);
 
   useEffect(() => {
     // reset keyboard focus whenever the query changes
@@ -114,6 +117,7 @@ export default function TaskEditor({
         text: latest.title,
         description: latest.description,
         dueDate: latest.dueDate || null,
+        priority: latest.priority ? latest.priority : null,
         people: normalizedPeople,
       };
       onUpdateTask(updatedTask);
@@ -169,6 +173,7 @@ export default function TaskEditor({
       text: title,
       description,
       people: normalizedPeople,
+      priority: priority ? priority : null,
       dueDate: dueDate || null,
     };
     onUpdateTask(updated);
@@ -214,6 +219,34 @@ export default function TaskEditor({
       <div className="editor-columns">
         <div className="left-column">
               {/* use unique ids so multiple editors on the page won't clash */}
+          <div className="editor-section priority-section">
+            <label htmlFor={`task-priority-${task.id || 'editor'}`} className="desc-label">
+              Priority
+            </label>
+            <select
+              id={`task-priority-${task.id || 'editor'}`}
+              className="priority-select"
+              value={priority || ""}
+              onChange={(e) => {
+                const newValue = e.target.value as "low" | "medium" | "high" | "" | null;
+                setPriority(newValue || undefined);
+                const updatedTask = { ...task };
+                if (newValue) {
+                  updatedTask.priority = newValue as "low" | "medium" | "high";
+                } else {
+                  updatedTask.priority = null;
+                }
+                onUpdateTask(updatedTask);
+              }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', marginBottom: '16px', background: '#fff' }}
+            >
+              <option value="">None</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
           <div className="editor-section date-section">
             <label htmlFor={dateId} className="desc-label">
               Due date
@@ -272,7 +305,7 @@ export default function TaskEditor({
                 ref={barRef}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search people to add (type to find)"
+                placeholder="Search..."
                 onKeyDown={(e) => {
                   const q = searchQuery.trim();
                   const lc = q.toLowerCase();
@@ -320,7 +353,7 @@ export default function TaskEditor({
                       if (matches.length > 0 && matches[activeSuggestion]) {
                         handleAddFromAll(matches[activeSuggestion]);
                       } else {
-                        handleCreateAndAdd(q);
+                        // // handleCreateAndAdd(q);
                       }
                       setActiveSuggestion(-1);
                       return;
@@ -331,7 +364,7 @@ export default function TaskEditor({
                       (p) => p.name.toLowerCase() === q.toLowerCase(),
                     );
                     if (exact) handleAddFromAll(exact);
-                    else handleCreateAndAdd(q);
+                    /* else no-op */
                   }
                 }}
               />
@@ -404,15 +437,15 @@ export default function TaskEditor({
                       }
                       onMouseEnter={() => setActiveSuggestion(0)}
                       onMouseLeave={() => setActiveSuggestion(-1)}
-                      onClick={() => handleCreateAndAdd(newName)}
+                      /* onClick disabled */
                     >
                       <div className="task-person-col name">
-                        <strong>Add "{newName}"</strong>
+                        <strong>"{newName}" not found</strong>
                       </div>
                       <div
                         className="task-person-col methods"
                       >
-                        create and add to task
+                        Must be invited first
                       </div>
                     </div>
                   );

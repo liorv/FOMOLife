@@ -473,7 +473,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingTop: '40px', paddingBottom: '40px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingBottom: '40px' }}>
       {!displayReady ? (
         <div style={{ height: 0 }} />
       ) : (

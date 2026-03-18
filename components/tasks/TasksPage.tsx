@@ -328,6 +328,7 @@ export default function TasksPage({ canManage }: Props) {
         dueDate: updatedTask.dueDate,
         favorite: updatedTask.favorite,
         done: updatedTask.done,
+        ...(updatedTask.priority !== undefined ? { priority: updatedTask.priority } : {}),
         ...(updatedTask.people ? { people: updatedTask.people } : {}),
       });
       if (!updated) return;
@@ -375,7 +376,7 @@ export default function TasksPage({ canManage }: Props) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingTop: '40px', paddingBottom: '40px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingBottom: '40px' }}>
       {!displayReady ? (
         <div style={{ height: 0 }} />
       ) : (

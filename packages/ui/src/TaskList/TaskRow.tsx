@@ -194,9 +194,25 @@ export default function TaskRow({
               style={{
                 cursor: type === "tasks" ? "pointer" : "default",
                 textDecoration: item.done ? "line-through" : undefined,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px"
               }}
             >
-              {item.text}
+              {item.priority && (
+                <span className={`priority-badge`} style={{ 
+                  fontSize: '10px', 
+                  padding: '2px 6px', 
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  background: item.priority === 'high' ? '#ffebee' : item.priority === 'medium' ? '#fff3e0' : '#f5f5f5',
+                  color: item.priority === 'high' ? '#c62828' : item.priority === 'medium' ? '#e65100' : '#616161'
+                }}>
+                  {item.priority}
+                </span>
+              )}
+              <span>{item.text}</span>
               {type === "tasks" && (
                 <span
                   className="material-icons editable-indicator"

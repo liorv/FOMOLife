@@ -245,7 +245,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingTop: '40px', paddingBottom: '40px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingBottom: '40px' }}>
       <div className="content-panel">
         <div className={styles.page}>
           {!displayReady ? (
