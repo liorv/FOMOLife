@@ -142,7 +142,9 @@ export default function TasksPage({ canManage }: Props) {
   
 
   const openContacts = () => {
-    router.push("/?tab=people");
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', 'people');
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
   };
 
   const filtered = useMemo(

@@ -32,7 +32,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const [linkCopied, setLinkCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string>('');
   // share invitation modal state
-  const [showShareModal, setShowShareModal] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string>('');
   // small banner shown when arriving after accepting an invite
   const [acceptedBanner, setAcceptedBanner] = useState(false);
@@ -95,7 +94,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       localStorage.setItem(storeKey, JSON.stringify(artifact));
       setActiveInvite(artifact);
 
-      setShowShareModal(true);
+      
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to generate invite link');
@@ -151,7 +150,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
         text: 'Join me on FOMO Life! Click this link to connect.',
         url: targetUrl,
       });
-      setShowShareModal(false);
+      // removed share modal
     } catch (error) {
       console.log('Share failed or cancelled:', error);
       // Fallback to copy if it fails, unless the user intentionally cancelled the dialog
@@ -165,8 +164,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   // Load and poll contacts
   useEffect(() => {
     let active = true;
-    let timeoutId: NodeJS.Timeout;
-
     const loadContacts = async () => {
       try {
         const loaded = await apiClient.listContacts();
@@ -183,18 +180,12 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
           setLoading(false);
         }
       }
-      
-      // Poll dynamically for newly created contacts/links every 10 seconds
-      if (active) {
-        timeoutId = setTimeout(loadContacts, 10000);
-      }
     };
 
     loadContacts();
 
     return () => {
       active = false;
-      clearTimeout(timeoutId);
     };
   }, [apiClient]);
 
@@ -207,7 +198,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       // clear the params so the banner doesn't persist on reload
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete('accepted');
-      newParams.delete('tab');
       const base = window.location.pathname;
       const query = newParams.toString();
       router.replace(base + (query ? `?${query}` : ''));
@@ -219,7 +209,9 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     if (!canManage) return;
     const onFocus = async () => {
       try {
+        console.log('[ContactsPage] Refetching contacts...');
         const updated = await apiClient.listContacts();
+        console.log('[ContactsPage] Fetched contacts successfully. Count:', updated.length);
         setContacts(updated);
       } catch (err) {
         // ignore; existing errorMessage state covers it when mounted
@@ -228,6 +220,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     };
     const onMessage = (event: MessageEvent) => {
       if (event.data?.type === 'contacts-updated') {
+        console.log('[ContactsPage] Received contacts-updated message event, refreshing data');
         onFocus();
       }
     };
@@ -336,11 +329,15 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
               <table className={styles.contactsTable}>
                 <tbody>
                   {filteredContacts.map((contact) => (
-                    <ContactTile
+                                        <ContactTile
                       key={contact.id}
                       id={contact.id}
                       name={contact.name}
                       status={contact.status}
+                      avatarUrl={contact.avatarUrl || ''}
+                      oauthProvider={contact.oauthProvider || ''}
+                      realName={contact.realName || ''}
+                      realEmail={contact.realEmail || ''}
                       onUnlink={async () => {
                         const snapshotContacts = contacts;
                         setContacts((prev) => prev.filter((item) => item.id !== contact.id));
@@ -374,57 +371,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       </button>
     )}
 
-    <ModalOverlay
-      open={showShareModal}
-      onClose={() => setShowShareModal(false)}
-      className={styles.shareModal}
-    >
-      <div className={styles.shareModalContent}>
-        <h2 className={styles.shareModalTitle}>Share Invitation</h2>
-        <p className={styles.shareModalDescription}>
-          Share this link to invite someone to connect with you on FOMO Life.
-        </p>
-
-        <div className={styles.shareModalUrl}>
-          <input
-            type="text"
-            value={inviteUrl}
-            readOnly
-            className={styles.shareModalUrlInput}
-            onClick={(e) => (e.target as HTMLInputElement).select()}
-          />
-        </div>
-
-        <div className={styles.shareModalActions}>
-          <button
-            type="button"
-            className={styles.shareModalButton}
-            onClick={() => void copyInviteLink()}
-          >
-            <span className="material-icons">{linkCopied ? "check" : "content_copy"}</span>
-            {linkCopied ? "Copied!" : "Copy Link"}
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.shareModalButton} ${styles.shareModalButtonPrimary}`}
-            onClick={() => void shareInviteLink()}
-          >
-            <span className="material-icons">share</span>
-            Share
-          </button>
-        </div>
-
-        <button
-          type="button"
-          className={styles.shareModalClose}
-          onClick={() => setShowShareModal(false)}
-          aria-label="Close"
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
-    </ModalOverlay>
-  </main>
+    </main>
 );
 }

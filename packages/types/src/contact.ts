@@ -40,6 +40,10 @@ export interface Contact {
   oauthProvider?: string;
   /** Avatar URL from OAuth provider */
   avatarUrl?: string;
+  /** Real Full Name from OAuth profile */
+  realName?: string;
+  /** Real Email from OAuth profile */
+  realEmail?: string;
 }
 
 /**
@@ -88,6 +92,10 @@ export interface InviterProfile {
   oauthProvider: string;
   /** Avatar URL from OAuth provider */
   avatarUrl?: string;
+  /** Real Full Name from OAuth profile */
+  realName?: string;
+  /** Real Email from OAuth profile */
+  realEmail?: string;
 }
 
 /**

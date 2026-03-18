@@ -6,6 +6,8 @@ export interface ContactTileProps {
   status: 'not_linked' | 'link_pending' | 'linked';
   avatarUrl?: string | null;
   oauthProvider?: string;
+  realName?: string;
+  realEmail?: string;
   /** if true, start the tile in edit mode and focus the name input */
   autoFocus?: boolean;
   onNameChange?: (newName: string) => void;
@@ -28,7 +30,7 @@ export interface ContactTileProps {
 // ContactTile component skeleton for contacts redesign
 
 
-export function ContactTile({ id, name, status, avatarUrl, oauthProvider, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess, isSelf }: ContactTileProps) {
+export function ContactTile({ id, name, status, avatarUrl, oauthProvider, realName, realEmail, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess, isSelf }: ContactTileProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);

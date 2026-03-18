@@ -23,6 +23,15 @@ export function NotificationDropdown({
 
   useEffect(() => {
     loadPendingRequests();
+
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'contacts-updated') {
+        loadPendingRequests();
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const loadPendingRequests = async () => {

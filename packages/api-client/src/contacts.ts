@@ -76,6 +76,19 @@ export async function generateInviteLink(): Promise<GenerateInviteResponse> {
   });
 }
 
+export interface ActiveInviteResponse {
+  active: boolean;
+  inviteLink?: string;
+  token?: string;
+  expiresAt?: string;
+}
+
+export async function getActiveInviteLink(): Promise<ActiveInviteResponse> {
+  return request<ActiveInviteResponse>(`${API_BASE}/invite`, {
+    credentials: 'include',
+  });
+}
+
 export async function deleteActiveInviteLink(): Promise<void> {
   await request<void>(`${API_BASE}/invite`, {
     method: 'DELETE',
@@ -223,6 +236,7 @@ export interface DeleteContactRequest {
 export interface ContactsApiClient {
   // Invitation link generation and management
   generateInviteLink(): Promise<GenerateInviteResponse>;
+  getActiveInviteLink(): Promise<ActiveInviteResponse>;
   deleteActiveInviteLink(): Promise<void>;
   getInviteDetails(token: string): Promise<InviterProfile>;
   requestLinkage(token: string): Promise<{ requestId: string }>;
@@ -251,8 +265,12 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
     try {
-      const data = (await response.json()) as { error?: string };
-      if (data.error) message = data.error;
+      const data = (await response.json()) as { error?: string, message?: string };
+      if (data.message) {
+        message = data.message;
+      } else if (data.error) {
+        message = data.error;
+      }
     } catch {
       // ignore parse error and keep default message
     }
@@ -269,6 +287,14 @@ export function createContactsApiClient(baseUrl = ''): ContactsApiClient {
         credentials: 'include',
       });
       return parseResponse<GenerateInviteResponse>(response);
+    },
+
+    async getActiveInviteLink(): Promise<ActiveInviteResponse> {
+      const response = await fetch(`${baseUrl}/api/contacts/invite`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      return parseResponse<ActiveInviteResponse>(response);
     },
 
     async deleteActiveInviteLink(): Promise<void> {

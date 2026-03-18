@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import type { PendingRequestsResponse } from '@myorg/types';
 import { getPendingRequests } from '@/lib/contacts/server/contactsStore';

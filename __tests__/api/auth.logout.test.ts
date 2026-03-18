@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+declare var jest: any;
 
 const logout = require('../../app/api/auth/logout/route');
 

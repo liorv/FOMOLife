@@ -3,10 +3,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createContactsApiClient } from '@myorg/api-client';
 import { NotificationDropdown } from './NotificationDropdown';
+import { getSupabaseBrowserClient } from '@/lib/client/supabaseBrowser';
+
 import type { ContactsApiClient } from '@myorg/api-client';
 import './NotificationBell.css';
 
-export function NotificationBell() {
+export function NotificationBell({ userId }: { userId?: string }) {
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -18,11 +20,10 @@ export function NotificationBell() {
     );
   }, []);
 
-  // Poll for pending requests
+  const currentUserId = userId;
+
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
-
     const checkRequests = async () => {
       try {
         const { requests } = await apiClient.getPendingRequests();
@@ -32,20 +33,28 @@ export function NotificationBell() {
       } catch (err) {
         console.warn('Failed to fetch pending requests in bell:', err);
       }
-      
-      // Poll every 10 seconds
-      if (mounted) {
-        timeoutId = setTimeout(checkRequests, 10000);
-      }
     };
 
     checkRequests();
 
+    if (!currentUserId) return;
+    const supabase = getSupabaseBrowserClient();
+    console.log('[NotificationBell] Subscribing to channel', `user-${currentUserId}`);
+    const channel = supabase.channel(`user-${currentUserId}`)
+      .on('broadcast', { event: 'contacts-updated' }, (payload) => {
+        console.log('[NotificationBell] Received broadcast contacts-updated', payload);
+        checkRequests();
+        window.dispatchEvent(new MessageEvent('message', { data: { type: 'contacts-updated' } }));
+      })
+      .subscribe((status) => {
+        console.log('[NotificationBell] Subscription status:', status);
+      });
+
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
     };
-  }, [apiClient]);
+  }, [currentUserId, apiClient]);
 
   // Handle outside click
   useEffect(() => {

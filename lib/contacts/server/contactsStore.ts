@@ -19,6 +19,73 @@ import type { PersistedUserData } from '@myorg/storage';
 
 const storage = createStorageProvider();
 
+export async function addTrace(action: string, meta: any = {}) {
+  try {
+    const key = 'sys_trace_logs';
+    let existing;
+    try {
+      existing = (await storage.load(key)) || { tasks: [], projects: [], people: [], groups: [] };
+    } catch (e: any) {
+      if (e instanceof SyntaxError) {
+        existing = { tasks: [], projects: [], people: [], groups: [] };
+      } else {
+        throw e;
+      }
+    }
+    const logs = (existing as any).logs || [];
+    logs.push({ t: new Date().toISOString(), action, meta });
+    // keep last 1000
+    if (logs.length > 1000) logs.splice(0, logs.length - 1000);
+    const data = { ...existing, logs } as any;
+    await storage.save(key, data);
+    console.log('[FOMO_TRACE]', action, JSON.stringify(meta));
+  } catch (err) {
+    console.error('Failed to write trace', err);
+  }
+}
+
+
+// Broadcast an event to a user's client using Supabase Realtime
+async function broadcastToUser(targetUserId: string, eventName: string) {
+  try {
+    await addTrace('broadcastToUser_start', { targetUserId, eventName });
+    const supabase = getSupabaseAdminClient();
+    if (!supabase) return;
+    const channel = supabase.channel(`user-${targetUserId}`);
+    let resolved = false;
+
+    await new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve(false);
+        }
+      }, 1500);
+
+      channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.send({
+            type: 'broadcast',
+            event: eventName,
+            payload: { ts: Date.now() }
+          });
+          await addTrace('broadcastToUser_sent', { targetUserId, eventName });
+          await supabase.removeChannel(channel);
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            resolve(true);
+          }
+        }
+      });
+    });
+  } catch (err) {
+    console.error('Failed to broadcast to user:', targetUserId, err);
+  }
+}
+
+
+
 const globalForStore = global as unknown as {
   _contactsStoreCache?: {
     contactsByUser: Map<string, Contact[]>;
@@ -56,9 +123,19 @@ const SYSTEM_ID = 'system_contacts';
 let systemLoaded = false;
 
 async function loadSystemData() {
-  if (systemLoaded) return;
+  
   try {
     const persisted = await storage.load(SYSTEM_ID);
+    // clear and update synchronously after async fetch
+    invitationLinks.clear();
+    connections.clear();
+    pendingRequests.clear();
+
+    // clear and update synchronously after async fetch
+    invitationLinks.clear();
+    connections.clear();
+    pendingRequests.clear();
+
     if (persisted) {
       if (Array.isArray(persisted.invitationLinks)) {
         persisted.invitationLinks.forEach((link: any) => invitationLinks.set(link.token, link));
@@ -73,11 +150,16 @@ async function loadSystemData() {
   } catch (err) {
     console.error('contactsStore: failed to load system data', err);
   }
-  systemLoaded = true;
+  
 }
 
 async function saveSystemData() {
   try {
+    await addTrace('saveSystemData_start', { 
+      invitationLinks: invitationLinks.size,
+      connections: connections.size,
+      pendingRequests: pendingRequests.size
+    });
     const data: PersistedUserData = {
       invitationLinks: Array.from(invitationLinks.values()),
       connections: Array.from(connections.values()),
@@ -128,12 +210,13 @@ function isContactGroupArray(v: unknown): v is ContactGroup[] {
 async function savePersisted(userId: string): Promise<void> {
   try {
     const existing = (await storage.load(userId)) || { tasks: [], projects: [], people: [], groups: [] };
-    const data: PersistedUserData = { 
-      ...existing, 
-      people: contactsByUser.get(userId) || [],
-      groups: groupsByUser.get(userId) || []
+    const data: PersistedUserData = {
+      ...existing,
+      people: contactsByUser.get(userId) ?? existing.people ?? [],
+      groups: groupsByUser.get(userId) ?? existing.groups ?? []
     };
     await storage.save(userId, data);
+    await addTrace('savePersisted', { userId, peopleCount: Array.isArray(data.people) ? data.people.length : 0, groupsCount: Array.isArray(data.groups) ? data.groups.length : 0 });
     console.log('contactsStore: persisted data');
   } catch (err) {
     console.error('contactsStore: failed to persist', err);
@@ -141,11 +224,11 @@ async function savePersisted(userId: string): Promise<void> {
 }
 
 async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
-  const existing = contactsByUser.get(userId);
-  if (existing) return existing;
+  await addTrace('getOrInitUserContacts', { userId });
+  // Always fetch from DB in serverless
 
   const persisted = await storage.load(userId);
-  if (persisted && isContactArray(persisted.people) && persisted.people.length > 0) {
+  if (persisted && isContactArray(persisted.people)) {
     contactsByUser.set(userId, persisted.people);
     return persisted.people;
   }
@@ -167,8 +250,7 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
 }
 
 async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {
-  const existing = groupsByUser.get(userId);
-  if (existing) return existing;
+  // Always fetch from DB in serverless
 
   const persisted = await storage.load(userId);
   if (persisted && isContactGroupArray(persisted.groups)) {
@@ -217,8 +299,9 @@ export async function listContacts(userId: string): Promise<Contact[]> {
 
 export async function createContact(
   userId: string,
-  input: Pick<Contact, 'name'> & Partial<Pick<Contact, 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
+  input: Pick<Contact, 'name'> & Partial<Omit<Contact, 'id' | 'name'>>,
 ): Promise<Contact> {
+  await addTrace('createContact', { userId, input });
   const current = await getOrInitUserContacts(userId);
   
   // Check for duplicate names (case-insensitive)
@@ -236,6 +319,10 @@ export async function createContact(
     status: input.status ?? 'not_linked',
     inviteToken: input.inviteToken ?? null,
     ...(input.linkedUserId ? { linkedUserId: input.linkedUserId } : {}),
+    ...(input.oauthProvider ? { oauthProvider: input.oauthProvider } : {}),
+    ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
+    ...(input.realName ? { realName: input.realName } : {}),
+    ...(input.realEmail ? { realEmail: input.realEmail } : {}),
   };
   current.push(contact);
   contactsByUser.set(userId, current);
@@ -246,8 +333,9 @@ export async function createContact(
 export async function updateContact(
   userId: string,
   id: string,
-  patch: Partial<Pick<Contact, 'name' | 'login' | 'status' | 'inviteToken' | 'linkedUserId'>>,
+  patch: Partial<Omit<Contact, 'id'>>,
 ): Promise<Contact | null> {
+  await addTrace('updateContact', { userId, id, patch });
   const current = await getOrInitUserContacts(userId);
   
   // If updating name, check for duplicates
@@ -268,6 +356,7 @@ export async function updateContact(
 }
 
 export async function unlinkContact(userId: string, contactId: string): Promise<boolean> {
+  await loadSystemData();
   const current = await getOrInitUserContacts(userId);
   const contactIndex = current.findIndex((item) => item.id === contactId);
   if (contactIndex === -1) return false;
@@ -277,43 +366,23 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
   // Change this contact's status to 'not_linked'
   contact.status = 'not_linked';
   contact.inviteToken = null;
+  const linkedId = contact.linkedUserId;
+  delete contact.linkedUserId;
   contactsByUser.set(userId, current);
 
   // If this contact represents a linked user, also unlink the reciprocal contact
-  if (contact.linkedUserId) {
-    const reciprocalContacts = await getOrInitUserContacts(contact.linkedUserId);
+  if (linkedId) {
+    const reciprocalContacts = await getOrInitUserContacts(linkedId);
     // update all reciprocal contacts that point back to this user
     const updatedRecips = reciprocalContacts.map((c) =>
-      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null } : c
+      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null, linkedUserId: undefined } : c
     );
-    contactsByUser.set(contact.linkedUserId, updatedRecips as Contact[]);
-  }
+    contactsByUser.set(linkedId, updatedRecips as Contact[]);
 
-  await savePersisted(userId);
-  return true;
-}
-
-export async function deleteContact(userId: string, contactId: string): Promise<boolean> {
-  const current = await getOrInitUserContacts(userId);
-  const contactIndex = current.findIndex((item) => item.id === contactId);
-  if (contactIndex === -1) return false;
-
-  const contact = current[contactIndex]!;
-
-  // Remove the contact from this user's list
-  const next = current.filter((item) => item.id !== contactId);
-  contactsByUser.set(userId, next);
-
-  // Bilateral deletion: also remove the reciprocal contact
-  if (contact.linkedUserId) {
-    const reciprocalContacts = await getOrInitUserContacts(contact.linkedUserId);
-    const updatedRecips = reciprocalContacts.filter((c) => c.linkedUserId !== userId);
-    contactsByUser.set(contact.linkedUserId, updatedRecips);
-
-    // Also remove the connection
+    // remove the connection as well
     const connectionToRemove = Array.from(connections.values()).find(
-      conn => (conn.inviterId === userId && conn.invitedId === contact.linkedUserId) ||
-               (conn.inviterId === contact.linkedUserId && conn.invitedId === userId)
+      conn => (conn.inviterId === userId && conn.invitedId === linkedId) ||
+               (conn.inviterId === linkedId && conn.invitedId === userId)
     );
     if (connectionToRemove) {
       connections.delete(connectionToRemove.id);
@@ -321,11 +390,63 @@ export async function deleteContact(userId: string, contactId: string): Promise<
   }
 
   await savePersisted(userId);
-  if (contact.linkedUserId) {
-    await savePersisted(contact.linkedUserId);
+  if (linkedId) {
+    await savePersisted(linkedId);
   }
   await saveSystemData();
   return true;
+}
+
+export async function deleteContact(userId: string, contactId: string): Promise<boolean> {
+  await addTrace('deleteContact_start', { userId, contactId });
+  await loadSystemData();
+  try {
+    const current = await getOrInitUserContacts(userId);
+    const contactIndex = current.findIndex((item) => item.id === contactId);
+    if (contactIndex === -1) {
+      await addTrace('deleteContact_not_found', { userId, contactId });
+      return false;
+    }
+
+    const contact = current[contactIndex]!;
+
+    // Remove the contact from this user's list
+    const next = current.filter((item) => item.id !== contactId);
+    contactsByUser.set(userId, next);
+
+    // Bilateral deletion: also remove the reciprocal contact
+    if (contact.linkedUserId) {
+      const reciprocalContacts = await getOrInitUserContacts(contact.linkedUserId);
+      const updatedRecips = reciprocalContacts.filter((c) => c.linkedUserId !== userId);
+      contactsByUser.set(contact.linkedUserId, updatedRecips);
+
+      // Also remove the connection
+      const connectionToRemove = Array.from(connections.values()).find(
+        conn => (conn.inviterId === userId && conn.invitedId === contact.linkedUserId) ||
+                 (conn.inviterId === contact.linkedUserId && conn.invitedId === userId)
+      );
+      if (connectionToRemove) {
+        connections.delete(connectionToRemove.id);
+      }
+    }
+
+    const tasks: Promise<void>[] = [];
+    tasks.push(savePersisted(userId));
+    tasks.push(broadcastToUser(userId, 'contacts-updated'));
+
+    if (contact.linkedUserId) {
+      tasks.push(savePersisted(contact.linkedUserId));
+      tasks.push(broadcastToUser(contact.linkedUserId, 'contacts-updated'));
+    }
+
+    await Promise.all(tasks);
+    await saveSystemData();
+    await addTrace('deleteContact_success', { userId, contactId });
+    return true;
+  } catch (err: any) {
+    await addTrace('deleteContact_error', { userId, contactId, error: err.message });
+    throw err;
+  }
 }
 
 // invite acceptance helpers
@@ -584,6 +705,17 @@ export async function generateInviteLink(userId: string): Promise<{ token: strin
   return { token, expiresAt };
 }
 
+export async function getActiveInviteLink(userId: string): Promise<InvitationLink | null> {
+  await loadSystemData();
+  const now = new Date();
+  for (const link of Array.from(invitationLinks.values())) {
+    if (link.creatorId === userId && new Date(link.expiresAt) > now) {
+      return link;
+    }
+  }
+  return null;
+}
+
 export async function deleteActiveInviteLink(userId: string): Promise<void> {
   await loadSystemData();
   let deleted = false;
@@ -607,73 +739,83 @@ export async function getInviteDetails(token: string): Promise<InviterProfile | 
     // Check if invitation link exists and is not expired
     const invitation = invitationLinks.get(token);
     if (!invitation || new Date(invitation.expiresAt) < new Date()) {
-      throw new Error('Invitation expired');
-    }
+        await addTrace('getInviteDetails_error', { reason: 'not_found_or_expired', tokenExists: !!invitation });
+        throw new Error('Invitation expired');
+      }
 
-    const oauthProvider = user.provider || 'system';
-    const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
+      const oauthProvider = user.provider || 'system';
+      const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || '')}&background=random`;
 
-    return {
-      fullName: user.name || user.email || '',
-      email: user.email || '',
-      oauthProvider,
-      avatarUrl,
-    };
-  } catch (error) {
-    if (error instanceof Error && error.name === 'TokenExpiredError') {
-      throw new Error('Invitation expired');
-    }
+      return {
+        fullName: user.name || user.email || '',
+        email: user.email || '',
+        oauthProvider,
+        avatarUrl,
+      };
+    } catch (error: any) {
+      await addTrace('getInviteDetails_catch', { message: error.message, name: error.name });
     return null;
   }
 }
 
 export async function requestLinkage(userId: string, token: string): Promise<{ requestId: string }> {
+  await addTrace('requestLinkage_start', { userId, token });
   await loadSystemData();
-  const inviterProfile = await getInviteDetails(token);
-  if (!inviterProfile) {
-    throw new Error('Invalid or expired invitation');
+  try {
+    const inviterProfile = await getInviteDetails(token);
+    if (!inviterProfile) {
+      await addTrace('requestLinkage_error', { reason: 'getInviteDetails returned null' });
+      throw new Error('Invalid or expired invitation');
+    }
+
+    // Decode token to get inviter ID
+    const decoded = jwt.verify(token, INVITE_SECRET) as { userId: string };
+    const inviterId = decoded.userId;
+
+    if (inviterId === userId) {
+      throw new SelfInvitationError('You cannot accept your own connection invite. If testing locally, please copy the link and open it in a private/incognito window to act as the second user.');
+    }
+
+    // Check if connection already exists
+    const existingConnection = Array.from(connections.values()).find(
+      conn => (conn.inviterId === inviterId && conn.invitedId === userId) ||
+               (conn.inviterId === userId && conn.invitedId === inviterId)
+    );
+
+    if (existingConnection) {
+      // Auto-cleanup for previous data corruption (if a user deleted their 
+      // contact but the connection persisted, or if re-inviting an active connection).
+      connections.delete(existingConnection.id);
+      await addTrace('requestLinkage_cleanup_stale', { connectionId: existingConnection.id });
+    }
+
+    // Also clean up any old pending requests between these two users
+    for (const [reqId, req] of Array.from(pendingRequests.entries())) {
+      if ((req.inviterId === inviterId && req.invitedId === userId) || 
+          (req.inviterId === userId && req.invitedId === inviterId)) {
+        pendingRequests.delete(reqId);
+      }
+    }
+
+    // Create pending request
+    const requestId = generateId();
+    const requestedAt = new Date().toISOString();
+
+    pendingRequests.set(requestId, {
+      id: requestId,
+      inviterId,
+      invitedId: userId,
+      requestedAt,
+    });
+
+    await saveSystemData();
+    await broadcastToUser(inviterId, 'contacts-updated');
+    await addTrace('requestLinkage_success', { inviterId, requestId });
+    return { requestId };
+  } catch (err: any) {
+    await addTrace('requestLinkage_error', { reason: err.message, stack: err.stack });
+    throw err;
   }
-
-  // Decode token to get inviter ID
-  const decoded = jwt.verify(token, INVITE_SECRET) as { userId: string };
-  const inviterId = decoded.userId;
-
-  if (inviterId === userId) {
-    throw new Error('cannot accept your own invitation (if testing locally, use an Incognito tab for the second user to ensure cookies are separated)');
-  }
-
-  // Check if connection already exists
-  const existingConnection = Array.from(connections.values()).find(
-    conn => (conn.inviterId === inviterId && conn.invitedId === userId) ||
-             (conn.inviterId === userId && conn.invitedId === inviterId)
-  );
-
-  if (existingConnection && existingConnection.status === 'CONNECTED') {
-    throw new Error('Connection already exists');
-  }
-
-  // Create pending request
-  const requestId = generateId();
-  const requestedAt = new Date().toISOString();
-
-  pendingRequests.set(requestId, {
-    id: requestId,
-    inviterId,
-    invitedId: userId,
-    requestedAt,
-  });
-
-  // Mark invitation as used
-  // User logic: invite tokens can be sent to multiple people, so do not mark as used or invalidated.
-  // We keep the link valid until its expiration.
-  // const invitation = invitationLinks.get(token);
-  // if (invitation) {
-  //   invitation.isUsed = true;
-  //   invitationLinks.set(token, invitation);
-  // }
-
-  await saveSystemData();
-  return { requestId };
 }
 
 export async function getPendingRequests(userId: string): Promise<PendingRequest[]> {
@@ -706,6 +848,7 @@ async function getInviteDetailsForUser(userId: string): Promise<InviterProfile> 
 }
 
 export async function approveRequest(userId: string, requestId: string): Promise<void> {
+  await addTrace('approveRequest_start', { userId, requestId });
   await loadSystemData();
   const request = pendingRequests.get(requestId);
   if (!request || request.inviterId !== userId) {
@@ -727,16 +870,25 @@ export async function approveRequest(userId: string, requestId: string): Promise
 
   connections.set(connectionId, connection);
 
-  // Create contacts for both users
-  await createContactForConnection(request.inviterId, request.invitedId);
-  await createContactForConnection(request.invitedId, request.inviterId);
+  // Create contacts for both users concurrently
+  await Promise.all([
+    createContactForConnection(request.inviterId, request.invitedId),
+    createContactForConnection(request.invitedId, request.inviterId)
+  ]);
 
   // Remove pending request
   pendingRequests.delete(requestId);
   await saveSystemData();
+  
+  // Broadcast to both users concurrently
+  await Promise.all([
+    broadcastToUser(request.inviterId, 'contacts-updated'),
+    broadcastToUser(request.invitedId, 'contacts-updated')
+  ]);
 }
 
 export async function rejectRequest(userId: string, requestId: string): Promise<void> {
+  // we could broadcast, but for now we'll do it inside
   await loadSystemData();
   const request = pendingRequests.get(requestId);
   if (!request || request.inviterId !== userId) {
@@ -746,9 +898,16 @@ export async function rejectRequest(userId: string, requestId: string): Promise<
   // Remove pending request
   pendingRequests.delete(requestId);
   await saveSystemData();
+  
+  // Broadcast to both users concurrently
+  await Promise.all([
+    broadcastToUser(request.inviterId, 'contacts-updated'),
+    broadcastToUser(request.invitedId, 'contacts-updated')
+  ]);
 }
 
 async function createContactForConnection(userId: string, connectedUserId: string): Promise<void> {
+  await addTrace('createContactForConnection_start', { userId, connectedUserId });
   const user = await findUserById(connectedUserId);
   const existingContacts = await getOrInitUserContacts(userId);
 
@@ -767,17 +926,36 @@ async function createContactForConnection(userId: string, connectedUserId: strin
   }
 
   if (!existingContact) {
+    await addTrace('createContactForConnection_new', { userId, desiredName, connectedUserId });
     // We are safe to create a new one
     await createContact(userId, {
       name: desiredName,
       status: 'linked',
       linkedUserId: connectedUserId,
+      ...(user.name ? { realName: user.name } : {}),
+      ...(user.email ? { realEmail: user.email } : {}),
+      ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
+      ...(user.provider ? { oauthProvider: user.provider } : {})
     });
-  } else if (existingContact.status !== 'linked' || existingContact.linkedUserId !== connectedUserId) {
-    await updateContact(userId, existingContact.id, { 
+  } else if (
+    existingContact.status !== 'linked' || 
+    existingContact.linkedUserId !== connectedUserId ||
+    (user.name && existingContact.realName !== user.name) ||
+    (user.email && existingContact.realEmail !== user.email) ||
+    (user.avatarUrl && existingContact.avatarUrl !== user.avatarUrl) ||
+    (user.provider && existingContact.oauthProvider !== user.provider)
+  ) {
+    await addTrace('createContactForConnection_update', { userId, existingContactId: existingContact.id, connectedUserId });
+    await updateContact(userId, existingContact.id, {
       status: 'linked',
-      linkedUserId: connectedUserId 
+      linkedUserId: connectedUserId,
+      ...(user.name ? { realName: user.name } : {}),
+      ...(user.email ? { realEmail: user.email } : {}),
+      ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
+      ...(user.provider ? { oauthProvider: user.provider } : {})
     });
+  } else {
+    await addTrace('createContactForConnection_noop', { userId, existingContactId: existingContact.id });
   }
 }
 

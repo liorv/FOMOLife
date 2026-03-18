@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import type { GenerateInviteResponse } from '@myorg/types';
 import { generateInviteLink, deleteActiveInviteLink } from '@/lib/contacts/server/contactsStore';
@@ -61,4 +62,26 @@ export async function DELETE(request: Request) {
       request
     );
   }
+}
+
+export async function GET(request: Request) {
+  const session = await getFrameworkSession();
+  if (!session.isAuthenticated) return unauthorizedResponse();
+
+  const { getActiveInviteLink } = await import('@/lib/contacts/server/contactsStore');
+  const inviteResponse = await getActiveInviteLink(session.userId);
+  if (!inviteResponse) {
+    return corsResponse(NextResponse.json({ active: false }), request);
+  }
+  
+  const url = new URL(request.url);
+  const base = process.env.NEXT_PUBLIC_BASE_URL || `${url.protocol}//${url.host}`;
+  const inviteLink = `${base}/accept-invite?token=${encodeURIComponent(inviteResponse.token)}`;
+  
+  return corsResponse(NextResponse.json({
+    active: true,
+    inviteLink,
+    token: inviteResponse.token,
+    expiresAt: inviteResponse.expiresAt
+  }), request);
 }

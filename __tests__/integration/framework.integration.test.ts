@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+declare var jest: any;
 
 // Test framework login behavior in JSON mode by mocking the env getter
 jest.mock('@/lib/frameworkEnv.server', () => ({

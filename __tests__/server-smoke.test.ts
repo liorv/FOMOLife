@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 
-function collectFiles(dir) {
+function collectFiles(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
   const res = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

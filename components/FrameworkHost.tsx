@@ -187,7 +187,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         devDefaultUserId={defaultUserId}
         onDevSwitchUsers={handleDevSwitchUsers}
         className="logobar-top"
-        rightContent={<NotificationBell />}
+        rightContent={<NotificationBell userId={userId} />}
         {...(aboutInfo ? { aboutInfo } : {})}
       />
       <div className="app-outer">

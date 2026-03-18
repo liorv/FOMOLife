@@ -71,7 +71,7 @@ function AcceptInvitePageInner() {
           <p className="invite-message invite-message--error">{error}</p>
           <button
             onClick={() => {
-              router.replace(`/?tab=people`);
+              window.location.href = `/?tab=people`;
             }}
             className="invite-button invite-button--secondary"
           >
@@ -109,7 +109,7 @@ function AcceptInvitePageInner() {
           </p>
           <button
             onClick={() => {
-              router.replace(`/?tab=people&accepted=true`);
+              window.location.href = `/?tab=people&accepted=true`;
             }}
             className="invite-button invite-button--primary"
           >
@@ -169,7 +169,7 @@ function AcceptInvitePageInner() {
             </button>
             <button
               onClick={() => {
-                router.replace(`/?tab=people`);
+                window.location.href = `/?tab=people`;
               }}
               disabled={processing}
               className="invite-button invite-button--secondary"

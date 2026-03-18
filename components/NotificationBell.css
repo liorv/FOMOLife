@@ -24,15 +24,20 @@
 
 .framework-bell-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 2px;
+  right: 2px;
   background-color: var(--ui-danger, #dc3545);
   color: white;
   font-size: 10px;
   font-weight: bold;
-  padding: 2px 6px;
+  padding: 2px 4px;
   border-radius: 10px;
   min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   text-align: center;
   line-height: 1;
 }
