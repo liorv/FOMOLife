@@ -234,7 +234,7 @@ export default function SubprojectRow({
         aria-hidden="true"
         style={subprojectColor ? { color: subprojectColor } : {}}
       >
-        {sub.isProjectLevel ? "assignment_turned_in" : "folder"}
+        {sub.tasks && sub.tasks.length > 0 && sub.tasks.every(t => t.done) ? "check_circle" : (sub.isProjectLevel ? "assignment_turned_in" : "folder")}
       </span>
 
       {editingName ? (

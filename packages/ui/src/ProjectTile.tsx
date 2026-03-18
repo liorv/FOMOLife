@@ -473,36 +473,41 @@ export default function ProjectTile({
           <div
             className={`${styles.progressVisualization} progress-visualization`}
           >
-            <div className={`${styles.progressCircle} progress-circle`}>
-              <svg
-                className={`${styles.progressSvg} progress-svg`}
-                viewBox="0 0 120 120"
-              >
-                <circle
-                  className={`${styles.progressBg} progress-bg`}
-                  cx="60"
-                  cy="60"
-                  r="50"
-                  strokeWidth="8"
-                />
-                <circle
-                  className={`${styles.progressFill} progress-fill`}
-                  cx="60"
-                  cy="60"
-                  r="50"
-                  strokeWidth="8"
-                  strokeDasharray={`${2 * Math.PI * 50}`}
-                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - progress / 100)}`}
-                  transform="rotate(-90 60 60)"
-                />
-              </svg>
-              <div className={`${styles.progressText} progress-text`}>
-                <div className={`${styles.progressPercent} progress-percent`}>
-                  {progress}%
+            {progress === 100 ? (
+              <span className="material-icons" style={{ fontSize: '100px', color: color || '#2196f3' }}>
+                check_circle
+              </span>
+            ) : (
+              <div className={`${styles.progressCircle} progress-circle`}>
+                <svg
+                  className={`${styles.progressSvg} progress-svg`}
+                  viewBox="0 0 120 120"
+                >
+                  <circle
+                    className={`${styles.progressBg} progress-bg`}
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    className={`${styles.progressFill} progress-fill`}
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    strokeWidth="8"
+                    strokeDasharray={`${2 * Math.PI * 50}`}
+                    strokeDashoffset={`${2 * Math.PI * 50 * (1 - progress / 100)}`}
+                    transform="rotate(-90 60 60)"
+                  />
+                </svg>
+                <div className={`${styles.progressText} progress-text`}>
+                  <div className={`${styles.progressPercent} progress-percent`}>
+                    {`${progress}%`}
+                  </div>
                 </div>
-                {/* label removed per design; remaining CSS kept for potential future use */}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -523,12 +528,12 @@ export default function ProjectTile({
           <div className="project-progress-container">
             <div
               className="project-progress"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progress === 100 ? <span className="material-icons" style={{ fontSize: "32px" }}>check_circle</span> : `${progress}%`}` }}
               data-testid="project-progress"
             />
           </div>
           <div className="project-percent" data-testid="project-percent">
-            {progress}%
+            {progress === 100 ? <span className="material-icons" style={{ fontSize: "32px" }}>check_circle</span> : `${progress}%`}
           </div>
         </div>
       </div>
