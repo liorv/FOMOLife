@@ -19,12 +19,13 @@ export interface TaskRowProps {
   onDragOver?: (taskId: string, e: React.DragEvent) => void;
   onDrop?: (taskId: string, e: React.DragEvent) => void;
   onDragEnd?: (taskId: string, e: React.DragEvent) => void;
+  onTaskUpdate?: (taskId: string, updates: Partial<ProjectTask>) => void;
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
 }
 
 export default function TaskRow({
-  item,
+item,
   id,
   type,
   editorTaskId,
@@ -37,6 +38,7 @@ export default function TaskRow({
   onDragOver,
   onDrop,
   onDragEnd,
+  onTaskUpdate,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
 }: TaskRowProps) {
@@ -199,10 +201,40 @@ export default function TaskRow({
                 gap: "8px"
               }}
             >
-              {item.priority && (
-                <span className={`priority-badge`} style={{ 
-                  fontSize: '10px', 
-                  padding: '2px 6px', 
+              
+              {type === "tasks" ? (
+                <select
+                  value={item.priority || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const newPri = val === "" ? null : val;
+                    onTaskUpdate?.(id, { priority: newPri as any });
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    appearance: 'none',
+                    border: 'none',
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    borderRadius: '12px',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    background: item.priority === 'high' ? '#ffebee' : item.priority === 'medium' ? '#fff3e0' : item.priority === 'low' ? '#f5f5f5' : 'transparent',
+                    color: item.priority === 'high' ? '#c62828' : item.priority === 'medium' ? '#e65100' : item.priority === 'low' ? '#616161' : '#ccc'
+                  }}
+                  title="Change priority"
+                >
+                  <option value="" style={{ color: '#ccc', fontStyle: 'italic' }}>PRIORITY</option>
+                  <option value="low" style={{ color: '#616161' }}>LOW</option>
+                  <option value="medium" style={{ color: '#e65100' }}>MEDIUM</option>
+                  <option value="high" style={{ color: '#c62828' }}>HIGH</option>
+                </select>
+              ) : item.priority ? (
+                <span className={`priority-badge`} style={{
+                  fontSize: '10px',
+                  padding: '2px 6px',
                   borderRadius: '12px',
                   fontWeight: 'bold',
                   textTransform: 'uppercase',
@@ -211,7 +243,8 @@ export default function TaskRow({
                 }}>
                   {item.priority}
                 </span>
-              )}
+              ) : null}
+
               <span>{item.text}</span>
               {type === "tasks" && (
                 <span

@@ -2,8 +2,8 @@ import type { TaskItem } from '@myorg/types';
 
 export interface TasksApiClient {
   listTasks: () => Promise<TaskItem[]>;
-  createTask: (input: { text: string; dueDate?: string | null; description?: string; favorite?: boolean; people?: import('@myorg/types').ProjectTaskPerson[]; priority?: "low" | "medium" | "high" | null }) => Promise<TaskItem>;
-  updateTask: (id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority'>>) => Promise<TaskItem>;
+  createTask: (input: { text: string; dueDate?: string | null; description?: string; favorite?: boolean; people?: import('@myorg/types').ProjectTaskPerson[]; priority?: "low" | "medium" | "high" | null; effort?: number | null }) => Promise<TaskItem>;
+  updateTask: (id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>) => Promise<TaskItem>;
   deleteTask: (id: string) => Promise<void>;
 }
 
@@ -39,7 +39,7 @@ export function createTasksApiClient(baseUrl = ''): TasksApiClient {
       return out;
     },
 
-    async updateTask(id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority'>>): Promise<TaskItem> {
+    async updateTask(id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>): Promise<TaskItem> {
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },

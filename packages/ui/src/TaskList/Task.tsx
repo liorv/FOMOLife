@@ -17,12 +17,13 @@ export interface TaskProps {
   onDragOver?: (taskId: string, e: React.DragEvent) => void;
   onDrop?: (taskId: string, e: React.DragEvent) => void;
   onDragEnd?: (taskId: string, e: React.DragEvent) => void;
+  onTaskUpdate?: (taskId: string, updates: Partial<ProjectTask>) => void;
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
 }
 
 export default function Task({
-  item,
+item,
   id,
   type,
   editorTaskId,
@@ -36,6 +37,7 @@ export default function Task({
   onDragOver,
   onDrop,
   onDragEnd,
+  onTaskUpdate,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
 }: TaskProps) {
@@ -86,6 +88,7 @@ export default function Task({
           {...(handleStar !== undefined && { handleStar })}
           {...(handleDelete !== undefined && { handleDelete })}
           {...(onTitleChange !== undefined && { onTitleChange })}
+          {...(onTaskUpdate !== undefined && { onTaskUpdate })}
           newlyAddedTaskId={newlyAddedTaskId}
           onClearNewTask={onClearNewTask}
         />

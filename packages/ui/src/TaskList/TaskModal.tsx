@@ -33,6 +33,7 @@ export default function TaskEditor({
   const [description, setDescription] = useState(task.description || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
   const [priority, setPriority] = useState<"low" | "medium" | "high" | null | undefined>(task.priority);
+  const [effort, setEffort] = useState<number | null | undefined>(task.effort);
 
   // People assigned to this task – stored simply as [{name}].
   const initialPeople: PersonEntry[] = (task.people || []).map((p) => ({
@@ -53,11 +54,12 @@ export default function TaskEditor({
     description: task.description || "",
     dueDate: task.dueDate || "",
     priority: task.priority,
+    effort: task.effort,
     people: initialPeople,
   });
   useEffect(() => {
-    latestRef.current = { title, description, dueDate, priority, people };
-  }, [title, description, dueDate, priority, people]);
+    latestRef.current = { title, description, dueDate, priority, effort, people };
+  }, [title, description, dueDate, priority, effort, people]);
 
   // Sync local state with prop changes (handles external updates)
   useEffect(() => {
@@ -65,11 +67,13 @@ export default function TaskEditor({
     setDescription(task.description || "");
     setDueDate(task.dueDate || "");
     setPriority(task.priority);
+    setEffort(task.effort);
+    setEffort(task.effort);
     const newPeople: PersonEntry[] = (task.people || []).map((p) => ({
       name: typeof p === "string" ? p : p.name || "",
     }));
     setPeople(newPeople);
-  }, [task.id, task.text, task.description, task.dueDate, task.priority, JSON.stringify(task.people)]);
+  }, [task.id, task.text, task.description, task.dueDate, task.priority, task.effort, JSON.stringify(task.people)]);
 
   useEffect(() => {
     // reset keyboard focus whenever the query changes
@@ -118,6 +122,7 @@ export default function TaskEditor({
         description: latest.description,
         dueDate: latest.dueDate || null,
         priority: latest.priority ? latest.priority : null,
+        effort: latest.effort !== undefined ? latest.effort : null,
         people: normalizedPeople,
       };
       onUpdateTask(updatedTask);
@@ -174,6 +179,7 @@ export default function TaskEditor({
       description,
       people: normalizedPeople,
       priority: priority ? priority : null,
+      effort: effort !== undefined ? effort : null,
       dueDate: dueDate || null,
     };
     onUpdateTask(updated);
@@ -245,6 +251,50 @@ export default function TaskEditor({
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
+
+          <div className="editor-section effort-section" style={{ marginTop: '16px' }}>
+            <label htmlFor={`task-effort-${task.id || 'editor'}`} className="desc-label">
+              Effort (Days)
+            </label>
+            <input
+              id={`task-effort-${task.id || 'editor'}`}
+              type="number"
+              min="0"
+              step="0.5"
+              className="effort-input"
+              value={effort || ""}
+              onChange={(e) => {
+                const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                setEffort(val);
+                const updatedTask = { ...task, effort: val };
+                onUpdateTask(updatedTask);
+              }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', background: '#fff' }}
+            />
+          </div>
+
+
+          <div className="editor-section effort-section" style={{ marginTop: '16px' }}>
+            <label htmlFor={`task-effort-${task.id || 'editor'}`} className="desc-label">
+              Effort (Days)
+            </label>
+            <input
+              id={`task-effort-${task.id || 'editor'}`}
+              type="number"
+              min="0"
+              step="0.5"
+              className="effort-input"
+              value={effort || ""}
+              onChange={(e) => {
+                const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                setEffort(val);
+                const updatedTask = { ...task, effort: val };
+                onUpdateTask(updatedTask);
+              }}
+              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', background: '#fff' }}
+            />
+          </div>
+
           </div>
 
           <div className="editor-section date-section">

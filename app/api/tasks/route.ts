@@ -27,6 +27,8 @@ export async function POST(request: Request) {
     favorite?: boolean;
     people?: import('@myorg/types').ProjectTaskPerson[];
     priority?: "low" | "medium" | "high" | null;
+    effort?: number | null;
+    effort?: number | null;
   };
 
   // The client is allowed to POST an empty string when creating a new task
@@ -44,6 +46,8 @@ export async function POST(request: Request) {
     favorite: Boolean(body.favorite),
     ...(body.people ? { people: body.people } : {}),
     ...(body.priority !== undefined ? { priority: body.priority } : {}),
+    ...(body.effort !== undefined ? { effort: body.effort } : {}),
+    ...(body.effort !== undefined ? { effort: body.effort } : {}),
   });
   return NextResponse.json(created, { status: 201 });
 }
@@ -54,7 +58,7 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json()) as {
     id?: string;
-    patch?: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority'>>;
+    patch?: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort' | 'effort'>>;
   };
 
   if (!body.id || !body.patch) {

@@ -119,6 +119,7 @@ export default function TaskList({
             {...(onDragEnd !== undefined && { onDragEnd })}
             newlyAddedTaskId={newlyAddedTaskId ?? null}
             onClearNewTask={onClearNewTask}
+            {...(onEditorUpdate !== undefined && { onTaskUpdate: onEditorUpdate })}
           />
         );
 

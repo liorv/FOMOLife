@@ -20,6 +20,7 @@ export interface TaskItem {
   /** Assigned people (project-style) */
   people?: import("./project").ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
+  effort?: number | null;
 }
 
 /**
@@ -37,6 +38,7 @@ export interface TaskCreateInput {
   description?: string;
   people?: import("./project").ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
+  effort?: number | null;
 }
 
 /**
@@ -50,4 +52,5 @@ export interface TaskUpdateInput {
   description?: string;
   people?: import("./project").ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
+  effort?: number | null;
 }

@@ -16,6 +16,8 @@ export interface TaskItem {
   // people assigned to this task (project-style)
   people?: import('@myorg/types').ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
+  effort?: number | null;
+  effort?: number | null;
 }
 
 
@@ -65,7 +67,7 @@ export async function listTasks(userId: string): Promise<TaskItem[]> {
 export async function createTask(
   userId: string,
   input: Pick<TaskItem, 'text'> &
-    Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description' | 'people' | 'priority'>>,
+    Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort' | 'effort'>>,
 ): Promise<TaskItem> {
   const current = await getOrInitUserTasks(userId);
   const created: TaskItem = {
@@ -77,6 +79,8 @@ export async function createTask(
     description: input.description ?? '',
     ...(input.people ? { people: input.people } : {}),
     ...(input.priority !== undefined ? { priority: input.priority } : {}),
+    ...(input.effort !== undefined ? { effort: input.effort } : {}),
+    ...(input.effort !== undefined ? { effort: input.effort } : {}),
   };
   current.push(created);
   tasksByUser.set(userId, current);
@@ -87,7 +91,7 @@ export async function createTask(
 export async function updateTask(
   userId: string,
   id: string,
-  patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'priority'>>,
+  patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort' | 'effort' | 'effort' | 'effort' | 'priority'>>,
 ): Promise<TaskItem | null> {
   console.log("tasksStore: updateTask", userId, id, patch);
   const current = await getOrInitUserTasks(userId);
