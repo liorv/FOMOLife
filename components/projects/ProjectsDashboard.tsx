@@ -88,7 +88,8 @@ interface ProjectsDashboardProps {
   pendingDeleteProjectId?: string | null;
   onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
-  onGenerateProject?: (data: any) => Promise<void>;
+  onGenerateProject?: (data: any, formData: {goal: string, targetDate: string, context: string}) => Promise<void>;
+  onEnhanceProject?: (projectId: string, data: any, formData: {goal: string, targetDate: string, context: string}) => Promise<void>;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
   onTitleChange?: (projectId: string, title: string) => void;
@@ -115,6 +116,7 @@ export default function ProjectsDashboard({
   onConfirmDeleteProject,
   onAddProject,
   onGenerateProject,
+  onEnhanceProject,
   onOpenPeople,
   onCreatePerson,
   onTitleChange,
@@ -447,7 +449,7 @@ export default function ProjectsDashboard({
                 <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
                   psychology
                 </span>
-                Create with AI
+                {selectedProject ? 'Enhance with AI' : 'Create with AI'}
               </button>
             </div>
           )}
@@ -481,9 +483,22 @@ export default function ProjectsDashboard({
       {showAiModal && (
         <AiBlueprintModal 
           onClose={() => setShowAiModal(false)}
-          onConfirm={async (data) => {
-            await onGenerateProject?.(data);
+          onConfirm={async (data, formData) => {
+            if (selectedProject) {
+              await onEnhanceProject?.(selectedProject.id, data, formData);
+            } else {
+              await onGenerateProject?.(data, formData);
+            }
           }}
+          isForExistingProject={!!selectedProject}
+          {...(selectedProject ? {
+            existingSubprojects: selectedProject.subprojects,
+            initialValues: {
+              goal: `${selectedProject.goal || ''}\n\n${selectedProject.description || ''}`.trim(),
+              targetDate: selectedProject.dueDate || '',
+              context: selectedProject.aiInstructions || '',
+            }
+          } : {})}
         />
       )}
     </div>

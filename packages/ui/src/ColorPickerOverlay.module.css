@@ -21,7 +21,7 @@
   animation: slideUpModal 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 80vh;
   overflow-y: auto;
-  z-index: 1300;
+  z-index: 11000;
 }
 
 .modal.closing {

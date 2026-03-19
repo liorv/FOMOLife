@@ -18,19 +18,24 @@ export class GroqProvider implements ILLMProvider {
 Your entire purpose is to generate a structured project blueprint in valid JSON format matching the schema below EXACTLY.
 Do NOT wrap the JSON in Markdown or backticks. Do not include any conversational text. Just output raw, valid JSON.
 
-CRITICAL INSTRUCTION ON QUANTITY AND GRANULARITY: 
-1. The number of sub_projects and tasks MUST vary dynamically based on the project's logic and the user's requested Complexity Level. 
-   - "Simple" = 2-3 sub_projects, 2-5 tasks each
-   - "Standard" = 3-5 sub_projects, 4-8 tasks each
-   - "Detailed" = 4-8 sub_projects, 6-15 tasks each
-   DO NOT just output 3 tasks! Build a realistic, functional task list.
-2. Keep each task description short and concise (1 single action/instruction per task). Do not combine multiple steps into one task. Break compound steps down into multiple individual tasks.
-3. Every task MUST have an "effort" property, defined as a number representing days of work (e.g. 0.5, 1, 3). Do NOT omit it.
-4. Set "priority" to exactly one of: "Low", "Medium", "High". Priority represents the task's importance to the overall project success, NOT its chronological sequence. High priority tasks often occur late in the timeline, preceded by Low priority foundational tasks.
+CRITICAL INSTRUCTIONS:
+1. ADHERE STRICTLY TO THE USER'S GOAL: Only generate tasks and subprojects that are absolutely necessary to achieve the exact goal stated. Do NOT add extra features, nice-to-haves, or over-engineer the solution. If the goal is simple, keep the project simple.
+2. AVOID UNNECESSARY COMPLEXITY: Do not create tasks for things not mentioned in the goal. Do not assume additional requirements. Stick to what's explicitly stated or directly implied.
+3. TASK QUANTITY GUIDELINES (be conservative):
+   - "Simple" = 1-2 sub_projects, 2-4 tasks each (total 4-8 tasks max)
+   - "Standard" = 2-3 sub_projects, 3-5 tasks each (total 6-15 tasks max)  
+   - "Detailed" = 3-4 sub_projects, 4-6 tasks each (total 12-24 tasks max)
+   If the goal can be achieved with fewer tasks, use fewer. Quality over quantity.
+4. Keep each task description short and concise (1 single action/instruction per task). Do not combine multiple steps into one task.
+5. Every task MUST have an "effort" property, defined as a number representing days of work (e.g. 0.5, 1, 3). Do NOT omit it.
+6. Set "priority" to exactly one of: "Low", "Medium", "High". Priority represents the task's importance to the overall project success.
+7. AVOID generic planning/research tasks. Focus on SPECIFIC, ACTIONABLE tasks that directly contribute to the stated goal.
+${request.isForExistingProject ? '8. This is for an EXISTING project. REVIEW all existing tasks and subprojects. ONLY keep tasks that are still beneficial and directly contribute to achieving the new goal. REMOVE any tasks that are no longer relevant, redundant, or not aligned with the goal. Then add any additional tasks needed to complete the goal. Return the COMPLETE optimized project structure - do not just add new content.' : ''}
 
 Schema:
 {
   "project_name": "string",
+  "goal": "string",
   "sub_projects": [
     {
       "title": "string",
@@ -39,7 +44,8 @@ Schema:
           "description": "string",
           "priority": "Low",
           "effort": 1.5,
-          "deadline_offset_days": 2
+          "deadline_offset_days": 2,
+          "done": false
         }
       ]
     }
@@ -51,9 +57,10 @@ Goal: ${request.goal}
 Complexity Level: ${request.complexity} (Scale from Simple -> Detailed)
 ${request.targetDate ? "Target Completion Date: " + request.targetDate + "\n" : ""}
 ${request.context ? "Context Constraints: " + request.context + "\n" : ""}
+${request.existingSubprojects ? `\nEXISTING PROJECT STRUCTURE:\n${JSON.stringify(request.existingSubprojects, null, 2)}\n\nREVIEW all existing tasks and subprojects. Keep only those that are beneficial and directly contribute to the new goal. Remove any tasks that are no longer relevant or not aligned with the goal. Add new tasks only if needed to complete the goal. Return the COMPLETE optimized project structure.` : ""}
 
-CRITICAL INSTRUCTION: Do NOT artificially limit the number of tasks or subprojects. Generate the appropriate, realistic, and comprehensive number of tasks required to actually complete the project milestone based on the requested complexity. Ensure each sub project has detailed and sufficient steps.
-Calculate deadline_offset_days as intelligent milestones.`;
+CRITICAL INSTRUCTION: Adhere STRICTLY to the stated goal. Only include tasks and subprojects that are absolutely necessary to achieve the goal. Do NOT add extra features, over-engineer, or include tasks not directly related to the goal. If the goal is simple, keep the project simple with minimal necessary tasks. Be conservative - fewer focused tasks are better than many unnecessary ones.
+Calculate deadline_offset_days as intelligent milestones based only on the tasks you've included.`;
 
     const response = await fetch(this.baseUrl, {
       method: 'POST',

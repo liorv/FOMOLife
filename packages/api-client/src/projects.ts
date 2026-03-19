@@ -2,8 +2,8 @@ import type { ProjectItem } from '@myorg/types';
 
 export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
-  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[] }) => Promise<ProjectItem>;
-  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>>) => Promise<ProjectItem>;
+  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string }) => Promise<ProjectItem>;
+  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions'>>) => Promise<ProjectItem>;
   deleteProject: (id: string) => Promise<void>;
 }
 

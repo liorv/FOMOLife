@@ -3,6 +3,8 @@ export interface GenerateBlueprintRequest {
   targetDate?: string;
   complexity: string;
   context?: string;
+  existingSubprojects?: SubprojectDraft[];
+  isForExistingProject?: boolean;
 }
 
 export interface TaskDraft {
@@ -10,6 +12,7 @@ export interface TaskDraft {
   priority: string;
   effort: number;
   deadline_offset_days: number;
+  done?: boolean; // For existing tasks
 }
 
 export interface SubprojectDraft {
@@ -19,6 +22,7 @@ export interface SubprojectDraft {
 
 export interface GenerateBlueprintResponse {
   project_name: string;
+  goal?: string;
   sub_projects: SubprojectDraft[];
 }
 

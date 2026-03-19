@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface AiBlueprintModalProps {
   onClose: () => void;
-  onConfirm: (data: any) => Promise<void>;
+  onConfirm: (data: any, formData: {goal: string, targetDate: string, context: string}) => Promise<void>;
+  initialValues?: {
+    goal?: string;
+    targetDate?: string;
+    context?: string;
+  };
+  isForExistingProject?: boolean;
+  existingSubprojects?: any[];
 }
 
 interface TaskDraft {
@@ -12,6 +19,7 @@ interface TaskDraft {
   effort?: number | null;
   deadline_offset_days: number;
   selected: boolean;
+  done?: boolean;
 }
 
 interface SubprojectDraft {
@@ -26,7 +34,7 @@ interface BlueprintDraft {
   sub_projects: SubprojectDraft[];
 }
 
-export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModalProps) {
+export default function AiBlueprintModal({ onClose, onConfirm, initialValues, isForExistingProject = false, existingSubprojects }: AiBlueprintModalProps) {
   const [step, setStep] = useState<'input' | 'processing' | 'review'>('input');
   
   // Form State
@@ -39,6 +47,15 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
   const [draft, setDraft] = useState<BlueprintDraft | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Update form state when initialValues change
+  useEffect(() => {
+    if (initialValues) {
+      setGoal(initialValues.goal || '');
+      setTargetDate(initialValues.targetDate || '');
+      setContext(initialValues.context || '');
+    }
+  }, [initialValues]);
+
   const handleGenerate = async () => {
     if (!goal.trim()) {
       alert("Please provide a project goal.");
@@ -47,10 +64,25 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
     
     setStep('processing');
     try {
+      // Convert existing subprojects to draft format
+      let convertedExisting: any[] = [];
+      if (existingSubprojects) {
+        convertedExisting = existingSubprojects.map((sp: any) => ({
+          title: sp.text,
+          tasks: sp.tasks.map((t: any) => ({
+            description: t.text,
+            priority: t.priority || 'Medium',
+            effort: t.effort || 1,
+            deadline_offset_days: t.dueDate ? Math.ceil((new Date(t.dueDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : 7,
+            done: t.done
+          }))
+        }));
+      }
+
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal, targetDate, complexity, context }),
+        body: JSON.stringify({ goal, targetDate, complexity, context, existingSubprojects: convertedExisting, isForExistingProject }),
       });
       
       if (!res.ok) throw new Error('Failed to generate blueprint');
@@ -67,7 +99,8 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
           tasks: (sp.tasks || []).map((t: any, j: number) => ({
             ...t,
             id: `task-${i}-${j}`,
-            selected: true
+            selected: true,
+            done: t.done || false
           }))
         }))
       };
@@ -112,7 +145,7 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
       if (!prev) return prev;
       const newSubProjects = prev.sub_projects.map(sp => {
         if (sp.id !== spId) return sp;
-        const newTasks = sp.tasks.map(t => t.id === taskId ? { ...t, selected: !t.selected } : t);
+        const newTasks = sp.tasks.map(t => t.id === taskId ? (t.done ? t : { ...t, selected: !t.selected }) : t);
         // If all tasks deselected, possibly deselect SP? We will just let them be independent.
         // Actually, if at least one task is selected, select the SP.
         const anySelected = newTasks.some(t => t.selected);
@@ -182,13 +215,14 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
               description: t.description,
               priority: t.priority,
               effort: t.effort,
-              deadline_offset_days: t.deadline_offset_days
+              deadline_offset_days: t.deadline_offset_days,
+              done: t.done
             }))
         }))
     };
 
     try {
-      await onConfirm(finalData);
+      await onConfirm(finalData, { goal, targetDate, context });
       onClose();
     } catch (e) {
       console.error(e);
@@ -204,7 +238,7 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
         {step === 'input' && (
           <div style={containerStyle}>
             <h2>Generate with AI</h2>
-            <p style={{ color: '#666', marginBottom: '20px' }}>Describe your goal and let AI create a project blueprint for you.</p>
+            <p style={{ color: '#666', marginBottom: '20px' }}>Use your project overview details to generate tasks and subprojects with AI.</p>
             
             <div style={formGroupStyle}>
               <label style={labelStyle}>Project Goal *</label>
@@ -274,14 +308,16 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
           <div style={{ ...containerStyle }}>
             <h2>Review Blueprint</h2>
             
-            <div style={{ marginBottom: '16px' }}>
-              <input 
-                type="text" 
-                value={draft.project_name} 
-                onChange={(e) => updateProjectName(e.target.value)}
-                style={{ ...inputStyle, fontSize: '18px', fontWeight: 'bold' }}
-              />
-            </div>
+            {!isForExistingProject && (
+              <div style={{ marginBottom: '16px' }}>
+                <input 
+                  type="text" 
+                  value={draft.project_name} 
+                  onChange={(e) => updateProjectName(e.target.value)}
+                  style={{ ...inputStyle, fontSize: '18px', fontWeight: 'bold' }}
+                />
+              </div>
+            )}
 
             <div style={{ flex: 1, overflowY: 'auto', borderTop: '1px solid #eee', paddingTop: '16px', marginBottom: '16px', minHeight: 0 }}>
               {draft.sub_projects.map(sp => (
@@ -309,8 +345,10 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
                         type="checkbox" 
                         checked={t.selected}
                         onChange={() => toggleTask(sp.id, t.id)}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        disabled={t.done}
+                        style={{ cursor: t.done ? 'not-allowed' : 'pointer', width: '16px', height: '16px' }}
                       />
+                      {t.done && <span className="material-icons" style={{ fontSize: '16px', color: 'green', marginRight: '4px' }}>check_circle</span>}
                       <input 
                         type="text" 
                         value={t.description}
@@ -330,15 +368,30 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
                         }}
                         style={{ ...inputStyle, width: '70px', margin: 0, padding: '4px 8px' }}
                       />
-                      <select
-                        title="Task Priority"
-                        value={t.priority}
-                        onChange={(e) => updateTaskPriority(sp.id, t.id, e.target.value)}
-                        style={{ ...inputStyle, width: '130px', margin: 0, padding: '4px 8px' }}>
-                        <option value="Low">Low Priority</option>
-                        <option value="Medium">Medium Priority</option>
-                        <option value="High">High Priority</option>
-                      </select>
+                      <div style={{ width: '130px', display: 'flex', justifyContent: 'center' }}>
+                        <button
+                          title={`Priority: ${t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase()} (click to change)`}
+                          onClick={() => {
+                            const priorities = ['Low', 'Medium', 'High'] as const;
+                            const normalizedPriority = t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase();
+                            const currentIndex = priorities.indexOf(normalizedPriority as 'Low' | 'Medium' | 'High');
+                            const nextIndex = ((currentIndex + 1) % priorities.length) as 0 | 1 | 2;
+                            updateTaskPriority(sp.id, t.id, priorities[nextIndex] as 'Low' | 'Medium' | 'High');
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#d32998',
+                            fontSize: '18px',
+                            padding: '2px'
+                          }}
+                        >
+                          <span className="material-icons">
+                            {t.priority?.toLowerCase() === 'low' ? 'arrow_downward' : t.priority?.toLowerCase() === 'medium' ? 'remove' : 'arrow_upward'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -374,7 +427,7 @@ const overlayStyle: React.CSSProperties = {
   position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
   backgroundColor: 'rgba(0,0,0,0.6)',
   display: 'flex', justifyContent: 'center', alignItems: 'center',
-  zIndex: 1000
+  zIndex: 11000
 };
 
 const modalContentStyle: React.CSSProperties = {

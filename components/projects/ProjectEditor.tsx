@@ -31,6 +31,7 @@ interface ProjectEditorProps {
 }
 
 import SubprojectEditor from "./SubprojectEditor";
+import AiBlueprintModal from "./AiBlueprintModal";
 import { TaskList } from "@myorg/ui";
 import { generateId, applyFilters } from '@myorg/utils';
 
@@ -72,6 +73,7 @@ export default function ProjectEditor({
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
   const [draggedSubprojectId, setDraggedSubprojectId] = useState<string | null>(null);
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
 
@@ -178,6 +180,39 @@ export default function ProjectEditor({
   };
 
   const handleEditorClose = () => setEditorTaskId(null);
+
+  const handleAiGenerate = async (data: any, formData: {goal: string, targetDate: string, context: string}) => {
+    // data contains project_name and sub_projects from the AI generation
+    // For existing projects, replace all subprojects with the new blueprint
+    const newSubprojects = data.sub_projects.map((sp: any, index: number) => ({
+      id: generateId(),
+      text: sp.title,
+      tasks: sp.tasks.map((t: any) => ({
+        id: generateId(),
+        text: t.description,
+        done: t.done || false,
+        dueDate: t.deadline_offset_days ? new Date(Date.now() + t.deadline_offset_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null,
+        favorite: false,
+        people: [],
+        priority: t.priority?.toLowerCase() || 'medium',
+        effort: t.effort,
+      })),
+      collapsed: false,
+      isProjectLevel: false,
+      color: '#666666', // default color
+    }));
+
+    const updated: any = {
+      ...local,
+      text: data.project_name || local.text,
+      subprojects: newSubprojects,
+    };
+    if (formData.goal.trim()) updated.goal = formData.goal.trim();
+    if (formData.context.trim()) updated.description = formData.context.trim();
+    if (formData.targetDate.trim()) updated.dueDate = formData.targetDate.trim();
+    setLocal(updated);
+    safeOnApplyChange(updated);
+  };
 
   useEffect(() => {
     setLocal((prev) => ({
@@ -785,6 +820,17 @@ export default function ProjectEditor({
               className="project-editor-ai-instructions-input"
             />
           </div>
+          {canManage && (
+            <div className="project-editor-ai-generate">
+              <button
+                onClick={() => setShowAiModal(true)}
+                className="ai-generate-btn"
+              >
+                <span className="material-icons">psychology</span>
+                Enhance with AI
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -887,6 +933,20 @@ export default function ProjectEditor({
         </div>
       )}
         </div>
+      )}
+
+      {showAiModal && (
+        <AiBlueprintModal
+          onClose={() => setShowAiModal(false)}
+          onConfirm={handleAiGenerate}
+          initialValues={{
+            goal: `${local.goal || ''}\n\n${local.description || ''}`.trim(),
+            targetDate: local.dueDate || '',
+            context: local.aiInstructions || '',
+          }}
+          isForExistingProject={true}
+          existingSubprojects={local.subprojects}
+        />
       )}
       </div>
     </div>

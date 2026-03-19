@@ -166,6 +166,37 @@
   color: #9ca3af;
 }
 
+.project-editor-ai-generate {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.ai-generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.ai-generate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.ai-generate-btn .material-icons {
+  font-size: 18px;
+}
+
 .project-editor-tabs {
   width: 100%;
   display: flex;

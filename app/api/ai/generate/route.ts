@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    let { goal, targetDate, complexity, context } = body;
+    let { goal, targetDate, complexity, context, existingSubprojects, isForExistingProject } = body;
 
     // 1. Validate Prompt Injection keywords
     if (isPromptInjection(goal) || isPromptInjection(context)) {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         const llmProvider = LLMFactory.getProvider();
     
     const payload = await llmProvider.generateBlueprint({
-      goal, targetDate, complexity, context
+      goal, targetDate, complexity, context, existingSubprojects, isForExistingProject
     });
 
     return NextResponse.json(payload);
