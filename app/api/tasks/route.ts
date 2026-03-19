@@ -28,7 +28,8 @@ export async function POST(request: Request) {
     people?: import('@myorg/types').ProjectTaskPerson[];
     priority?: "low" | "medium" | "high" | null;
     effort?: number | null;
-    effort?: number | null;
+
+
   };
 
   // The client is allowed to POST an empty string when creating a new task

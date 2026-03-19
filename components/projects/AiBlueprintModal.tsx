@@ -9,6 +9,7 @@ interface TaskDraft {
   id: string;
   description: string;
   priority: string;
+  effort?: number | null;
   deadline_offset_days: number;
   selected: boolean;
 }
@@ -151,6 +152,19 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
     });
   };
 
+  const updateTaskEffort = (spId: string, taskId: string, effort: number | null) => {
+    setDraft(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sub_projects: prev.sub_projects.map(sp => sp.id !== spId ? sp : {
+          ...sp,
+          tasks: sp.tasks.map(t => t.id !== taskId ? t : { ...t, effort })
+        })
+      };
+    });
+  };
+
   const handleConfirm = async () => {
     if (!draft) return;
     setIsSaving(true);
@@ -167,6 +181,7 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
             .map(t => ({
               description: t.description,
               priority: t.priority,
+              effort: t.effort,
               deadline_offset_days: t.deadline_offset_days
             }))
         }))
@@ -301,6 +316,19 @@ export default function AiBlueprintModal({ onClose, onConfirm }: AiBlueprintModa
                         value={t.description}
                         onChange={(e) => updateTaskDescription(sp.id, t.id, e.target.value)}
                         style={{ ...inputStyle, flex: 1, margin: 0, padding: '4px 8px' }}
+                      />
+                      <input 
+                        type="number"
+                        title="Effort in days"
+                        placeholder="Days"
+                        step="0.1"
+                        min="0"
+                        value={t.effort ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateTaskEffort(sp.id, t.id, val ? parseFloat(val) : null)
+                        }}
+                        style={{ ...inputStyle, width: '70px', margin: 0, padding: '4px 8px' }}
                       />
                       <select
                         title="Task Priority"

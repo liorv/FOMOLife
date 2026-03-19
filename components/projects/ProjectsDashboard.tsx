@@ -71,6 +71,7 @@ function SummaryCard({
 
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
+  onReprioritize?: (projectId: string) => void;
   projects?: ProjectItem[];
   people?: any[];
   selectedProjectId?: string | null;
@@ -117,6 +118,7 @@ export default function ProjectsDashboard({
   onOpenPeople,
   onCreatePerson,
   onTitleChange,
+  onReprioritize,
   projectSearch = "",
   filters = [] as string[],
   onToggleFilter = () => { },
@@ -391,6 +393,36 @@ export default function ProjectsDashboard({
                 </span>
                 {selectedProject ? 'Create Subproject' : 'Create Project'}
               </button>
+
+              {selectedProject && onReprioritize && (
+                <button
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #e0e0e0',
+                    padding: '10px 16px',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#333',
+                    fontFamily: 'inherit',
+                  }}
+                  onClick={() => {
+                    setIsFabMenuOpen(false);
+                    onReprioritize(selectedProject.id);
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
+                    sort
+                  </span>
+                  Sort By Timeline
+                </button>
+              )}
+
               <button
                 style={{
                   background: '#fff',

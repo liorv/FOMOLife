@@ -228,6 +228,8 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               text: t.description,
               done: false,
               favorite: t.priority === 'High',
+              priority: t.priority ? t.priority.toLowerCase() : null,
+              effort: t.effort || null,
               dueDate: dueDateVal,
             };
           }) : []
@@ -343,6 +345,42 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         apiClient.updateProject(project.id, { order: index }),
       ),
     );
+  };
+
+  
+  const handleReprioritize = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project || !project.subprojects) return;
+
+    // A better approach to "Re-prioritize" or "Sort Tasks"
+    // We sort tasks WITHIN their subprojects primarily by Due Date, and secondarily by Priority.
+    // This honors chronological dependencies but bubbles up the highest risk/importance items.
+
+    const prioWeight: Record<string, number> = { high: 3, medium: 2, low: 1 };
+    
+    const newSubprojects = JSON.parse(JSON.stringify(project.subprojects));
+
+    newSubprojects.forEach((sub: any) => {
+      if (sub.tasks) {
+        sub.tasks.sort((a: any, b: any) => {
+          // 1. Sort by Date first
+          const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+          const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+          
+          if (dateA !== dateB) {
+            return dateA - dateB;
+          }
+
+          // 2. If dates tie, sort by Priority
+          const aWeight = (a.priority && prioWeight[a.priority]) || 0;
+          const bWeight = (b.priority && prioWeight[b.priority]) || 0;
+          
+          return bWeight - aWeight; // Descending (High Priority first)
+        });
+      }
+    });
+
+    handleProjectApplyChange(projectId, { subprojects: newSubprojects });
   };
 
   const handleAddSubproject = async (projectId: string, name = "") => {
@@ -511,6 +549,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               people={people}
               selectedProjectId={editingProjectId}
               onSelectProject={setEditingProjectId}
+              onReprioritize={handleReprioritize}
               onApplyChange={handleProjectApplyChange}
               onAddSubproject={handleAddSubproject}
               newlyAddedSubprojectId={newlyAddedSubprojectId}

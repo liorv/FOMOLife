@@ -8,6 +8,7 @@ export interface GenerateBlueprintRequest {
 export interface TaskDraft {
   description: string;
   priority: string;
+  effort: number;
   deadline_offset_days: number;
 }
 

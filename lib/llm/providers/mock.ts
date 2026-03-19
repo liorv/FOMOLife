@@ -17,15 +17,15 @@ export class MockProvider implements ILLMProvider {
         {
           title: "Setup & Prep",
           tasks: [
-            { description: "Identify resources needed", priority: "Medium", deadline_offset_days: 1 },
-            { description: "Gather initial context", priority: "Low", deadline_offset_days: 2 }
+            { description: "Identify resources needed", priority: "Medium", effort: 1, deadline_offset_days: 1 },
+            { description: "Gather initial context", priority: "Low", effort: 1, deadline_offset_days: 2 }
           ]
         },
         {
           title: "Execution",
           tasks: [
-            { description: "Draft first version", priority: "High", deadline_offset_days: 5 },
-            { description: "Review and refine", priority: "Medium", deadline_offset_days: 7 }
+            { description: "Draft first version", priority: "High", effort: 1, deadline_offset_days: 5 },
+            { description: "Review and refine", priority: "Medium", effort: 1, deadline_offset_days: 7 }
           ]
         }
       ];
@@ -34,25 +34,25 @@ export class MockProvider implements ILLMProvider {
         {
           title: "Phase 1: Research & Discovery",
           tasks: [
-            { description: "Conduct market analysis", priority: "High", deadline_offset_days: 2 },
-            { description: "Identify competitor benchmarks", priority: "Medium", deadline_offset_days: 3 },
-            { description: "Compile requirement docs", priority: "High", deadline_offset_days: 5 }
+            { description: "Conduct market analysis", priority: "High", effort: 1, deadline_offset_days: 2 },
+            { description: "Identify competitor benchmarks", priority: "Medium", effort: 1, deadline_offset_days: 3 },
+            { description: "Compile requirement docs", priority: "High", effort: 1, deadline_offset_days: 5 }
           ]
         },
         {
           title: "Phase 2: Strategy & Planning",
           tasks: [
-            { description: "Draft strategic roadmap", priority: "High", deadline_offset_days: 7 },
-            { description: "Define KPIs and metrics", priority: "Medium", deadline_offset_days: 8 },
-            { description: "Allocate budget and resources", priority: "Medium", deadline_offset_days: 10 }
+            { description: "Draft strategic roadmap", priority: "High", effort: 1, deadline_offset_days: 7 },
+            { description: "Define KPIs and metrics", priority: "Medium", effort: 1, deadline_offset_days: 8 },
+            { description: "Allocate budget and resources", priority: "Medium", effort: 1, deadline_offset_days: 10 }
           ]
         },
         {
           title: "Phase 3: Execution & Delivery",
           tasks: [
-            { description: "Kickoff implementation", priority: "High", deadline_offset_days: 12 },
-            { description: "Mid-point review", priority: "Medium", deadline_offset_days: 15 },
-            { description: "Final QA and launch", priority: "High", deadline_offset_days: 20 }
+            { description: "Kickoff implementation", priority: "High", effort: 1, deadline_offset_days: 12 },
+            { description: "Mid-point review", priority: "Medium", effort: 1, deadline_offset_days: 15 },
+            { description: "Final QA and launch", priority: "High", effort: 1, deadline_offset_days: 20 }
           ]
         }
       ];
@@ -62,15 +62,15 @@ export class MockProvider implements ILLMProvider {
         {
           title: "Phase 1: Preparation",
           tasks: [
-            { description: "Define clear objectives", priority: "High", deadline_offset_days: 1 },
-            { description: "Initial setup", priority: "Medium", deadline_offset_days: 3 }
+            { description: "Define clear objectives", priority: "High", effort: 1, deadline_offset_days: 1 },
+            { description: "Initial setup", priority: "Medium", effort: 1, deadline_offset_days: 3 }
           ]
         },
         {
           title: "Phase 2: Core Work",
           tasks: [
-            { description: "Develop main deliverables", priority: "High", deadline_offset_days: 7 },
-            { description: "Iterate on feedback", priority: "Medium", deadline_offset_days: 10 }
+            { description: "Develop main deliverables", priority: "High", effort: 1, deadline_offset_days: 7 },
+            { description: "Iterate on feedback", priority: "Medium", effort: 1, deadline_offset_days: 10 }
           ]
         }
       ];

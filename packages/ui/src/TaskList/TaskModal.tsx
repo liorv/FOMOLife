@@ -252,27 +252,7 @@ export default function TaskEditor({
               <option value="high">High</option>
             </select>
 
-          <div className="editor-section effort-section" style={{ marginTop: '16px' }}>
-            <label htmlFor={`task-effort-${task.id || 'editor'}`} className="desc-label">
-              Effort (Days)
-            </label>
-            <input
-              id={`task-effort-${task.id || 'editor'}`}
-              type="number"
-              min="0"
-              step="0.5"
-              className="effort-input"
-              value={effort || ""}
-              onChange={(e) => {
-                const val = e.target.value === "" ? null : parseFloat(e.target.value);
-                setEffort(val);
-                const updatedTask = { ...task, effort: val };
-                onUpdateTask(updatedTask);
-              }}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', background: '#fff' }}
-            />
-          </div>
-
+          
 
           <div className="editor-section effort-section" style={{ marginTop: '16px' }}>
             <label htmlFor={`task-effort-${task.id || 'editor'}`} className="desc-label">

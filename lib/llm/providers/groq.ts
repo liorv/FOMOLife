@@ -25,6 +25,8 @@ CRITICAL INSTRUCTION ON QUANTITY AND GRANULARITY:
    - "Detailed" = 4-8 sub_projects, 6-15 tasks each
    DO NOT just output 3 tasks! Build a realistic, functional task list.
 2. Keep each task description short and concise (1 single action/instruction per task). Do not combine multiple steps into one task. Break compound steps down into multiple individual tasks.
+3. Every task MUST have an "effort" property, defined as a number representing days of work (e.g. 0.5, 1, 3). Do NOT omit it.
+4. Set "priority" to exactly one of: "Low", "Medium", "High". Priority represents the task's importance to the overall project success, NOT its chronological sequence. High priority tasks often occur late in the timeline, preceded by Low priority foundational tasks.
 
 Schema:
 {
@@ -34,9 +36,10 @@ Schema:
       "title": "string",
       "tasks": [
         {
-          "description": "string", // SHORT, single instruction
-          "priority": "Low" | "Medium" | "High",
-          "deadline_offset_days": number
+          "description": "string",
+          "priority": "Low",
+          "effort": 1.5,
+          "deadline_offset_days": 2
         }
       ]
     }
