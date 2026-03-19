@@ -13,21 +13,96 @@
 
 .project-editor-header {
   width: 100%;
-  padding: 20px;
-  background: #fff;
+  padding: 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.project-editor-header-title {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.project-editor-header-title h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+
+.project-editor-header-title p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  opacity: 0.8;
+}
+
+.project-editor-field {
+  margin-bottom: 28px;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.project-editor-field:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.1);
+}
+
+.project-editor-field:focus-within {
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 2px 12px rgba(59, 130, 246, 0.15);
+}
+
+.project-editor-field:last-child {
+  margin-bottom: 0;
+}
+
+.project-editor-field-label {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+.field-icon {
+  font-size: 16px;
+  margin-right: 8px;
+  color: #64748b;
+  opacity: 0.7;
 }
 
 .project-editor-goal-input {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 600;
   width: 100%;
   border: none !important;
   background: transparent;
-  margin-bottom: 8px;
   outline: none;
-  padding: 0 !important;
+  padding: 8px 0 !important;
+  color: #1e293b;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.project-editor-goal-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .project-editor-description-input {
@@ -35,27 +110,60 @@
   border: none;
   background: transparent;
   resize: none;
-  min-height: 40px;
+  min-height: 80px;
   outline: none;
   font-family: inherit;
   font-size: 15px;
-  color: #555;
-  padding: 0;
+  color: #374151;
+  padding: 8px 0;
+  line-height: 1.6;
+  transition: all 0.2s ease;
+}
+
+.project-editor-description-input::placeholder {
+  color: #9ca3af;
 }
 
 .project-editor-date-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
+  padding: 8px 0;
 }
 
 .project-editor-date-container input[type="date"] {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 14px;
   outline: none;
+  background: #ffffff;
+  color: #374151;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  min-width: 160px;
+  width: 100%;
+}
+
+.project-editor-date-container input[type="date"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.project-editor-ai-instructions-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  min-height: 100px;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: #4b5563;
+  padding: 8px 0;
+  line-height: 1.6;
+  transition: all 0.2s ease;
+}
+
+.project-editor-ai-instructions-input::placeholder {
+  color: #9ca3af;
 }
 
 .project-editor-tabs {

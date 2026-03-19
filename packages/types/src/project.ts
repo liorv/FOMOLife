@@ -81,6 +81,8 @@ export interface ProjectItem {
   description?: string;
   /** Due date/deadline for the entire project */
   dueDate?: string | null;
+  /** Special instructions for AI when reviewing the project */
+  aiInstructions?: string;
 }
 
 /**
@@ -92,6 +94,7 @@ export interface ProjectCreateInput {
   goal?: string;
   description?: string;
   dueDate?: string | null;
+  aiInstructions?: string;
 }
 
 /**
@@ -106,4 +109,5 @@ export interface ProjectUpdateInput {
   goal?: string;
   description?: string;
   dueDate?: string | null;
+  aiInstructions?: string;
 }

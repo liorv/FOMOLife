@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number; subprojects?: any[] };
+  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string };
   if (!body?.text || !body.text.trim()) {
     return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
   }
@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     ...(typeof body.progress === 'number' ? { progress: body.progress } : {}),
     ...(typeof body.order === 'number' ? { order: body.order } : {}),
     ...(Array.isArray(body.subprojects) ? { subprojects: body.subprojects } : {}),
+    ...(body.goal ? { goal: body.goal } : {}),
+    ...(body.description ? { description: body.description } : {}),
+    ...(body.dueDate !== undefined ? { dueDate: body.dueDate } : {}),
+    ...(body.aiInstructions ? { aiInstructions: body.aiInstructions } : {}),
   });
   return NextResponse.json(created, { status: 201 });
 }
@@ -39,7 +43,7 @@ export async function PATCH(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>> };
+  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions'>> };
   if (!body?.id || !body.patch) {
     return NextResponse.json({ error: 'id and patch are required' }, { status: 400 });
   }

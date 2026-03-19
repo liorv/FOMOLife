@@ -66,7 +66,7 @@ export default function ProjectEditor({
   // never reads a stale closure value during rapid successive clicks.
   const localRef = useRef<LocalProject>(null as unknown as LocalProject);
   localRef.current = local;
-  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'risk'>('tasks');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timeline' | 'risk'>('overview');
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
@@ -699,6 +699,10 @@ export default function ProjectEditor({
         {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
           <div className="project-editor-tabs">
             <button
+              onClick={() => setActiveTab('overview')}
+              className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+            >Overview</button>
+            <button
               onClick={() => setActiveTab('tasks')}
               className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
             >Tasks</button>
@@ -722,29 +726,63 @@ export default function ProjectEditor({
       </div>
 
             <div className="project-editor-scroll-area">
-      {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
+      {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && activeTab === 'overview' && (
         <div className="project-editor-header">
-          <input
-            value={local.goal || ''}
-            onChange={(e) => updateProjectField('goal', e.target.value)}
-            placeholder="Project Goal..."
-            disabled={!canManage}
-            className="project-editor-goal-input"
-          />
-          <textarea
-            value={local.description || ''}
-            onChange={(e) => updateProjectField('description', e.target.value)}
-            placeholder="Project Description... what exactly are you trying to accomplish here?"
-            disabled={!canManage}
-            className="project-editor-description-input"
-          />
-          <div className="project-editor-date-container">
-            <span className="material-icons">event</span>
+          <div className="project-editor-header-title">
+            <h2>Project Overview</h2>
+            <p>Define your project goals, timeline, and special instructions</p>
+          </div>
+          <div className="project-editor-field">
+            <label className="project-editor-field-label">
+              <span className="material-icons field-icon">flag</span>
+              Goal
+            </label>
             <input
-              type="date"
-              value={local.dueDate || ''}
-              onChange={(e) => updateProjectField('dueDate', e.target.value)}
+              value={local.goal || ''}
+              onChange={(e) => updateProjectField('goal', e.target.value)}
+              placeholder="What success looks like..."
               disabled={!canManage}
+              className="project-editor-goal-input"
+            />
+          </div>
+          <div className="project-editor-field">
+            <label className="project-editor-field-label">
+              <span className="material-icons field-icon">description</span>
+              Description
+            </label>
+            <textarea
+              value={local.description || ''}
+              onChange={(e) => updateProjectField('description', e.target.value)}
+              placeholder="What this project is all about..."
+              disabled={!canManage}
+              className="project-editor-description-input"
+            />
+          </div>
+          <div className="project-editor-field">
+            <label className="project-editor-field-label">
+              <span className="material-icons field-icon">event</span>
+              End Date
+            </label>
+            <div className="project-editor-date-container">
+              <input
+                type="date"
+                value={local.dueDate || ''}
+                onChange={(e) => updateProjectField('dueDate', e.target.value)}
+                disabled={!canManage}
+              />
+            </div>
+          </div>
+          <div className="project-editor-field">
+            <label className="project-editor-field-label">
+              <span className="material-icons field-icon">psychology</span>
+              Special Instructions
+            </label>
+            <textarea
+              value={local.aiInstructions || ''}
+              onChange={(e) => updateProjectField('aiInstructions', e.target.value)}
+              placeholder="Instructions for AI when reviewing the project..."
+              disabled={!canManage}
+              className="project-editor-ai-instructions-input"
             />
           </div>
         </div>
