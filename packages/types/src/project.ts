@@ -75,6 +75,12 @@ export interface ProjectItem {
   progress?: number;
   /** Sort order */
   order?: number;
+  /** Project goal */
+  goal?: string;
+  /** Project description */
+  description?: string;
+  /** Due date/deadline for the entire project */
+  dueDate?: string | null;
 }
 
 /**
@@ -83,6 +89,9 @@ export interface ProjectItem {
 export interface ProjectCreateInput {
   text: string;
   color?: string;
+  goal?: string;
+  description?: string;
+  dueDate?: string | null;
 }
 
 /**
@@ -94,4 +103,7 @@ export interface ProjectUpdateInput {
   subprojects?: ProjectSubproject[];
   progress?: number;
   order?: number;
+  goal?: string;
+  description?: string;
+  dueDate?: string | null;
 }

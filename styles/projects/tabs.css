@@ -1181,7 +1181,8 @@
 .dashboard-content {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: visible;
+  min-height: 0;
+  overflow: hidden;
   background: var(--color-bg);
   position: relative;
   display: flex;

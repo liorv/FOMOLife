@@ -1,25 +1,120 @@
 .project-editor .editor-section {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .project-editor {
+  position: relative;
+  overflow: auto;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+}
+
+.project-editor-header {
+  width: 100%;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.project-editor-goal-input {
+  font-size: 20px;
+  font-weight: bold;
+  width: 100%;
+  border: none !important;
+  background: transparent;
+  margin-bottom: 8px;
+  outline: none;
+  padding: 0 !important;
+}
+
+.project-editor-description-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  min-height: 40px;
+  outline: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: #555;
+  padding: 0;
+}
+
+.project-editor-date-container {
+  display: flex;
   align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.project-editor-date-container input[type="date"] {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.project-editor-tabs {
+  width: 100%;
+  display: flex;
+  gap: 24px;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 10px;
+}
+
+.project-editor-tabs .tab-button {
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: normal;
+  color: #777;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 15px;
+}
+
+.project-editor-tabs .tab-button.active {
+  font-weight: bold;
+  color: #d32998;
+  border-bottom: 2px solid #d32998;
+}
+
+.project-editor-tabs .tab-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.project-editor-tabs .expand-collapse-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.project-editor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
 .project-editor .subprojects-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 100%;
-  padding: 0 8px;
-  box-sizing: border-box;
 }
 
 .project-editor .subprojects-list .subproject {
-  width: 100%;
+  box-sizing: border-box;
 }
 
 .project-editor input {
@@ -108,7 +203,7 @@
   20. SUBPROJECT (Expanded & Collapsed)
    ============================================================ */
 .project-editor .subproject {
-  margin: 5px;
+  margin: 5px 12px 5px 0;
   border-radius: 10px;
   overflow: visible;
   cursor: grab;

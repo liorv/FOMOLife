@@ -11,8 +11,10 @@ import { applyFilters, generateId } from "@myorg/utils";
 
 // using shared TaskList from ui package; it is fully typed
 
-type Props = {
+export type Props = {
   canManage: boolean;
+  style?: React.CSSProperties;
+  className?: string;
 };
 
 type TaskFilter = "completed" | "overdue" | "upcoming" | "starred";
@@ -21,7 +23,7 @@ function isTaskNotFoundError(error: unknown): boolean {
   return error instanceof Error && error.message === "Task not found";
 }
 
-export default function TasksPage({ canManage }: Props) {
+export default function TasksPage({ canManage, style, className }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const api = useMemo(() => createTasksApiClient(), []);
@@ -376,13 +378,8 @@ export default function TasksPage({ canManage }: Props) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingBottom: '40px' }}>
-      {!displayReady ? (
-        <div style={{ height: 0 }} />
-      ) : (
-        <div className="content-panel">
-          <section className="content">
-            <div className="dashboard-summary">
+    <div className={`content-panel ${className || ""}`} style={{ ...(style || {}), display: !displayReady || style?.display === 'none' ? 'none' : (style?.display || 'flex') }}>
+          <div className="dashboard-summary">
               <div
                 className={[
                   "dashboard-card",
@@ -575,9 +572,6 @@ export default function TasksPage({ canManage }: Props) {
                 <span className="material-icons">add</span>
               </button>
             )}
-          </section>
-        </div>
-      )}
     </div>
   );
 }

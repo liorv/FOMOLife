@@ -62,6 +62,7 @@ export default function ProjectEditor({
   // never reads a stale closure value during rapid successive clicks.
   const localRef = useRef<LocalProject>(null as unknown as LocalProject);
   localRef.current = local;
+  const [activeTab, setActiveTab] = useState<'tasks' | 'timeline' | 'risk'>('tasks');
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
@@ -91,6 +92,32 @@ export default function ProjectEditor({
 
   const handleSetEditorId = (id: string | null) =>
     setEditorTaskId((prev) => (prev === id ? null : id));
+
+
+  const expandAll = () => {
+    const updated = {
+      ...localRef.current,
+      subprojects: (localRef.current.subprojects || []).map(s => ({ ...s, collapsed: false }))
+    };
+    setLocal(updated);
+    safeOnApplyChange(updated);
+  };
+
+  const collapseAll = () => {
+    const updated = {
+      ...localRef.current,
+      subprojects: (localRef.current.subprojects || []).map(s => ({ ...s, collapsed: true }))
+    };
+    setLocal(updated);
+    safeOnApplyChange(updated);
+  };
+
+  const updateProjectField = (field: keyof ProjectItem, value: any) => {
+    if (!canManage) return;
+    const updated = { ...localRef.current, [field]: value };
+    setLocal(updated);
+    safeOnApplyChange(updated);
+  };
 
   // --- Task helpers (nested inside subprojects) ---------------------------
 
@@ -304,8 +331,8 @@ export default function ProjectEditor({
           // flip the clicked one
           return { ...s, collapsed: !s.collapsed };
         }
-        // collapse all others unconditionally
-        return { ...s, collapsed: true };
+                // leave all others as they are
+        return s;
       }),
     };
     // if we're collapsing the requested subproject, strip any unnamed tasks
@@ -655,8 +682,64 @@ export default function ProjectEditor({
     <div
       className="project-editor"
       ref={editorContainerRef}
-      style={{ position: 'relative', overflow: 'auto' }}
     >
+      {/* Project Header section */}
+      {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
+        <div className="project-editor-header">
+          <input
+            value={local.goal || ''}
+            onChange={(e) => updateProjectField('goal', e.target.value)}
+            placeholder="Project Goal..."
+            disabled={!canManage}
+            className="project-editor-goal-input"
+          />
+          <textarea
+            value={local.description || ''}
+            onChange={(e) => updateProjectField('description', e.target.value)}
+            placeholder="Project Description... what exactly are you trying to accomplish here?"
+            disabled={!canManage}
+            className="project-editor-description-input"
+          />
+          <div className="project-editor-date-container">
+            <span className="material-icons">event</span>
+            <input
+              type="date"
+              value={local.dueDate || ''}
+              onChange={(e) => updateProjectField('dueDate', e.target.value)}
+              disabled={!canManage}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
+        <div className="project-editor-tabs">
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
+          >Tasks</button>
+          <button
+            onClick={() => setActiveTab('timeline')}
+            className={`tab-button ${activeTab === 'timeline' ? 'active' : ''}`}
+          >Timeline</button>
+          <button
+            onClick={() => setActiveTab('risk')}
+            className={`tab-button ${activeTab === 'risk' ? 'active' : ''}`}
+          >Risk</button>
+          
+          {activeTab === 'tasks' && (
+            <div className="tab-controls">
+              <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
+              <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Conditionally render content */}
+      {(showFlatFilterView || (searchQuery && searchQuery.trim() !== "") || activeTab === 'tasks') && (
+        <div className="project-editor-content">
       {showFlatFilterView || (searchQuery && searchQuery.trim() !== "") ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
@@ -752,7 +835,8 @@ export default function ProjectEditor({
       ))}
         </div>
       )}
-
+        </div>
+      )}
     </div>
   );
 }

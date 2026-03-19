@@ -12,11 +12,13 @@ import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
 
 // ProjectsDashboard is now a typed TSX component
 
-type Props = {
+export type Props = {
   canManage: boolean;
+  style?: React.CSSProperties;
+  className?: string;
 };
 
-export default function ProjectsPage({ canManage }: Props) {
+export default function ProjectsPage({ canManage, style, className }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const embeddedUid = searchParams.get("uid") ?? "";
@@ -511,15 +513,10 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingBottom: '40px' }}>
-      {!displayReady ? (
-        <div style={{ height: 0 }} />
-      ) : (
-        <div className="content-panel">
-          <section className="content">
-            
+    <div className={`content-panel ${className || ""}`} style={{ ...(style || {}), display: !displayReady || style?.display === "none" ? "none" : (style?.display || "flex") }}>
+          
 
-            {!canManage ? (
+          {!canManage ? (
               <div
                 className={`${layoutStyles.message} ${layoutStyles.readOnlyMessage}`}
               >
@@ -570,7 +567,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               filters={filters}
               onToggleFilter={handleToggleFilter}
             />
-          </section>
 
           {colorPickerProjectId && (
             <ColorPickerOverlay
@@ -588,8 +584,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               }}
             />
           )}
-        </div>
-      )}
     </div>
   );
 }

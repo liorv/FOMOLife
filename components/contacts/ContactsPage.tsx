@@ -9,13 +9,15 @@ import { createContactsApiClient } from '@myorg/api-client';
 
 import styles from '../../styles/contacts/layout.module.css';
 
-type Props = {
+export type Props = {
   canManage: boolean;
   currentUserId?: string;
   currentUserEmail?: string | undefined;
+  style?: React.CSSProperties;
+  className?: string;
 };
 
-export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail }: Props) {
+export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail, style, className }: Props) {
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -245,14 +247,11 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '40px', paddingBottom: '40px' }}>
-      <div className="content-panel">
-        <div className={styles.page}>
-          {!displayReady ? (
-            // Show nothing while waiting for framework acknowledgment to prevent layout flicker
-            <div style={{ height: '100vh' }} />
-          ) : (
-            <section className={styles.shell}>
+    <div className={`content-panel ${className || ""}`} style={{ ...(style || {}), display: !displayReady || style?.display === 'none' ? 'none' : (style?.display || 'flex') }}>
+      {!displayReady ? (
+        <div style={{ height: 0 }} />
+      ) : (
+        <div className={styles.shell}>
           <header className={styles.header}>
             <div></div> {/* empty left spacer */}
             
@@ -357,21 +356,20 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
               </table>
             </div>
           )}
-        </section>
+        </div>
+      )}
+
+      {canManage && displayReady && (
+        <button
+          type="button"
+          className="content-fab"
+          aria-label="Generate invite link"
+          onClick={() => void generateInviteLink()}
+        >
+          <span className="material-icons">person_add</span>
+        </button>
       )}
     </div>
-    </div>
-    {canManage && displayReady && (
-      <button
-        type="button"
-        className="content-fab"
-        aria-label="Generate invite link"
-        onClick={() => void generateInviteLink()}
-      >
-        <span className="material-icons">person_add</span>
-      </button>
-    )}
+  );
 
-    </div>
-);
 }

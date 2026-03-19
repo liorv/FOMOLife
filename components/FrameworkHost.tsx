@@ -153,16 +153,23 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const renderComponent = (tab: typeof activeTabConfig) => {
     if (!tab) return null;
     const isActive = tab.key === activeTab;
-    const style = { display: isActive ? 'block' : 'none' };
+    const style: React.CSSProperties = { 
+      display: isActive ? 'flex' : 'none',
+      flexDirection: 'column',
+      height: '100%',
+      width: '100%',
+      flex: 1,
+      minHeight: 0
+    };
 
     if (tab.key === 'tasks') {
-      return <div key="tasks" style={style}><TasksPage canManage={true} /></div>;
+      return <TasksPage key="tasks" canManage={true} style={style} />;
     }
     if (tab.key === 'projects') {
-      return <div key="projects" style={style}><ProjectsPage canManage={true} /></div>;
+      return <ProjectsPage key="projects" canManage={true} style={style} />;
     }
     if (tab.key === 'people') {
-      return <div key="contacts" style={style}><ContactsPage canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ''} /></div>;
+      return <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={style} />;
     }
     return null;
   };
@@ -190,17 +197,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         rightContent={<NotificationBell userId={userId} />}
         {...(aboutInfo ? { aboutInfo } : {})}
       />
-      <div className="app-outer">
-        <div className="container framework-container">
-          <section className="host-pane" aria-label="Hosted app content">
-            <div className="frame-container">
-              {tabs.map(tab => renderComponent(tab))}
-            </div>
-            
-          </section>
-        </div>
-        <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" />
-      </div>
+      {tabs.map(tab => renderComponent(tab))}
+      <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" />
       <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
     </main>
   );
