@@ -99,12 +99,12 @@ body {
 .content-panel {
   width: 100%;
   margin: 0 auto;
-  padding-top: 20px;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   max-width: 800px;
+  overflow-y: auto;
 }
 
 /* Outer wrapper holding top bar + content; fills between logo bar and nav */
@@ -266,3 +266,23 @@ body {
 
 
 
+
+
+
+
+
+.content-panel::before {
+  content: "";
+  display: block;
+  flex: 0 0 20px;
+  height: 20px;
+  min-height: 20px;
+}
+
+.content-panel::before {
+  content: "";
+  display: block;
+  flex: 0 0 20px;
+  height: 20px;
+  min-height: 20px;
+}

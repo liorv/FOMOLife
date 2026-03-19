@@ -1,17 +1,14 @@
-.project-editor .editor-section {
+.project-editor-scroll-area {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  flex: 1 0 auto;
 }
-
 .project-editor {
   position: relative;
-  overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   width: 100%;
-  min-height: 0;
+  flex: 1 0 auto;
 }
 
 .project-editor-header {

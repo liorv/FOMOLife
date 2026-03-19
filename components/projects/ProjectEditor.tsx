@@ -26,6 +26,8 @@ interface ProjectEditorProps {
   taskFilters?: string[];
   searchQuery?: string;
   canManage?: boolean;
+  dashboardProjectHeaderTop?: React.ReactNode;
+  dashboardSummary?: React.ReactNode;
 }
 
 import SubprojectEditor from "./SubprojectEditor";
@@ -46,6 +48,8 @@ export default function ProjectEditor({
   taskFilters = [], // array of active filters
   searchQuery = "",
   canManage = true,
+  dashboardProjectHeaderTop,
+  dashboardSummary,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -683,7 +687,41 @@ export default function ProjectEditor({
       className="project-editor"
       ref={editorContainerRef}
     >
-      {/* Project Header section */}
+      <div className="dashboard-project-header">
+        {dashboardProjectHeaderTop && (
+          <div className="dashboard-project-title-row">
+            {dashboardProjectHeaderTop}
+          </div>
+        )}
+        {dashboardSummary}
+
+        {/* Tabs moved inside sticky header */}
+        {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
+          <div className="project-editor-tabs">
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
+            >Tasks</button>
+            <button
+              onClick={() => setActiveTab('timeline')}
+              className={`tab-button ${activeTab === 'timeline' ? 'active' : ''}`}
+            >Timeline</button>
+            <button
+              onClick={() => setActiveTab('risk')}
+              className={`tab-button ${activeTab === 'risk' ? 'active' : ''}`}
+            >Risk</button>
+            
+            {activeTab === 'tasks' && (
+              <div className="tab-controls">
+                <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
+                <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+            <div className="project-editor-scroll-area">
       {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
         <div className="project-editor-header">
           <input
@@ -709,31 +747,6 @@ export default function ProjectEditor({
               disabled={!canManage}
             />
           </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
-        <div className="project-editor-tabs">
-          <button
-            onClick={() => setActiveTab('tasks')}
-            className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
-          >Tasks</button>
-          <button
-            onClick={() => setActiveTab('timeline')}
-            className={`tab-button ${activeTab === 'timeline' ? 'active' : ''}`}
-          >Timeline</button>
-          <button
-            onClick={() => setActiveTab('risk')}
-            className={`tab-button ${activeTab === 'risk' ? 'active' : ''}`}
-          >Risk</button>
-          
-          {activeTab === 'tasks' && (
-            <div className="tab-controls">
-              <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
-              <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
-            </div>
-          )}
         </div>
       )}
 
@@ -837,6 +850,7 @@ export default function ProjectEditor({
       )}
         </div>
       )}
+      </div>
     </div>
   );
 }
