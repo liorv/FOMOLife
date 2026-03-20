@@ -1071,10 +1071,8 @@
 .projects-dashboard {
   position: relative; /* for absolute home-bg watermark */
   display: flex;
-  
   flex-direction: column;
-  flex: 1 0 auto;
-  min-height: 0;
+  width: 100%;
   overflow: visible;
   border-radius: 12px;
 }
@@ -1088,7 +1086,7 @@
 .dashboard-summary {
   display: flex;
   gap: 10px;
-  padding: 0 0 12px;
+  padding: 12px 0 12px 0;
   overflow-x: auto;
   flex-shrink: 0;
   scrollbar-width: none;
@@ -1160,10 +1158,23 @@
   color: var(--color-text);
 }
 
+.dashboard-card__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.dashboard-card__label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
 /* ── Main body ─────────────────────────────────────────────── */
 .dashboard-body {
   display: flex;
-  flex: 1 0 auto;
+  width: 100%;
   overflow: visible;
 }
 
@@ -1174,10 +1185,9 @@
 
 /* ── Right content panel ───────────────────────────────────── */
 .dashboard-content {
-  flex: 1 0 auto;
+  width: 100%;
   min-width: 0;
   overflow: visible;
-  background: var(--color-bg);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1227,6 +1237,7 @@
 
 /* Sticky header for the selected project */
 .dashboard-project-header {
+  width:100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1235,7 +1246,7 @@
   background: white;
   position: sticky;
   top: 0;
-  z-index: 10000;
+  z-index: 11000;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1311,7 +1322,7 @@
 
 /* Make project-editor fill the content area inside dashboard */
 .dashboard-content .project-editor {
-  flex: 1 0 auto;
+  
   overflow: visible;
 }
 
@@ -1362,3 +1373,43 @@
   }
 }
 
+@media (max-width: 480px) {
+  /* Make project-editor filters match the tasks view on narrow screens */
+  .project-editor-filters .dashboard-card__label {
+    display: none;
+  }
+
+  /* Hide expand/collapse controls on very small screens */
+  .project-editor-tabs .tab-controls {
+    display: none;
+  }
+
+  /* Make overview info tiles taller and thinner on small screens */
+  .project-overview-metrics .dashboard-card {
+    flex: 1 1 90px;
+    min-width: 70px;
+    max-width: 120px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+  }
+
+  .project-overview-metrics .dashboard-card__content {
+    align-items: center;
+  }
+
+  .project-overview-metrics .dashboard-card__label {
+    white-space: normal;
+    word-wrap: break-word;
+    text-align: center;
+  }
+
+  .project-overview-metrics .dashboard-card__icon {
+    font-size: 20px !important;
+  }
+
+  .project-overview-metrics .dashboard-card__value {
+    font-size: 16px;
+  }
+}

@@ -68,7 +68,6 @@ body {
   margin: 0;
   font-family: "Roboto", "Segoe UI", Arial, sans-serif;
   background: var(--color-bg);
-  min-height: 100vh;
   color: var(--color-text);
   padding-bottom: 0;
 }
@@ -86,9 +85,6 @@ body {
 .main-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  padding: 0;
   overflow: auto;
   background:
     linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),
@@ -96,24 +92,38 @@ body {
   width: 100vw;
 }
 
-.content-panel {
-  width: 100%;
+.projects-content-panel {
+  width: min(800px, 100%);
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  max-width: 800px;
-  overflow-y: auto;
+  overflow: visible;
+}
+
+.projects-content-panel,
+.tasks-content-panel,
+.contacts-content-panel {
+  width: min(800px, 100%);
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding-top: 16px;
+  overflow: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.content-panel-hidden {
+  display: none !important;
 }
 
 /* Outer wrapper holding top bar + content; fills between logo bar and nav */
 .app-outer {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
+  
+  
+  overflow: visible;
 }
 
 
@@ -122,9 +132,9 @@ body {
    ============================================================ */
 .container {
   position: relative;
-  overflow: hidden; /* Prevent container from scrolling, let child components handle it */
-  flex: 1 1 auto;
-  min-height: 0;
+  overflow: visible; /* allow body scroll to reach full content-panel length */
+  
+  
   padding: 0;
   background: var(--color-bg-light);
   border-radius: 0;
@@ -155,11 +165,11 @@ body {
   flex-shrink: 0;
   height: var(--nav-height);
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
+  background: #ffffff;
+  
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding: 0;
-  z-index: 100;
+  z-index: 9999;
 }
 
 .tabs button {
@@ -271,7 +281,7 @@ body {
 
 
 
-.content-panel::before {
+.projects-content-panel::before {
   content: "";
   display: block;
   flex: 0 0 20px;
@@ -279,7 +289,7 @@ body {
   min-height: 20px;
 }
 
-.content-panel::before {
+.projects-content-panel::before {
   content: "";
   display: block;
   flex: 0 0 20px;

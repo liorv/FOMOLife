@@ -9,8 +9,24 @@
   padding: 24px;
 }
 
-.shell {
+.tasks-content-panel {
   width: min(800px, 100%);
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: visible;
+  box-sizing: content-box;
+  padding-bottom: calc(var(--nav-height) + 120px);
+}
+
+.content-panel-hidden {
+  display: none !important;
+}
+
+.shell {
+  width: min(1200px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 14px;
@@ -203,7 +219,7 @@
 }
 
 .inlineContainer {
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   border-radius: 10px;
@@ -251,7 +267,7 @@
 .filterView {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 }
@@ -310,7 +326,7 @@
 
 /* Inline styles extracted from TasksPage.tsx */
 .container {
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }
@@ -352,5 +368,5 @@
 .taskList {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
 }

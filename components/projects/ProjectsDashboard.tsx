@@ -62,7 +62,10 @@ function SummaryCard({
       }
     >
       <span className="material-icons dashboard-card__icon">{icon}</span>
-      <span className="dashboard-card__value">{value}</span>
+      <div className="dashboard-card__content">
+        <span className="dashboard-card__value">{value}</span>
+        {label ? <span className="dashboard-card__label">{label}</span> : null}
+      </div>
     </div>
   );
 }
@@ -183,11 +186,12 @@ export default function ProjectsDashboard({
     const inSeven = new Date(today);
     inSeven.setDate(today.getDate() + 7);
     return scopedTasks.filter((t) => {
-      if (!t.dueDate) return false;
+      if (t.done || !t.dueDate) return false;
       const d = new Date(t.dueDate);
       return d >= today && d <= inSeven;
     }).length;
   }, [scopedTasks]);
+
 
   // Clear filter when switching projects
   const handleSelectProject = (id: string | null) => {
@@ -244,46 +248,7 @@ export default function ProjectsDashboard({
                   </h2>
                 </>
               }
-              dashboardSummary={
-                <div className="dashboard-summary">
-                  <SummaryCard
-                    icon="check_circle"
-                    label="Completed"
-                    value={completedTasks}
-                    accent="success"
-                    clickable
-                    active={isFilterActive("completed")}
-                    onClick={() => onToggleFilter?.("completed")}
-                  />
-                  <SummaryCard
-                    icon="star"
-                    label="Starred"
-                    value={starredCount}
-                    accent="star"
-                    clickable
-                    active={isFilterActive("starred")}
-                    onClick={() => onToggleFilter?.("starred")}
-                  />
-                  <SummaryCard
-                    icon="warning"
-                    label="Overdue"
-                    value={overdueCount}
-                    accent="danger"
-                    clickable
-                    active={isFilterActive("overdue")}
-                    onClick={() => onToggleFilter?.("overdue")}
-                  />
-                  <SummaryCard
-                    icon="upcoming"
-                    label="Upcoming"
-                    value={upcomingCount}
-                    accent="info"
-                    clickable
-                    active={isFilterActive("upcoming")}
-                    onClick={() => onToggleFilter?.("upcoming")}
-                  />
-                </div>
-              }
+              onToggleFilter={onToggleFilter}
               key={selectedProject.id}
               project={selectedProject}
               onApplyChange={(updated: Partial<ProjectItem>) =>
@@ -355,32 +320,9 @@ export default function ProjectsDashboard({
           {isFabMenuOpen && (
             <div
               className="fab-menu"
-              style={{
-                position: 'fixed',
-                bottom: 'calc(var(--nav-height, 70px) + 100px)',
-                right: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                zIndex: 101,
-              }}
             >
               <button
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e0e0e0',
-                  padding: '10px 16px',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: '#333',
-                  fontFamily: 'inherit',
-                }}
+                className="fab-menu-item"
                 onClick={() => {
                   setIsFabMenuOpen(false);
                   if (selectedProject) {
@@ -398,21 +340,7 @@ export default function ProjectsDashboard({
 
               {selectedProject && onReprioritize && (
                 <button
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #e0e0e0',
-                    padding: '10px 16px',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: '#333',
-                    fontFamily: 'inherit',
-                  }}
+                  className="fab-menu-item"
                   onClick={() => {
                     setIsFabMenuOpen(false);
                     onReprioritize(selectedProject.id);
@@ -426,21 +354,7 @@ export default function ProjectsDashboard({
               )}
 
               <button
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e0e0e0',
-                  padding: '10px 16px',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: '#333',
-                  fontFamily: 'inherit',
-                }}
+                className="fab-menu-item"
                 onClick={() => {
                   setIsFabMenuOpen(false);
                   setShowAiModal(true);

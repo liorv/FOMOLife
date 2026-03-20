@@ -153,13 +153,10 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const renderComponent = (tab: typeof activeTabConfig) => {
     if (!tab) return null;
     const isActive = tab.key === activeTab;
-    const style: React.CSSProperties = { 
+    const style: React.CSSProperties = {
       display: isActive ? 'flex' : 'none',
       flexDirection: 'column',
-      height: '100%',
       width: '100%',
-      flex: 1,
-      minHeight: 0
     };
 
     if (tab.key === 'tasks') {

@@ -377,8 +377,16 @@ export default function TasksPage({ canManage, style, className }: Props) {
     return "No tasks yet. Add one to get started.";
   };
 
+  const panelClassName = [
+    "tasks-content-panel",
+    className,
+    !displayReady || style?.display === 'none' ? "content-panel-hidden" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className={`content-panel ${className || ""}`} style={{ ...(style || {}), display: !displayReady || style?.display === 'none' ? 'none' : (style?.display || 'flex') }}>
+    <div className={panelClassName}>
           <div className="dashboard-summary">
               <div
                 className={[

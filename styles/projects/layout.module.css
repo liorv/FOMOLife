@@ -7,7 +7,7 @@
 
 /* Projects Page specific styles */
 .container {
-  overflow: auto;
+  overflow: visible;
 }
 
 .searchBar {

@@ -28,6 +28,52 @@ interface ProjectEditorProps {
   canManage?: boolean;
   dashboardProjectHeaderTop?: React.ReactNode;
   dashboardSummary?: React.ReactNode;
+  onToggleFilter?: (filter: string | null) => void;
+}
+
+type DashboardTileProps = {
+  icon: string;
+  label: string;
+  value: string | number;
+  accent?: string;
+  active?: boolean;
+  clickable?: boolean;
+  onClick?: () => void;
+};
+
+function DashboardTile({ icon, label, value, accent, active, clickable, onClick }: DashboardTileProps) {
+  return (
+    <div
+      className={[
+        "dashboard-card",
+        accent ? `dashboard-card--${accent}` : "",
+        clickable ? "dashboard-card--clickable" : "",
+        active ? "dashboard-card--active" : "",
+        active && accent ? `dashboard-card--${accent}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable && onClick
+          ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+    >
+      <span className="material-icons dashboard-card__icon">{icon}</span>
+      <div className="dashboard-card__content">
+        <span className="dashboard-card__value">{value}</span>
+        {label ? <span className="dashboard-card__label">{label}</span> : null}
+      </div>
+    </div>
+  );
 }
 
 import SubprojectEditor from "./SubprojectEditor";
@@ -51,6 +97,7 @@ export default function ProjectEditor({
   canManage = true,
   dashboardProjectHeaderTop,
   dashboardSummary,
+  onToggleFilter,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -85,6 +132,7 @@ export default function ProjectEditor({
   const safeOnClearNewSubproject = onClearNewSubproject ?? (() => {});
   const safeOnSubprojectDeleted = onSubprojectDeleted ?? (() => {});
   const safeOnBack = onBack ?? (() => {});
+  const safeOnToggleFilter = onToggleFilter ?? (() => {});
 
   const peopleList: Contact[] = allPeople ?? [];
 
@@ -95,6 +143,78 @@ export default function ProjectEditor({
       (s) => !s.collapsed && !s.isProjectLevel,
     );
   }, [local.subprojects]);
+
+  const projectTasks = useMemo(
+    () => (local.subprojects || []).flatMap((s) => s.tasks || []),
+    [local.subprojects],
+  );
+
+  const tasksRemaining = useMemo(
+    () => projectTasks.filter((t) => !t.done).length,
+    [projectTasks],
+  );
+
+  const effortRemaining = useMemo(() => {
+    return projectTasks
+      .filter((t) => !t.done)
+      .reduce((sum, t) => sum + (t.effort || 0), 0);
+  }, [projectTasks]);
+
+  const earliestCompletionDate = useMemo(() => {
+    const remainingDays = Math.max(0, effortRemaining);
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + Math.ceil(remainingDays));
+    return date;
+  }, [effortRemaining]);
+
+  const earliestCompletionLabel = useMemo(() => {
+    if (tasksRemaining === 0) {
+      return "Today";
+    }
+    return earliestCompletionDate.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+  }, [tasksRemaining, earliestCompletionDate]);
+
+  const completedCount = useMemo(
+    () => projectTasks.filter((t) => t.done).length,
+    [projectTasks],
+  );
+
+  const starredCount = useMemo(
+    () =>
+      projectTasks.filter(
+        (t) =>
+          !t.done &&
+          ((t as any).starred || t.favorite),
+      ).length,
+    [projectTasks],
+  );
+
+  const overdueCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return projectTasks.filter(
+      (t) =>
+        !t.done &&
+        t.dueDate &&
+        new Date(t.dueDate) < today,
+    ).length;
+  }, [projectTasks]);
+
+  const upcomingCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const inSeven = new Date(today);
+    inSeven.setDate(today.getDate() + 7);
+    return projectTasks.filter((t) => {
+      if (t.done || !t.dueDate) return false;
+      const d = new Date(t.dueDate);
+      return d >= today && d <= inSeven;
+    }).length;
+  }, [projectTasks]);
 
   const handleSetEditorId = (id: string | null) =>
     setEditorTaskId((prev) => (prev === id ? null : id));
@@ -728,56 +848,103 @@ export default function ProjectEditor({
             {dashboardProjectHeaderTop}
           </div>
         )}
-        {dashboardSummary}
 
         {/* Tabs moved inside sticky header */}
-        {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && (
-          <div className="project-editor-tabs">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-            >Overview</button>
-            <button
-              onClick={() => setActiveTab('tasks')}
-              className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
-            >Tasks</button>
-            <button
-              onClick={() => setActiveTab('timeline')}
-              className={`tab-button ${activeTab === 'timeline' ? 'active' : ''}`}
-            >Timeline</button>
-            <button
-              onClick={() => setActiveTab('risk')}
-              className={`tab-button ${activeTab === 'risk' ? 'active' : ''}`}
-            >Risk</button>
-            
-            {activeTab === 'tasks' && (
-              <div className="tab-controls">
-                <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
-                <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
-              </div>
-            )}
+        <div className="project-editor-tabs">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+          >Overview</button>
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
+          >Tasks</button>
+
+          {activeTab === 'tasks' && (
+            <div className="tab-controls">
+              <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
+              <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
+            </div>
+          )}
+        </div>
+
+        {activeTab === 'tasks' && (
+          <div className="dashboard-summary project-editor-filters">
+            <DashboardTile
+              icon="check_circle"
+              label="Completed"
+              value={completedCount}
+              accent="success"
+              clickable
+              active={taskFilters.includes('completed')}
+              onClick={() => safeOnToggleFilter('completed')}
+            />
+            <DashboardTile
+              icon="star"
+              label="Starred"
+              value={starredCount}
+              accent="star"
+              clickable
+              active={taskFilters.includes('starred')}
+              onClick={() => safeOnToggleFilter('starred')}
+            />
+            <DashboardTile
+              icon="warning"
+              label="Overdue"
+              value={overdueCount}
+              accent="danger"
+              clickable
+              active={taskFilters.includes('overdue')}
+              onClick={() => safeOnToggleFilter('overdue')}
+            />
+            <DashboardTile
+              icon="upcoming"
+              label="Upcoming"
+              value={upcomingCount}
+              accent="info"
+              clickable
+              active={taskFilters.includes('upcoming')}
+              onClick={() => safeOnToggleFilter('upcoming')}
+            />
           </div>
         )}
       </div>
 
-            <div className="project-editor-scroll-area">
       {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && activeTab === 'overview' && (
         <div className="project-editor-header">
-          <div className="project-editor-header-title">
-            <h2>Project Overview</h2>
-            <p>Define your project goals, timeline, and special instructions</p>
+          <div className="dashboard-summary project-overview-metrics">
+            <DashboardTile
+              icon="task_alt"
+              label="Tasks remaining"
+              value={tasksRemaining}
+              accent="danger"
+            />
+            <DashboardTile
+              icon="schedule"
+              label="Effort remaining"
+              value={`${Math.round(effortRemaining * 10) / 10}d`}
+              accent="info"
+            />
+            <DashboardTile
+              icon="event_available"
+              label="Earliest completion"
+              value={earliestCompletionLabel}
+              accent="success"
+            />
           </div>
+
           <div className="project-editor-field">
             <label className="project-editor-field-label">
               <span className="material-icons field-icon">flag</span>
               Goal
             </label>
-            <input
+            <textarea
               value={local.goal || ''}
               onChange={(e) => updateProjectField('goal', e.target.value)}
               placeholder="What success looks like..."
               disabled={!canManage}
               className="project-editor-goal-input"
+              rows={3}
             />
           </div>
           <div className="project-editor-field">
@@ -948,7 +1115,6 @@ export default function ProjectEditor({
           existingSubprojects={local.subprojects}
         />
       )}
-      </div>
     </div>
   );
 }

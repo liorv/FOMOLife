@@ -21,7 +21,7 @@ body {
   font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
-  min-height: 100vh;
+  
 }
 
 .material-icons {
@@ -33,21 +33,19 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
+  overflow: auto; /* allow whole screen scrollbar */
   background:
     linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),
     url('/assets/circuit-bg.png') center top / cover no-repeat;
   padding-top: var(--nav-height);
-  padding-bottom: calc(var(--nav-height) + 10px);
+  padding-bottom: calc(var(--nav-height) + 20px);
 }
 
 .app-outer {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
+  
+  height: 100vh;
 }
 
 .tabnav-bottom.tabs {
@@ -55,7 +53,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 9999;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -64,7 +62,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
+  
   background: var(--color-bg, #f1f3f4);
   padding: 24px 16px;
   box-sizing: border-box;
@@ -206,8 +204,8 @@ body {
 }
 
 .auth-screen {
-  min-height: 100vh;
-  min-height: 100dvh;
+  
+  
   display: grid;
   place-items: center;
   padding: 24px;
@@ -303,8 +301,8 @@ body {
 .framework-container {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  flex: 1 1 auto;
-  min-height: 0;
+  
+  height: 100vh;
   background: transparent;
   padding-bottom: var(--nav-height);
 }
@@ -344,8 +342,8 @@ body {
 }
 
 .host-pane {
-  min-width: 0;
-  min-height: 0;
+  width: 0;
+  height: 100vh;
   background: transparent;
   overflow: hidden;
   height: 100%;
@@ -366,7 +364,7 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  height: 100vh;
 }
 
 .host-empty {
@@ -399,7 +397,7 @@ body {
   background: var(--color-surface);
   /* add a grey top border */
   border-top: 1px solid rgba(190, 189, 189, 0.473);
-  backdrop-filter: blur(12px);
+  
   padding: 2px;
 }
 
@@ -408,7 +406,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 9999;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -417,7 +415,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 9999;
 }
 
 /* The curved 'hump' - Updated to a circle to eliminate vertical side-walls */
@@ -556,7 +554,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
+  
   background: var(--color-bg, #f1f3f4);
   padding: 24px 16px;
   box-sizing: border-box;
@@ -717,7 +715,7 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
-  min-height: 48px;
+  height: 48px;
 }
 
 .invite-button--primary {

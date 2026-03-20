@@ -1,38 +1,18 @@
-.project-editor-scroll-area {
-  display: flex;
-  flex-direction: column;
-  flex: 1 0 auto;
-}
 .project-editor {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   flex: 1 0 auto;
+  min-width: 0;
+  background: none;
 }
 
 .project-editor-header {
   width: 100%;
-  padding: 32px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-}
-
-.project-editor-header-title {
-  text-align: center;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.project-editor-header-title h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
-  letter-spacing: -0.5px;
+  border: none;
+  background: none;
 }
 
 .project-editor-header-title p {
@@ -43,10 +23,10 @@
 }
 
 .project-editor-field {
-  margin-bottom: 28px;
+  margin-bottom: 14px;
   background: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
-  padding: 20px;
+  padding: 10px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   transition: all 0.2s ease;
   position: relative;
@@ -70,6 +50,7 @@
 
 .project-editor-field-label {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   font-size: 12px;
   font-weight: 700;
@@ -78,6 +59,9 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   opacity: 0.8;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .field-icon {
@@ -87,38 +71,37 @@
   opacity: 0.7;
 }
 
-.project-editor-goal-input {
-  font-size: 18px;
-  font-weight: 600;
+.project-editor-goal-input,
+.project-editor-description-input {
+  font-family: inherit;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 500;
   width: 100%;
   border: none !important;
   background: transparent;
   outline: none;
   padding: 8px 0 !important;
-  color: #1e293b;
-  font-family: inherit;
   transition: all 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.6;
 }
 
-.project-editor-goal-input::placeholder {
+@media (max-width: 480px) {
+  .project-editor-goal-input,
+  .project-editor-description-input {
+    min-height: 90px;
+    font-size: 15px;
+  }
+}
+
+.project-editor-goal-input::placeholder,
+.project-editor-description-input::placeholder {
   color: #94a3b8;
   font-weight: 400;
 }
 
-.project-editor-description-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  resize: none;
-  min-height: 80px;
-  outline: none;
-  font-family: inherit;
-  font-size: 15px;
-  color: #374151;
-  padding: 8px 0;
-  line-height: 1.6;
-  transition: all 0.2s ease;
-}
 
 .project-editor-description-input::placeholder {
   color: #9ca3af;
@@ -168,7 +151,7 @@
 
 .project-editor-ai-generate {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 16px;
 }
 
@@ -200,7 +183,7 @@
 .project-editor-tabs {
   width: 100%;
   display: flex;
-  gap: 24px;
+  gap: 12px;
   border-bottom: 2px solid #f0f0f0;
   margin-bottom: 10px;
 }
@@ -251,6 +234,14 @@
 
 .project-editor .subprojects-list .subproject {
   box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.project-editor .subproject-row,
+.project-editor .subproject.collapsed .subproject-row {
+  width: 100%;
+  min-width: 0;
 }
 
 .project-editor input {
@@ -865,6 +856,37 @@
 
   .add-bar-wrapper .add-bar .add-btn .material-icons {
     font-size: 20px;
+  }
+}
+
+@media (max-width: 350px) {
+  .project-editor-field {
+    padding: 10px;
+    margin-bottom: 18px;
+    min-width: 0;
+  }
+
+  .project-editor-field-label {
+    font-size: 11px;
+    line-height: 1.2;
+    flex-wrap: wrap;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .project-editor-goal-input,
+  .project-editor-description-input,
+  .project-editor-date-container input[type="date"],
+  .project-editor-ai-instructions-input {
+    font-size: 14px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .project-editor-goal-input,
+  .project-editor-description-input {
+    min-height: 64px;
   }
 }
 
