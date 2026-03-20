@@ -35,13 +35,15 @@ interface BlueprintDraft {
 }
 
 export default function AiBlueprintModal({ onClose, onConfirm, initialValues, isForExistingProject = false, existingSubprojects }: AiBlueprintModalProps) {
-  const [step, setStep] = useState<'input' | 'processing' | 'review'>('input');
-  
-  // Form State
+  const [step, setStep] = useState<'chat' | 'processing' | 'review'>('chat');
+
+  // Chat / Form State
   const [goal, setGoal] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [complexity, setComplexity] = useState('Standard');
   const [context, setContext] = useState('');
+  const [userInput, setUserInput] = useState('');
+  const [messages, setMessages] = useState<Array<{role: 'user'|'assistant', text: string}>>([]);
 
   // Draft State
   const [draft, setDraft] = useState<BlueprintDraft | null>(null);
@@ -56,20 +58,20 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
     }
   }, [initialValues]);
 
-  const handleGenerate = async () => {
-    if (!goal.trim()) {
-      alert("Please provide a project goal.");
-      return;
-    }
-    
+  const handleRunChat = async () => {
+    // Build combined prompt/context
+    const prompt = `${userInput || ''}\n\nContext: ${context || ''}`.trim();
+
+    setMessages((m) => [...m, { role: 'user', text: userInput }]);
+
     setStep('processing');
     try {
-      // Convert existing subprojects to draft format
+      // Convert existing subprojects to draft format expected by API
       let convertedExisting: any[] = [];
       if (existingSubprojects) {
         convertedExisting = existingSubprojects.map((sp: any) => ({
           title: sp.text,
-          tasks: sp.tasks.map((t: any) => ({
+          tasks: (sp.tasks || []).map((t: any) => ({
             description: t.text,
             priority: t.priority || 'Medium',
             effort: t.effort || 1,
@@ -82,16 +84,18 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goal, targetDate, complexity, context, existingSubprojects: convertedExisting, isForExistingProject }),
+        body: JSON.stringify({ goal: goal || userInput, targetDate, complexity, context: prompt, existingSubprojects: convertedExisting, isForExistingProject }),
       });
-      
+
       if (!res.ok) throw new Error('Failed to generate blueprint');
-      
+
       const data = await res.json();
-      
-      // Inject local ids and selection state for review phase
+
+      // Append assistant message (summarized)
+      setMessages((m) => [...m, { role: 'assistant', text: `AI suggested ${ (data.sub_projects || []).length } subproject(s).` }]);
+
       const initializedDraft: BlueprintDraft = {
-        project_name: data.project_name || 'New Project',
+        project_name: data.project_name || (goal || 'New Project'),
         sub_projects: (data.sub_projects || []).map((sp: any, i: number) => ({
           ...sp,
           id: `sp-${i}`,
@@ -104,13 +108,13 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
           }))
         }))
       };
-      
+
       setDraft(initializedDraft);
       setStep('review');
     } catch (err) {
       console.error(err);
-      alert("Error generating blueprint.");
-      setStep('input');
+      alert('Error generating blueprint.');
+      setStep('chat');
     }
   };
 
@@ -235,60 +239,41 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
     <div className="modal-overlay" style={overlayStyle}>
       <div className="modal-content" style={modalContentStyle}>
         
-        {step === 'input' && (
+        {step === 'chat' && (
           <div style={containerStyle}>
-            <h2>Generate with AI</h2>
-            <p style={{ color: '#666', marginBottom: '20px' }}>Use your project overview details to generate tasks and subprojects with AI.</p>
-            
+            <h2>AI Assistant</h2>
+            <p style={{ color: '#666', marginBottom: '12px' }}>Ask the assistant what you'd like to do with this project. Select a template or type your request.</p>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <button onClick={() => setUserInput('Remove completed tasks older than 30 days')} style={cancelBtnStyle}>Remove some tasks</button>
+              <button onClick={() => setUserInput('Add tasks to expand the project with onboarding steps')} style={cancelBtnStyle}>Add to project</button>
+              <button onClick={() => setUserInput('Prioritize high-risk tasks and mark low priority as later')} style={cancelBtnStyle}>Reprioritize</button>
+            </div>
+
             <div style={formGroupStyle}>
-              <label style={labelStyle}>Project Goal *</label>
-              <textarea 
-                value={goal}
-                onChange={e => setGoal(e.target.value)}
-                placeholder="What does success look like?"
+              <label style={labelStyle}>Your request</label>
+              <textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="e.g. Remove duplicate tasks and add 3 onboarding steps"
                 style={inputStyle}
                 rows={3}
               />
             </div>
 
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>Target Completion</label>
-              <input 
-                type="date"
-                value={targetDate}
-                onChange={e => setTargetDate(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>Complexity Level</label>
-              <select value={complexity} onChange={e => setComplexity(e.target.value)} style={inputStyle}>
-                <option>Simple</option>
-                <option>Standard</option>
-                <option>Detailed</option>
-              </select>
-            </div>
-
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>Additional Context (Optional)</label>
-              <textarea 
-                value={context}
-                onChange={e => setContext(e.target.value)}
-                placeholder="Specific tools, constraints, or must-haves..."
-                style={inputStyle}
-                rows={2}
-              />
+            <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>Project Overview (for context)</label>
+              <textarea value={goal || ''} onChange={(e) => setGoal(e.target.value)} placeholder="Project goal/description" style={inputStyle} rows={2} />
             </div>
 
             <div style={actionsStyle}>
               <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
               <button 
-                onClick={handleGenerate} 
-                style={{...primaryBtnStyle, opacity: goal.trim() ? 1 : 0.5}}
-                disabled={!goal.trim()}
+                onClick={handleRunChat} 
+                style={{...primaryBtnStyle, opacity: userInput.trim() ? 1 : 0.6}}
+                disabled={!userInput.trim()}
               >
-                Generate Blueprint
+                Run
               </button>
             </div>
           </div>
@@ -299,8 +284,8 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
             <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'spin 2s linear infinite' }}>
               <span className="material-icons" style={{ fontSize: '48px', color: '#d32998' }}>psychology</span>
             </div>
-            <h2>Drafting your blueprint...</h2>
-            <p style={{ color: '#666' }}>Analyzing goals and structuring tasks.</p>
+            <h2>Analyzing request...</h2>
+            <p style={{ color: '#666' }}>Processing your request against the existing project data.</p>
           </div>
         )}
 
@@ -400,7 +385,7 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
 
             <div style={actionsStyle}>
               <button 
-                onClick={() => setStep('input')} 
+                onClick={() => setStep('chat')} 
                 style={cancelBtnStyle}
                 disabled={isSaving}
               >
@@ -411,7 +396,7 @@ export default function AiBlueprintModal({ onClose, onConfirm, initialValues, is
                 style={primaryBtnStyle}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : 'Confirm & Create Project'}
+                {isSaving ? 'Saving...' : (isForExistingProject ? 'Apply Changes' : 'Confirm & Create Project')}
               </button>
             </div>
           </div>
