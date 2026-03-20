@@ -13,7 +13,6 @@ import type {
 import { ProjectTile, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
-import AiBlueprintModal from "./AiBlueprintModal";
 
 // ─── Summary metric card ─────────────────────────────────────────────────────
 
@@ -90,8 +89,6 @@ interface ProjectsDashboardProps {
   pendingDeleteProjectId?: string | null;
   onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
-  onGenerateProject?: (data: any, formData: {goal: string, targetDate: string, context: string}) => Promise<void>;
-  onEnhanceProject?: (projectId: string, data: any, formData: {goal: string, targetDate: string, context: string}) => Promise<void>;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
   onTitleChange?: (projectId: string, title: string) => void;
@@ -117,12 +114,9 @@ export default function ProjectsDashboard({
   pendingDeleteProjectId,
   onConfirmDeleteProject,
   onAddProject,
-  onGenerateProject,
-  onEnhanceProject,
   onOpenPeople,
   onCreatePerson,
   onTitleChange,
-  onReprioritize,
   projectSearch = "",
   filters = [] as string[],
   onToggleFilter = () => { },
@@ -132,7 +126,6 @@ export default function ProjectsDashboard({
   const isFilterActive = (filterType: string) => filters.includes(filterType);
 
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
-  const [showAiModal, setShowAiModal] = useState(false);
 
   // Filter sidebar by search query
   const visibleProjects = useMemo(
@@ -339,18 +332,6 @@ export default function ProjectsDashboard({
 
               {/* 'Sort By Timeline' feature removed */}
 
-              <button
-                className="fab-menu-item"
-                onClick={() => {
-                  setIsFabMenuOpen(false);
-                  setShowAiModal(true);
-                }}
-              >
-                <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
-                  psychology
-                </span>
-                {selectedProject ? 'Enhance with AI' : 'Create with AI'}
-              </button>
             </div>
           )}
 
@@ -380,27 +361,6 @@ export default function ProjectsDashboard({
         </div>
       )}
 
-      {showAiModal && (
-        <AiBlueprintModal 
-          onClose={() => setShowAiModal(false)}
-          onConfirm={async (data, formData) => {
-            if (selectedProject) {
-              await onEnhanceProject?.(selectedProject.id, data, formData);
-            } else {
-              await onGenerateProject?.(data, formData);
-            }
-          }}
-          isForExistingProject={!!selectedProject}
-          {...(selectedProject ? {
-            existingSubprojects: selectedProject.subprojects,
-            initialValues: {
-              goal: `${selectedProject.goal || ''}\n\n${selectedProject.description || ''}`.trim(),
-              targetDate: selectedProject.dueDate || '',
-              context: selectedProject.aiInstructions || '',
-            }
-          } : {})}
-        />
-      )}
     </div>
   );
 }

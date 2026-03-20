@@ -210,99 +210,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
   };
 
-  const handleGenerateProject = async (data: any, formData: {goal: string, targetDate: string, context: string}) => {
-    if (!canManage) return;
-
-    try {
-      const subprojects = Array.isArray(data.sub_projects) ? data.sub_projects.map((sp: any) => {
-        return {
-          id: generateId(),
-          text: sp.title || sp.text || 'Untitled Subproject',
-          tasks: Array.isArray(sp.tasks) ? sp.tasks.map((t: any) => {
-            let dueDateVal: string | null = null;
-            if (typeof t.deadline_offset_days === 'number') {
-              const date = new Date();
-              date.setDate(date.getDate() + t.deadline_offset_days);
-              dueDateVal = date.toISOString().split('T')[0] ?? null;
-            }
-            return {
-              id: generateId(),
-              text: t.description,
-              done: false,
-              favorite: t.priority === 'High',
-              priority: t.priority ? t.priority.toLowerCase() : null,
-              effort: t.effort || null,
-              dueDate: dueDateVal,
-            };
-          }) : []
-        };
-      }) : [];
-
-      const createInput: any = {
-        text: data.project_name?.trim() || 'Untitled AI Project',
-        subprojects,
-      };
-      if (formData.goal) createInput.goal = formData.goal;
-      if (formData.context) createInput.description = formData.context;
-      if (formData.targetDate) createInput.dueDate = formData.targetDate;
-
-      const created = await apiClient.createProject(createInput);
-      setProjects(prev => [...prev, created]);
-      setEditingProjectId(created.id);
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to generate project",
-      );
-      throw err;
-    }
-  };
-
-  const handleEnhanceProject = async (projectId: string, data: any, formData: {goal: string, targetDate: string, context: string}) => {
-    if (!canManage) return;
-
-    try {
-      const subprojects = Array.isArray(data.sub_projects) ? data.sub_projects.map((sp: any) => {
-        return {
-          id: generateId(),
-          text: sp.title || sp.text || 'Untitled Subproject',
-          tasks: Array.isArray(sp.tasks) ? sp.tasks.map((t: any) => {
-            let dueDateVal: string | null = null;
-            if (typeof t.deadline_offset_days === 'number') {
-              const date = new Date();
-              date.setDate(date.getDate() + t.deadline_offset_days);
-              dueDateVal = date.toISOString().split('T')[0] ?? null;
-            }
-            return {
-              id: generateId(),
-              text: t.description,
-              done: t.done || false,
-              favorite: t.priority === 'High',
-              priority: t.priority ? t.priority.toLowerCase() : null,
-              effort: t.effort || null,
-              dueDate: dueDateVal,
-            };
-          }) : []
-        };
-      }) : [];
-
-      const updateInput: any = {
-        text: data.project_name?.trim() || 'Untitled AI Project',
-        subprojects,
-      };
-      if (formData.goal) updateInput.goal = formData.goal;
-      if (formData.context) updateInput.description = formData.context;
-      if (formData.targetDate) updateInput.dueDate = formData.targetDate;
-
-      const updated = await apiClient.updateProject(projectId, updateInput);
-      setProjects(prev => prev.map(p => p.id === projectId ? updated : p));
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to enhance project",
-      );
-      throw err;
-    }
-  };
-
   // Always persist project changes (including task edits) to backend
   const handleProjectApplyChange = async (
     projectId: string,
@@ -583,8 +490,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               pendingDeleteProjectId={pendingDeleteProjectId}
               onConfirmDeleteProject={handleConfirmDeleteProject}
               onAddProject={handleAddProject}
-              onGenerateProject={handleGenerateProject}
-              onEnhanceProject={handleEnhanceProject}
               onOpenColorPicker={handleOpenColorPicker}
               onOpenPeople={openContacts}
               onCreatePerson={handleCreatePerson}

@@ -77,7 +77,6 @@ function DashboardTile({ icon, label, value, accent, active, clickable, onClick 
 }
 
 import SubprojectEditor from "./SubprojectEditor";
-import AiBlueprintModal from "./AiBlueprintModal";
 import { TaskList } from "@myorg/ui";
 import { generateId, applyFilters } from '@myorg/utils';
 
@@ -120,7 +119,6 @@ export default function ProjectEditor({
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
   const [draggedSubprojectId, setDraggedSubprojectId] = useState<string | null>(null);
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
-  const [showAiModal, setShowAiModal] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
 
@@ -301,109 +299,6 @@ export default function ProjectEditor({
 
   const handleEditorClose = () => setEditorTaskId(null);
 
-  const handleAiGenerate = async (data: any, formData: {goal: string, targetDate: string, context: string}) => {
-    // data contains project_name and sub_projects from the AI generation
-    // First, inspect the user's request (contained in formData.goal or formData.context)
-    const extractRemoveKeyword = (text?: string): string | null => {
-      if (!text) return null;
-      const normalized = text.trim();
-      // Look for quoted keyword
-      const quoteMatch = normalized.match(/remove\s+(?:all\s+)?tasks(?:\s+with|\s+containing|\s+that contain)?\s+(?:the\s+keyword\s+)?["']([^"']+)["']/i);
-      if (quoteMatch && quoteMatch[1]) return quoteMatch[1].trim();
-      // Look for pattern without quotes: remove all tasks with keyword KEY
-      const keywordMatch = normalized.match(/remove\s+(?:all\s+)?tasks(?:\s+with|\s+containing|\s+that contain)?(?:\s+the\s+keyword\s+)?([\w-]+)/i);
-      if (keywordMatch && keywordMatch[1]) return keywordMatch[1].trim();
-      return null;
-    };
-
-    const removeKeyword = extractRemoveKeyword(formData.context) || extractRemoveKeyword(formData.goal);
-
-    if (removeKeyword) {
-      // Apply removal in-place: remove any task whose text includes the keyword
-      const updatedSubprojects = (local.subprojects || []).map((sp) => ({
-        ...sp,
-        tasks: (sp.tasks || []).filter((t) => !((t.text || '').toLowerCase().includes(removeKeyword.toLowerCase()))),
-      }));
-
-      const updated: any = {
-        ...local,
-        subprojects: updatedSubprojects,
-      };
-      if (formData.goal.trim()) updated.goal = formData.goal.trim();
-      if (formData.context.trim()) updated.description = formData.context.trim();
-      if (formData.targetDate.trim()) updated.dueDate = formData.targetDate.trim();
-      setLocal(updated);
-      safeOnApplyChange(updated);
-      return;
-    }
-
-    // Additional safeguard: sometimes the AI returns a blueprint where a subproject
-    // is simply a removal instruction (e.g., title: "Remove Website Tasks"). Detect
-    // that pattern and treat it as a remove request rather than creating such a SP.
-    if (data && Array.isArray(data.sub_projects)) {
-      for (const sp of data.sub_projects) {
-        if (!sp || !sp.title) continue;
-        const t = String(sp.title).trim();
-        const m = t.match(/remove\s+(?:all\s+)?(?:tasks|items|subprojects)?(?:\s+(?:with|containing|about|that contain)\s+)?(?:[:\-\s]*)["']?([^"']+)["']?/i);
-        let titleRemove: string | null = null;
-        if (m && m[1]) titleRemove = m[1].trim();
-        else {
-          const simple = t.match(/^remove\s+(.+)$/i);
-          if (simple && simple[1]) titleRemove = simple[1].trim();
-        }
-
-        if (titleRemove) {
-          // remove tasks containing the phrase
-          const phrase = titleRemove.toLowerCase();
-          const updatedSubprojects = (local.subprojects || []).map((s) => ({
-            ...s,
-            tasks: (s.tasks || []).filter((tt) => !((tt.text || '').toLowerCase().includes(phrase))),
-          }));
-
-          const updated: any = {
-            ...local,
-            subprojects: updatedSubprojects,
-          };
-          if (formData.goal.trim()) updated.goal = formData.goal.trim();
-          if (formData.context.trim()) updated.description = formData.context.trim();
-          if (formData.targetDate.trim()) updated.dueDate = formData.targetDate.trim();
-          setLocal(updated);
-          safeOnApplyChange(updated);
-          return;
-        }
-      }
-    }
-
-    // Fallback: For other AI responses, replace subprojects with generated blueprint
-    const newSubprojects = data.sub_projects.map((sp: any, index: number) => ({
-      id: generateId(),
-      text: sp.title,
-      tasks: sp.tasks.map((t: any) => ({
-        id: generateId(),
-        text: t.description,
-        done: t.done || false,
-        dueDate: t.deadline_offset_days ? new Date(Date.now() + t.deadline_offset_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null,
-        favorite: false,
-        people: [],
-        priority: t.priority?.toLowerCase() || 'medium',
-        effort: t.effort,
-      })),
-      collapsed: false,
-      isProjectLevel: false,
-      color: '#666666', // default color
-    }));
-
-    const updated: any = {
-      ...local,
-      text: data.project_name || local.text,
-      subprojects: newSubprojects,
-    };
-    if (formData.goal.trim()) updated.goal = formData.goal.trim();
-    if (formData.context.trim()) updated.description = formData.context.trim();
-    if (formData.targetDate.trim()) updated.dueDate = formData.targetDate.trim();
-    setLocal(updated);
-    safeOnApplyChange(updated);
-  };
 
   useEffect(() => {
     setLocal((prev) => ({
@@ -1058,17 +953,6 @@ export default function ProjectEditor({
               className="project-editor-ai-instructions-input"
             />
           </div>
-          {canManage && (
-            <div className="project-editor-ai-generate">
-              <button
-                onClick={() => setShowAiModal(true)}
-                className="ai-generate-btn"
-              >
-                <span className="material-icons">psychology</span>
-                Enhance with AI
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -1173,19 +1057,6 @@ export default function ProjectEditor({
         </div>
       )}
 
-      {showAiModal && (
-        <AiBlueprintModal
-          onClose={() => setShowAiModal(false)}
-          onConfirm={handleAiGenerate}
-          initialValues={{
-            goal: `${local.goal || ''}\n\n${local.description || ''}`.trim(),
-            targetDate: local.dueDate || '',
-            context: local.aiInstructions || '',
-          }}
-          isForExistingProject={true}
-          existingSubprojects={local.subprojects}
-        />
-      )}
     </div>
   );
 }
