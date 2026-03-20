@@ -303,7 +303,41 @@ export default function ProjectEditor({
 
   const handleAiGenerate = async (data: any, formData: {goal: string, targetDate: string, context: string}) => {
     // data contains project_name and sub_projects from the AI generation
-    // For existing projects, replace all subprojects with the new blueprint
+    // First, inspect the user's request (contained in formData.goal or formData.context)
+    const extractRemoveKeyword = (text?: string): string | null => {
+      if (!text) return null;
+      const normalized = text.trim();
+      // Look for quoted keyword
+      const quoteMatch = normalized.match(/remove\s+(?:all\s+)?tasks(?:\s+with|\s+containing|\s+that contain)?\s+(?:the\s+keyword\s+)?["']([^"']+)["']/i);
+      if (quoteMatch && quoteMatch[1]) return quoteMatch[1].trim();
+      // Look for pattern without quotes: remove all tasks with keyword KEY
+      const keywordMatch = normalized.match(/remove\s+(?:all\s+)?tasks(?:\s+with|\s+containing|\s+that contain)?(?:\s+the\s+keyword\s+)?([\w-]+)/i);
+      if (keywordMatch && keywordMatch[1]) return keywordMatch[1].trim();
+      return null;
+    };
+
+    const removeKeyword = extractRemoveKeyword(formData.context) || extractRemoveKeyword(formData.goal);
+
+    if (removeKeyword) {
+      // Apply removal in-place: remove any task whose text includes the keyword
+      const updatedSubprojects = (local.subprojects || []).map((sp) => ({
+        ...sp,
+        tasks: (sp.tasks || []).filter((t) => !((t.text || '').toLowerCase().includes(removeKeyword.toLowerCase()))),
+      }));
+
+      const updated: any = {
+        ...local,
+        subprojects: updatedSubprojects,
+      };
+      if (formData.goal.trim()) updated.goal = formData.goal.trim();
+      if (formData.context.trim()) updated.description = formData.context.trim();
+      if (formData.targetDate.trim()) updated.dueDate = formData.targetDate.trim();
+      setLocal(updated);
+      safeOnApplyChange(updated);
+      return;
+    }
+
+    // Fallback: For other AI responses, replace subprojects with generated blueprint
     const newSubprojects = data.sub_projects.map((sp: any, index: number) => ({
       id: generateId(),
       text: sp.title,
