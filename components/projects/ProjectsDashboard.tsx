@@ -74,7 +74,6 @@ function SummaryCard({
 
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
-  onReprioritize?: (projectId: string) => void;
   projects?: ProjectItem[];
   people?: any[];
   selectedProjectId?: string | null;
@@ -338,20 +337,7 @@ export default function ProjectsDashboard({
                 {selectedProject ? 'Create Subproject' : 'Create Project'}
               </button>
 
-              {selectedProject && onReprioritize && (
-                <button
-                  className="fab-menu-item"
-                  onClick={() => {
-                    setIsFabMenuOpen(false);
-                    onReprioritize(selectedProject.id);
-                  }}
-                >
-                  <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
-                    sort
-                  </span>
-                  Sort By Timeline
-                </button>
-              )}
+              {/* 'Sort By Timeline' feature removed */}
 
               <button
                 className="fab-menu-item"
