@@ -337,6 +337,43 @@ export default function ProjectEditor({
       return;
     }
 
+    // Additional safeguard: sometimes the AI returns a blueprint where a subproject
+    // is simply a removal instruction (e.g., title: "Remove Website Tasks"). Detect
+    // that pattern and treat it as a remove request rather than creating such a SP.
+    if (data && Array.isArray(data.sub_projects)) {
+      for (const sp of data.sub_projects) {
+        if (!sp || !sp.title) continue;
+        const t = String(sp.title).trim();
+        const m = t.match(/remove\s+(?:all\s+)?(?:tasks|items|subprojects)?(?:\s+(?:with|containing|about|that contain)\s+)?(?:[:\-\s]*)["']?([^"']+)["']?/i);
+        let titleRemove: string | null = null;
+        if (m && m[1]) titleRemove = m[1].trim();
+        else {
+          const simple = t.match(/^remove\s+(.+)$/i);
+          if (simple && simple[1]) titleRemove = simple[1].trim();
+        }
+
+        if (titleRemove) {
+          // remove tasks containing the phrase
+          const phrase = titleRemove.toLowerCase();
+          const updatedSubprojects = (local.subprojects || []).map((s) => ({
+            ...s,
+            tasks: (s.tasks || []).filter((tt) => !((tt.text || '').toLowerCase().includes(phrase))),
+          }));
+
+          const updated: any = {
+            ...local,
+            subprojects: updatedSubprojects,
+          };
+          if (formData.goal.trim()) updated.goal = formData.goal.trim();
+          if (formData.context.trim()) updated.description = formData.context.trim();
+          if (formData.targetDate.trim()) updated.dueDate = formData.targetDate.trim();
+          setLocal(updated);
+          safeOnApplyChange(updated);
+          return;
+        }
+      }
+    }
+
     // Fallback: For other AI responses, replace subprojects with generated blueprint
     const newSubprojects = data.sub_projects.map((sp: any, index: number) => ({
       id: generateId(),
