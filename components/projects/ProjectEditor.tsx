@@ -80,6 +80,19 @@ import SubprojectEditor from "./SubprojectEditor";
 import { TaskList } from "@myorg/ui";
 import { generateId, applyFilters } from '@myorg/utils';
 
+// Initialize local project state with collapsed defaults for subprojects
+function initLocalProject(project: ProjectItem): LocalProject {
+  return ({
+    ...project,
+    subprojects: project.subprojects
+      ? project.subprojects.map((s) => ({
+          ...s,
+          collapsed: s.collapsed ?? false,
+        }))
+      : [],
+  } as LocalProject);
+}
+
 export default function ProjectEditor({
   project,
   onApplyChange,
@@ -100,15 +113,7 @@ export default function ProjectEditor({
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
-  const [local, setLocal] = useState<LocalProject>(() => ({
-    ...project,
-    subprojects: project.subprojects
-      ? project.subprojects.map((s) => ({
-          ...s,
-          collapsed: s.collapsed ?? false,
-        }))
-      : [],
-  } as LocalProject));
+  const [local, setLocal] = useState<LocalProject>(() => initLocalProject(project));
   // Ref always holds the latest pending local state so toggleSubCollapse
   // never reads a stale closure value during rapid successive clicks.
   const localRef = useRef<LocalProject>(null as unknown as LocalProject);
@@ -131,6 +136,12 @@ export default function ProjectEditor({
   const safeOnSubprojectDeleted = onSubprojectDeleted ?? (() => {});
   const safeOnBack = onBack ?? (() => {});
   const safeOnToggleFilter = onToggleFilter ?? (() => {});
+
+  // small helper to set local UI state and optionally persist via callback
+  const setLocalAndApply = (updated: LocalProject, persist = true) => {
+    setLocal(updated);
+    if (persist) safeOnApplyChange(updated);
+  };
 
   const peopleList: Contact[] = allPeople ?? [];
 
@@ -222,25 +233,26 @@ export default function ProjectEditor({
     const updated = {
       ...localRef.current,
       subprojects: (localRef.current.subprojects || []).map(s => ({ ...s, collapsed: false }))
-    };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    } as LocalProject;
+    setLocalAndApply(updated);
   };
 
   const collapseAll = () => {
     const updated = {
       ...localRef.current,
       subprojects: (localRef.current.subprojects || []).map(s => ({ ...s, collapsed: true }))
-    };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    } as LocalProject;
+    setLocalAndApply(updated);
   };
 
-  const updateProjectField = (field: keyof ProjectItem, value: any) => {
+  const updateProjectField = (field: keyof ProjectItem, value: any, commit = true) => {
     if (!canManage) return;
     const updated = { ...localRef.current, [field]: value };
     setLocal(updated);
-    safeOnApplyChange(updated);
+    if (commit) {
+      // send only the changed field to minimise payload
+      safeOnApplyChange({ [field]: value } as Partial<ProjectItem>);
+    }
   };
 
   // --- Task helpers (nested inside subprojects) ---------------------------
@@ -351,9 +363,8 @@ export default function ProjectEditor({
     const updated = {
       ...local,
       subprojects: (local.subprojects || []).filter((s) => s.id !== id),
-    };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    } as LocalProject;
+    setLocalAndApply(updated);
     // Trigger callback for undo snack bar
     if (subproject) {
       safeOnSubprojectDeleted({
@@ -400,8 +411,7 @@ export default function ProjectEditor({
         s.id === id ? { ...s, text } : s,
       ),
     };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    setLocalAndApply(updated);
     // clear the newly added flag when the name is edited
     if (id === newlyAddedSubprojectId) {
       safeOnClearNewSubproject();
@@ -906,7 +916,8 @@ export default function ProjectEditor({
             </label>
             <textarea
               value={local.goal || ''}
-              onChange={(e) => updateProjectField('goal', e.target.value)}
+              onChange={(e) => updateProjectField('goal', e.target.value, false)}
+              onBlur={() => safeOnApplyChange({ goal: localRef.current.goal } as Partial<ProjectItem>)}
               placeholder="What success looks like..."
               disabled={!canManage}
               className="project-editor-goal-input"
@@ -920,7 +931,8 @@ export default function ProjectEditor({
             </label>
             <textarea
               value={local.description || ''}
-              onChange={(e) => updateProjectField('description', e.target.value)}
+              onChange={(e) => updateProjectField('description', e.target.value, false)}
+              onBlur={() => safeOnApplyChange({ description: localRef.current.description } as Partial<ProjectItem>)}
               placeholder="What this project is all about..."
               disabled={!canManage}
               className="project-editor-description-input"
@@ -935,7 +947,8 @@ export default function ProjectEditor({
               <input
                 type="date"
                 value={local.dueDate || ''}
-                onChange={(e) => updateProjectField('dueDate', e.target.value)}
+                onChange={(e) => updateProjectField('dueDate', e.target.value, false)}
+                onBlur={() => safeOnApplyChange({ dueDate: localRef.current.dueDate } as Partial<ProjectItem>)}
                 disabled={!canManage}
               />
             </div>
@@ -947,7 +960,8 @@ export default function ProjectEditor({
             </label>
             <textarea
               value={local.aiInstructions || ''}
-              onChange={(e) => updateProjectField('aiInstructions', e.target.value)}
+              onChange={(e) => updateProjectField('aiInstructions', e.target.value, false)}
+              onBlur={() => safeOnApplyChange({ aiInstructions: localRef.current.aiInstructions } as Partial<ProjectItem>)}
               placeholder="Instructions for AI when reviewing the project..."
               disabled={!canManage}
               className="project-editor-ai-instructions-input"

@@ -29,18 +29,34 @@ export default function ProjectsPage({ canManage, style, className }: Props) {
   // Contacts are served from the same origin in the monolith.
   const contactsClient = useMemo(() => createContactsApiClient(""), []);
 
-  const handleCreatePerson = async (name: string) => {
+  // --- API helper wrappers to centralize optimistic updates and error handling
+  const apiUpdateProject = async (projectId: string, updated: Partial<ProjectItem>) => {
+    try {
+      const next = await apiClient.updateProject(projectId, updated);
+      setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
+      return next;
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to update project');
+      throw err;
+    }
+  };
+
+  const apiCreatePerson = async (name: string) => {
     try {
       const created = await contactsClient.createContact({ name });
-      setPeople((prev) =>
-        prev.find((p) => p.name === created.name) ? prev : [...prev, created],
-      );
-      try {
-        localStorage.setItem("fomo:contactsUpdated", Date.now().toString());
-      } catch {}
+      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
+      try { localStorage.setItem('fomo:contactsUpdated', Date.now().toString()); } catch {}
       return created;
     } catch (err) {
-      console.warn("[Projects] failed to create person", err);
+      console.warn('[Projects] failed to create person', err);
+      throw err;
+    }
+  };
+
+  const handleCreatePerson = async (name: string) => {
+    try {
+      return await apiCreatePerson(name);
+    } catch (err) {
       return null;
     }
   };
@@ -79,7 +95,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
 
   useEffect(() => {
     let active = true;
-    (async () => {
+    const loadData = async () => {
       setLoading(true);
       setErrorMessage(null);
       try {
@@ -90,16 +106,15 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
           loadedContacts = await contactsClient.listContacts();
         } catch (err) {
           console.warn("[Projects] failed to load contacts", err);
-            let msg = "Failed to load contacts";
-            if (err instanceof TypeError && err.message === "Failed to fetch") {
-              msg =
-                "Unable to reach contacts service – make sure it is running";
-            } else if (err instanceof Error) {
-              msg = err.message;
-            }
-            setContactsError(msg);
+          let msg = "Failed to load contacts";
+          if (err instanceof TypeError && err.message === "Failed to fetch") {
+            msg =
+              "Unable to reach contacts service – make sure it is running";
+          } else if (err instanceof Error) {
+            msg = err.message;
           }
-
+          setContactsError(msg);
+        }
 
         if (active) {
           setProjects(loadedProjects);
@@ -113,7 +128,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
       } finally {
         if (active) setLoading(false);
       }
-    })();
+    };
+
+    void loadData();
 
     return () => {
       active = false;
@@ -230,16 +247,10 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         item.id === projectId ? { ...item, ...updated } : item,
       ),
     );
-
     try {
-      const next = await apiClient.updateProject(projectId, updated);
-      setProjects((prev) =>
-        prev.map((item) => (item.id === projectId ? next : item)),
-      );
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to update project",
-      );
+      await apiUpdateProject(projectId, updated);
+    } catch (_) {
+      // errorMessage already set by helper
     }
   };
 
@@ -249,12 +260,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   ) => {
     if (!canManage) return;
     if (!newText || !newText.trim()) return;
-    const updated = await apiClient.updateProject(projectId, {
-      text: newText.trim(),
-    });
-    setProjects((prev) =>
-      prev.map((item) => (item.id === projectId ? updated : item)),
-    );
+    try {
+      await apiUpdateProject(projectId, { text: newText.trim() });
+    } catch (_) {}
   };
 
   const handleProjectColorChange = async (
@@ -269,12 +277,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
       ),
     );
     try {
-      const next = await apiClient.updateProject(projectId, {
-        color: newColor,
-      });
-      setProjects((prev) =>
-        prev.map((item) => (item.id === projectId ? next : item)),
-      );
+      await apiUpdateProject(projectId, { color: newColor });
     } catch (err) {
       console.error("Failed to update project color:", err);
     }
@@ -302,7 +305,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
 
     await Promise.all(
       reordered.map((project, index) =>
-        apiClient.updateProject(project.id, { order: index }),
+        apiUpdateProject(project.id, { order: index }),
       ),
     );
   };
@@ -353,12 +356,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     );
     setNewlyAddedSubprojectId(newSub.id);
     try {
-      const updatedProject = await apiClient.updateProject(projectId, {
-        subprojects: optimisticSubs,
-      });
-      setProjects((prev) =>
-        prev.map((item) => (item.id === projectId ? updatedProject : item)),
-      );
+      await apiUpdateProject(projectId, { subprojects: optimisticSubs });
     } catch (err) {
       setProjects((prev) =>
         prev.map((item) =>

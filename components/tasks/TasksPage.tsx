@@ -31,29 +31,52 @@ export default function TasksPage({ canManage, style, className }: Props) {
   // Contacts are served from the same origin in the monolith.
   const contactsApi = useMemo(() => createContactsApiClient(""), []);
 
-  const handleCreatePerson = async (name: string) => {
+  // --- API helper wrappers for tasks and contacts ---
+  const apiCreatePerson = async (name: string) => {
     try {
-      // debug: log when create person is invoked in tests
-      // eslint-disable-next-line no-console
-      console.log(
-        "[TEST DEBUG] handleCreatePerson called with",
-        name
-      );
       const created = await contactsApi.createContact({ name });
-      // eslint-disable-next-line no-console
-      console.log("[TEST DEBUG] contactsApi.createContact returned", created);
-      setPeople((prev) =>
-        prev.find((p) => p.name === created.name)
-          ? prev
-          : [...prev, created as Contact],
-      );
-      // notify other frames or tabs that contacts changed
-      try {
-        localStorage.setItem("fomo:contactsUpdated", Date.now().toString());
-      } catch {}
+      setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
+      try { localStorage.setItem('fomo:contactsUpdated', Date.now().toString()); } catch {}
       return created;
     } catch (err) {
-      console.warn("[Tasks] failed to create person", err);
+      console.warn('[Tasks] failed to create person', err);
+      throw err;
+    }
+  };
+
+  const apiCreateTask = async (payload: any) => {
+    try {
+      const created = await api.createTask(payload);
+      return created;
+    } catch (err) {
+      console.error('[Tasks] createTask error', err);
+      throw err;
+    }
+  };
+
+  const apiUpdateTask = async (taskId: string, updates: Partial<TaskItem>) => {
+    try {
+      const updated = await api.updateTask(taskId, updates);
+      return updated;
+    } catch (err) {
+      console.error('[Tasks] updateTask error', err);
+      throw err;
+    }
+  };
+
+  const apiDeleteTask = async (taskId: string) => {
+    try {
+      await api.deleteTask(taskId);
+    } catch (err) {
+      console.error('[Tasks] deleteTask error', err);
+      throw err;
+    }
+  };
+
+  const handleCreatePerson = async (name: string) => {
+    try {
+      return await apiCreatePerson(name);
+    } catch (err) {
       return null;
     }
   };
@@ -215,11 +238,7 @@ export default function TasksPage({ canManage, style, className }: Props) {
     setEditorTaskId(tempId);
     setInput("");
     try {
-      const created = await api.createTask({
-        text,
-        favorite: false,
-        description: "",
-      });
+      const created = await apiCreateTask({ text, favorite: false, description: "" });
       setTasks((prev) => prev.map((t) => (t.id === tempId ? created : t)));
       setNewlyAddedTaskId(created.id);
       setEditorTaskId((prev) => (prev === tempId ? created.id : prev));
@@ -261,22 +280,26 @@ export default function TasksPage({ canManage, style, className }: Props) {
     if (!task) {
       return;
     }
-    const updated = await api.updateTask(task.id, { done: !task.done });
-    if (!updated) return;
-    setTasks((prev) =>
-      prev.map((item) => (item.id === task.id ? updated : item)),
-    );
+    try {
+      const updated = await apiUpdateTask(task.id, { done: !task.done });
+      if (!updated) return;
+      setTasks((prev) => prev.map((item) => (item.id === task.id ? updated : item)));
+    } catch (err) {
+      // error already logged by helper
+    }
   };
 
   const toggleFavorite = async (taskId: string) => {
     if (!canManage) return;
     const task = tasks.find((item) => item.id === taskId);
     if (!task) return;
-    const updated = await api.updateTask(task.id, { favorite: !task.favorite });
-    if (!updated) return;
-    setTasks((prev) =>
-      prev.map((item) => (item.id === task.id ? updated : item)),
-    );
+    try {
+      const updated = await apiUpdateTask(task.id, { favorite: !task.favorite });
+      if (!updated) return;
+      setTasks((prev) => prev.map((item) => (item.id === task.id ? updated : item)));
+    } catch (err) {
+      // handled in helper
+    }
   };
 
   const removeTask = async (taskId: string) => {
@@ -286,21 +309,22 @@ export default function TasksPage({ canManage, style, className }: Props) {
     setTasks((prev) => prev.filter((item) => item.id !== taskId));
     if (editorTaskId === taskId) setEditorTaskId(null);
     try {
-      await api.deleteTask(taskId);
+      await apiDeleteTask(taskId);
     } catch (err) {
       setTasks(snapshotTasks);
       deletingTaskIdsRef.current.delete(taskId);
-      console.error("[Tasks] failed to delete task", err);
     }
   };
 
   const handleTitleChange = async (taskId: string, newText: string) => {
     if (!canManage || !newText.trim()) return;
-    const updated = await api.updateTask(taskId, { text: newText.trim() });
-    if (!updated) return;
-    setTasks((prev) =>
-      prev.map((item) => (item.id === taskId ? updated : item)),
-    );
+    try {
+      const updated = await apiUpdateTask(taskId, { text: newText.trim() });
+      if (!updated) return;
+      setTasks((prev) => prev.map((item) => (item.id === taskId ? updated : item)));
+    } catch (err) {
+      // handled in helper
+    }
   };
 
   // called by TaskList when the inline editor or other subcomponent

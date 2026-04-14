@@ -6,6 +6,11 @@ import { applyFilters } from '@myorg/utils';
 import type { ProjectSubproject, ProjectItem, ProjectTask, Contact } from "@myorg/types";
 import type { TaskFilter } from "@myorg/types";
 
+// Helper to return visible tasks after applying filters
+function getVisibleTasks(tasks: ProjectTask[] = [], taskFilters: TaskFilter[] = []) {
+  return applyFilters(tasks as any, taskFilters, "") as ProjectTask[];
+}
+
 interface SubprojectEditorProps {
   sub: ProjectSubproject;
   project: ProjectItem;
@@ -78,12 +83,7 @@ export default function SubprojectEditor({
   taskFilters = [],
 }: SubprojectEditorProps) {
   // Apply filter to the task list if one is active
-  const visibleTasks = useMemo(() => {
-    // filters do not consider searchQuery in this component; helper is still usable
-    // Cast through any to handle type mismatch between ProjectTask and TaskItem
-    const tasks = sub.tasks || [];
-    return applyFilters(tasks as any, taskFilters, "") as ProjectTask[];
-  }, [sub.tasks, JSON.stringify(taskFilters)]);
+  const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters), [sub.tasks, JSON.stringify(taskFilters)]);
 
   const collapsed = sub.collapsed;
 

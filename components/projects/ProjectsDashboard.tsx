@@ -127,6 +127,14 @@ export default function ProjectsDashboard({
 
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
 
+  const handleExportClick = () => {
+    if (!selectedProject) return;
+    const exportObj = buildProjectExport(selectedProject, people);
+    const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
+    downloadJSON(exportObj, `${safeName}_export.json`);
+    setIsFabMenuOpen(false);
+  };
+
   // Filter sidebar by search query
   const visibleProjects = useMemo(
     () =>
@@ -330,6 +338,18 @@ export default function ProjectsDashboard({
                 {selectedProject ? 'Create Subproject' : 'Create Project'}
               </button>
 
+              {selectedProject && (
+                <button
+                  className="fab-menu-item"
+                  onClick={handleExportClick}
+                >
+                  <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
+                    file_download
+                  </span>
+                  Export JSON
+                </button>
+              )}
+
               {/* 'Sort By Timeline' feature removed */}
 
             </div>
@@ -363,4 +383,52 @@ export default function ProjectsDashboard({
 
     </div>
   );
+}
+
+// Build a complete, LLM-friendly export object from a ProjectItem
+function buildProjectExport(proj: ProjectItem | any, people: any[] = []) {
+  const { subprojects, ...rest } = proj as any;
+  const metadata: Record<string, any> = { ...rest };
+
+  return {
+    id: proj.id ?? null,
+    name: proj.text ?? proj.title ?? '',
+    color: proj.color ?? null,
+    metadata,
+    sub_projects: (proj.subprojects || []).map((s: any) => ({
+      id: s.id ?? null,
+      title: s.title ?? s.text ?? '',
+      isProjectLevel: !!s.isProjectLevel,
+      description: s.description ?? null,
+      color: s.color ?? null,
+      owners: s.owners ?? null,
+      tasks: (s.tasks || []).map((t: any) => ({
+        id: t.id ?? null,
+        description: t.description ?? t.text ?? '',
+        priority: t.priority ?? null,
+        effort: t.effort ?? null,
+        dueDate: t.dueDate ?? null,
+        done: !!t.done,
+        assignee: (t as any).assignee ?? null,
+        favorite: (t as any).favorite ?? null,
+        people: (t as any).people ?? null,
+      }))
+    })),
+    people: (people || []).map((p: any) => ({ id: p?.id ?? null, name: p?.name ?? p?.text ?? String(p) })),
+    exportedAt: new Date().toISOString(),
+    source: 'FOMOLife export v1',
+  };
+}
+
+function downloadJSON(obj: any, filename = 'export.json') {
+  const json = JSON.stringify(obj, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
