@@ -13,6 +13,7 @@ import type {
 import { ProjectTile, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
+import ProjectAssistant from "./ProjectAssistant";
 
 // ─── Summary metric card ─────────────────────────────────────────────────────
 
@@ -125,15 +126,35 @@ export default function ProjectsDashboard({
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
 
-  const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
-  const handleExportClick = () => {
-    if (!selectedProject) return;
-    const exportObj = buildProjectExport(selectedProject, people);
-    const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
-    downloadJSON(exportObj, `${safeName}_export.json`);
-    setIsFabMenuOpen(false);
-  };
+  // Open assistant when thumb button is pressed (global event)
+  useEffect(() => {
+    const handler = () => {
+      setIsAssistantOpen(true);
+    };
+    window.addEventListener('open-project-assistant', handler as EventListener);
+    return () => window.removeEventListener('open-project-assistant', handler as EventListener);
+  }, []);
+
+  // Notify thumb that project editor is open/closed so it can show the assistant glyph
+  useEffect(() => {
+    try {
+      if (selectedProject) {
+        window.dispatchEvent(new CustomEvent('project-editor-open'));
+      } else {
+        window.dispatchEvent(new CustomEvent('project-editor-close'));
+      }
+    } catch (e) {
+      // ignore
+    }
+    // also ensure we close on unmount
+    return () => {
+      try { window.dispatchEvent(new CustomEvent('project-editor-close')); } catch (e) {}
+    };
+  }, [selectedProject]);
+
+  
 
   // Filter sidebar by search query
   const visibleProjects = useMemo(
@@ -251,6 +272,11 @@ export default function ProjectsDashboard({
               onToggleFilter={onToggleFilter}
               key={selectedProject.id}
               project={selectedProject}
+              onExport={() => {
+                const exportObj = buildProjectExport(selectedProject, people);
+                const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
+                downloadJSON(exportObj, `${safeName}_export.json`);
+              }}
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
@@ -317,68 +343,185 @@ export default function ProjectsDashboard({
 
       {(onAddProject || onAddSubproject) && (
         <div className="fab-container">
-          {isFabMenuOpen && (
-            <div
-              className="fab-menu"
-            >
-              <button
-                className="fab-menu-item"
-                onClick={() => {
-                  setIsFabMenuOpen(false);
-                  if (selectedProject) {
-                    onAddSubproject?.(selectedProject.id, '');
-                  } else {
-                    onAddProject?.();
-                  }
-                }}
-              >
-                <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
-                  add
-                </span>
-                {selectedProject ? 'Create Subproject' : 'Create Project'}
-              </button>
-
-              {selectedProject && (
-                <button
-                  className="fab-menu-item"
-                  onClick={handleExportClick}
-                >
-                  <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
-                    file_download
-                  </span>
-                  Export JSON
-                </button>
-              )}
-
-              {/* 'Sort By Timeline' feature removed */}
-
-            </div>
-          )}
-
-          {isFabMenuOpen && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 100,
-              }}
-              onClick={() => setIsFabMenuOpen(false)}
-            />
-          )}
-
           <button
             type="button"
             className="content-fab"
-            aria-label={isFabMenuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
+            aria-label={selectedProject ? 'Add subproject' : 'Add project'}
+            onClick={() => {
+              if (selectedProject) {
+                onAddSubproject?.(selectedProject.id, '');
+              } else {
+                onAddProject?.();
+              }
+            }}
             style={{ zIndex: 102 }}
           >
-            <span className="material-icons">{isFabMenuOpen ? 'close' : 'menu'}</span>
+            <span className="material-icons">add</span>
           </button>
         </div>
+      )}
+
+      {isAssistantOpen && selectedProject && (
+        <ProjectAssistant
+          projectExport={buildProjectExport(selectedProject, people)}
+          onClose={() => {
+            setIsAssistantOpen(false);
+            try { window.dispatchEvent(new CustomEvent('close-project-assistant')); } catch (e) {}
+          }}
+          onApplyBlueprint={(patch: any) => {
+            try {
+              if (patch && typeof patch === 'object') {
+                // Normalize action name (support both `action` and `type` from assistant)
+                const actionName = String(patch.action || patch.type || '').toLowerCase();
+                // Support generic assistant actions
+                if ((actionName === 'add_task' || actionName === 'add-task' || actionName === 'addtask') && patch.payload) {
+                  const title = patch.payload.title || patch.payload.text || patch.payload.description || 'New Item';
+                  const targetNameOrId = patch.payload.subprojectId || patch.payload.subproject || patch.payload.listName || null;
+                  const existingSubs = [...(selectedProject.subprojects || [])];
+                  let targetSub = null;
+                  if (targetNameOrId) {
+                    const tn = String(targetNameOrId).toLowerCase();
+                    targetSub = existingSubs.find((s: any) => String(s.id) === tn || (s.title || s.text || '').toLowerCase().includes(tn));
+                  } else {
+                    targetSub = existingSubs.find((s: any) => {
+                      const t = (s.title || s.text || '').toLowerCase();
+                      return t.includes('list') || t.includes('tv') || t.includes('inbox') || t.includes('todo') || t.includes('tasks');
+                    });
+                  }
+                  
+                  const newTask = { id: `ai-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: title, description: title, people: [], done: false, favorite: false, dueDate: null };
+                  let updatedSubprojects = existingSubs;
+                  if (targetSub) {
+                    updatedSubprojects = updatedSubprojects.map((s: any) => s.id === targetSub?.id ? { ...s, tasks: [...(s.tasks || []), newTask] } : s);
+                  } else {
+                    const newSubName = targetNameOrId || 'General List';
+                    const newSub = { id: `ai-sub-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: newSubName, title: newSubName, tasks: [newTask] };
+                    updatedSubprojects = [...existingSubs, newSub];
+                  }
+                  onApplyChange?.(selectedProject.id, { subprojects: updatedSubprojects });
+                } else if ((actionName === 'batch_actions' || actionName === 'batch_update' || actionName === 'batchupdate') && Array.isArray(patch.payload?.actions)) {
+                  let updatedSubprojects = [...(selectedProject.subprojects || [])];
+                  
+                  // Helper to incrementally apply known operations to the local state reference before final save
+                  const processAction = (subActionName: string, subPayload: any) => {
+                     if ((subActionName === 'remove-task' || subActionName === 'remove_task' || subActionName === 'removetask') && subPayload) {
+                        const taskId = subPayload.taskId || subPayload.id || subPayload.taskID;
+                        if (taskId) {
+                          updatedSubprojects = updatedSubprojects.map((s: any) => ({
+                            ...s,
+                            tasks: (s.tasks || []).filter((t: any) => String(t.id) !== String(taskId))
+                          }));
+                        }
+                     } else if ((subActionName === 'add_task' || subActionName === 'add-task' || subActionName === 'addtask') && subPayload) {
+                        const title = subPayload.title || subPayload.text || subPayload.description || 'New Item';
+                        const targetNameOrId = subPayload.subprojectId || subPayload.subproject || subPayload.listName || null;
+                        let targetSub = null;
+                        if (targetNameOrId) {
+                          const tn = String(targetNameOrId).toLowerCase();
+                          targetSub = updatedSubprojects.find((s: any) => String(s.id) === tn || (s.title || s.text || '').toLowerCase().includes(tn));
+                        } else {
+                          targetSub = updatedSubprojects.find((s: any) => {
+                            const t = (s.title || s.text || '').toLowerCase();
+                            return t.includes('list') || t.includes('tv') || t.includes('inbox') || t.includes('todo') || t.includes('tasks');
+                          });
+                        }
+                        const newTask = { id: `ai-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: title, description: title, people: [], done: false, favorite: false, dueDate: null };
+                        if (targetSub) {
+                          updatedSubprojects = updatedSubprojects.map((s: any) => s.id === targetSub?.id ? { ...s, tasks: [...(s.tasks || []), newTask] } : s);
+                        } else {
+                          const newSubName = targetNameOrId || 'General List';
+                          const newSub = { id: `ai-sub-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: newSubName, title: newSubName, tasks: [newTask] };
+                          updatedSubprojects = [...updatedSubprojects, newSub];
+                        }
+                     } else if ((subActionName === 'add_subproject' || subActionName === 'add-subproject' || subActionName === 'addsubproject') && subPayload) {
+                        const title = subPayload.title || subPayload.text || subPayload.description || 'New List';
+                        const newSub = { id: `ai-sub-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: title, title: title, tasks: [] };
+                        updatedSubprojects = [...updatedSubprojects, newSub];
+                     } else if ((subActionName === 'edit-task' || subActionName === 'edit_task' || subActionName === 'edittask') && subPayload) {
+                       const taskId = subPayload.taskId || subPayload.id || subPayload.taskID;
+                       if (taskId) {
+                         updatedSubprojects = updatedSubprojects.map((s: any) => ({
+                            ...s,
+                            tasks: (s.tasks || []).map((t: any) => {
+                              if (String(t.id) !== String(taskId)) return t;
+                              const updatedTask = { ...t };
+                              const newTitle = subPayload.text || subPayload.title || subPayload.description;
+                              if (newTitle) {
+                                updatedTask.text = newTitle;
+                                updatedTask.description = newTitle;
+                              } else if (subPayload.description) {
+                                updatedTask.description = subPayload.description;
+                              }
+                              if (subPayload.done !== undefined) updatedTask.done = !!subPayload.done;
+                              if (subPayload.priority !== undefined) updatedTask.priority = subPayload.priority;
+                              if (subPayload.effort !== undefined) updatedTask.effort = subPayload.effort;
+                              if (subPayload.dueDate !== undefined) updatedTask.dueDate = subPayload.dueDate;
+                              if (subPayload.assignee !== undefined) updatedTask.assignee = subPayload.assignee;
+                              return updatedTask;
+                            })
+                         }));
+                       }
+                     }
+                  };
+
+                  patch.payload.actions.forEach((a: any) => {
+                    if (a && typeof a === 'object') {
+                       processAction(String(a.action || a.type || '').toLowerCase(), a.payload);
+                    }
+                  });
+                  onApplyChange?.(selectedProject.id, { subprojects: updatedSubprojects });
+                } else if ((actionName === 'remove-task' || actionName === 'remove_task' || actionName === 'removetask') && patch.payload) {
+                  const taskId = patch.payload.taskId || patch.payload.id || patch.payload.taskID;
+                  if (taskId) {
+                    const updatedSubprojects = (selectedProject.subprojects || []).map((s: any) => ({
+                      ...s,
+                      tasks: (s.tasks || []).filter((t: any) => String(t.id) !== String(taskId))
+                    }));
+                    onApplyChange?.(selectedProject.id, { subprojects: updatedSubprojects });
+                  }
+                } else if ((actionName === 'remove_subproject' || actionName === 'remove-subproject') && patch.payload) {
+                  const subId = patch.payload.subprojectId || patch.payload.id;
+                  if (subId) {
+                    const updatedSubprojects = (selectedProject.subprojects || []).filter((s: any) => String(s.id) !== String(subId));
+                    onApplyChange?.(selectedProject.id, { subprojects: updatedSubprojects });
+                  }
+                } else if ((actionName === 'edit-task' || actionName === 'edit_task' || actionName === 'edittask') && patch.payload) {
+                  const taskId = patch.payload.taskId || patch.payload.id || patch.payload.taskID;
+                  if (taskId) {
+                    const updatedSubprojects = (selectedProject.subprojects || []).map((s: any) => ({
+                      ...s,
+                      tasks: (s.tasks || []).map((t: any) => {
+                        if (String(t.id) !== String(taskId)) return t;
+                        // merge editable fields from payload
+                        const updated = { ...t };
+                        const newTitle = patch.payload.text || patch.payload.title || patch.payload.description;
+                        if (newTitle) {
+                          updated.text = newTitle;
+                          updated.description = newTitle;
+                        } else if (patch.payload.description) {
+                          updated.description = patch.payload.description;
+                        }
+                        if (patch.payload.done !== undefined) updated.done = !!patch.payload.done;
+                        if (patch.payload.priority !== undefined) updated.priority = patch.payload.priority;
+                        if (patch.payload.effort !== undefined) updated.effort = patch.payload.effort;
+                        if (patch.payload.dueDate !== undefined) updated.dueDate = patch.payload.dueDate;
+                        if (patch.payload.assignee !== undefined) updated.assignee = patch.payload.assignee;
+                        return updated;
+                      })
+                    }));
+                    onApplyChange?.(selectedProject.id, { subprojects: updatedSubprojects });
+                  }
+                } else {
+                  // default: treat as a patch object and apply directly
+                  onApplyChange?.(selectedProject.id, patch);
+                }
+              }
+            } catch (err) {
+              console.error("Error applying patch from assistant", err);
+            }
+          }}
+          onAddSubproject={(title: string) => onAddSubproject?.(selectedProject.id, title)}
+        />
       )}
 
     </div>

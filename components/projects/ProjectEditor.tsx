@@ -29,6 +29,7 @@ interface ProjectEditorProps {
   dashboardProjectHeaderTop?: React.ReactNode;
   dashboardSummary?: React.ReactNode;
   onToggleFilter?: (filter: string | null) => void;
+  onExport?: () => void;
 }
 
 type DashboardTileProps = {
@@ -110,6 +111,7 @@ export default function ProjectEditor({
   dashboardProjectHeaderTop,
   dashboardSummary,
   onToggleFilter,
+  onExport,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -136,6 +138,7 @@ export default function ProjectEditor({
   const safeOnSubprojectDeleted = onSubprojectDeleted ?? (() => {});
   const safeOnBack = onBack ?? (() => {});
   const safeOnToggleFilter = onToggleFilter ?? (() => {});
+  const safeOnExport = onExport ?? (() => {});
 
   // small helper to set local UI state and optionally persist via callback
   const setLocalAndApply = (updated: LocalProject, persist = true) => {
@@ -840,6 +843,10 @@ export default function ProjectEditor({
             <div className="tab-controls">
               <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
               <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
+              {/* Export JSON button injected here */}
+              {typeof onExport === 'function' && (
+                <button onClick={onExport} className="expand-collapse-btn">Export JSON</button>
+              )}
             </div>
           )}
         </div>

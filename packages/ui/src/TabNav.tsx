@@ -13,9 +13,10 @@ export interface TabNavProps<T extends string> {
   tabs: TabLink<T>[];
   onChange: (tab: T) => void;
   className?: string;
+  onThumbClick?: () => void;
 }
 
-export default function TabNav<T extends string>({ active, tabs, onChange, className }: TabNavProps<T>) {
+export default function TabNav<T extends string>({ active, tabs, onChange, className, onThumbClick }: TabNavProps<T>) {
   // split the provided tabs into left and right areas around the thumb
   const leftTabs = tabs.filter((t) => t.key === 'tasks' || t.key === 'projects');
   const rightTabs = tabs.filter((t) => t.key === 'people');
@@ -41,6 +42,7 @@ export default function TabNav<T extends string>({ active, tabs, onChange, class
       <ThumbButton
         className="tabs-thumb-btn"
         ariaLabel="Thumb"
+        onClick={onThumbClick ?? (() => {})}
       />
 
       <div className="tabs-group tabs-right">

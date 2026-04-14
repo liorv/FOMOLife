@@ -1,4 +1,4 @@
-import { GenerateBlueprintRequest, GenerateBlueprintResponse, ILLMProvider } from '../types';
+import { ILLMProvider, GenerateChatRequest, GenerateChatResponse } from '../types';
 
 export class GroqProvider implements ILLMProvider {
   private apiKey: string;
@@ -9,58 +9,32 @@ export class GroqProvider implements ILLMProvider {
     this.apiKey = process.env.GROQ_API_KEY || '';
   }
 
-  async generateBlueprint(request: GenerateBlueprintRequest): Promise<GenerateBlueprintResponse> {
+  // generateBlueprint removed — use generateChat instead
+
+  async generateChat(request: GenerateChatRequest): Promise<GenerateChatResponse> {
     if (!this.apiKey) {
       throw new Error("GROQ_API_KEY is not defined. Please check your environment variables.");
     }
 
-            const systemPrompt = `You are a highly efficient project management assistant.
-Your entire purpose is to generate a structured project blueprint in valid JSON format matching the schema below EXACTLY.
-Do NOT wrap the JSON in Markdown or backticks. Do not include any conversational text. Just output raw, valid JSON.
+    const systemPrompt = `You are FOMO Helper, a helpful project assistant. Answer the user's question or request directly.
+If the user asks WHY something is recommended or asks for details/reasoning, provide a comprehensive, detailed explanation in your "text" field. Do not be overly brief if an explanation is requested.
+If the user asks for or implies a project change, suggest a short list of actionable options the UI can render. If the user agrees to your previous suggestions, respond by proactively providing the actions array to implement those suggestions.
+If no changes are needed or the user is just asking an informational question, answer the question fully and do not suggest any actions (return an empty array for "actions").
+Do NOT just echo or summarize what the user said – actually answer their question or perform the task!
+Do NOT output generic actions like "Add task" or "Edit task" without specific content.NEVER include or output the project state or raw JSON context back to the user. The ONLY way to modify the project is by suggesting actions in the "actions" array.Each action's \`label\` must contain the specific item's name so the user knows exactly what is being modified (e.g. "Remove 'The Expanse'" instead of "Remove task with 'the'"). For multi-item or bulk actions, provide a single generic label like "Remove 3 shows". For batch updates, ensure each item in the payload actions array has its 'title' or 'description' explicitly set so the UI can communicate what was changed.
+You MUST ALWAYS format your entire response as a single valid JSON object with EXACTLY these keys: { "text": "Your conversational answer here...", "actions": [{"type":"string","label":"string","payload":{}}] }. 
+Do NOT wrap the JSON in markdown code blocks (\`\`\`json) and do NOT output any plain text outside the JSON object. If you have no actions to suggest, return an empty array for "actions".
+The ONLY allowed action types are:
+- "add_subproject" (payload: { "title": "string" })
+- "remove_subproject" (payload: { "subprojectId": "string" })
+- "add_task" (payload: { "subprojectId": "string (name of list or subproject)", "title": "string" })
+- "remove_task" (payload: { "subprojectId": "string", "taskId": "string" })
+- "edit_task" (payload: { "subprojectId": "string", "taskId": "string", "title": "string", "description": "string" })
+- "batch_update" (payload: { "actions": [{ "type": "string", "payload": {} }] })
+When adding MULTIPLE items to a list, use a SINGLE batch_update action containing an array of add_task actions, rather than repeating the same top-level label repeatedly.
+When adding items to a new list, just use add_task with the new list name as the subprojectId; it will be created automatically. Do NOT use any other action types.`;
 
-CRITICAL INSTRUCTIONS:
-1. ADHERE STRICTLY TO THE USER'S GOAL: Only generate tasks and subprojects that are absolutely necessary to achieve the exact goal stated. Do NOT add extra features, nice-to-haves, or over-engineer the solution. If the goal is simple, keep the project simple.
-2. AVOID UNNECESSARY COMPLEXITY: Do not create tasks for things not mentioned in the goal. Do not assume additional requirements. Stick to what's explicitly stated or directly implied.
-3. TASK QUANTITY GUIDELINES (be conservative):
-   - "Simple" = 1-2 sub_projects, 2-4 tasks each (total 4-8 tasks max)
-   - "Standard" = 2-3 sub_projects, 3-5 tasks each (total 6-15 tasks max)  
-   - "Detailed" = 3-4 sub_projects, 4-6 tasks each (total 12-24 tasks max)
-   If the goal can be achieved with fewer tasks, use fewer. Quality over quantity.
-4. Keep each task description short and concise (1 single action/instruction per task). Do not combine multiple steps into one task.
-5. Every task MUST have an "effort" property, defined as a number representing days of work (e.g. 0.5, 1, 3). Do NOT omit it.
-6. Set "priority" to exactly one of: "Low", "Medium", "High". Priority represents the task's importance to the overall project success.
-7. AVOID generic planning/research tasks. Focus on SPECIFIC, ACTIONABLE tasks that directly contribute to the stated goal.
-${request.isForExistingProject ? '8. This is for an EXISTING project. REVIEW all existing tasks and subprojects. ONLY keep tasks that are still beneficial and directly contribute to achieving the new goal. REMOVE any tasks that are no longer relevant, redundant, or not aligned with the goal. Then add any additional tasks needed to complete the goal. Return the COMPLETE optimized project structure - do not just add new content.' : ''}
-
-Schema:
-{
-  "project_name": "string",
-  "goal": "string",
-  "sub_projects": [
-    {
-      "title": "string",
-      "tasks": [
-        {
-          "description": "string",
-          "priority": "Low",
-          "effort": 1.5,
-          "deadline_offset_days": 2,
-          "done": false
-        }
-      ]
-    }
-  ]
-}  `;
-
-    const userPrompt = `Please create a project blueprint based on the following rules:
-Goal: ${request.goal}
-Complexity Level: ${request.complexity} (Scale from Simple -> Detailed)
-${request.targetDate ? "Target Completion Date: " + request.targetDate + "\n" : ""}
-${request.context ? "Context Constraints: " + request.context + "\n" : ""}
-${request.existingSubprojects ? `\nEXISTING PROJECT STRUCTURE:\n${JSON.stringify(request.existingSubprojects, null, 2)}\n\nREVIEW all existing tasks and subprojects. Keep only those that are beneficial and directly contribute to the new goal. Remove any tasks that are no longer relevant or not aligned with the goal. Add new tasks only if needed to complete the goal. Return the COMPLETE optimized project structure.` : ""}
-
-CRITICAL INSTRUCTION: Adhere STRICTLY to the stated goal. Only include tasks and subprojects that are absolutely necessary to achieve the goal. Do NOT add extra features, over-engineer, or include tasks not directly related to the goal. If the goal is simple, keep the project simple with minimal necessary tasks. Be conservative - fewer focused tasks are better than many unnecessary ones.
-Calculate deadline_offset_days as intelligent milestones based only on the tasks you've included.`;
+    const userPrompt = `User message: ${request.message}\n\nProject context: ${request.context || '{}'}\n\nHistory: ${JSON.stringify(request.history || [])}`;
 
     const response = await fetch(this.baseUrl, {
       method: 'POST',
@@ -69,14 +43,12 @@ Calculate deadline_offset_days as intelligent milestones based only on the tasks
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        // Llama 3 is fast, we will use an active Llama 3.1 or 3.3 model point.
         model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.2, // low temp for structured predictable output
-        response_format: { type: "json_object" } // Tell Groq we want strict JSON
+        temperature: 0.4
       })
     });
 
@@ -87,18 +59,19 @@ Calculate deadline_offset_days as intelligent milestones based only on the tasks
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-    
     if (!content) {
-      throw new Error("Empty response returned from Groq API.");
+      throw new Error('Empty response from Groq chat');
     }
 
+    // Try parse JSON first, otherwise treat as plain text
     try {
-      // The payload must parse back strictly to our interface
-      const parsed = JSON.parse(content) as GenerateBlueprintResponse;
-      return parsed;
-    } catch (err) {
-      console.error("Failed to parse JSON response:", content);
-      throw new Error("Failed to parse JSON response from LLM provider");
+      const parsed = JSON.parse(content);
+      return {
+        text: String(parsed.text || ''),
+        actions: Array.isArray(parsed.actions) ? parsed.actions : undefined,
+      };
+    } catch (e) {
+      return { text: String(content) };
     }
   }
 }

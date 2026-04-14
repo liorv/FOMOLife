@@ -167,3 +167,57 @@ export async function deleteProject(userId: string, id: string): Promise<boolean
   await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
   return next.length !== current.length;
 }
+
+export async function initFromJSON(userId: string, exported: any): Promise<ProjectItem> {
+  const current = await getOrInitUserProjects(userId);
+  const nextColor = pickColor(current.length);
+
+  const projectId = exported.id ?? generateId();
+  const projectName = exported.name ?? exported.metadata?.text ?? exported.metadata?.title ?? 'Imported Project';
+  const projectColor = exported.color ?? nextColor;
+
+  const subprojects: ProjectSubproject[] = (exported.sub_projects || []).map((s: any, idx: number) => {
+    const subId = s.id ?? generateId();
+    const tasks: ProjectTask[] = (s.tasks || []).map((t: any) => ({
+      id: t.id ?? generateId(),
+      text: t.description ?? t.text ?? '',
+      description: t.description ?? undefined,
+      done: !!t.done,
+      dueDate: t.dueDate ?? null,
+      favorite: !!t.favorite,
+      people: t.people ?? [],
+    }));
+
+    const sub: ProjectSubproject = {
+      id: subId,
+      text: s.title ?? s.text ?? `Subproject ${idx + 1}`,
+      tasks,
+      collapsed: !!s.collapsed,
+      isProjectLevel: !!s.isProjectLevel,
+      color: s.color ?? undefined,
+      description: s.description ?? undefined,
+      owners: s.owners ?? undefined,
+    };
+    return sub;
+  });
+
+  const project: ProjectItem = {
+    id: projectId,
+    text: projectName,
+    color: projectColor,
+    subprojects: subprojects,
+    ...(exported.metadata?.progress !== undefined ? { progress: exported.metadata.progress } : {}),
+    ...(exported.metadata?.order !== undefined ? { order: exported.metadata.order } : {}),
+    ...(exported.metadata?.goal ? { goal: exported.metadata.goal } : {}),
+    ...(exported.metadata?.description ? { description: exported.metadata.description } : {}),
+    ...(exported.metadata?.dueDate !== undefined ? { dueDate: exported.metadata.dueDate } : {}),
+    ...(exported.metadata?.aiInstructions ? { aiInstructions: exported.metadata.aiInstructions } : {}),
+  };
+
+  const normalized = ensureProjectLevelTasks(project);
+  current.push(normalized);
+  projectsByUser.set(userId, current);
+  const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await storage.save(userId, { ...persisted, projects: current.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  return normalized;
+}

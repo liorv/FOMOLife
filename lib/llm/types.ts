@@ -1,12 +1,3 @@
-export interface GenerateBlueprintRequest {
-  goal: string;
-  targetDate?: string;
-  complexity: string;
-  context?: string;
-  existingSubprojects?: SubprojectDraft[];
-  isForExistingProject?: boolean;
-}
-
 export interface TaskDraft {
   description: string;
   priority: string;
@@ -20,15 +11,28 @@ export interface SubprojectDraft {
   tasks: TaskDraft[];
 }
 
-export interface GenerateBlueprintResponse {
-  project_name: string;
-  goal?: string;
-  sub_projects: SubprojectDraft[];
+// Blueprint types removed — use conversational `generateChat` instead
+
+export interface GenerateChatRequest {
+  message: string;
+  context?: string;
+  history?: { role: string; text: string }[];
+}
+
+export interface ActionOption {
+  type: string; // e.g., 'add_subproject', 'update_project'
+  label: string;
+  payload?: any;
+}
+
+export interface GenerateChatResponse {
+  text: string;
+  actions?: ActionOption[];
 }
 
 export interface ILLMProvider {
   /**
-   * Generates a structured JSON blueprint matching GenerateBlueprintResponse
+   * Generates a conversational response and optional actionable UI options
    */
-  generateBlueprint(request: GenerateBlueprintRequest): Promise<GenerateBlueprintResponse>;
+  generateChat(request: GenerateChatRequest): Promise<GenerateChatResponse>;
 }

@@ -171,6 +171,14 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return null;
   };
 
+  const handleThumbClick = () => {
+    try {
+      window.dispatchEvent(new CustomEvent('open-project-assistant'));
+    } catch (e) {
+      // ignore
+    }
+  };
+
   return (
     <main className="main-layout">
       <LogoBar
@@ -195,7 +203,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         {...(aboutInfo ? { aboutInfo } : {})}
       />
       {tabs.map(tab => renderComponent(tab))}
-      <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" />
+      <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" onThumbClick={handleThumbClick} />
       <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
     </main>
   );
