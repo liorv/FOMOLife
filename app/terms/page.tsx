@@ -4,18 +4,26 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
       <h1>Terms of Service</h1>
       <p>
-        These Terms of Service govern your use of the application. By using the
-        service you agree to the collection and use of information as described
-        in the Privacy Policy. Use the app responsibly and do not attempt to
-        access other users' data without permission.
+        These terms describe general rules for using this application. By using
+        the service you agree to comply with applicable laws and not to misuse
+        the service or attempt to access other users' accounts or data.
       </p>
+
       <p>
-        When configuring Google OAuth, use this page URL as your Terms of
-        Service link in the Google Cloud Console. Replace the deployed domain
-        below when your app is live (for example: https://yourdomain.com/terms).
+        The service is provided "as is" and may change over time. To the extent
+        permitted by law, the application owner disclaims warranties and limits
+        liability where allowed. This page is a brief, informative summary and
+        not a substitute for legal advice.
+      </p>
+
+      <p>
+        When configuring Google OAuth, provide this page URL as the Terms of
+        Service link in the Google Cloud Console. Replace the domain with your
+        production domain when the app is deployed (for example:
+        https://yourdomain.com/terms).
       </p>
     </div>
   );

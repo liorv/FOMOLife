@@ -4,19 +4,27 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
       <h1>Privacy Policy</h1>
       <p>
-        This is a short privacy notice for the application. We collect only the
-        minimal data required to provide the service (for example, name and
-        email when you sign in with Google). We do not sell personal data. Data
-        is used to authenticate you and store your app data. For questions email
-        the app owner.
+        This site collects and processes only the personal information necessary
+        to provide the service (for example: name and email address used to
+        authenticate and identify your account). This information is used to
+        operate, maintain, and provide the features of the application.
       </p>
+
       <p>
-        When configuring Google OAuth, use this page URL as your Privacy Policy
-        link in the Google Cloud Console. Replace the deployed domain below when
-        your app is live (for example: https://yourdomain.com/privacy).
+        We may use third-party services for hosting and analytics. These
+        providers have their own privacy policies and are responsible for their
+        own processing. We do not sell personal information to third parties.
+      </p>
+
+      <p>
+        If you have questions about privacy practices, contact the application
+        owner. When using Google OAuth, provide this page URL as the Privacy
+        Policy link in the Google Cloud Console. Replace the domain with your
+        production domain when the app is deployed (for example:
+        https://yourdomain.com/privacy).
       </p>
     </div>
   );
