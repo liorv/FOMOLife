@@ -30,11 +30,13 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
     };
   }, []);
 
-  const showAssistantIcon = assistantOpen || editorOpen;
+  const showAssistantIcon = assistantOpen;
 
   let iconName = 'add';
-  if (showAssistantIcon) {
+  if (assistantOpen) {
     iconName = 'auto_awesome'; // AI Assistant
+  } else if (editorOpen) {
+    iconName = 'post_add'; // Add sub project when project editor is open
   } else if (activeTab === 'people') {
     iconName = 'person_add'; // Add Contact
   } else if (activeTab === 'tasks' || activeTab === 'projects') {

@@ -53,8 +53,9 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
             updatedSubprojects = [...existingSubs, newSub];
           }
           onApplyChange?.(project?.id, { subprojects: updatedSubprojects });
-        } else if ((actionName === 'batch_actions' || actionName === 'batch_update' || actionName === 'batchupdate') && Array.isArray(patch.payload?.actions)) {
+        } else if ((actionName === 'batch_actions' || actionName === 'batch_update' || actionName === 'batchupdate') && (Array.isArray(patch.payload?.actions) || Array.isArray(patch.payload))) {
           let updatedSubprojects = [...(project?.subprojects || [])];
+          const actionsToProcess = Array.isArray(patch.payload?.actions) ? patch.payload.actions : patch.payload;
           const processAction = (subActionName: string, subPayload: any) => {
              if ((subActionName === 'remove-task' || subActionName === 'remove_task' || subActionName === 'removetask') && subPayload) {
                 const taskId = subPayload.taskId || subPayload.id || subPayload.taskID;
@@ -116,7 +117,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
              }
           };
 
-          patch.payload.actions.forEach((a: any) => {
+          actionsToProcess.forEach((a: any) => {
             if (a && typeof a === 'object') {
                processAction(String(a.action || a.type || '').toLowerCase(), a.payload);
             }
@@ -356,11 +357,18 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
       <div className="assistant-backdrop" onClick={onClose} />
       <div className="assistant-panel">
         <div className="assistant-header">
-          <h3>FOMO Helper</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="material-icons assistant-header-icon">auto_awesome</span>
+            <h3>FOMO AI Assistant</h3>
+          </div>
           <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
-            <button className="copy-btn" onClick={copyConversation} aria-label="Copy conversation">📋</button>
+            <button className="copy-btn" onClick={copyConversation} aria-label="Copy conversation">
+              <span className="material-icons">content_copy</span>
+            </button>
             {copied ? <span className="copied-badge" aria-live="polite">Copied!</span> : null}
-            <button className="close-btn" onClick={onClose} aria-label="Close">✕</button>
+            <button className="close-btn" onClick={onClose} aria-label="Close">
+              <span className="material-icons">close</span>
+            </button>
           </div>
         </div>
 
@@ -448,8 +456,9 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                           } else if (action.type === 'batch_actions' || action.type === 'batch_update' || action.type === 'batchupdate') {
                             onApplyBlueprint?.(action);
                             let details = "Successfully applied bulk actions.";
-                            if (Array.isArray(action.payload?.actions)) {
-                              const affected = action.payload.actions
+                            const arr = Array.isArray(action.payload?.actions) ? action.payload.actions : Array.isArray(action.payload) ? action.payload : null;
+                            if (arr) {
+                              const affected = arr
                                 .map((sub: any) => sub.payload?.title || sub.payload?.description || sub.payload?.text || sub.payload?.taskId || sub.payload?.id)
                                 .filter(Boolean);
                               if (affected.length > 0) {
@@ -502,19 +511,24 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         .assistant-header {
           display: flex; align-items: center; justify-content: space-between;
           padding: 0 24px; height: 64px; min-height: 64px;
-          background: #6200ea; color: white;
+          background: linear-gradient(135deg, #1a73e8, #8ab4f8); color: white;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
           z-index: 10;
+          border-radius: 16px 16px 0 0;
         }
+        .assistant-header-icon { font-size: 1.5rem; }
         .assistant-header h3 { margin: 0; font-size: 1.25rem; font-weight: 500; letter-spacing: 0.5px; }
         .copy-btn, .close-btn {
           background: transparent; border: none; color: white;
           width: 40px; height: 40px; border-radius: 50%;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
-          font-size: 1.2rem; transition: background 0.2s ease;
+          font-size: 1.2rem; transition: background 0.2s ease, transform 0.1s ease;
         }
-        .copy-btn:hover, .close-btn:hover { background: rgba(255,255,255,0.1); }
-        .copied-badge { font-size: 0.85rem; color: #bb86fc; font-weight: 500; }
+        .copy-btn .material-icons, .close-btn .material-icons {
+          font-size: 20px;
+        }
+        .copy-btn:hover, .close-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+        .copied-badge { font-size: 0.85rem; color: #ffffff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2); margin-right: 8px; }
         
         .assistant-body {
           flex: 1; padding: 24px; overflow-y: auto;
@@ -523,7 +537,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         .assistant-message { display: flex; flex-direction: column; }
         .assistant-message--user { align-self: flex-end; max-width: 80%; }
         .assistant-message--user .assistant-message__text {
-          background: #6200ea; color: white;
+          background: linear-gradient(135deg, #1a73e8, #8ab4f8); color: white;
           padding: 12px 16px; border-radius: 20px 20px 4px 20px;
           box-shadow: 0 1px 2px rgba(0,0,0,0.15); line-height: 1.5; font-size: 0.95rem;
         }
@@ -540,12 +554,12 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         
         .assistant-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
         .assistant-action {
-          background: white; color: #6200ea;
-          border: 1px solid rgba(98, 0, 234, 0.3); border-radius: 24px;
+          background: white; color: #1a73e8;
+          border: 1px solid rgba(26, 115, 232, 0.3); border-radius: 24px;
           padding: 8px 16px; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.5px;
           cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s ease;
         }
-        .assistant-action:hover:not(:disabled) { background: rgba(98, 0, 234, 0.04); border-color: #6200ea; }
+        .assistant-action:hover:not(:disabled) { background: rgba(26, 115, 232, 0.04); border-color: #1a73e8; }
         .assistant-action:disabled { opacity: 0.6; cursor: default; background: #f5f5f5; border-color: #ddd; color: #999; }
         
         .assistant-input {
@@ -559,14 +573,14 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           transition: all 0.2s ease;
         }
         .assistant-input input:focus {
-          outline: none; background: white; border-color: #6200ea; box-shadow: 0 2px 6px rgba(98,0,234,0.1);
+          outline: none; background: white; border-color: #1a73e8; box-shadow: 0 2px 6px rgba(26,115,232,0.1);
         }
         .assistant-input button {
-          background: #6200ea; color: white; border: none; border-radius: 28px;
+          background: linear-gradient(135deg, #1a73e8, #8ab4f8); color: white; border: none; border-radius: 28px;
           padding: 12px 24px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;
-          cursor: pointer; box-shadow: 0 2px 6px rgba(98,0,234,0.3); transition: all 0.2s ease;
+          cursor: pointer; box-shadow: 0 2px 6px rgba(26,115,232,0.3); transition: all 0.2s ease;
         }
-        .assistant-input button:hover:not(:disabled) { background: #651fff; box-shadow: 0 4px 8px rgba(98,0,234,0.4); }
+        .assistant-input button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(26,115,232,0.4); }
         .assistant-input button:disabled { background: #e0e0e0; color: #9e9e9e; box-shadow: none; cursor: default; }
       `}</style>
     </div>

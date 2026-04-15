@@ -303,6 +303,20 @@ export default function ProjectsDashboard({
               taskFilters={filters}
               searchQuery={projectSearch}
             />
+            {/* Floating AI assistant FAB (project editor) */}
+            <button
+              type="button"
+              className="project-ai-fab"
+              aria-label="Open AI assistant"
+              onClick={() => {
+                try {
+                  window.dispatchEvent(new CustomEvent('open-project-assistant'));
+                } catch (e) {}
+                setIsAssistantOpen(true);
+              }}
+            >
+              <span className="material-icons">auto_awesome</span>
+            </button>
           </div>
         </div>
       ) : (
