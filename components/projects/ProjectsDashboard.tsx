@@ -135,6 +135,23 @@ export default function ProjectsDashboard({
   const isFilterActive = (filterType: string) => filters.includes(filterType);
 
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [llmAvailable, setLlmAvailable] = useState<boolean | null>(null);
+  const [llmUnavailableMsg, setLlmUnavailableMsg] = useState('');
+  const [llmProvider, setLlmProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/ai/status')
+      .then((r) => r.json())
+      .then((data) => {
+        setLlmAvailable(data.available !== false);
+        setLlmUnavailableMsg(data.message || '');
+        setLlmProvider(data.provider || null);
+      })
+      .catch(() => {
+        setLlmAvailable(false);
+        setLlmUnavailableMsg('Could not reach AI service.');
+      });
+  }, []);
 
   // Open assistant when thumb button is pressed (global event)
   useEffect(() => {
@@ -359,9 +376,12 @@ export default function ProjectsDashboard({
             {/* Floating AI assistant FAB (project editor) */}
             <button
               type="button"
-              className="project-ai-fab"
+              className={`project-ai-fab${llmAvailable === false ? ' project-ai-fab--unavailable' : ''}`}
               aria-label="Open AI assistant"
+              disabled={llmAvailable === false}
+              title={llmAvailable === false ? (llmUnavailableMsg || 'AI assistant unavailable') : 'AI assistant'}
               onClick={() => {
+                if (llmAvailable === false) return;
                 try {
                   window.dispatchEvent(new CustomEvent('open-project-assistant'));
                 } catch (e) {}
@@ -431,6 +451,7 @@ export default function ProjectsDashboard({
           onApplyChange={onApplyChange}
           project={selectedProject}
           onAddSubproject={(title: string) => onAddSubproject?.(selectedProject.id, title)}
+          providerLabel={llmProvider}
         />
       )}
 

@@ -2,18 +2,19 @@ import { ILLMProvider, GenerateChatRequest, GenerateChatResponse } from '../type
 
 export class MockProvider implements ILLMProvider {
   async generateChat(request: GenerateChatRequest): Promise<GenerateChatResponse> {
-    // Very simple conversational fallback for testing/dev
-    const msg = (request.message || '').toLowerCase();
+    // Stub fallback used when no real LLM provider is configured.
+    // Gives a neutral response that doesn't confuse users with irrelevant content.
+    const projectName = (() => {
+      try {
+        const ctx = JSON.parse(request.context || '{}');
+        return ctx.name || ctx.title || null;
+      } catch { return null; }
+    })();
 
-    if (msg.includes('tv') || msg.includes('show') || msg.includes('watch')) {
-      return {
-        text: `Here are three great TV shows you might enjoy:\n1) Breaking Bad\n2) The Expanse\n3) Fleabag`,
-      };
-    }
-
-    // default conversational reply
+    const projectHint = projectName ? ` for "${projectName}"` : '';
     return {
-      text: `Thanks for your message. I can suggest project edits or answer questions. Try saying "Add a QA subproject" or ask a general question like "what to watch".`,
+      text: `AI assistant is not configured${projectHint}. Please set the GROQ_API_KEY environment variable to enable AI features.`,
+      actions: [],
     };
   }
 }

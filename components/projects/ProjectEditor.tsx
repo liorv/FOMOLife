@@ -462,6 +462,14 @@ export default function ProjectEditor({
       }
     }
 
+    // If collapsing (currently expanded), close the task editor if it belongs here
+    if (subToToggle && !subToToggle.collapsed && editorTaskId) {
+      const taskIds = (subToToggle.tasks || []).map((t) => t.id);
+      if (taskIds.includes(editorTaskId)) {
+        setEditorTaskId(null);
+      }
+    }
+
     const updated = {
       ...current,
       subprojects: (current.subprojects || []).map((s) => {

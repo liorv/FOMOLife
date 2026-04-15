@@ -7,16 +7,14 @@ export class LLMFactory {
    * Returns the correct LLM provider implementation based on environment configuration.
    */
   static getProvider(): ILLMProvider {
-    // Determine provider from .env configuration
-    const providerType = (process.env.LLM_PROVIDER || 'mock').toLowerCase();
-    
-    switch (providerType) {
-      case 'groq':
-        return new GroqProvider();
-      case 'mock':
-      default:
-        // Default to safe mock behavior for tests or unconfigured environments
-        return new MockProvider();
+    const providerType = (process.env.LLM_PROVIDER || '').toLowerCase();
+
+    // Use Groq if explicitly configured OR if the API key is present
+    if (providerType === 'groq' || (!providerType && process.env.GROQ_API_KEY)) {
+      return new GroqProvider();
     }
+
+    // Default to mock for tests or unconfigured environments
+    return new MockProvider();
   }
 }

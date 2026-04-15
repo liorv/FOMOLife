@@ -357,6 +357,47 @@
   font-size: 17px;
 }
 
+/* ── Mark Complete button ── */
+.completeBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #cbd5e1;
+  padding: 6px 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  align-self: stretch;
+  transition: color 0.13s, background 0.13s;
+}
+
+.completeBtn:hover {
+  color: #22c55e;
+  background: #f0fdf4;
+}
+
+.completeBtn .material-icons {
+  font-size: 17px;
+}
+
+.completeBtnActive {
+  color: #22c55e;
+}
+
+.completeBtnActive:hover {
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.completionCount {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  color: inherit;
+  white-space: nowrap;
+}
+
 /* ── States ── */
 .center {
   display: flex;

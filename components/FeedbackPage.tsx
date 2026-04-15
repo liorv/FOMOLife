@@ -15,6 +15,7 @@ interface FeedbackItem {
   authorName: string;
   createdAt: string;
   votes: Record<string, 1 | -1>;
+  completions: Record<string, true>;
 }
 
 type Props = {
@@ -112,6 +113,43 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
         body: JSON.stringify({ id }),
       });
       if (!res.ok) fetchItems();
+    } catch {
+      fetchItems();
+    }
+  };
+
+  const handleMarkComplete = async (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    const completions = item.completions ?? {};
+    const alreadyMarked = !!completions[userId];
+    const newMark = !alreadyMarked;
+
+    // Optimistic update
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) return i;
+        const updated = { ...i, completions: { ...(i.completions ?? {}) } };
+        if (newMark) updated.completions[userId] = true;
+        else delete updated.completions[userId];
+        return updated;
+      }),
+    );
+
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id, complete: newMark }),
+      });
+      if (!res.ok) { fetchItems(); return; }
+      const data = await res.json();
+      if (data.archived) {
+        // Remove archived item from list
+        setItems((prev) => prev.filter((i) => i.id !== id));
+      } else {
+        setItems((prev) => prev.map((i) => (i.id === id ? data : i)));
+      }
     } catch {
       fetchItems();
     }
@@ -283,6 +321,24 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
                     <span className={styles.cardTitle}>{item.title}</span>
                     <span className={styles.cardMeta}>{item.authorName} · {timeAgo(item.createdAt)}</span>
                   </div>
+
+                  {/* Mark Complete */}
+                  {(() => {
+                    const completions = item.completions ?? {};
+                    const count = Object.keys(completions).length;
+                    const iMarked = !!completions[userId];
+                    return (
+                      <button
+                        className={`${styles.completeBtn} ${iMarked ? styles.completeBtnActive : ''}`}
+                        onClick={() => handleMarkComplete(item.id)}
+                        aria-label={iMarked ? 'Unmark as completed' : 'Mark as completed'}
+                        title={iMarked ? `You marked this done (${count}/3 confirmations)` : `Mark as done (${count}/3 confirmations)`}
+                      >
+                        <span className="material-icons">{iMarked ? 'check_circle' : 'check_circle_outline'}</span>
+                        {count > 0 && <span className={styles.completionCount}>{count}/3</span>}
+                      </button>
+                    );
+                  })()}
 
                   {/* Delete (own only) */}
                   {isOwn && (

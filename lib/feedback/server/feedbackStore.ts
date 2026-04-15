@@ -22,7 +22,12 @@ export interface FeedbackItem {
   createdAt: string;
   /** userId → vote direction (+1 upvote, -1 downvote) */
   votes: Record<string, 1 | -1>;
+  /** userId → true: users who marked this item as completed */
+  completions: Record<string, true>;
 }
+
+/** Number of completion marks required to archive an item */
+export const COMPLETION_THRESHOLD = 3;
 
 // Module-level cache (reset on server restart / module reload)
 let cache: FeedbackItem[] | null = null;
@@ -72,6 +77,7 @@ export async function createFeedback(
     authorName: displayName,
     createdAt: new Date().toISOString(),
     votes: {},
+    completions: {},
   };
   items.push(item);
   await persist(items);
@@ -93,6 +99,40 @@ export async function voteFeedback(
   }
   await persist(items);
   return item;
+}
+
+/**
+ * Toggle a user's "mark as completed" on an item.
+ * Returns the updated item, or null if the item was archived (threshold reached).
+ * `archived` will be true when the item is removed from the list.
+ */
+export async function markFeedbackComplete(
+  userId: string,
+  id: string,
+  mark: boolean,
+): Promise<{ item: FeedbackItem | null; archived: boolean }> {
+  const items = await load();
+  const item = items.find((i) => i.id === id);
+  if (!item) return { item: null, archived: false };
+
+  if (!item.completions) item.completions = {};
+
+  if (mark) {
+    item.completions[userId] = true;
+  } else {
+    delete item.completions[userId];
+  }
+
+  if (Object.keys(item.completions).length >= COMPLETION_THRESHOLD) {
+    // Archive: remove from list
+    const idx = items.findIndex((i) => i.id === id);
+    items.splice(idx, 1);
+    await persist(items);
+    return { item: null, archived: true };
+  }
+
+  await persist(items);
+  return { item, archived: false };
 }
 
 export async function deleteFeedback(userId: string, id: string): Promise<boolean> {

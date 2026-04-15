@@ -4,6 +4,7 @@ import {
   createFeedback,
   deleteFeedback,
   listFeedback,
+  markFeedbackComplete,
   voteFeedback,
 } from '@/lib/feedback/server/feedbackStore';
 
@@ -48,10 +49,24 @@ export async function PATCH(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorized();
 
-  const body = (await request.json()) as { id?: string; vote?: number };
+  const body = (await request.json()) as { id?: string; vote?: number; complete?: boolean };
   if (!body.id) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
+
+  // Handle completion toggle
+  if (body.complete !== undefined) {
+    const result = await markFeedbackComplete(session.userId, body.id, body.complete);
+    if (result.archived) {
+      return NextResponse.json({ archived: true });
+    }
+    if (!result.item) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    return NextResponse.json(result.item);
+  }
+
+  // Handle vote
   if (body.vote !== 1 && body.vote !== -1 && body.vote !== 0) {
     return NextResponse.json({ error: 'vote must be 1, -1, or 0' }, { status: 400 });
   }

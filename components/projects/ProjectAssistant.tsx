@@ -7,6 +7,7 @@ interface Props {
   onApplyChange?: ((projectId: string, updated: any) => void) | undefined;
   project?: any;
   onAddSubproject: (title: string) => void;
+  providerLabel?: string | null;
 }
 
 type ChatMessage = {
@@ -16,7 +17,7 @@ type ChatMessage = {
   meta?: any;
 }
 
-export default function ProjectAssistant({ projectExport, onClose, onApplyChange, project, onAddSubproject }: Props) {
+export default function ProjectAssistant({ projectExport, onClose, onApplyChange, project, onAddSubproject, providerLabel }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -229,9 +230,10 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
     }
   }, [messages, loading]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', text: input.trim() };
+  const sendMessage = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
+    if (!text) return;
+    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', text };
     setMessages((m) => [...m, userMsg]);
     setLoading(true);
     setInput("");
@@ -357,7 +359,10 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         <div className="assistant-header">
           <div className="assistant-header-left">
             <span className="material-icons assistant-header-icon">auto_awesome</span>
-            <h3>FOMO AI Assistant</h3>
+            <div className="assistant-header-title">
+              <h3>FOMO AI Assistant</h3>
+              {providerLabel && <span className="assistant-provider-label">Powered by {providerLabel}</span>}
+            </div>
           </div>
           <div className="assistant-header-right">
             <button className="copy-btn" onClick={copyConversation} aria-label="Copy conversation">
@@ -479,6 +484,24 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
             </div>
           ))}
 
+          {messages.length === 1 && messages[0].role === 'assistant' && (
+            <div className="assistant-suggestions">
+              {[
+                'Create a list of recommended 80s movies',
+                'Remove tasks that sound like they take too long',
+                'Add estimated effort to each task',
+              ].map((s) => (
+                <button
+                  key={s}
+                  className="assistant-suggestion-chip"
+                  onClick={() => { setInput(s); setTimeout(() => sendMessage(s), 0); }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
         </div>
 
         <div className="assistant-input">
@@ -522,6 +545,8 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         }
         .assistant-header-icon { font-size: 1.5rem; }
         .assistant-header h3 { margin: 0; font-size: 1.25rem; font-weight: 500; letter-spacing: 0.5px; }
+        .assistant-header-title { display: flex; flex-direction: column; gap: 1px; }
+        .assistant-provider-label { font-size: 0.65rem; color: rgba(255,255,255,0.55); font-weight: 400; letter-spacing: 0.3px; margin: 0; line-height: 1.2; }
         .copy-btn, .close-btn {
           background: transparent; border: none; color: white;
           width: 40px; height: 40px; border-radius: 50%;
@@ -565,6 +590,19 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         }
         .assistant-action:hover:not(:disabled) { background: rgba(26, 115, 232, 0.04); border-color: #1a73e8; }
         .assistant-action:disabled { opacity: 0.6; cursor: default; background: #f5f5f5; border-color: #ddd; color: #999; }
+
+        .assistant-suggestions {
+          display: flex; flex-wrap: wrap; gap: 8px;
+          padding: 12px 16px 4px;
+        }
+        .assistant-suggestion-chip {
+          background: #f0f4ff; color: #1a73e8;
+          border: 1px solid rgba(26, 115, 232, 0.25); border-radius: 20px;
+          padding: 7px 14px; font-size: 0.82rem; font-weight: 500;
+          cursor: pointer; transition: background 0.15s, border-color 0.15s;
+          text-align: left;
+        }
+        .assistant-suggestion-chip:hover { background: #dce8ff; border-color: #1a73e8; }
         
         .assistant-input {
           display: flex; gap: 16px; align-items: center;
