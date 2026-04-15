@@ -30,6 +30,14 @@ function getScore(item: FeedbackItem): number {
   return Object.values(item.votes).reduce((s, v) => s + v, 0);
 }
 
+function formatAuthorName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  if (!first || !last || parts.length < 2) return fullName;
+  return `${first} ${last[0]}`;
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -319,7 +327,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
                   {/* Title + meta */}
                   <div className={styles.cardBody}>
                     <span className={styles.cardTitle}>{item.title}</span>
-                    <span className={styles.cardMeta}>{item.authorName} · {timeAgo(item.createdAt)}</span>
+                    <span className={styles.cardMeta}>{formatAuthorName(item.authorName)} · {timeAgo(item.createdAt)}</span>
                   </div>
 
                   {/* Mark Complete */}

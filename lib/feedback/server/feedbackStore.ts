@@ -123,7 +123,8 @@ export async function markFeedbackComplete(
     delete item.completions[userId];
   }
 
-  if (Object.keys(item.completions).length >= COMPLETION_THRESHOLD) {
+  const isCreator = item.authorId === userId;
+  if (isCreator && mark || Object.keys(item.completions).length >= COMPLETION_THRESHOLD) {
     // Archive: remove from list
     const idx = items.findIndex((i) => i.id === id);
     items.splice(idx, 1);

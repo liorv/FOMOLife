@@ -216,7 +216,7 @@
 /* ── Card ── */
 .card {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
   background: #fff;
   border-radius: 10px;
@@ -235,14 +235,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 0 4px;
+  justify-content: flex-start;
+  padding: 4px 4px 0;
   gap: 0;
   background: #f8fafc;
   border-right: 1px solid #f1f5f9;
   width: 42px;
   flex-shrink: 0;
-  align-self: stretch;
 }
 
 .voteBtn {
@@ -290,11 +289,11 @@
 /* ── Type pill ── */
 .typePill {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   width: 24px;
   flex-shrink: 0;
-  margin: 0 6px 0 8px;
+  margin: 12px 6px 0 8px;
 }
 
 .pillFeature {
@@ -310,20 +309,18 @@
   flex: 1 1 0;
   min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 10px 6px 10px 0;
-  overflow: hidden;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 6px 8px 0;
 }
 
 .cardTitle {
   font-size: 0.9rem;
   font-weight: 500;
   color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 1;
+  white-space: normal;
+  word-break: break-word;
   min-width: 0;
 }
 

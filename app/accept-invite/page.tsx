@@ -50,6 +50,11 @@ function AcceptInvitePageInner() {
       await apiClient.requestLinkage(token);
       setRequestSent(true);
     } catch (err: any) {
+      if (err?.status === 401) {
+        const returnTo = `/accept-invite?token=${encodeURIComponent(token)}`;
+        router.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+        return;
+      }
       let msg = err?.message || "Failed to send connection request.";
       if (err?.body?.error) {
         msg += ` (${err.body.error})`;

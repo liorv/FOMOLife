@@ -94,7 +94,11 @@ export default function OAuthLoginClient({ returnTo, forceAccountSelect = false 
     setErrorText('');
     setIsBusy(true);
 
-    const redirectTo = `${window.location.origin}/login`;
+    const loginUrl = new URL('/login', window.location.origin);
+    if (returnTo && returnTo !== '/') {
+      loginUrl.searchParams.set('returnTo', returnTo);
+    }
+    const redirectTo = loginUrl.toString();
     const options = forceAccountSelect
       ? {
           redirectTo,
