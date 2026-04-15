@@ -18,31 +18,20 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { message, project, history } = body;
+    const { message, project, history, jsonMode } = body;
 
-    const userMessage = sanitizeInput(String(message || ''), 800);
-    const context = sanitizeInput(JSON.stringify(project || {}), 2000);
+    const userMessage = sanitizeInput(String(message || ''), 600);
+    const context = sanitizeInput(JSON.stringify(project || {}), 4000);
+    // Limit history to the last 6 turns to stay under TPM limits
+    const trimmedHistory = Array.isArray(history) ? history.slice(-6) : [];
 
     if (!userMessage) {
       return NextResponse.json({ error: 'Empty message' }, { status: 400 });
     }
 
     const provider = LLMFactory.getProvider();
-
-    // Simple intent heuristic: if message looks conversational, use generateChat
-    const lower = userMessage.toLowerCase();
-    const projectIntentKeywords = ['add', 'create', 'rename', 'delete', 'remove', 'update', 'move', 'subproject', 'task', 'project'];
-    const isProjectIntent = projectIntentKeywords.some(k => lower.includes(k));
-
-    if (!isProjectIntent) {
-      // Treat as conversational question
-      const chatResp = await provider.generateChat({ message: userMessage, context, history });
-      return NextResponse.json(chatResp);
-    }
-
-    // For project-intent messages, ask provider for a set of actionable options via chat
-    const projectChat = await provider.generateChat({ message: userMessage, context, history });
-    return NextResponse.json(projectChat);
+    const chatResp = await provider.generateChat({ message: userMessage, context, history: trimmedHistory, jsonMode: !!jsonMode });
+    return NextResponse.json(chatResp);
   } catch (err: any) {
     console.error('AI chat error:', err);
     return NextResponse.json({ error: err?.message ?? 'LLM error' }, { status: 500 });

@@ -443,7 +443,7 @@ export default function ProjectsDashboard({
 
       {isAssistantOpen && selectedProject && (
         <ProjectAssistant
-          projectExport={buildProjectExport(selectedProject, people)}
+          projectExport={buildAIContext(selectedProject, people)}
           onClose={() => {
             setIsAssistantOpen(false);
             try { window.dispatchEvent(new CustomEvent('close-project-assistant')); } catch (e) {}
@@ -460,6 +460,27 @@ export default function ProjectsDashboard({
 }
 
 // Build a complete, LLM-friendly export object from a ProjectItem
+/** Slim context sent to the AI — only what the LLM needs to make edits.
+ *  Includes task IDs so edits can be matched back to real tasks on apply. */
+function buildAIContext(proj: ProjectItem | any, _people: any[] = []) {
+  return {
+    name: proj.text ?? proj.title ?? '',
+    goal: proj.goal ?? null,
+    description: proj.description ?? null,
+    end_date: proj.dueDate ?? null,
+    special_instructions: proj.aiInstructions ?? null,
+    sub_projects: (proj.subprojects || []).map((s: any) => ({
+      id: s.id,
+      title: s.title ?? s.text ?? '',
+      tasks: (s.tasks || []).map((t: any) => ({
+        id: t.id,
+        title: t.text ?? t.description ?? '',
+        effort: t.effort ?? null,
+      }))
+    })),
+  };
+}
+
 function buildProjectExport(proj: ProjectItem | any, people: any[] = []) {
   const { subprojects: _sub, id: _id, ...rest } = proj as any;
   // Strip any remaining id-like keys from metadata to prevent leaking internal identifiers

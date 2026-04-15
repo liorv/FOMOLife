@@ -1,5 +1,288 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import type { ProjectTask } from "@myorg/types";
+
+// Visual preview component using actual UI components
+const ChangePreview = ({ modified, original }: { modified: any, original: any }) => {
+  const changes: JSX.Element[] = [];
+  const origSubs = original.sub_projects || [];
+  const modSubs = modified.sub_projects || [];
+
+  // New subprojects - show simplified static version
+  const newSubs = modSubs.filter((ms: any) => !origSubs.find((os: any) => os.id === ms.id));
+  newSubs.forEach((s: any) => {
+    changes.push(
+      <div key={`new-sub-${s.id}`} style={{ marginBottom: '8px' }}>
+        <div style={{
+          fontSize: '0.85em',
+          color: '#666',
+          marginBottom: '4px',
+          fontWeight: '500'
+        }}>
+          📋 New list: "{s.title}" ({s.tasks?.length || 0} tasks)
+        </div>
+        <div style={{
+          border: '1px solid #e0e0e0',
+          borderRadius: '6px',
+          padding: '8px',
+          backgroundColor: '#fafafa',
+          marginBottom: '8px'
+        }}>
+          {/* Simplified subproject header without interactive elements */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '4px 0'
+          }}>
+            <span className="material-icons" style={{ fontSize: '18px', color: '#666' }}>
+              folder
+            </span>
+            <span style={{
+              fontWeight: '500',
+              color: '#333',
+              flex: 1
+            }}>
+              {s.title || "Untitled"}
+            </span>
+            <span style={{
+              fontSize: '0.8em',
+              color: '#666',
+              backgroundColor: '#e0e0e0',
+              padding: '2px 6px',
+              borderRadius: '10px'
+            }}>
+              {s.tasks?.length || 0}
+            </span>
+          </div>
+        </div>
+        {/* Show first few tasks as simple text */}
+        {s.tasks && s.tasks.length > 0 && (
+          <div style={{ marginLeft: '16px', marginTop: '4px' }}>
+            {s.tasks.slice(0, 3).map((t: any, i: number) => (
+              <div key={i} style={{
+                fontSize: '0.85em',
+                color: '#555',
+                marginBottom: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span className="material-icons" style={{ fontSize: '14px', color: '#999' }}>
+                  check_box_outline_blank
+                </span>
+                <span>{t.title}</span>
+              </div>
+            ))}
+            {s.tasks.length > 3 && (
+              <div style={{
+                fontSize: '0.8em',
+                color: '#999',
+                marginTop: '4px',
+                fontStyle: 'italic'
+              }}>
+                ... and {s.tasks.length - 3} more tasks
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  // Modified subprojects - show new tasks as simple text
+  modSubs.forEach((ms: any) => {
+    const os = origSubs.find((s: any) => s.id === ms.id);
+    if (!os) return; // already handled as new
+
+    const origTasks = os.tasks || [];
+    const modTasks = ms.tasks || [];
+    const newTasks = modTasks.filter((mt: any) => !origTasks.find((ot: any) => ot.id === mt.id));
+
+    if (newTasks.length > 0) {
+      changes.push(
+        <div key={`new-tasks-${ms.id}`} style={{ marginBottom: '8px' }}>
+          <div style={{
+            fontSize: '0.85em',
+            color: '#666',
+            marginBottom: '4px',
+            fontWeight: '500'
+          }}>
+            ➕ Add {newTasks.length} task{newTasks.length > 1 ? 's' : ''} to "{ms.title}":
+          </div>
+          <div style={{
+            border: '1px solid #e0e0e0',
+            borderRadius: '6px',
+            padding: '8px',
+            backgroundColor: '#fafafa'
+          }}>
+            {newTasks.slice(0, 5).map((t: any, i: number) => (
+              <div key={i} style={{
+                fontSize: '0.85em',
+                color: '#555',
+                marginBottom: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span className="material-icons" style={{ fontSize: '14px', color: '#999' }}>
+                  check_box_outline_blank
+                </span>
+                <span>{t.title}</span>
+              </div>
+            ))}
+            {newTasks.length > 5 && (
+              <div style={{
+                fontSize: '0.8em',
+                color: '#999',
+                marginTop: '4px',
+                fontStyle: 'italic'
+              }}>
+                ... and {newTasks.length - 5} more tasks
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+  });
+
+  // Overview changes - keep as text for now
+  const overviewChanges: string[] = [];
+  if (modified.name !== original.name) {
+    overviewChanges.push(`📝 **Project name:** "${original.name}" → "${modified.name}"`);
+  }
+  if (modified.goal !== original.goal) {
+    const old = original.goal || '(none)';
+    const new_ = modified.goal || '(none)';
+    overviewChanges.push(`🎯 **Goal:** "${old}" → "${new_}"`);
+  }
+  if (modified.description !== original.description) {
+    const old = original.description || '(none)';
+    const new_ = modified.description || '(none)';
+    overviewChanges.push(`📖 **Description:** "${old}" → "${new_}"`);
+  }
+  if (modified.end_date !== original.end_date) {
+    const old = original.end_date || '(none)';
+    const new_ = modified.end_date || '(none)';
+    overviewChanges.push(`📅 **End date:** "${old}" → "${new_}"`);
+  }
+  if (modified.special_instructions !== original.special_instructions) {
+    const old = original.special_instructions || '(none)';
+    const new_ = modified.special_instructions || '(none)';
+    overviewChanges.push(`🧠 **Special instructions:** "${old}" → "${new_}"`);
+  }
+
+  return (
+    <div style={{ marginTop: '12px', marginBottom: '12px' }}>
+      {overviewChanges.length > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{
+            fontSize: '0.9em',
+            fontWeight: '600',
+            color: '#2c3e50',
+            marginBottom: '6px'
+          }}>
+            📋 Project Changes:
+          </div>
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            border: '1px solid #e9ecef',
+            borderRadius: '6px',
+            padding: '8px'
+          }}>
+            {overviewChanges.map((change, i) => (
+              <div key={i} style={{ marginBottom: '4px', fontSize: '0.85em' }}>
+                {change.split('**').map((part, j) =>
+                  j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {changes.length > 0 && (
+        <div>
+          <div style={{
+            fontSize: '0.9em',
+            fontWeight: '600',
+            color: '#2c3e50',
+            marginBottom: '6px'
+          }}>
+            🎯 Content Changes:
+          </div>
+          {changes}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Simple text renderer for assistant messages with basic formatting
+const FormattedText = ({ text }: { text: string }) => {
+  // Split by newlines and render with proper spacing
+  const lines = text.split('\n').map((line, i) => {
+    // Handle indentation for visual tree structure (new lists)
+    if (line.startsWith('   ├─') || line.startsWith('   └─')) {
+      return (
+        <div key={i} style={{
+          marginLeft: '1.2em',
+          fontFamily: 'monospace',
+          fontSize: '0.9em',
+          color: '#666',
+          borderLeft: '2px solid #e0e0e0',
+          paddingLeft: '0.5em',
+          marginBottom: '2px',
+          paddingBottom: '1px'
+        }}>
+          {line}
+        </div>
+      );
+    }
+    // Handle bullet points for new tasks
+    if (line.startsWith('   •')) {
+      return (
+        <div key={i} style={{
+          marginLeft: '1.5em',
+          fontSize: '0.9em',
+          color: '#555',
+          marginBottom: '2px',
+          paddingBottom: '1px'
+        }}>
+          {line}
+        </div>
+      );
+    }
+    // Handle bold text with ** markers
+    if (line.includes('**')) {
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <div key={i} style={{ marginBottom: '6px', fontSize: '0.95em' }}>
+          {parts.map((part, j) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={j} style={{
+                fontWeight: '600',
+                color: '#2c3e50'
+              }}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+          })}
+        </div>
+      );
+    }
+    return <div key={i} style={{ marginBottom: '4px', fontSize: '0.95em' }}>{line}</div>;
+  });
+
+  return <div style={{ lineHeight: '1.5' }}>{lines}</div>;
+};
+
+// ── Feature flag ─────────────────────────────────────────────────────────────
+// When true the LLM returns the full edited project JSON instead of discrete
+// action objects. The old action-based path is still present but unreachable
+// while this is true. Flip to false to revert to the old behaviour.
+const AI_JSON_MODE = true;
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface Props {
   projectExport: any;
@@ -91,28 +374,61 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                 const title = subPayload.title || subPayload.text || subPayload.description || 'New List';
                 const newSub = { id: `ai-sub-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: title, title: title, tasks: [] };
                 updatedSubprojects = [...updatedSubprojects, newSub];
+             } else if (['move_task', 'move-task', 'movetask'].includes(subActionName) && subPayload) {
+               const taskId = subPayload.taskId || subPayload.id || subPayload.taskID;
+               const toNameOrId = subPayload.toSubprojectId || subPayload.to || subPayload.subprojectId || subPayload.listName;
+               if (taskId && toNameOrId) {
+                 let movedTask: any = null;
+                 updatedSubprojects = updatedSubprojects.map((s: any) => {
+                   const idx = (s.tasks || []).findIndex((t: any) => String(t.id) === String(taskId));
+                   if (idx === -1) return s;
+                   movedTask = (s.tasks || [])[idx];
+                   return { ...s, tasks: (s.tasks || []).filter((_: any, i: number) => i !== idx) };
+                 });
+                 if (movedTask) {
+                   const tn = String(toNameOrId).toLowerCase();
+                   const targetSub = updatedSubprojects.find((s: any) => String(s.id) === tn || (s.title || s.text || '').toLowerCase().includes(tn));
+                   if (targetSub) {
+                     updatedSubprojects = updatedSubprojects.map((s: any) => String(s.id) === String(targetSub.id) ? { ...s, tasks: [...(s.tasks || []), movedTask] } : s);
+                   } else {
+                     const newSub = { id: `ai-sub-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: toNameOrId, title: toNameOrId, tasks: [movedTask] };
+                     updatedSubprojects = [...updatedSubprojects, newSub];
+                   }
+                 }
+               }
              } else if ((subActionName === 'edit-task' || subActionName === 'edit_task' || subActionName === 'edittask') && subPayload) {
                const taskId = subPayload.taskId || subPayload.id || subPayload.taskID;
-               if (taskId) {
+               const taskTitle = (subPayload.title || subPayload.text || '').trim().toLowerCase();
+               console.log('[AI edit_task] taskId:', taskId, 'title:', taskTitle, 'payload:', subPayload);
+               if (taskId || taskTitle) {
+                 let matched = false;
                  updatedSubprojects = updatedSubprojects.map((s: any) => ({
                     ...s,
                     tasks: (s.tasks || []).map((t: any) => {
-                      if (String(t.id) !== String(taskId)) return t;
+                      // Match by ID first, fall back to title match
+                      const idMatch = taskId && String(t.id) === String(taskId);
+                      const titleMatch = !idMatch && taskTitle && (t.text || t.description || '').trim().toLowerCase() === taskTitle;
+                      if (!idMatch && !titleMatch) return t;
+                      matched = true;
+                      console.log('[AI edit_task] matched task:', t.id, t.text, 'effort before:', t.effort, 'effort payload:', subPayload.effort);
                       const updatedTask = { ...t };
-                      const newTitle = subPayload.text || subPayload.title || subPayload.description;
-                      if (newTitle) {
+                      // Only update title if explicitly provided AND different from current (avoids renaming via fallback title match)
+                      const newTitle = taskId ? (subPayload.text || subPayload.title) : null;
+                      if (newTitle && newTitle !== t.text) {
                         updatedTask.text = newTitle;
                         updatedTask.description = newTitle;
-                      } else if (subPayload.description) {
+                      } else if (!taskId && subPayload.description && subPayload.description !== t.description) {
                         updatedTask.description = subPayload.description;
                       }
                       if (subPayload.done !== undefined) updatedTask.done = !!subPayload.done;
-                      if (subPayload.effort !== undefined) updatedTask.effort = subPayload.effort;
+                      if (subPayload.effort !== undefined) updatedTask.effort = normalizeEffort(subPayload.effort);
                       if (subPayload.dueDate !== undefined) updatedTask.dueDate = subPayload.dueDate;
                       if (subPayload.assignee !== undefined) updatedTask.assignee = subPayload.assignee;
+                      console.log('[AI edit_task] effort after:', updatedTask.effort);
                       return updatedTask;
                     })
                  }));
+                 if (!matched) console.warn('[AI edit_task] NO MATCH FOUND for taskId:', taskId, 'title:', taskTitle);
                }
              }
           };
@@ -122,7 +438,31 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                processAction(String(a.action || a.type || '').toLowerCase(), a.payload);
             }
           });
+          console.log('[AI batch_update] calling onApplyChange with subprojects:', JSON.stringify(updatedSubprojects).slice(0, 500));
           onApplyChange?.(project?.id, { subprojects: updatedSubprojects });
+        } else if (['move_task', 'move-task', 'movetask'].includes(actionName) && patch.payload) {
+          const taskId = patch.payload.taskId || patch.payload.id || patch.payload.taskID;
+          const toNameOrId = patch.payload.toSubprojectId || patch.payload.to || patch.payload.subprojectId || patch.payload.listName;
+          if (taskId && toNameOrId) {
+            let movedTask: any = null;
+            let updatedSubprojects = (project?.subprojects || []).map((s: any) => {
+              const idx = (s.tasks || []).findIndex((t: any) => String(t.id) === String(taskId));
+              if (idx === -1) return s;
+              movedTask = s.tasks[idx];
+              return { ...s, tasks: s.tasks.filter((_: any, i: number) => i !== idx) };
+            });
+            if (movedTask) {
+              const tn = String(toNameOrId).toLowerCase();
+              const targetSub = updatedSubprojects.find((s: any) => String(s.id) === tn || (s.title || s.text || '').toLowerCase().includes(tn));
+              if (targetSub) {
+                updatedSubprojects = updatedSubprojects.map((s: any) => String(s.id) === String(targetSub.id) ? { ...s, tasks: [...(s.tasks || []), movedTask] } : s);
+              } else {
+                const newSub = { id: `ai-sub-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, text: toNameOrId, title: toNameOrId, tasks: [movedTask] };
+                updatedSubprojects = [...updatedSubprojects, newSub];
+              }
+              onApplyChange?.(project?.id, { subprojects: updatedSubprojects });
+            }
+          }
         } else if ((actionName === 'remove-task' || actionName === 'remove_task' || actionName === 'removetask') && patch.payload) {
           const taskId = patch.payload.taskId || patch.payload.id || patch.payload.taskID;
           if (taskId) {
@@ -140,21 +480,23 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           }
         } else if ((actionName === 'edit-task' || actionName === 'edit_task' || actionName === 'edittask') && patch.payload) {
           const taskId = patch.payload.taskId || patch.payload.id || patch.payload.taskID;
-          if (taskId) {
+          const taskTitle = (patch.payload.title || patch.payload.text || '').trim().toLowerCase();
+          console.log('[AI edit_task top-level] taskId:', taskId, 'title:', taskTitle, 'payload:', patch.payload);
+          if (taskId || taskTitle) {
             const updatedSubprojects = (project?.subprojects || []).map((s: any) => ({
               ...s,
               tasks: (s.tasks || []).map((t: any) => {
-                if (String(t.id) !== String(taskId)) return t;
+                const idMatch = taskId && String(t.id) === String(taskId);
+                const titleMatch = !idMatch && taskTitle && (t.text || t.description || '').trim().toLowerCase() === taskTitle;
+                if (!idMatch && !titleMatch) return t;
                 const updated = { ...t };
-                const newTitle = patch.payload.text || patch.payload.title || patch.payload.description;
-                if (newTitle) {
+                const newTitle = taskId ? (patch.payload.text || patch.payload.title) : null;
+                if (newTitle && newTitle !== t.text) {
                   updated.text = newTitle;
                   updated.description = newTitle;
-                } else if (patch.payload.description) {
-                  updated.description = patch.payload.description;
                 }
                 if (patch.payload.done !== undefined) updated.done = !!patch.payload.done;
-                if (patch.payload.effort !== undefined) updated.effort = patch.payload.effort;
+                if (patch.payload.effort !== undefined) updated.effort = normalizeEffort(patch.payload.effort);
                 if (patch.payload.dueDate !== undefined) updated.dueDate = patch.payload.dueDate;
                 if (patch.payload.assignee !== undefined) updated.assignee = patch.payload.assignee;
                 return updated;
@@ -174,6 +516,92 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
 
   const genId = (prefix = 'id') => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+  // Convert visual preview to text for clipboard sharing
+  const previewToText = (modified: any, original: any): string => {
+    const lines: string[] = [];
+
+    const origSubs = original.sub_projects || [];
+    const modSubs = modified.sub_projects || [];
+
+    // New subprojects
+    const newSubs = modSubs.filter((ms: any) => !origSubs.find((os: any) => os.id === ms.id));
+    newSubs.forEach((s: any) => {
+      lines.push(`📋 New list: "${s.title}" (${s.tasks?.length || 0} tasks)`);
+      if (s.tasks && s.tasks.length > 0) {
+        s.tasks.slice(0, 5).forEach((t: any) => {
+          const effort = t.effort ? ` (${t.effort}d)` : '';
+          lines.push(`   • ${t.title}${effort}`);
+        });
+        if (s.tasks.length > 5) {
+          lines.push(`   • ... and ${s.tasks.length - 5} more tasks`);
+        }
+      }
+    });
+
+    // New tasks in existing subprojects
+    modSubs.forEach((ms: any) => {
+      const os = origSubs.find((s: any) => s.id === ms.id);
+      if (!os) return;
+
+      const origTasks = os.tasks || [];
+      const modTasks = ms.tasks || [];
+      const newTasks = modTasks.filter((mt: any) => !origTasks.find((ot: any) => ot.id === mt.id));
+
+      if (newTasks.length > 0) {
+        lines.push(`➕ Add ${newTasks.length} task${newTasks.length > 1 ? 's' : ''} to "${ms.title}":`);
+        newTasks.slice(0, 5).forEach((t: any) => {
+          const effort = t.effort ? ` (${t.effort}d)` : '';
+          lines.push(`   • ${t.title}${effort}`);
+        });
+        if (newTasks.length > 5) {
+          lines.push(`   • ... and ${newTasks.length - 5} more tasks`);
+        }
+      }
+    });
+
+    // Overview changes
+    if (modified.name !== original.name) {
+      lines.push(`📝 Project name: "${original.name}" → "${modified.name}"`);
+    }
+    if (modified.goal !== original.goal) {
+      const old = original.goal || '(none)';
+      const new_ = modified.goal || '(none)';
+      lines.push(`🎯 Goal: "${old}" → "${new_}"`);
+    }
+    if (modified.description !== original.description) {
+      const old = original.description || '(none)';
+      const new_ = modified.description || '(none)';
+      lines.push(`📖 Description: "${old}" → "${new_}"`);
+    }
+    if (modified.end_date !== original.end_date) {
+      const old = original.end_date || '(none)';
+      const new_ = modified.end_date || '(none)';
+      lines.push(`📅 End date: "${old}" → "${new_}"`);
+    }
+    if (modified.special_instructions !== original.special_instructions) {
+      const old = original.special_instructions || '(none)';
+      const new_ = modified.special_instructions || '(none)';
+      lines.push(`🧠 Special instructions: "${old}" → "${new_}"`);
+    }
+
+    return lines.join('\n');
+  };
+  const normalizeEffort = (v: any): number | null => {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim().toLowerCase();
+    if (!s) return null;
+    // hours: "4h", "4 hours", "4 hr"
+    const hoursMatch = s.match(/^([\d.]+)\s*h/);
+    if (hoursMatch && hoursMatch[1]) return Math.round((parseFloat(hoursMatch[1]) / 8) * 10) / 10;
+    // minutes
+    const minsMatch = s.match(/^([\d.]+)\s*m/);
+    if (minsMatch && minsMatch[1]) return Math.round((parseFloat(minsMatch[1]) / 480) * 10) / 10;
+    // plain number or "2 days"
+    const numMatch = s.match(/^([\d.]+)/);
+    if (numMatch && numMatch[1]) return parseFloat(numMatch[1]);
+    return null;
+  };
+
   const extractTitleFromLabel = (label: string) => {
     if (!label) return 'New Item';
     const q = label.match(/['"]([^'"]+)['"]/);
@@ -182,6 +610,67 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
     if (m && m[1]) return m[1].trim();
     return label;
   }
+
+  /**
+   * JSON-mode apply: takes the LLM-returned modified project structure and
+   * merges it back onto the real project, preserving every field the LLM
+   * doesn't know about (favorite, people, starred, done, dueDate, etc.).
+   * Also maps slim field names (end_date, special_instructions) back to real names.
+   */
+  const mergeAIProjectBack = (modifiedProject: any): any => {
+    const originalSubs: any[] = project?.subprojects || [];
+    const modifiedSubs: any[] = modifiedProject?.sub_projects || modifiedProject?.subprojects || [];
+
+    const updatedSubprojects = modifiedSubs.map((mSub: any) => {
+      const origSub = originalSubs.find((s: any) => s.id === mSub.id);
+      const origTasks: any[] = origSub?.tasks || [];
+      const modifiedTasks: any[] = mSub.tasks || [];
+
+      const updatedTasks = modifiedTasks.map((mTask: any) => {
+        const origTask = origTasks.find((t: any) => t.id === mTask.id);
+        if (origTask) {
+          // Merge: apply AI-modified fields, preserve everything else
+          return {
+            ...origTask,
+            text: mTask.title ?? mTask.text ?? origTask.text,
+            description: mTask.title ?? mTask.text ?? origTask.description,
+            effort: mTask.effort !== undefined ? normalizeEffort(mTask.effort) : origTask.effort,
+          };
+        } else {
+          // New task added by the LLM
+          return {
+            id: mTask.id || genId('task'),
+            text: mTask.title || mTask.text || 'New Task',
+            description: mTask.title || mTask.text || '',
+            done: false,
+            effort: normalizeEffort(mTask.effort),
+            dueDate: null,
+            favorite: false,
+            people: [],
+          };
+        }
+      });
+
+      if (origSub) {
+        return { ...origSub, text: mSub.title ?? mSub.text ?? origSub.text, tasks: updatedTasks };
+      } else {
+        return {
+          id: mSub.id || genId('sub'),
+          text: mSub.title || mSub.text || 'New List',
+          isProjectLevel: false,
+          tasks: updatedTasks,
+        };
+      }
+    });
+
+    // Build the result with subprojects, then map overview fields back to real field names
+    const result: any = { subprojects: updatedSubprojects };
+    if (modifiedProject.goal !== undefined) result.goal = modifiedProject.goal;
+    if (modifiedProject.description !== undefined) result.description = modifiedProject.description;
+    if (modifiedProject.end_date !== undefined) result.dueDate = modifiedProject.end_date;
+    if (modifiedProject.special_instructions !== undefined) result.aiInstructions = modifiedProject.special_instructions;
+    return result;
+  };
 
   const normalizeAction = (a: any) => {
     if (!a) return a;
@@ -195,16 +684,21 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
     if (type.toLowerCase() === 'button' || type.toLowerCase() === 'add_to_list' || type.toLowerCase() === 'add-to-list') type = 'add_task';
     if (type.toLowerCase() === 'add-task') type = 'add_task';
     const payload = { ...(a.payload || {}) };
-    // prefer description/title aliases
-    payload.title = payload.title || payload.description || payload.text || extractTitleFromLabel(a.label || '');
-    if (payload.description === undefined && payload.title) payload.description = payload.title;
+    // Only inject a fallback title for add_task — NOT for edit_task (where title is optional;
+    // injecting it would accidentally rename the task to the action label string)
+    const isAddAction = type === 'add_task';
+    if (isAddAction) {
+      payload.title = payload.title || payload.description || payload.text || extractTitleFromLabel(a.label || '');
+      if (payload.description === undefined && payload.title) payload.description = payload.title;
+    }
 
     let label = a.label;
-    if (!label || label === type) {
-      if (type === 'batch_update' || type === 'batch_actions') {
-        const actionCount = Array.isArray(payload.actions) ? payload.actions.length : 0;
-        label = actionCount > 0 ? `Apply ${actionCount} Changes` : 'Apply Multiple Changes';
-      } else if (type === 'add_subproject') {
+    // For batch actions always derive label from action count (ignore any LLM-generated label)
+    if (type === 'batch_update' || type === 'batch_actions') {
+      const actionCount = Array.isArray(payload.actions) ? payload.actions.length : 0;
+      label = a.label && a.label !== type ? a.label : (actionCount > 0 ? `Apply ${actionCount} Changes` : 'Apply Multiple Changes');
+    } else if (!label || label === type) {
+      if (type === 'add_subproject') {
         label = `Add new list: ${payload.title || 'New List'}`;
       } else if (type === 'add_task') {
         label = `Add ${payload.title || 'item'}`;
@@ -242,11 +736,39 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
       const resp = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg.text, project: projectExport, history: messages.map(x=>({role:x.role,text:x.text})) })
+        body: JSON.stringify({ message: userMsg.text, project: projectExport, history: messages.map(x=>({role:x.role,text:x.text})), jsonMode: AI_JSON_MODE })
       });
       const data = await resp.json();
       if (data.error) {
         setMessages((m) => [...m, { id: `a-${Date.now()}`, role: 'assistant', text: `Error: ${data.error}` }]);
+      } else if (AI_JSON_MODE) {
+        // ── JSON mode: the LLM returned a modified_project directly ──────────
+        let assistantText = data.text || 'Here are the suggested changes:';
+        let modified = data.modified_project ?? null;
+        // Safety net: if groq.ts JSON parse failed, data.text may be the raw JSON string
+        if (!modified && typeof assistantText === 'string' && assistantText.trimStart().startsWith('{')) {
+          try {
+            const jsonStart = assistantText.indexOf('{');
+            const jsonEnd = assistantText.lastIndexOf('}');
+            const raw = JSON.parse(assistantText.slice(jsonStart, jsonEnd + 1));
+            if (raw.modified_project) {
+              modified = raw.modified_project;
+              assistantText = String(raw.text || 'Here are the suggested changes:');
+            }
+          } catch (_) { /* ignore */ }
+        }
+        // Only show Apply Changes if modified_project is non-null and actually differs from what was sent
+        const originalJson = JSON.stringify(projectExport);
+        const hasRealChanges = modified && JSON.stringify(modified) !== originalJson;
+        setMessages((m) => [...m, {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          text: assistantText,
+          meta: hasRealChanges ? { 
+            modified_project: modified,
+            preview_component: <ChangePreview modified={modified} original={projectExport} />
+          } : undefined,
+        }]);
       } else {
         let assistantText = data.text || 'Response received.';
         // normalize actions: provider may return structured `actions` or JSON embedded in `text`
@@ -312,12 +834,13 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           'add_task', 'add-task', 'add-row', 'add_to_list',
           'remove_task', 'remove-task', 'remove', 'removetask',
           'edit_task', 'edit-task', 'edit', 'edittask',
+          'move_task', 'move-task', 'movetask',
           'batch_actions', 'batch_update', 'batchupdate'
         ]);
         normalized = normalized.filter((a: any) => a && a.type && validTypes.has(String(a.type).toLowerCase()));
         
         setMessages((m) => [...m, { id: `a-${Date.now()}`, role: 'assistant', text: assistantText, meta: { actions: normalized } }]);
-      }
+      } // end else (actions mode)
     } catch (err: any) {
       setMessages((m) => [...m, { id: `a-${Date.now()}`, role: 'assistant', text: `Error: ${String(err)}` }]);
     } finally {
@@ -327,11 +850,24 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
 
   const copyConversation = async () => {
     try {
-      const text = messages.map(m => {
+      const text = messages.map((m, index) => {
         let txt = `${m.role.toUpperCase()}: ${m.text}`;
         if (m.meta && Array.isArray(m.meta.actions) && m.meta.actions.length) {
           const labels = m.meta.actions.map((act: any) => (typeof act === 'string' ? act : (act.label || act.type || JSON.stringify(act))));
           txt += '\n\nActions:\n' + labels.map((l: string) => `- ${l}`).join('\n');
+        }
+        // Include visual preview as text for LLM sharing
+        if (m.meta?.preview_component) {
+          // Find the modified_project from the current message
+          const modifiedProject = m.meta.modified_project;
+          if (modifiedProject) {
+            const previewText = previewToText(modifiedProject, projectExport);
+            if (previewText) {
+              txt += '\n\n[Visual Preview]\n' + previewText;
+            }
+            // Add button representation
+            txt += '\n\n[[Apply Changes]]';
+          }
         }
         return txt;
       }).join('\n\n');
@@ -378,8 +914,32 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         <div className="assistant-body" ref={listRef}>
           {messages.map((m) => (
             <div key={m.id} className={`assistant-message assistant-message--${m.role}`}>
-              <div className="assistant-message__text">{m.text}</div>
-              {m.role === 'assistant' && m.meta && Array.isArray(m.meta.actions) && (
+              <div className="assistant-message__text">
+                {m.text ? <FormattedText text={m.text} /> : null}
+                {m.meta?.preview_component}
+              </div>
+
+              {/* ── JSON mode: single Apply Changes button ── */}
+              {AI_JSON_MODE && m.role === 'assistant' && m.meta?.preview_component && m.meta?.modified_project && (
+                <div className="assistant-actions">
+                  <button
+                    className={`assistant-action${appliedActionIds[m.id] ? ' assistant-action--applied' : ''}`}
+                    disabled={!!appliedActionIds[m.id]}
+                    onClick={() => {
+                      if (appliedActionIds[m.id]) return;
+                      const merged = mergeAIProjectBack(m.meta!.modified_project);
+                      onApplyChange?.(project?.id, merged);
+                      setAppliedActionIds((prev) => ({ ...prev, [m.id]: true }));
+                      setMessages((mm) => [...mm, { id: `sys-${Date.now()}`, role: 'system', text: 'Changes applied.' }]);
+                    }}
+                  >
+                    {appliedActionIds[m.id] ? '✓ Applied' : 'Apply Changes'}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Actions mode (legacy, AI_JSON_MODE = false) ── */}
+              {!AI_JSON_MODE && m.role === 'assistant' && m.meta && Array.isArray(m.meta.actions) && (
                 <div className="assistant-actions">
                   {m.meta.actions.map((a: any, i:number) => {
                     const action = normalizeAction(a);
@@ -480,11 +1040,11 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                     );
                   })}
                 </div>
-              )}
+              )} {/* end actions mode */}
             </div>
           ))}
 
-          {messages.length === 1 && messages[0].role === 'assistant' && (
+          {messages.length === 1 && messages[0]?.role === 'assistant' && (
             <div className="assistant-suggestions">
               {[
                 'Create a list of recommended 80s movies',
@@ -512,7 +1072,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
             placeholder="Ask the assistant to modify this project (e.g., 'Add a QA subproject with 3 tasks')"
             aria-label="Message"
           />
-          <button onClick={sendMessage} disabled={loading || !input.trim()}>Send</button>
+          <button onClick={() => sendMessage()} disabled={loading || !input.trim()}>Send</button>
         </div>
       </div>
 

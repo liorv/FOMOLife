@@ -17,6 +17,8 @@ export interface GenerateChatRequest {
   message: string;
   context?: string;
   history?: { role: string; text: string }[];
+  /** JSON-edit mode: LLM returns the full modified project JSON instead of discrete actions */
+  jsonMode?: boolean;
 }
 
 export interface ActionOption {
@@ -28,6 +30,8 @@ export interface ActionOption {
 export interface GenerateChatResponse {
   text: string;
   actions?: ActionOption[];
+  /** Present in jsonMode: the full modified project returned by the LLM */
+  modified_project?: any;
 }
 
 export interface ILLMProvider {
