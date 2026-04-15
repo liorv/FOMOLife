@@ -246,6 +246,16 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
 
   
 
+  useEffect(() => {
+    if (!canManage) return;
+    const handleAdd = () => {
+      void generateInviteLink();
+    };
+    window.addEventListener('framework-action-add-contact', handleAdd);
+    return () => window.removeEventListener('framework-action-add-contact', handleAdd);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManage]);
+
   const panelClassName = [
     "contacts-content-panel",
     className,
@@ -365,17 +375,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
             </div>
           )}
         </div>
-      )}
-
-      {canManage && displayReady && (
-        <button
-          type="button"
-          className="content-fab"
-          aria-label="Generate invite link"
-          onClick={() => void generateInviteLink()}
-        >
-          <span className="material-icons">person_add</span>
-        </button>
       )}
     </div>
   );

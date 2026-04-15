@@ -4,9 +4,10 @@ export interface ThumbButtonProps {
   ariaLabel?: string;
   className?: string;
   onClick?: () => void;
+  activeTab?: string;
 }
 
-export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick }: ThumbButtonProps) {
+export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, activeTab }: ThumbButtonProps) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
 
@@ -31,10 +32,19 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick }:
 
   const showAssistantIcon = assistantOpen || editorOpen;
 
+  let iconName = 'add';
+  if (showAssistantIcon) {
+    iconName = 'auto_awesome'; // AI Assistant
+  } else if (activeTab === 'people') {
+    iconName = 'person_add'; // Add Contact
+  } else if (activeTab === 'tasks' || activeTab === 'projects') {
+    iconName = 'add'; // +
+  }
+
   return (
     <button type="button" className={className} aria-label={ariaLabel} onClick={onClick}>
       <span className="tabs-thumb-fab" aria-hidden="true">
-        {showAssistantIcon ? <span className="material-icons tab-icon">chat</span> : null}
+        <span className="material-icons tab-icon">{iconName}</span>
       </span>
     </button>
   );

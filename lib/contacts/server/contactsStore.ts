@@ -125,7 +125,7 @@ let systemLoaded = false;
 async function loadSystemData() {
   
   try {
-    const persisted = await storage.load(SYSTEM_ID);
+    const persisted = await storage.load(SYSTEM_ID).catch(() => null);
     // clear and update synchronously after async fetch
     invitationLinks.clear();
     connections.clear();
@@ -227,7 +227,7 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
   await addTrace('getOrInitUserContacts', { userId });
   // Always fetch from DB in serverless
 
-  const persisted = await storage.load(userId);
+  const persisted = await storage.load(userId).catch(() => null);
   if (persisted && isContactArray(persisted.people)) {
     contactsByUser.set(userId, persisted.people);
     return persisted.people;
@@ -252,7 +252,7 @@ async function getOrInitUserContacts(userId: string): Promise<Contact[]> {
 async function getOrInitUserGroups(userId: string): Promise<ContactGroup[]> {
   // Always fetch from DB in serverless
 
-  const persisted = await storage.load(userId);
+  const persisted = await storage.load(userId).catch(() => null);
   if (persisted && isContactGroupArray(persisted.groups)) {
     groupsByUser.set(userId, persisted.groups);
     return persisted.groups;

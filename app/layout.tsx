@@ -7,6 +7,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'FOMO Life Framework',
   description: 'Framework host shell for migrated FOMO Life apps.',
+  verification: {
+    google: 'MsUMNwAafd4ijpICAwHz142iObVX_AM7rNf2gI4ZK5Y',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,12 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
       </head>
       <body>
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <main style={{ flex: 1 }}>{children}</main>
-          <footer style={{ padding: '12px 20px', textAlign: 'center', borderTop: '1px solid #eee', background: '#fafafa' }}>
-            <a href="/privacy" style={{ marginRight: 12 }}>Privacy Policy</a>
-            <a href="/terms">Terms of Service</a>
-          </footer>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{children}</div>
+          {/* Footer removed manually since it breaks the app feeling and pushes bottom nav up if visible */}
         </div>
       </body>
     </html>

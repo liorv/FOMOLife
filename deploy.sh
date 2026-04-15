@@ -22,8 +22,8 @@ if [ -f "$linkfile" ]; then
     echo -e "\n=== deploying monolith ==="
 
     # Read project + org IDs from the .vercel/project.json link file
-    org_id=$(python3 -c "import json; print(json.load(open('$linkfile'))['orgId'])" 2>/dev/null)
-    proj_id=$(python3 -c "import json; print(json.load(open('$linkfile'))['projectId'])" 2>/dev/null)
+    org_id=$(node -e "console.log(require('./$linkfile').orgId)" 2>/dev/null)
+    proj_id=$(node -e "console.log(require('./$linkfile').projectId)" 2>/dev/null)
     if [ -z "$org_id" ] || [ -z "$proj_id" ]; then
         echo "Error: Could not read orgId or projectId from $linkfile" >&2      
         exit 1

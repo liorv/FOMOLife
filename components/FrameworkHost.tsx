@@ -173,7 +173,15 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   const handleThumbClick = () => {
     try {
-      window.dispatchEvent(new CustomEvent('open-project-assistant'));
+      if (activeTab === 'people') {
+        window.dispatchEvent(new CustomEvent('framework-action-add-contact'));
+      } else if (activeTab === 'projects') {
+        window.dispatchEvent(new CustomEvent('framework-action-add-project'));
+      } else if (activeTab === 'tasks') {
+        window.dispatchEvent(new CustomEvent('framework-action-add-task'));
+      } else {
+        window.dispatchEvent(new CustomEvent('open-project-assistant'));
+      }
     } catch (e) {
       // ignore
     }

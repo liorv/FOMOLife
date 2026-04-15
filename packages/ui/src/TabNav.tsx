@@ -43,6 +43,7 @@ export default function TabNav<T extends string>({ active, tabs, onChange, class
         className="tabs-thumb-btn"
         ariaLabel="Thumb"
         onClick={onThumbClick ?? (() => {})}
+        activeTab={active}
       />
 
       <div className="tabs-group tabs-right">

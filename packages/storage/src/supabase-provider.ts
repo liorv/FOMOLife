@@ -10,10 +10,25 @@ export class SupabaseStorageProvider implements StorageProvider {
   }
 
   async load(userId: string): Promise<PersistedUserData | null> {
-    return await loadPersistedUserData(userId);
+    try {
+      return await loadPersistedUserData(userId);
+    } catch (err) {
+      console.error('Supabase load error:', err);
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Database is currently undergoing maintenance or paused.');
+      }
+      return null;
+    }
   }
 
   async save(userId: string, data: PersistedUserData): Promise<void> {
-    await savePersistedUserData(userId, data);
+    try {
+      await savePersistedUserData(userId, data);
+    } catch (err) {
+      console.error('Supabase save error:', err);
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Database is currently undergoing maintenance or paused. Unable to save data.');
+      }
+    }
   }
 }
