@@ -33,7 +33,6 @@ export interface ProjectTask {
   description?: string;
   /** People assigned to this task */
   people: ProjectTaskPerson[];
-  priority?: "low" | "medium" | "high" | null;
   effort?: number | null;
 }
 

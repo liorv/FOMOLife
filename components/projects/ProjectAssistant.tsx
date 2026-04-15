@@ -106,7 +106,6 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                         updatedTask.description = subPayload.description;
                       }
                       if (subPayload.done !== undefined) updatedTask.done = !!subPayload.done;
-                      if (subPayload.priority !== undefined) updatedTask.priority = subPayload.priority;
                       if (subPayload.effort !== undefined) updatedTask.effort = subPayload.effort;
                       if (subPayload.dueDate !== undefined) updatedTask.dueDate = subPayload.dueDate;
                       if (subPayload.assignee !== undefined) updatedTask.assignee = subPayload.assignee;
@@ -154,7 +153,6 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                   updated.description = patch.payload.description;
                 }
                 if (patch.payload.done !== undefined) updated.done = !!patch.payload.done;
-                if (patch.payload.priority !== undefined) updated.priority = patch.payload.priority;
                 if (patch.payload.effort !== undefined) updated.effort = patch.payload.effort;
                 if (patch.payload.dueDate !== undefined) updated.dueDate = patch.payload.dueDate;
                 if (patch.payload.assignee !== undefined) updated.assignee = patch.payload.assignee;
@@ -357,11 +355,11 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
       <div className="assistant-backdrop" onClick={onClose} />
       <div className="assistant-panel">
         <div className="assistant-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="assistant-header-left">
             <span className="material-icons assistant-header-icon">auto_awesome</span>
             <h3>FOMO AI Assistant</h3>
           </div>
-          <div style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+          <div className="assistant-header-right">
             <button className="copy-btn" onClick={copyConversation} aria-label="Copy conversation">
               <span className="material-icons">content_copy</span>
             </button>
@@ -515,6 +513,12 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
           z-index: 10;
           border-radius: 16px 16px 0 0;
+        }
+        .assistant-header-left {
+          display: flex; align-items: center; gap: 12px;
+        }
+        .assistant-header-right {
+          display: flex; gap: 8px; align-items: center;
         }
         .assistant-header-icon { font-size: 1.5rem; }
         .assistant-header h3 { margin: 0; font-size: 1.25rem; font-weight: 500; letter-spacing: 0.5px; }

@@ -1,0 +1,414 @@
+/* ── Page shell ── */
+.page {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  justify-content: center;
+  align-items: flex-start;
+  padding-bottom: calc(var(--nav-height, 64px) + 32px);
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.container {
+  width: min(680px, 100%);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 20px 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+/* ── Inline Add Bar ── */
+.addBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+  flex-wrap: nowrap;
+}
+
+.typeChips {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s;
+  letter-spacing: 0.01em;
+}
+
+.chip:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #eef2ff;
+}
+
+.chipFeature {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.chipBug {
+  border-color: #f43f5e;
+  background: #fff1f2;
+  color: #e11d48;
+  font-weight: 600;
+}
+
+.addInput {
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.92rem;
+  color: #1e293b;
+  padding: 4px 6px;
+  font-family: inherit;
+}
+
+.addInput::placeholder {
+  color: #94a3b8;
+}
+
+.addInputError {
+  /* subtle red tint on the input */
+  background: #fff5f5;
+  border-radius: 6px;
+}
+
+.addBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: #6366f1;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.14s, transform 0.1s;
+}
+
+.addBtn:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: scale(1.06);
+}
+
+.addBtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.addBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.addBtn .material-icons {
+  font-size: 19px;
+}
+
+.addErr {
+  margin: -2px 4px 0;
+  font-size: 0.78rem;
+  color: #ef4444;
+}
+
+/* ── Filter row ── */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 4px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 1.5px solid transparent;
+  background: #e9edf2;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.13s;
+  letter-spacing: 0.01em;
+}
+
+.filterChip:hover {
+  background: #dde3ea;
+  color: #334155;
+}
+
+.filterChipActive {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.filterChipActive:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+}
+
+.filterCount {
+  background: rgba(255,255,255,0.25);
+  border-radius: 99px;
+  padding: 0 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.filterChip:not(.filterChipActive) .filterCount {
+  background: rgba(0,0,0,0.08);
+  color: #64748b;
+}
+
+.totalCount {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* ── Feed list ── */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Card ── */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  overflow: hidden;
+  min-height: 44px;
+  transition: box-shadow 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 2px 10px rgba(99,102,241,0.10);
+}
+
+/* ── Vote column ── */
+.voteCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  gap: 0;
+  background: #f8fafc;
+  border-right: 1px solid #f1f5f9;
+  width: 42px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.voteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  transition: color 0.13s, background 0.13s;
+  line-height: 1;
+}
+
+.voteBtn .material-icons {
+  font-size: 18px;
+}
+
+.voteBtn:hover {
+  color: #6366f1;
+  background: #eef2ff;
+}
+
+.upvoted {
+  color: #6366f1 !important;
+}
+
+.downvoted {
+  color: #f43f5e !important;
+}
+
+.score {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  line-height: 1;
+  min-width: 18px;
+  text-align: center;
+}
+
+.scorePos { color: #6366f1; }
+.scoreNeg { color: #f43f5e; }
+
+/* ── Type pill ── */
+.typePill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  margin: 0 6px 0 8px;
+}
+
+.pillFeature {
+  color: #6366f1;
+}
+
+.pillBug {
+  color: #f43f5e;
+}
+
+/* ── Card body ── */
+.cardBody {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 6px 10px 0;
+  overflow: hidden;
+}
+
+.cardTitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.cardMeta {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Delete button ── */
+.deleteBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #e2e8f0;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  transition: color 0.13s, background 0.13s;
+}
+
+.deleteBtn:hover {
+  color: #ef4444;
+  background: #fff5f5;
+}
+
+.deleteBtn .material-icons {
+  font-size: 17px;
+}
+
+/* ── States ── */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  gap: 10px;
+}
+
+.centerText {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.retryBtn {
+  padding: 7px 18px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.retryBtn:hover { background: #e2e8f0; }
+
+/* ── Spin animation ── */
+@keyframes fb-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 420px) {
+  .container { padding: 12px 8px 0; }
+
+  .addBar { padding: 6px 8px; gap: 4px; }
+
+  .chip { padding: 4px 7px; font-size: 0.72rem; }
+  .chip .material-icons { display: none; }
+
+  .addInput { font-size: 0.88rem; }
+
+  .cardTitle { font-size: 0.85rem; }
+  .cardMeta { display: none; }
+}
+
+@media (max-width: 300px) {
+  .typeChips { display: none; }
+  .addInput { font-size: 0.82rem; }
+}

@@ -6,9 +6,10 @@ import { LogoBar, TabNav } from '@myorg/ui';
 import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '../lib/frameworkConfig';
 import FrameworkColorPickerOverlay from './ColorPickerOverlay';
 import { NotificationBell } from './NotificationBell';
-import TasksPage from './tasks/TasksPage';
+import HomePage from './HomePage';
 import ProjectsPage from './projects/ProjectsPage';
 import ContactsPage from './contacts/ContactsPage';
+import FeedbackPage from './FeedbackPage';
 
 
 
@@ -51,7 +52,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const activeTab = normalizeTab(searchParams.get('tab') ?? undefined);
   const tabs = useMemo(() => getFrameworkTabLinks(), []);
   const activeTabConfig = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
-  const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people';
+  const showHeaderSearch = activeTab === 'projects' || activeTab === 'people' || activeTab === 'feedback';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
   // Track which apps have finished loading
@@ -72,7 +73,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : 'Search projects');
+  const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : activeTab === 'feedback' ? 'Search requests' : 'Search projects');
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
   const handleTabChange = (tab: FrameworkTab) => {
@@ -160,13 +161,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     };
 
     if (tab.key === 'tasks') {
-      return <TasksPage key="tasks" canManage={true} style={style} />;
+      return <HomePage key="home" style={style} />;
     }
     if (tab.key === 'projects') {
       return <ProjectsPage key="projects" canManage={true} style={style} />;
     }
     if (tab.key === 'people') {
       return <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={style} />;
+    }
+    if (tab.key === 'feedback') {
+      return <FeedbackPage key="feedback" userId={userId} userName={userName} style={style} />;
     }
     return null;
   };

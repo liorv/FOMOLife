@@ -841,56 +841,24 @@ export default function ProjectEditor({
 
           {activeTab === 'tasks' && (
             <div className="tab-controls">
-              <button onClick={expandAll} className="expand-collapse-btn">Expand All</button>
-              <button onClick={collapseAll} className="expand-collapse-btn">Collapse All</button>
-              {/* Export JSON button injected here */}
+              <button onClick={expandAll} className="expand-collapse-btn" title="Expand All">
+                <span className="material-icons">unfold_more</span>
+                <span className="btn-label">Expand</span>
+              </button>
+              <button onClick={collapseAll} className="expand-collapse-btn" title="Collapse All">
+                <span className="material-icons">unfold_less</span>
+                <span className="btn-label">Collapse</span>
+              </button>
               {typeof onExport === 'function' && (
-                <button onClick={onExport} className="expand-collapse-btn">Export JSON</button>
+                <button onClick={onExport} className="expand-collapse-btn export-btn" title="Export JSON">
+                  <span className="material-icons">download</span>
+                  <span className="btn-label">Export</span>
+                </button>
               )}
             </div>
           )}
         </div>
 
-        {activeTab === 'tasks' && (
-          <div className="dashboard-summary project-editor-filters">
-            <DashboardTile
-              icon="check_circle"
-              label="Completed"
-              value={completedCount}
-              accent="success"
-              clickable
-              active={taskFilters.includes('completed')}
-              onClick={() => safeOnToggleFilter('completed')}
-            />
-            <DashboardTile
-              icon="star"
-              label="Starred"
-              value={starredCount}
-              accent="star"
-              clickable
-              active={taskFilters.includes('starred')}
-              onClick={() => safeOnToggleFilter('starred')}
-            />
-            <DashboardTile
-              icon="warning"
-              label="Overdue"
-              value={overdueCount}
-              accent="danger"
-              clickable
-              active={taskFilters.includes('overdue')}
-              onClick={() => safeOnToggleFilter('overdue')}
-            />
-            <DashboardTile
-              icon="upcoming"
-              label="Upcoming"
-              value={upcomingCount}
-              accent="info"
-              clickable
-              active={taskFilters.includes('upcoming')}
-              onClick={() => safeOnToggleFilter('upcoming')}
-            />
-          </div>
-        )}
       </div>
 
       {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && activeTab === 'overview' && (

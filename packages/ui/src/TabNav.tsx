@@ -19,7 +19,7 @@ export interface TabNavProps<T extends string> {
 export default function TabNav<T extends string>({ active, tabs, onChange, className, onThumbClick }: TabNavProps<T>) {
   // split the provided tabs into left and right areas around the thumb
   const leftTabs = tabs.filter((t) => t.key === 'tasks' || t.key === 'projects');
-  const rightTabs = tabs.filter((t) => t.key === 'people');
+  const rightTabs = tabs.filter((t) => t.key === 'people' || t.key === 'feedback');
 
   const renderTab = (tab: TabLink<T>) => (
     <button
@@ -48,10 +48,6 @@ export default function TabNav<T extends string>({ active, tabs, onChange, class
 
       <div className="tabs-group tabs-right">
         {rightTabs.map(renderTab)}
-        {/* hamburger placeholder */}
-        <button className="tab-hamburger" aria-label="Menu" disabled>
-          <span className="material-icons tab-icon">menu</span>
-        </button>
       </div>
     </nav>
   );

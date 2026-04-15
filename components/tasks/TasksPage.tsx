@@ -354,7 +354,6 @@ export default function TasksPage({ canManage, style, className }: Props) {
         dueDate: updatedTask.dueDate,
         favorite: updatedTask.favorite,
         done: updatedTask.done,
-        ...(updatedTask.priority !== undefined ? { priority: updatedTask.priority } : {}),
         ...(updatedTask.people ? { people: updatedTask.people } : {}),
       });
       if (!updated) return;

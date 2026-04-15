@@ -1,4 +1,4 @@
-export type FrameworkTab = 'tasks' | 'projects' | 'people';
+export type FrameworkTab = 'tasks' | 'projects' | 'people' | 'feedback';
 
 export type FrameworkTabLink = {
   key: FrameworkTab;
@@ -12,16 +12,18 @@ export const TAB_QUERY_ALIAS: Record<string, FrameworkTab> = {
   people: 'people',
   contacts: 'people',
   dreams: 'tasks',
+  feedback: 'feedback',
+  requests: 'feedback',
 };
 
-export const TAB_ORDER: FrameworkTab[] = ['tasks', 'projects', 'people'];
+export const TAB_ORDER: FrameworkTab[] = ['tasks', 'projects', 'people', 'feedback'];
 
 export function getFrameworkTabLinks(): FrameworkTabLink[] {
   return [
     {
       key: 'tasks',
-      label: 'Tasks',
-      icon: 'check_circle',
+      label: 'Home',
+      icon: 'home',
     },
     {
       key: 'projects',
@@ -32,6 +34,11 @@ export function getFrameworkTabLinks(): FrameworkTabLink[] {
       key: 'people',
       label: 'Contacts',
       icon: 'contacts',
+    },
+    {
+      key: 'feedback',
+      label: 'Feedback',
+      icon: 'forum',
     },
   ];
 }

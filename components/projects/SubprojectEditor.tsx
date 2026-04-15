@@ -162,17 +162,13 @@ export default function SubprojectEditor({
 
   return (
     <div
-      className={wrapperClass}
+      className={`${wrapperClass} ${isDragging ? 'subproject-tile--dragging' : ''} ${isDragOverSubprojectTile ? 'subproject-tile--drag-over' : ''}`}
       draggable
       onDragStart={handleSubDragStart}
       onDragOver={handleSubDragOver}
       onDrop={handleSubDrop}
       style={{ 
-        opacity: isDragging ? 0.5 : 1, 
         overflow: 'visible',
-        /* keep white background by default; only tint when dragging-over */
-        backgroundColor: isDragOverSubprojectTile ? 'rgba(0, 0, 0, 0.02)' : '#fff',
-        borderLeft: isDragOverSubprojectTile ? '3px solid #1a73e8' : 'none',
         transition: 'all 0.2s ease',
       }}
     >

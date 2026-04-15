@@ -202,61 +202,7 @@ item,
               }}
             >
               <span>{item.text}</span>
-              {type === "tasks" ? (
-                <button
-                  className="priority-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const cycle = [null, 'low', 'medium', 'high'];
-                    const currentPriority = item.priority || null;
-                    const currentIndex = cycle.indexOf(currentPriority as any);
-                    const nextIndex = (currentIndex + 1) % cycle.length;
-                    onTaskUpdate?.(id, { priority: cycle[nextIndex] as any });
-                  }}
-                  style={{
-                    border: 'none',
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    borderRadius: '12px',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    background: item.priority === 'high' ? '#ffebee' : item.priority === 'medium' ? '#fff3e0' : item.priority === 'low' ? '#f5f5f5' : 'transparent',
-                    color: item.priority === 'high' ? '#c62828' : item.priority === 'medium' ? '#e65100' : item.priority === 'low' ? '#616161' : '#ccc',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                  title="Click to cycle priority"
-                >
-                  <span className="material-icons" style={{ fontSize: '14px' }}>
-                    {item.priority === 'high' ? 'keyboard_double_arrow_up' : 
-                     item.priority === 'medium' ? 'menu' : 
-                     item.priority === 'low' ? 'keyboard_double_arrow_down' : 'outlined_flag'}
-                  </span>
-                  {item.priority ? item.priority : 'PRIORITY'}
-                </button>
-              ) : item.priority ? (
-                <span className={`priority-badge`} style={{
-                  fontSize: '10px',
-                  padding: '2px 6px',
-                  borderRadius: '12px',
-                  fontWeight: 'bold',
-                  textTransform: 'uppercase',
-                  background: item.priority === 'high' ? '#ffebee' : item.priority === 'medium' ? '#fff3e0' : '#f5f5f5',
-                  color: item.priority === 'high' ? '#c62828' : item.priority === 'medium' ? '#e65100' : '#616161',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <span className="material-icons" style={{ fontSize: '14px' }}>
-                    {item.priority === 'high' ? 'keyboard_double_arrow_up' : 
-                     item.priority === 'medium' ? 'menu' : 'keyboard_double_arrow_down'}
-                  </span>
-                  {item.priority}
-                </span>
-              ) : null}
+
               {type === "tasks" && (
                 <span
                   className="material-icons editable-indicator"

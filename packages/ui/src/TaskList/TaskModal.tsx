@@ -32,7 +32,6 @@ export default function TaskEditor({
   const [title, setTitle] = useState(task.text || "");
   const [description, setDescription] = useState(task.description || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
-  const [priority, setPriority] = useState<"low" | "medium" | "high" | null | undefined>(task.priority);
   const [effort, setEffort] = useState<number | null | undefined>(task.effort);
 
   // People assigned to this task – stored simply as [{name}].
@@ -53,27 +52,25 @@ export default function TaskEditor({
     title: task.text || "",
     description: task.description || "",
     dueDate: task.dueDate || "",
-    priority: task.priority,
     effort: task.effort,
     people: initialPeople,
   });
   useEffect(() => {
-    latestRef.current = { title, description, dueDate, priority, effort, people };
-  }, [title, description, dueDate, priority, effort, people]);
+    latestRef.current = { title, description, dueDate, effort, people };
+  }, [title, description, dueDate, effort, people]);
 
   // Sync local state with prop changes (handles external updates)
   useEffect(() => {
     setTitle(task.text || "");
     setDescription(task.description || "");
     setDueDate(task.dueDate || "");
-    setPriority(task.priority);
     setEffort(task.effort);
     setEffort(task.effort);
     const newPeople: PersonEntry[] = (task.people || []).map((p) => ({
       name: typeof p === "string" ? p : p.name || "",
     }));
     setPeople(newPeople);
-  }, [task.id, task.text, task.description, task.dueDate, task.priority, task.effort, JSON.stringify(task.people)]);
+  }, [task.id, task.text, task.description, task.dueDate, task.effort, JSON.stringify(task.people)]);
 
   useEffect(() => {
     // reset keyboard focus whenever the query changes
@@ -121,7 +118,6 @@ export default function TaskEditor({
         text: latest.title,
         description: latest.description,
         dueDate: latest.dueDate || null,
-        priority: latest.priority ? latest.priority : null,
         effort: latest.effort !== undefined ? latest.effort : null,
         people: normalizedPeople,
       };
@@ -178,7 +174,6 @@ export default function TaskEditor({
       text: title,
       description,
       people: normalizedPeople,
-      priority: priority ? priority : null,
       effort: effort !== undefined ? effort : null,
       dueDate: dueDate || null,
     };
@@ -224,37 +219,7 @@ export default function TaskEditor({
       {!inline && <h2>Edit Task</h2>}
       <div className="editor-columns">
         <div className="left-column">
-              {/* use unique ids so multiple editors on the page won't clash */}
-          <div className="editor-section priority-section">
-            <label htmlFor={`task-priority-${task.id || 'editor'}`} className="desc-label">
-              Priority
-            </label>
-            <select
-              id={`task-priority-${task.id || 'editor'}`}
-              className="priority-select"
-              value={priority || ""}
-              onChange={(e) => {
-                const newValue = e.target.value as "low" | "medium" | "high" | "" | null;
-                setPriority(newValue || undefined);
-                const updatedTask = { ...task };
-                if (newValue) {
-                  updatedTask.priority = newValue as "low" | "medium" | "high";
-                } else {
-                  updatedTask.priority = null;
-                }
-                onUpdateTask(updatedTask);
-              }}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', marginBottom: '16px', background: '#fff' }}
-            >
-              <option value="">None</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-
-          
-
-          <div className="editor-section effort-section" style={{ marginTop: '16px' }}>
+          <div className="editor-section effort-section">
             <label htmlFor={`task-effort-${task.id || 'editor'}`} className="desc-label">
               Effort (Days)
             </label>
@@ -273,8 +238,6 @@ export default function TaskEditor({
               }}
               style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', background: '#fff' }}
             />
-          </div>
-
           </div>
 
           <div className="editor-section date-section">
