@@ -33,7 +33,7 @@ export const COMPLETION_THRESHOLD = 3;
 let cache: FeedbackItem[] | null = null;
 
 async function load(): Promise<FeedbackItem[]> {
-  if (cache !== null) return cache;
+  if (cache !== null && process.env.NODE_ENV !== 'production') return cache;
   try {
     const persisted = await storage.load(FEEDBACK_STORAGE_KEY);
     const items = (Array.isArray(persisted?.feedback) ? persisted.feedback : []) as FeedbackItem[];

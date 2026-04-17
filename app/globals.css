@@ -205,6 +205,19 @@ body {
   margin: 0;
 }
 
+.login-legal {
+  font-size: 11px;
+  color: var(--color-text-muted, #5f6368);
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.login-legal a {
+  color: var(--color-primary, #1a73e8);
+  text-decoration: underline;
+}
+
 .auth-screen {
   
   

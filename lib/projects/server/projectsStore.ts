@@ -94,8 +94,10 @@ function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
 
 
 async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
-  const existing = projectsByUser.get(userId);
-  if (existing) return existing;
+  if (process.env.NODE_ENV !== 'production') {
+    const existing = projectsByUser.get(userId);
+    if (existing) return existing;
+  }
 
   const persisted = await storage.load(userId).catch(() => null);
   if (persisted) {
