@@ -1488,3 +1488,219 @@
     font-size: 16px;
   }
 }
+
+/* ── Combined search results list ─────────────────────────────────────────── */
+
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 16px 96px;
+}
+
+.search-result-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: default;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.search-result-row:hover {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+/* Project row — clickable */
+.search-result-row--project {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-left: 3px solid transparent;
+}
+
+.search-result-row--project:hover {
+  border-left-color: var(--color-primary, #1a73e8);
+  background: rgba(26, 115, 232, 0.05);
+}
+
+/* Task row — done state */
+.search-result-row--done .search-result-task-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.search-result-row--done .search-result-check .material-icons {
+  color: var(--color-success, #22c55e);
+}
+
+/* Colored dot */
+.search-result-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.search-result-dot--sm {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* Project row text */
+.search-result-text {
+  flex: 1;
+  font-size: 15px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Project" badge */
+.search-result-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary, #1a73e8);
+  background: rgba(26, 115, 232, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.search-result-chevron {
+  color: var(--color-text-muted, #94a3b8);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Task row body */
+.search-result-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.search-result-task-text {
+  font-size: 14px;
+  color: var(--color-text, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-meta {
+  font-size: 11px;
+  color: var(--color-text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-meta-sep {
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.search-result-due {
+  color: var(--color-danger, #ef4444);
+  margin-left: 4px;
+}
+
+.search-result-description {
+  font-size: 12px;
+  color: var(--color-text-muted, #64748b);
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Rename input */
+.search-result-rename-input {
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid var(--color-primary, #1a73e8);
+  border-radius: 6px;
+  padding: 2px 8px;
+  width: 100%;
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
+/* Action buttons */
+.search-result-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.search-result-row:hover .search-result-actions {
+  opacity: 1;
+}
+
+.search-result-check {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted, #94a3b8);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.search-result-check:hover {
+  color: var(--color-success, #22c55e);
+}
+
+.search-result-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted, #94a3b8);
+  transition: background 0.15s, color 0.15s;
+}
+
+.search-result-action-btn .material-icons {
+  font-size: 16px;
+}
+
+.search-result-action-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text, #1e293b);
+}
+
+.search-result-action-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger, #ef4444);
+}
+
+@media (max-width: 600px) {
+  .search-result-actions {
+    opacity: 1;
+  }
+
+  .search-result-task-text {
+    white-space: normal;
+  }
+}

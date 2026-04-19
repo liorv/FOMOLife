@@ -55,6 +55,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const showHeaderSearch = activeTab === 'projects' || activeTab === 'people' || activeTab === 'feedback';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
+  // Local draft keeps the input controlled by React state (not URL) so focus
+  // is never lost on keystrokes. The URL is updated after a short debounce.
+  const [searchDraft, setSearchDraft] = useState(headerSearchQuery);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync draft when the URL param changes externally (e.g. tab switch clears it)
+  useEffect(() => {
+    setSearchDraft(headerSearchQuery);
+  }, [headerSearchQuery]);
+
   // Track which apps have finished loading
   const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
@@ -83,15 +93,20 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   };
 
   const handleHeaderSearchChange = (value: string) => {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    if (value.trim()) {
-      nextParams.set('q', value);
-    } else {
-      nextParams.delete('q');
-    }
-    router.replace(`${pathname}?${nextParams.toString()}`);
+    // Update local state immediately so the input stays focused
+    setSearchDraft(value);
 
-    // removed search forward
+    // Debounce the URL write so rapid keystrokes don't each trigger a re-render
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (value.trim()) {
+        nextParams.set('q', value);
+      } else {
+        nextParams.delete('q');
+      }
+      router.replace(`${pathname}?${nextParams.toString()}`);
+    }, 300);
   };
 
   const isCurrentTabLoaded = true;
@@ -195,7 +210,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     <main className="main-layout">
       <LogoBar
         showSearch={showHeaderSearch}
-        searchValue={headerSearchQuery}
+        searchValue={searchDraft}
         searchPlaceholder={effectiveSearchPlaceholder}
         searchDisabled={isSearchDisabled}
         onSearchChange={handleHeaderSearchChange}

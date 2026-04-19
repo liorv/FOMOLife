@@ -194,16 +194,70 @@ export default function ProjectsDashboard({
 
   
 
-  // Filter sidebar by search query
-  const visibleProjects = useMemo(
-    () =>
-      !projectSearch.trim()
-        ? projects
-        : projects.filter((p) =>
-          (p.text || "").toLowerCase().includes(projectSearch.toLowerCase()),
-        ),
-    [projects, projectSearch],
-  );
+  // ── Combined search results (projects + tasks) ────────────────────────────
+
+  type SearchResultItem =
+    | { kind: "project"; project: ProjectItem }
+    | { kind: "task"; task: ProjectTask; subproject: ProjectSubproject; project: ProjectItem };
+
+  const searchResults = useMemo<SearchResultItem[] | null>(() => {
+    const q = projectSearch.trim();
+    if (!q) return null;
+    const ql = q.toLowerCase();
+    const results: SearchResultItem[] = [];
+    for (const p of projects) {
+      const projectMatches = (p.text || "").toLowerCase().includes(ql);
+      const matchingTasks: { task: ProjectTask; subproject: ProjectSubproject }[] = [];
+      for (const sub of p.subprojects || []) {
+        for (const task of sub.tasks || []) {
+          if ((task.text || "").toLowerCase().includes(ql)) {
+            matchingTasks.push({ task, subproject: sub });
+          }
+        }
+      }
+      if (projectMatches) {
+        results.push({ kind: "project", project: p });
+      }
+      for (const { task, subproject } of matchingTasks) {
+        results.push({ kind: "task", task, subproject, project: p });
+      }
+    }
+    return results;
+  }, [projects, projectSearch]);
+
+  // ── Task mutation helpers (used in combined search results) ───────────────
+
+  const updateTaskInProject = (
+    project: ProjectItem,
+    subprojectId: string,
+    taskId: string,
+    patch: Partial<ProjectTask>,
+  ) => {
+    const updatedSubs = (project.subprojects || []).map((sub) =>
+      sub.id === subprojectId
+        ? { ...sub, tasks: (sub.tasks || []).map((t) => t.id === taskId ? { ...t, ...patch } : t) }
+        : sub,
+    );
+    onApplyChange?.(project.id, { subprojects: updatedSubs });
+  };
+
+  const deleteTaskFromProject = (
+    project: ProjectItem,
+    subprojectId: string,
+    taskId: string,
+  ) => {
+    const updatedSubs = (project.subprojects || []).map((sub) =>
+      sub.id === subprojectId
+        ? { ...sub, tasks: (sub.tasks || []).filter((t) => t.id !== taskId) }
+        : sub,
+    );
+    onApplyChange?.(project.id, { subprojects: updatedSubs });
+  };
+
+  // Tracks which search-result task rows are expanded or being renamed
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
+  const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   // ── Metrics: scoped to selected project when one is selected ──────────────
 
@@ -397,13 +451,162 @@ export default function ProjectsDashboard({
         <>
           {/* Home watermark removed */}
 
-          {/* Project tiles grid */}
-          {visibleProjects.length === 0 ? (
-            projectSearch ? (
+          {/* Combined search results (projects + tasks) */}
+          {searchResults !== null ? (
+            searchResults.length === 0 ? (
               <p className="sidebar-no-results">
                 No matches for &ldquo;{projectSearch}&rdquo;
               </p>
             ) : (
+              <div className="search-results-list">
+                {searchResults.map((item) => {
+                  if (item.kind === "project") {
+                    const { project: p } = item;
+                    return (
+                      <div
+                        key={`proj-${p.id}`}
+                        className="search-result-row search-result-row--project"
+                        onClick={() => handleSelectProject(p.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
+                      >
+                        <span
+                          className="search-result-dot"
+                          style={{ background: p.color || "#1a73e8" }}
+                        />
+                        <span className="search-result-text">{p.text}</span>
+                        <span className="search-result-badge">Project</span>
+                        <span className="material-icons search-result-chevron">chevron_right</span>
+                      </div>
+                    );
+                  }
+                  // task row
+                  const { task, subproject, project: p } = item;
+                  const isExpanded = expandedTaskIds.has(task.id);
+                  const isRenaming = renamingTaskId === task.id;
+                  return (
+                    <div key={`task-${task.id}`} className={`search-result-row search-result-row--task${task.done ? " search-result-row--done" : ""}`}>
+                      {/* Complete toggle */}
+                      <button
+                        className="search-result-check"
+                        aria-label={task.done ? "Mark incomplete" : "Mark complete"}
+                        title={task.done ? "Mark incomplete" : "Mark complete"}
+                        onClick={() => updateTaskInProject(p, subproject.id, task.id, { done: !task.done })}
+                      >
+                        <span className="material-icons">
+                          {task.done ? "check_circle" : "radio_button_unchecked"}
+                        </span>
+                      </button>
+
+                      {/* Task text / rename input */}
+                      <div className="search-result-body">
+                        {isRenaming ? (
+                          <input
+                            className="search-result-rename-input"
+                            autoFocus
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                if (renameValue.trim()) {
+                                  updateTaskInProject(p, subproject.id, task.id, { text: renameValue.trim() });
+                                }
+                                setRenamingTaskId(null);
+                              } else if (e.key === "Escape") {
+                                setRenamingTaskId(null);
+                              }
+                            }}
+                            onBlur={() => {
+                              if (renameValue.trim()) {
+                                updateTaskInProject(p, subproject.id, task.id, { text: renameValue.trim() });
+                              }
+                              setRenamingTaskId(null);
+                            }}
+                          />
+                        ) : (
+                          <span className="search-result-task-text">{task.text}</span>
+                        )}
+                        <span className="search-result-meta">
+                          <span
+                            className="search-result-dot search-result-dot--sm"
+                            style={{ background: p.color || "#1a73e8" }}
+                          />
+                          {p.text}
+                          {!subproject.isProjectLevel && (
+                            <span className="search-result-meta-sep"> › {subproject.text}</span>
+                          )}
+                          {task.dueDate && (
+                            <span className="search-result-due">
+                              · due {new Date(task.dueDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </span>
+                        {/* Expanded description */}
+                        {isExpanded && task.description && (
+                          <p className="search-result-description">{task.description}</p>
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="search-result-actions">
+                        {/* Rename */}
+                        <button
+                          className="search-result-action-btn"
+                          aria-label="Rename task"
+                          title="Rename"
+                          onClick={() => {
+                            setRenameValue(task.text);
+                            setRenamingTaskId(task.id);
+                          }}
+                        >
+                          <span className="material-icons">edit</span>
+                        </button>
+                        {/* Expand (show details) */}
+                        <button
+                          className="search-result-action-btn"
+                          aria-label={isExpanded ? "Collapse task" : "Expand task"}
+                          title={isExpanded ? "Collapse" : "Expand"}
+                          onClick={() =>
+                            setExpandedTaskIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(task.id)) next.delete(task.id);
+                              else next.add(task.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <span className="material-icons">
+                            {isExpanded ? "expand_less" : "expand_more"}
+                          </span>
+                        </button>
+                        {/* Go to project */}
+                        <button
+                          className="search-result-action-btn"
+                          aria-label="Open in project"
+                          title="Open project"
+                          onClick={() => handleSelectProject(p.id)}
+                        >
+                          <span className="material-icons">open_in_new</span>
+                        </button>
+                        {/* Delete */}
+                        <button
+                          className="search-result-action-btn search-result-action-btn--danger"
+                          aria-label="Delete task"
+                          title="Delete task"
+                          onClick={() => deleteTaskFromProject(p, subproject.id, task.id)}
+                        >
+                          <span className="material-icons">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            /* No active search — show tile grid */
+            projects.length === 0 ? (
               <div className="dashboard-watermark empty-watermark">
                 <EmptyState
                   icon="folder_open"
@@ -411,32 +614,32 @@ export default function ProjectsDashboard({
                   description="Create your first project to start organizing your tasks"
                 />
               </div>
+            ) : (
+              <div className="dashboard-tiles-grid">
+                {projects.map((p) => (
+                  <div
+                    key={p.id}
+                    className="dashboard-tile-wrapper"
+                    onClick={() => handleSelectProject(p.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
+                  >
+                    <ProjectTile
+                      project={p}
+                      onEdit={handleSelectProject}
+                      onTitleChange={onTitleChange}
+                      onDelete={onDeleteProject}
+                      onConfirmDelete={onConfirmDeleteProject}
+                      isPendingDelete={pendingDeleteProjectId === p.id}
+                      onChangeColor={onColorChange}
+                      onOpenColorPicker={onOpenColorPicker}
+                      onReorder={onReorder}
+                    />
+                  </div>
+                ))}
+              </div>
             )
-          ) : (
-            <div className="dashboard-tiles-grid">
-              {visibleProjects.map((p) => (
-                <div
-                  key={p.id}
-                  className="dashboard-tile-wrapper"
-                  onClick={() => handleSelectProject(p.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
-                >
-                  <ProjectTile
-                    project={p}
-                    onEdit={handleSelectProject}
-                    onTitleChange={onTitleChange}
-                    onDelete={onDeleteProject}
-                    onConfirmDelete={onConfirmDeleteProject}
-                    isPendingDelete={pendingDeleteProjectId === p.id}
-                    onChangeColor={onColorChange}
-                    onOpenColorPicker={onOpenColorPicker}
-                    onReorder={onReorder}
-                  />
-                </div>
-              ))}
-            </div>
           )}
         </>
       )}

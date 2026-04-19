@@ -102,6 +102,16 @@ export default function LogoBar({
                 aria-label={searchPlaceholder}
                 disabled={searchDisabled}
               />
+              {searchValue ? (
+                <button
+                  type="button"
+                  className="logo-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => onSearchChange?.('')}
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
