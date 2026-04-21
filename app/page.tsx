@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
 import FrameworkHost from '@/components/FrameworkHost';
+import LandingPage from '@/components/LandingPage';
 import { getDisplayNameFromUserId, getFrameworkSession, getInitials } from '@/lib/server/frameworkAuth';
 import { getFrameworkServerEnv } from '@/lib/frameworkEnv.server';
 
@@ -8,7 +8,7 @@ export default async function FrameworkPage() {
   const env = getFrameworkServerEnv();
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) {
-    redirect('/login');
+    return <LandingPage />;
   }
 
   const nameSource = session.userName || session.userEmail || session.userId;
