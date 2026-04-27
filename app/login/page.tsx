@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getFrameworkServerEnv } from '@/lib/frameworkEnv.server';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import OAuthLoginClient from './OAuthLoginClient';
+import MockCookieLogin from './MockCookieLogin';
 
 type LoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -51,25 +52,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </button>
           </form>
         ) : env.authMode === 'mock-cookie' ? (
-          <form method="post" action="/api/auth/login" className="auth-form">
-            <label htmlFor="userId" className="auth-label">
-              User ID
-            </label>
-            <input
-              id="userId"
-              name="userId"
-              type="text"
-              className="auth-input"
-              placeholder="e.g. alice"
-              autoComplete="username"
-              required
-            />
-            <input type="hidden" name="returnTo" value="/" />
-            {showMissingUserError ? <p className="auth-error">Please enter a user ID.</p> : null}
-            <button type="submit" className="auth-submit">
-              Sign in
-            </button>
-          </form>
+          <MockCookieLogin showMissingUserError={showMissingUserError} />
         ) : (
           <>
             <OAuthLoginClient returnTo={returnTo} forceAccountSelect={forceAccountSelect} />

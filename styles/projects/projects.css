@@ -30,6 +30,10 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
   transition: all 0.2s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .project-editor-field:hover {
@@ -947,4 +951,329 @@
   align-items: center;
   height: 50vh;
   opacity: 0.6;
+}
+
+/* ============================================================
+  Project Header Controls (replaces tabs)
+   ============================================================ */
+.project-editor-header-controls {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.project-editor-header-controls .tab-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.project-editor-header-controls .expand-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  border-radius: 20px;
+  padding: 4px 10px 4px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.project-editor-header-controls .expand-collapse-btn .material-icons {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.project-editor-header-controls .expand-collapse-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: #222;
+}
+
+.project-editor-header-controls .expand-collapse-btn:active {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.project-editor-header-controls .expand-collapse-btn.export-btn {
+  color: #d32998;
+}
+
+.project-editor-header-controls .expand-collapse-btn.export-btn:hover {
+  background: rgba(211, 41, 152, 0.08);
+  color: #a0006e;
+}
+
+/* ============================================================
+  Project Profile Icon
+   ============================================================ */
+.project-profile-icon-container {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.project-profile-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+  border: 2px solid #e0e0e0;
+  transition: border-color 0.2s ease;
+}
+
+.project-profile-icon:hover {
+  border-color: #3b82f6;
+}
+
+.project-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.project-avatar--initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  border-radius: 50%;
+}
+
+.project-profile-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 50%;
+}
+
+.project-profile-icon:hover .project-profile-hover-overlay {
+  opacity: 1;
+}
+
+.project-profile-hover-overlay .material-icons {
+  color: white;
+  font-size: 20px;
+}
+
+/* ============================================================
+  Project Overview Modal
+   ============================================================ */
+.project-overview-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 12000;
+  padding: 20px;
+}
+
+.project-overview-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-overview-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.project-overview-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.project-overview-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  color: #666;
+  transition: background 0.2s ease;
+}
+
+.project-overview-modal-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.project-overview-modal-content {
+  padding: 20px 24px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* Allow flex child to shrink */
+}
+
+/* ============================================================
+  Project Picture Upload
+   ============================================================ */
+.project-picture-upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.project-picture-input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.project-picture-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.project-picture-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  color: #d32f2f;
+  transition: background 0.2s ease;
+}
+
+.project-picture-remove:hover {
+  background: rgba(211, 47, 47, 0.1);
+}
+
+/* ============================================================
+  Icon Search Styles
+   ============================================================ */
+.icon-search-section {
+  margin-top: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.icon-search-input-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.icon-search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  min-width: 0;
+}
+
+.icon-search-input:focus {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+}
+
+.icon-search-button {
+  padding: 8px 12px;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.icon-search-button:hover:not(:disabled) {
+  background: #1557b0;
+}
+
+.icon-search-button:disabled {
+  background: #dadce0;
+  cursor: not-allowed;
+}
+
+.icon-search-results {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.icon-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.icon-result-item {
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-result-item:hover {
+  border-color: #1a73e8;
+  box-shadow: 0 2px 4px rgba(26, 115, 232, 0.1);
+}
+
+.icon-result-image {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }

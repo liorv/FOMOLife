@@ -201,6 +201,15 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     const len = projects.length;
     const idx = len % PROJECT_COLORS.length;
     const color = PROJECT_COLORS[idx];
+    
+    // Choose a random twemoji icon for the new project
+    const RANDOM_ICONS = [
+      'rocket', 'star', 'fire', 'wrapped-gift', 'briefcase', 'laptop', 'memo', 
+      'clipboard', 'books', 'rainbow', 'target', 'art', 'bell', 'trophy', 
+      'tangerine', 'pizza', 'hamburger', 'doughnut', 'cookie', 'strawberry'
+    ];
+    const randomIconName = RANDOM_ICONS[Math.floor(Math.random() * RANDOM_ICONS.length)];
+    const avatarUrl = `https://api.iconify.design/twemoji/${randomIconName}.svg`;
 
     const baseName = text.trim() || "New Project";
     const tempId = generateId();
@@ -208,12 +217,14 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
       id: tempId,
       text: baseName,
       color: color ?? "",
+      avatarUrl,
       subprojects: [],
     };
     setProjects((prev) => [...prev, optimisticProject]);
     try {
       const created = await apiClient.createProject({
         text: baseName,
+        avatarUrl,
         ...(color ? { color } : {}),
       });
       setProjects((prev) =>

@@ -308,6 +308,40 @@ body {
   font-size: 0.9rem;
 }
 
+.auth-input-container {
+  position: relative;
+}
+
+.auth-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: 2px;
+}
+
+.auth-dropdown-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.auth-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.auth-dropdown-item:hover {
+  background: #f8f9fa;
+}
+
 .bar-title-text {
   font-size: 1.2rem;
   font-weight: 600;

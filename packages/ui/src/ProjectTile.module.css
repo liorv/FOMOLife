@@ -116,6 +116,26 @@
   margin-bottom: 6px;
 }
 
+.projectAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.projectAvatarInitials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
 .nameInput {
   font-size: 1rem;
   font-weight: 600;
@@ -246,6 +266,55 @@
 
 .progressLabel {
   font-size: 0.75rem;
+}
+
+/* Progress avatar styles */
+.progressAvatarContainer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+}
+
+.progressAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  object-fit: cover;
+}
+
+.progressAvatarInitials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+  font-size: 32px;
+}
+
+.progressTextOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 800;
+  pointer-events: none;
+  text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.9), 0px 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.progressTextOverlay .progressPercent {
+  color: white;
+  text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.9), 0px 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Stats - rounded so that the left edge aligns exactly with the tile's edge. */

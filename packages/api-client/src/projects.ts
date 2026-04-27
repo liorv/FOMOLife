@@ -2,8 +2,8 @@ import type { ProjectItem } from '@myorg/types';
 
 export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
-  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string }) => Promise<ProjectItem>;
-  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions'>>) => Promise<ProjectItem>;
+  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }) => Promise<ProjectItem>;
+  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>) => Promise<ProjectItem>;
   deleteProject: (id: string) => Promise<void>;
 }
 
@@ -36,7 +36,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
       return payload.projects;
     },
 
-    async createProject(input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[] }): Promise<ProjectItem> {
+    async createProject(input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }): Promise<ProjectItem> {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -45,7 +45,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
       return parseResponse<ProjectItem>(response);
     },
 
-    async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order'>>): Promise<ProjectItem> {
+    async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>): Promise<ProjectItem> {
       const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },

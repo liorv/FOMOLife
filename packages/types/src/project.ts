@@ -82,6 +82,8 @@ export interface ProjectItem {
   dueDate?: string | null;
   /** Special instructions for AI when reviewing the project */
   aiInstructions?: string;
+  /** Project avatar/picture URL */
+  avatarUrl?: string;
 }
 
 /**
@@ -94,6 +96,7 @@ export interface ProjectCreateInput {
   description?: string;
   dueDate?: string | null;
   aiInstructions?: string;
+  avatarUrl?: string;
 }
 
 /**
@@ -109,4 +112,5 @@ export interface ProjectUpdateInput {
   description?: string;
   dueDate?: string | null;
   aiInstructions?: string;
+  avatarUrl?: string;
 }

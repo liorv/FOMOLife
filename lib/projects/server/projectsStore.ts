@@ -41,6 +41,7 @@ export interface ProjectItem {
   description?: string;
   dueDate?: string | null;
   aiInstructions?: string;
+  avatarUrl?: string;
 }
 
 const projectsByUser = new Map<string, ProjectItem[]>();
@@ -119,7 +120,7 @@ export async function listProjects(userId: string): Promise<ProjectItem[]> {
 
 export async function createProject(
   userId: string,
-  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions'>>,
+  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>,
 ): Promise<ProjectItem> {
   const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
@@ -134,6 +135,7 @@ export async function createProject(
     ...(input.description ? { description: input.description } : {}),
     ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
     ...(input.aiInstructions ? { aiInstructions: input.aiInstructions } : {}),
+    ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
   };
   const normalized = ensureProjectLevelTasks(project);
   current.push(normalized);
@@ -146,7 +148,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions'>>,
+  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {
