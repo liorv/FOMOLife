@@ -33,7 +33,7 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow: auto; /* allow whole screen scrollbar */
+  overflow: hidden;
   flex: 1; /* ensure background covers screen */
   background:
     linear-gradient(rgba(241, 243, 244, 0.92), rgba(241, 243, 244, 0.92)),

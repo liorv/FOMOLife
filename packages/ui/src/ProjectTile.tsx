@@ -499,11 +499,19 @@ export default function ProjectTile({
               {/* Project avatar in center */}
               <div className={`${styles.progressAvatarContainer} progress-avatar-container`}>
                 {project.avatarUrl ? (
-                  <img
-                    src={project.avatarUrl}
-                    alt="Project avatar"
-                    className={`${styles.progressAvatar} progress-avatar`}
-                  />
+                  <div className={styles.progressAvatarWrap}>
+                    <img
+                      src={project.avatarUrl}
+                      alt="Project avatar"
+                      className={`${styles.progressAvatar} progress-avatar`}
+                    />
+                    <img
+                      src={project.avatarUrl}
+                      alt=""
+                      aria-hidden="true"
+                      className={`${styles.progressAvatar} ${styles.progressAvatarGray} progress-avatar`}
+                    />
+                  </div>
                 ) : (
                   <div className={`${styles.progressAvatar} ${styles.progressAvatarInitials} progress-avatar progress-avatar--initials`}>
                     {project.text.charAt(0).toUpperCase()}

@@ -179,6 +179,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       display: isActive ? 'flex' : 'none',
       flexDirection: 'column',
       width: '100%',
+      flex: 1,
+      minHeight: 0,
+      overflowY: 'auto',
     };
 
     if (tab.key === 'tasks') {
