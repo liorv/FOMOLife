@@ -120,7 +120,93 @@ export default function ProjectEditor({
   // never reads a stale closure value during rapid successive clicks.
   const localRef = useRef<LocalProject>(null as unknown as LocalProject);
   localRef.current = local;
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timeline' | 'risk'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timeline' | 'risk'>('tasks');
+  const [showOverviewEditor, setShowOverviewEditor] = useState(false);
+  const [iconSearchQuery, setIconSearchQuery] = useState('');
+  const [iconSearchResults, setIconSearchResults] = useState<any[]>([]);
+  const [isSearchingIcons, setIsSearchingIcons] = useState(false);
+  const [iconInputMode, setIconInputMode] = useState<'upload' | 'search'>('upload');
+  
+  const defaultFallbackIconUrl = useMemo(() => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(local.text || 'Project')}&background=random`;
+  }, [local.text]);
+  
+  const [asyncDefaultIconUrl, setAsyncDefaultIconUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (!local.text) {
+      setAsyncDefaultIconUrl('');
+      return;
+    }
+    
+    // Improved intelligent heuristic
+    const stopWords = new Set(['a', 'an', 'the', 'my', 'our', 'new', 'project', 'of', 'for', 'to', 'in', 'on', 'with', 'and']);
+    const words = local.text.toLowerCase().split(/[^a-z0-9]+/);
+    const meaningfulWords = words.filter(w => w.length > 1 && !stopWords.has(w));
+    const rawQuery = meaningfulWords[0] || words[0] || 'project';
+    const query = encodeURIComponent(rawQuery);
+
+    let ignore = false;
+    fetch(`https://api.iconify.design/search?query=${query}&limit=1`)
+      .then(res => res.json())
+      .then(data => {
+        if (!ignore && data.icons && data.icons.length > 0) {
+          const [prefix, name] = data.icons[0].split(':');
+          setAsyncDefaultIconUrl(`https://api.iconify.design/${prefix}/${name}.svg`);
+        }
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [local.text]);
+
+  const effectiveDefaultIconUrl = asyncDefaultIconUrl || defaultFallbackIconUrl;
+
+  // Icon search functionality
+  const searchIcons = async (query: string) => {
+    if (!query.trim()) return;
+
+    setIsSearchingIcons(true);
+    try {
+      // Using Iconify API to fetch actual icons (SVG format)
+      const response = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=24`);
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Map the Iconify response IDs (e.g., 'mdi:cat') to standard URLs
+        const icons = (data.icons || []).map((iconId: string, index: number) => {
+          const [prefix, name] = iconId.split(':');
+          return {
+            id: iconId || `icon-${index}`,
+            url: `https://api.iconify.design/${prefix}/${name}.svg`
+          };
+        });
+
+        setIconSearchResults(icons);
+      } else {
+        throw new Error('Failed to fetch icons');
+      }
+    } catch (error) {
+      console.error('Icon search failed:', error);
+      // Optional fallback if API is unreachable
+      setIconSearchResults([]);
+    } finally {
+      setIsSearchingIcons(false);
+    }
+  };
+
+  const selectIcon = (icon: any) => {
+    // Determine the selected icon's URL
+    const iconUrl = icon.url || icon.raster_sizes?.[0]?.formats?.[0]?.source ||
+                   icon.images?.[0]?.url ||
+                   icon.preview_url;
+
+    if (iconUrl) {
+      updateProjectField('avatarUrl', iconUrl, true);
+      setIconSearchResults([]);
+      setIconSearchQuery('');
+    }
+  };
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
@@ -836,127 +922,402 @@ export default function ProjectEditor({
           </div>
         )}
 
-        {/* Tabs moved inside sticky header */}
-        <div className="project-editor-tabs">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-          >Overview</button>
-          <button
-            onClick={() => setActiveTab('tasks')}
-            className={`tab-button ${activeTab === 'tasks' ? 'active' : ''}`}
-          >Tasks</button>
+        {/* Project header controls */}
+        <div className="project-editor-header-controls">
+          <div className="tab-controls">
+            <button onClick={expandAll} className="expand-collapse-btn" title="Expand All">
+              <span className="material-icons">unfold_more</span>
+              <span className="btn-label">Expand</span>
+            </button>
+            <button onClick={collapseAll} className="expand-collapse-btn" title="Collapse All">
+              <span className="material-icons">unfold_less</span>
+              <span className="btn-label">Collapse</span>
+            </button>
+            {typeof onExport === 'function' && (
+              <button onClick={onExport} className="expand-collapse-btn export-btn" title="Export JSON">
+                <span className="material-icons">download</span>
+                <span className="btn-label">Export</span>
+              </button>
+            )}
+          </div>
+        </div>
 
-          {activeTab === 'tasks' && (
-            <div className="tab-controls">
-              <button onClick={expandAll} className="expand-collapse-btn" title="Expand All">
-                <span className="material-icons">unfold_more</span>
-                <span className="btn-label">Expand</span>
-              </button>
-              <button onClick={collapseAll} className="expand-collapse-btn" title="Collapse All">
-                <span className="material-icons">unfold_less</span>
-                <span className="btn-label">Collapse</span>
-              </button>
-              {typeof onExport === 'function' && (
-                <button onClick={onExport} className="expand-collapse-btn export-btn" title="Export JSON">
-                  <span className="material-icons">download</span>
-                  <span className="btn-label">Export</span>
-                </button>
-              )}
+        {/* Project profile icon */}
+        <div className="project-profile-icon-container">
+          <div
+            className="project-profile-icon"
+            onClick={() => setShowOverviewEditor(true)}
+            title="Edit project overview"
+          >
+            {local.avatarUrl ? (
+              <img
+                src={local.avatarUrl}
+                alt="Project avatar"
+                className="project-avatar"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <img
+                src={effectiveDefaultIconUrl}
+                alt="Project default avatar"
+                className="project-avatar"
+                style={{ objectFit: 'cover' }}
+              />
+            )}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0, 0, 0, 0.5)',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                padding: '2px 4px',
+                borderRadius: '6px',
+                pointerEvents: 'none',
+                zIndex: 2,
+              }}
+            >
+              {projectTasks.length > 0 ? `${Math.round((completedCount / projectTasks.length) * 100)}%` : '0%'}
             </div>
-          )}
+            <div className="project-profile-hover-overlay">
+              <span className="material-icons">edit</span>
+            </div>
+          </div>
         </div>
 
       </div>
 
-      {!showFlatFilterView && (!searchQuery || searchQuery.trim() === "") && activeTab === 'overview' && (
-        <div className="project-editor-header">
-          <div className="dashboard-summary project-overview-metrics">
-            <DashboardTile
-              icon="task_alt"
-              label="Tasks remaining"
-              value={tasksRemaining}
-              accent="danger"
-            />
-            <DashboardTile
-              icon="schedule"
-              label="Effort remaining"
-              value={`${Math.round(effortRemaining * 10) / 10}d`}
-              accent="info"
-            />
-            <DashboardTile
-              icon="event_available"
-              label="Earliest completion"
-              value={earliestCompletionLabel}
-              accent="success"
-            />
-          </div>
-
-          <div className="project-editor-field">
-            <label className="project-editor-field-label">
-              <span className="material-icons field-icon">flag</span>
-              Goal
-            </label>
-            <textarea
-              value={local.goal || ''}
-              onChange={(e) => updateProjectField('goal', e.target.value, false)}
-              onBlur={() => safeOnApplyChange({ goal: localRef.current.goal } as Partial<ProjectItem>)}
-              placeholder="What success looks like..."
-              disabled={!canManage}
-              className="project-editor-goal-input"
-              rows={3}
-            />
-          </div>
-          <div className="project-editor-field">
-            <label className="project-editor-field-label">
-              <span className="material-icons field-icon">description</span>
-              Description
-            </label>
-            <textarea
-              value={local.description || ''}
-              onChange={(e) => updateProjectField('description', e.target.value, false)}
-              onBlur={() => safeOnApplyChange({ description: localRef.current.description } as Partial<ProjectItem>)}
-              placeholder="What this project is all about..."
-              disabled={!canManage}
-              className="project-editor-description-input"
-            />
-          </div>
-          <div className="project-editor-field">
-            <label className="project-editor-field-label">
-              <span className="material-icons field-icon">event</span>
-              End Date
-            </label>
-            <div className="project-editor-date-container">
-              <input
-                type="date"
-                value={local.dueDate || ''}
-                onChange={(e) => updateProjectField('dueDate', e.target.value, false)}
-                onBlur={() => safeOnApplyChange({ dueDate: localRef.current.dueDate } as Partial<ProjectItem>)}
-                disabled={!canManage}
-              />
+      {/* Overview Editor Modal */}
+      {showOverviewEditor && (
+        <div className="project-overview-modal-overlay" onClick={() => setShowOverviewEditor(false)}>
+          <div className="project-overview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="project-overview-modal-header">
+              <h2>Edit Project Overview</h2>
+              <button
+                className="project-overview-modal-close"
+                onClick={() => setShowOverviewEditor(false)}
+                title="Close"
+              >
+                <span className="material-icons">close</span>
+              </button>
             </div>
-          </div>
-          <div className="project-editor-field">
-            <label className="project-editor-field-label">
-              <span className="material-icons field-icon">psychology</span>
-              Special Instructions
-            </label>
-            <textarea
-              value={local.aiInstructions || ''}
-              onChange={(e) => updateProjectField('aiInstructions', e.target.value, false)}
-              onBlur={() => safeOnApplyChange({ aiInstructions: localRef.current.aiInstructions } as Partial<ProjectItem>)}
-              placeholder="Instructions for AI when reviewing the project..."
-              disabled={!canManage}
-              className="project-editor-ai-instructions-input"
-            />
+            <div className="project-overview-modal-content">
+              <div className="dashboard-summary project-overview-metrics">
+                <DashboardTile
+                  icon="task_alt"
+                  label="Tasks remaining"
+                  value={tasksRemaining}
+                  accent="danger"
+                />
+                <DashboardTile
+                  icon="schedule"
+                  label="Effort remaining"
+                  value={`${Math.round(effortRemaining * 10) / 10}d`}
+                  accent="info"
+                />
+                <DashboardTile
+                  icon="event_available"
+                  label="Earliest completion"
+                  value={earliestCompletionLabel}
+                  accent="success"
+                />
+              </div>
+
+              <div className="project-editor-field">
+                <label className="project-editor-field-label">
+                  <span className="material-icons field-icon">photo</span>
+                  Project Icon / Picture
+                </label>
+
+                {/* Visible Preview in Editor */}
+                <div className="project-overview-avatar-preview" style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                  
+                  {/* Left Column: Image and Link */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '80px' }}>
+                    <div style={{ position: 'relative' }}>
+                      <img 
+                        src={local.avatarUrl || effectiveDefaultIconUrl} 
+                        alt="Project preview" 
+                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc' }} 
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          color: 'white',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          pointerEvents: 'none',
+                          zIndex: 2,
+                        }}
+                      >
+                        {projectTasks.length > 0 ? `${Math.round((completedCount / projectTasks.length) * 100)}%` : '0%'}
+                      </div>
+                      {local.avatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => updateProjectField('avatarUrl', '', true)}
+                          title="Remove custom icon"
+                          style={{
+                            position: 'absolute',
+                            top: '-8px',
+                            right: '-8px',
+                            background: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          }}
+                        >
+                          <span className="material-icons" style={{ fontSize: '14px' }}>delete</span>
+                        </button>
+                      )}
+                    </div>
+                    {local.avatarUrl && local.avatarUrl.startsWith('http') && (
+                      <a 
+                        href={local.avatarUrl} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ fontSize: '10px', color: '#2196f3', textDecoration: 'none', wordBreak: 'break-all', maxWidth: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center' }}
+                        title={local.avatarUrl}
+                      >
+                        Source Link
+                      </a>
+                    )}
+                    {!local.avatarUrl && (
+                      <span style={{ fontSize: '10px', color: '#666', textAlign: 'center', maxWidth: '80px' }}>Suggested default icon</span>
+                    )}
+                  </div>
+
+                  {/* Right Column: Toggle Switch and Input Area */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    
+                    {/* Switch Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '14px', color: iconInputMode === 'upload' ? '#333' : '#888', fontWeight: iconInputMode === 'upload' ? 'bold' : 'normal' }}>
+                        Upload
+                      </span>
+                      <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={iconInputMode === 'search'} 
+                          onChange={(e) => setIconInputMode(e.target.checked ? 'search' : 'upload')} 
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{ 
+                          position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
+                          backgroundColor: '#ccc', transition: '.4s', borderRadius: '24px' 
+                        }}>
+                          <span style={{
+                            position: 'absolute', content: '""', height: '18px', width: '18px', left: '3px', bottom: '3px',
+                            backgroundColor: 'white', transition: '.4s', borderRadius: '50%',
+                            transform: iconInputMode === 'search' ? 'translateX(16px)' : 'translateX(0)'
+                          }} />
+                        </span>
+                      </label>
+                      <span style={{ fontSize: '14px', color: iconInputMode === 'search' ? '#333' : '#888', fontWeight: iconInputMode === 'search' ? 'bold' : 'normal' }}>
+                        Search Online
+                      </span>
+                    </div>
+
+                    {/* Input Content */}
+                    <div>
+                      {iconInputMode === 'upload' ? (
+                        <div className="project-picture-upload">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const img = new Image();
+                                  img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    const MAX_SIZE = 256;
+                                    let width = img.width;
+                                    let height = img.height;
+
+                                    if (width > height) {
+                                      if (width > MAX_SIZE) {
+                                        height *= MAX_SIZE / width;
+                                        width = MAX_SIZE;
+                                      }
+                                    } else {
+                                      if (height > MAX_SIZE) {
+                                        width *= MAX_SIZE / height;
+                                        height = MAX_SIZE;
+                                      }
+                                    }
+
+                                    canvas.width = width;
+                                    canvas.height = height;
+                                    const ctx = canvas.getContext('2d');
+                                    if (ctx) {
+                                      ctx.drawImage(img, 0, 0, width, height);
+                                      const avatarUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                      updateProjectField('avatarUrl', avatarUrl, true);
+                                    }
+                                  };
+                                  img.src = event.target?.result as string;
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            disabled={!canManage}
+                            className="project-picture-input"
+                          />
+                        </div>
+                      ) : (
+                  <div className="icon-search-section">
+                    <div className="icon-search-input-container">
+                      <input
+                        type="text"
+                        value={iconSearchQuery}
+                        onChange={(e) => setIconSearchQuery(e.target.value)}
+                        placeholder="Search for icons online..."
+                        className="icon-search-input"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            searchIcons(iconSearchQuery);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => searchIcons(iconSearchQuery)}
+                        disabled={!iconSearchQuery.trim() || isSearchingIcons}
+                        className="icon-search-button"
+                        title="Search icons"
+                      >
+                        <span className="material-icons">
+                          {isSearchingIcons ? 'hourglass_empty' : 'search'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {iconSearchResults.length > 0 && (
+                      <div className="icon-search-results">
+                        <div className="icon-results-grid">
+                          {iconSearchResults.map((icon) => {
+                            const iconUrl = icon.raster_sizes?.[0]?.formats?.[0]?.source ||
+                                           icon.images?.[0]?.url ||
+                                           icon.preview_url ||
+                                           icon.url;
+
+                            return (
+                              <button
+                                key={icon.icon_id || icon.id}
+                                type="button"
+                                onClick={() => selectIcon(icon)}
+                                className="icon-result-item"
+                                title="Select this icon"
+                              >
+                                <img
+                                  src={iconUrl}
+                                  alt="Icon"
+                                  className="icon-result-image"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    const colors = ['4CAF50', '2196F3', 'FF9800', '9C27B0', 'F44336', '00BCD4', '8BC34A', 'FFC107'];
+                                    const randomColor = colors[Math.floor(Math.random() * colors.length)] || '4CAF50';
+                                    target.src = `https://via.placeholder.com/64x64/${randomColor}/FFFFFF?text=Icon`;
+                                  }}
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* END Toggle Section */}
+              </div>
+            </div>
+              <div className="project-editor-field">
+                <label className="project-editor-field-label">
+                  <span className="material-icons field-icon">flag</span>
+                  Goal
+                </label>
+                <textarea
+                  value={local.goal || ''}
+                  onChange={(e) => updateProjectField('goal', e.target.value, false)}
+                  onBlur={() => safeOnApplyChange({ goal: localRef.current.goal } as Partial<ProjectItem>)}
+                  placeholder="What success looks like..."
+                  disabled={!canManage}
+                  className="project-editor-goal-input"
+                  rows={3}
+                />
+              </div>
+              <div className="project-editor-field">
+                <label className="project-editor-field-label">
+                  <span className="material-icons field-icon">description</span>
+                  Description
+                </label>
+                <textarea
+                  value={local.description || ''}
+                  onChange={(e) => updateProjectField('description', e.target.value, false)}
+                  onBlur={() => safeOnApplyChange({ description: localRef.current.description } as Partial<ProjectItem>)}
+                  placeholder="What this project is all about..."
+                  disabled={!canManage}
+                  className="project-editor-description-input"
+                />
+              </div>
+              <div className="project-editor-field">
+                <label className="project-editor-field-label">
+                  <span className="material-icons field-icon">event</span>
+                  End Date
+                </label>
+                <div className="project-editor-date-container">
+                  <input
+                    type="date"
+                    value={local.dueDate || ''}
+                    onChange={(e) => updateProjectField('dueDate', e.target.value, false)}
+                    onBlur={() => safeOnApplyChange({ dueDate: localRef.current.dueDate } as Partial<ProjectItem>)}
+                    disabled={!canManage}
+                  />
+                </div>
+              </div>
+              <div className="project-editor-field">
+                <label className="project-editor-field-label">
+                  <span className="material-icons field-icon">psychology</span>
+                  Special Instructions
+                </label>
+                <textarea
+                  value={local.aiInstructions || ''}
+                  onChange={(e) => updateProjectField('aiInstructions', e.target.value, false)}
+                  onBlur={() => safeOnApplyChange({ aiInstructions: localRef.current.aiInstructions } as Partial<ProjectItem>)}
+                  placeholder="Instructions for AI when reviewing the project..."
+                  disabled={!canManage}
+                  className="project-editor-ai-instructions-input"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Conditionally render content */}
-      {(showFlatFilterView || (searchQuery && searchQuery.trim() !== "") || activeTab === 'tasks') && (
-        <div className="project-editor-content">
-      {showFlatFilterView || (searchQuery && searchQuery.trim() !== "") ? (
+      {/* Main content - always show tasks */}
+      <div className="project-editor-content">
+      {showFlatFilterView || (searchQuery && searchQuery.trim() !== "") || activeTab === 'tasks' ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
           {filteredFlatTasks.length === 0 ? (
@@ -1051,8 +1412,7 @@ export default function ProjectEditor({
       ))}
         </div>
       )}
-        </div>
-      )}
+    </div>
 
     </div>
   );
