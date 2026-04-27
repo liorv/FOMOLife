@@ -87,8 +87,14 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
   const handleTabChange = (tab: FrameworkTab) => {
+    if (tab === 'projects') {
+      setSearchDraft('');
+    }
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('tab', tab);
+    if (tab === 'projects') {
+      nextParams.delete('q');
+    }
     router.replace(`${pathname}?${nextParams.toString()}`);
   };
 

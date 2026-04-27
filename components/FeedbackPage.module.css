@@ -1,42 +1,39 @@
 /* ── Page shell ── */
 .page {
-  display: flex;
   width: 100%;
-  min-height: 0;
-  overflow-y: auto;
-  justify-content: center;
-  align-items: flex-start;
-  padding-bottom: calc(var(--nav-height, 64px) + 32px);
+  padding: 20px 12px calc(var(--nav-height, 64px) + 32px);
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center the inner content container */
   box-sizing: border-box;
-  background: transparent;
+  overflow-y: auto;
+  height: 100%;
 }
 
-.container {
-  width: min(680px, 100%);
-  min-width: 0;
-  margin: 0 auto;
-  padding: 20px 12px 0;
+.contentContainer {
+  width: 100%;
+  max-width: 800px; /* Matching tasks page width */
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-sizing: border-box;
 }
 
 /* ── Inline Add Bar ── */
 .addBar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   background: #fff;
   border-radius: 12px;
   padding: 8px 10px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .typeChips {
   display: flex;
-  gap: 4px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -78,8 +75,8 @@
 }
 
 .addInput {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 150px;
+  min-width: 150px;
   border: none;
   outline: none;
   background: transparent;
@@ -142,7 +139,7 @@
 .filterRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   flex-wrap: wrap;
   padding: 2px 4px;
 }

@@ -19,7 +19,6 @@ interface ProjectEditorProps {
   onCreatePerson?: (name: string) => void;
   onOpenPeople?: () => void;
   onAddSubproject?: (name: string) => void;
-  onBack?: () => void;
   newlyAddedSubprojectId?: string | null;
   onClearNewSubproject?: () => void;
   onSubprojectDeleted?: (payload: { projectId: string; subproject: ProjectSubproject; index: number }) => void;
@@ -101,7 +100,6 @@ export default function ProjectEditor({
   onCreatePerson,
   onOpenPeople,
   onAddSubproject,
-  onBack,
   newlyAddedSubprojectId,
   onClearNewSubproject,
   onSubprojectDeleted,
@@ -192,7 +190,6 @@ export default function ProjectEditor({
   const safeOnAddSubproject = onAddSubproject ?? (() => {});
   const safeOnClearNewSubproject = onClearNewSubproject ?? (() => {});
   const safeOnSubprojectDeleted = onSubprojectDeleted ?? (() => {});
-  const safeOnBack = onBack ?? (() => {});
   const safeOnToggleFilter = onToggleFilter ?? (() => {});
   const safeOnExport = onExport ?? (() => {});
 

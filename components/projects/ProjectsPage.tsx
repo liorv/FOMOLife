@@ -22,6 +22,7 @@ export default function ProjectsPage({ canManage, style, className }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const embeddedUid = searchParams.get("uid") ?? "";
+  const initialProjectId = searchParams.get("projectId") || null;
   const apiClient = useMemo(
     () => createProjectsApiClient("", { uid: embeddedUid }),
     [embeddedUid],
@@ -64,10 +65,28 @@ export default function ProjectsPage({ canManage, style, className }: Props) {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [people, setPeople] = useState<Contact[]>([]);
   const [contactsError, setContactsError] = useState<string | null>(null);
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(initialProjectId);
   const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    const onNav = (e: CustomEvent) => {
+      if (e.detail?.projectId) {
+        setEditingProjectId(e.detail.projectId);
+      }
+    };
+    window.addEventListener('framework-navigate-project', onNav as EventListener);
+    return () => {
+      window.removeEventListener('framework-navigate-project', onNav as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (initialProjectId) {
+      setEditingProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
 
   const [colorPickerProjectId, setColorPickerProjectId] = useState<string | null>(null);
 
@@ -398,7 +417,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     if (!canManage) return;
     const snapshotProjects = projects;
     setProjects((prev) => prev.filter((item) => item.id !== projectId));
-    if (editingProjectId === projectId) setEditingProjectId(null);
+    if (editingProjectId === projectId) {
+      setEditingProjectId(null);
+    }
     setPendingDeleteProjectId(null);
     try {
       await apiClient.deleteProject(projectId);
@@ -487,7 +508,14 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               projects={projects}
               people={people}
               selectedProjectId={editingProjectId}
-              onSelectProject={setEditingProjectId}
+              onSelectProject={(id: string | null) => {
+                setEditingProjectId(id);
+                if (id === null && searchParams.has('q')) {
+                  const nextParams = new URLSearchParams(searchParams.toString());
+                  nextParams.delete('q');
+                  router.replace(`/?${nextParams.toString()}`);
+                }
+              }}
               onApplyChange={handleProjectApplyChange}
               onAddSubproject={handleAddSubproject}
               newlyAddedSubprojectId={newlyAddedSubprojectId}

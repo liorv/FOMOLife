@@ -207,8 +207,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
 
   return (
     <div className={styles.page} style={style}>
-      <div className={styles.container}>
-
+      <div className={styles.contentContainer}>
         {/* ── Inline Add Bar ── */}
         <form className={styles.addBar} onSubmit={handleAdd} noValidate>
           {/* Type toggle chips */}
