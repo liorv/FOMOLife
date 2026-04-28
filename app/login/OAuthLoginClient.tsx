@@ -79,7 +79,10 @@ export default function OAuthLoginClient({ returnTo, forceAccountSelect = false 
         return;
       }
 
-      await supabase.auth.signOut();
+      // Do NOT sign out of Supabase here — doing so revokes the OAuth grant and
+      // forces re-authorization with the provider (e.g. X) on every login.
+      // The app relies on its own cookie session; the Supabase token is only
+      // needed for the exchange above.
       router.replace(returnTo);
     }
 
