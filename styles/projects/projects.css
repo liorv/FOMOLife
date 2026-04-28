@@ -262,6 +262,12 @@
   flex-direction: column;
 }
 
+.subprojects-drag-hint-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 24px;
+}
+
 .project-editor .subprojects-list .subproject {
   box-sizing: border-box;
   width: 100%;
@@ -851,6 +857,23 @@
   .project-editor-header-controls .invite-members-btn {
     padding: 4px 6px;
   }
+
+  .project-action-btn span:not(.material-icons) {
+    display: none;
+  }
+
+  .project-action-btn--collapse span:not(.material-icons),
+  .project-action-btn--expand span:not(.material-icons) {
+    display: inline;
+  }
+
+  .project-action-btn {
+    padding: 4px 6px;
+  }
+
+  .project-filter-bar .dashboard-card__label {
+    display: none !important;
+  }
 }
 
 
@@ -970,6 +993,103 @@
 }
 
 /* ============================================================
+  Project Actions Bar (replaces filter summary strip)
+   ============================================================ */
+.project-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  height: 36px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.project-actions-bar::-webkit-scrollbar { display: none; }
+
+.project-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  border-radius: 20px;
+  padding: 4px 10px 4px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.project-action-btn .material-icons {
+  font-size: 16px;
+  line-height: 1;
+}
+.project-action-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: #222;
+}
+.project-action-btn--active {
+  color: var(--accent-primary, #1a73e8);
+  background: rgba(26, 115, 232, 0.08);
+}
+.project-action-btn--close-filters {
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.1);
+  flex-shrink: 0;
+  padding: 4px 6px;
+}
+.project-action-btn--close-filters:hover {
+  color: #c62828;
+  background: rgba(229, 57, 53, 0.2);
+}
+
+/* Filter bar: cards have no background, constrained to row height */
+.project-filter-bar {
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  padding: 0 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+.project-filter-bar .dashboard-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 4px 8px !important;
+  border-radius: 20px !important;
+  height: 28px !important;
+  gap: 4px !important;
+}
+.project-filter-bar .dashboard-card__content {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.project-filter-bar .dashboard-card__value {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+.project-filter-bar .dashboard-card__label {
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+.project-filter-bar .dashboard-card--active {
+  background: rgba(26, 115, 232, 0.1) !important;
+}
+.project-action-btn--leave {
+  color: var(--color-text-muted, #888);
+}
+.project-action-btn--leave:hover {
+  color: var(--color-danger, #e53935);
+  background: rgba(229, 57, 53, 0.07);
+}
+
+/* ============================================================
   Project Header Controls (replaces tabs)
    ============================================================ */
 .project-editor-header-controls {
@@ -1029,11 +1149,14 @@
 
 /* ── Invite button ── */
 .project-editor-header-controls .invite-members-btn {
-  color: var(--accent-primary, #1a73e8);
+  color: #fff;
+  background: var(--accent-primary, #1a73e8);
+  border-radius: 20px;
+  font-weight: 600;
 }
 .project-editor-header-controls .invite-members-btn:hover {
-  background: rgba(26, 115, 232, 0.08);
-  color: #0d5ab8;
+  background: #0d5ab8;
+  color: #fff;
 }
 
 /* ── Member avatars bar ── */
@@ -1041,7 +1164,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
 }
 
 .project-member-avatar-wrap {

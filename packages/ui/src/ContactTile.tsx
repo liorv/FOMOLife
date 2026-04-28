@@ -158,12 +158,12 @@ export function ContactTile({ id, name, status, avatarUrl, oauthProvider, realNa
         <div className="contact-tile__actions">
           <button
             className="contact-tile__unlink-btn"
-            aria-label="Delete contact"
+            aria-label="Unlink contact"
             type="button"
             onClick={e => { e.stopPropagation(); onUnlink && onUnlink(); }}
-            title="Delete contact"
+            title="Unlink contact"
           >
-            <span className="material-icons" style={{ fontSize: '16px' }}>delete</span>
+            <span className="material-icons" style={{ fontSize: '16px' }}>link_off</span>
           </button>
         </div>
       </td>

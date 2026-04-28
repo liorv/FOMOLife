@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { LogoBar, TabNav } from '@myorg/ui';
-import { getFrameworkTabLinks, normalizeTab, type FrameworkTab } from '../lib/frameworkConfig';
+import { getFrameworkTabLinks, normalizeTab, TAB_ORDER, type FrameworkTab } from '../lib/frameworkConfig';
 import FrameworkColorPickerOverlay from './ColorPickerOverlay';
 import { NotificationBell } from './NotificationBell';
 import HomePage from './HomePage';
@@ -172,6 +172,28 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     window.location.reload();
   };
 
+  // Swipe-to-navigate between tabs on mobile
+  const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    swipeTouchStart.current = { x: t.clientX, y: t.clientY };
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeTouchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - swipeTouchStart.current.x;
+    const dy = t.clientY - swipeTouchStart.current.y;
+    swipeTouchStart.current = null;
+    // Only act on predominantly horizontal swipes of at least 60px
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const currentIndex = TAB_ORDER.indexOf(activeTab as FrameworkTab);
+    if (currentIndex === -1) return;
+    // Swipe left → next tab; swipe right → previous tab
+    const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1;
+    if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) return;
+    handleTabChange(TAB_ORDER[nextIndex]);
+  }, [activeTab, handleTabChange]);
+
   const renderComponent = (tab: typeof activeTabConfig) => {
     if (!tab) return null;
     const isActive = tab.key === activeTab;
@@ -207,6 +229,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         window.dispatchEvent(new CustomEvent('framework-action-add-project'));
       } else if (activeTab === 'tasks') {
         window.dispatchEvent(new CustomEvent('framework-action-add-task'));
+      } else if (activeTab === 'feedback') {
+        window.dispatchEvent(new CustomEvent('framework-action-add-feedback'));
       } else {
         window.dispatchEvent(new CustomEvent('open-project-assistant'));
       }
@@ -216,7 +240,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   };
 
   return (
-    <main className="main-layout">
+    <main className="main-layout" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <LogoBar
         showSearch={showHeaderSearch}
         searchValue={searchDraft}

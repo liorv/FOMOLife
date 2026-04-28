@@ -1341,8 +1341,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
-  padding: 0 16px 96px;
+  padding: 0 16px 8px;
   align-content: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Drag-reorder hint above tile grid */
+.dashboard-drag-hint-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 16px 8px;
   width: 100%;
   box-sizing: border-box;
 }

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './FeedbackPage.module.css';
 import ContentHeader from './ContentHeader';
+import { ModalOverlay } from '@myorg/ui';
 
 type FeedbackType = 'feature' | 'bug';
 
@@ -60,12 +61,13 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
 
-  // Inline add bar state
+  // Add panel state
+  const [showAddPanel, setShowAddPanel] = useState(false);
   const [addType, setAddType] = useState<FeedbackType>('feature');
   const [addTitle, setAddTitle] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const addInputRef = useRef<HTMLInputElement>(null);
+  const addInputRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchItems = async () => {
     try {
@@ -81,6 +83,12 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
   };
 
   useEffect(() => { fetchItems(); }, []);
+
+  useEffect(() => {
+    const openPanel = () => setShowAddPanel(true);
+    window.addEventListener('framework-action-add-feedback', openPanel);
+    return () => window.removeEventListener('framework-action-add-feedback', openPanel);
+  }, []);
 
   const handleVote = async (id: string, direction: 1 | -1) => {
     const item = items.find((i) => i.id === id);
@@ -184,7 +192,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
       const created: FeedbackItem = await res.json();
       setItems((prev) => [created, ...prev]);
       setAddTitle('');
-      addInputRef.current?.focus();
+      setShowAddPanel(false);
     } catch {
       setAddError('Submission failed.');
     } finally {
@@ -210,48 +218,6 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
     <div className={styles.page} style={style}>
       <ContentHeader title="Feedback" />
       <div className={styles.contentContainer}>
-        {/* ── Inline Add Bar ── */}
-        <form className={styles.addBar} onSubmit={handleAdd} noValidate>
-          {/* Type toggle chips */}
-          <div className={styles.typeChips}>
-            <button
-              type="button"
-              className={`${styles.chip} ${addType === 'feature' ? styles.chipFeature : ''}`}
-              onClick={() => setAddType('feature')}
-              aria-pressed={addType === 'feature'}
-            >
-              <span className="material-icons" style={{ fontSize: 14 }}>auto_awesome</span>
-              Feature
-            </button>
-            <button
-              type="button"
-              className={`${styles.chip} ${addType === 'bug' ? styles.chipBug : ''}`}
-              onClick={() => setAddType('bug')}
-              aria-pressed={addType === 'bug'}
-            >
-              <span className="material-icons" style={{ fontSize: 14 }}>bug_report</span>
-              Bug
-            </button>
-          </div>
-
-          {/* Title input */}
-          <input
-            ref={addInputRef}
-            className={`${styles.addInput} ${addError ? styles.addInputError : ''}`}
-            type="text"
-            placeholder={addType === 'feature' ? 'Describe the feature you want…' : 'Describe the bug…'}
-            value={addTitle}
-            onChange={(e) => { setAddTitle(e.target.value); if (addError) setAddError(null); }}
-            maxLength={120}
-            aria-label="Request title"
-          />
-
-          <button type="submit" className={styles.addBtn} disabled={adding} aria-label="Submit">
-            <span className="material-icons">{adding ? 'hourglass_top' : 'send'}</span>
-          </button>
-        </form>
-        {addError && <p className={styles.addErr}>{addError}</p>}
-
         {/* ── Filter chips ── */}
         <div className={styles.filterRow}>
           {(['all', 'feature', 'bug'] as FilterType[]).map((f) => (
@@ -268,8 +234,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
               )}
             </button>
           ))}
-          <span className={styles.totalCount}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
-        </div>
+</div>
 
         {/* ── List ── */}
         {loading ? (
@@ -286,7 +251,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
           <div className={styles.center}>
             <span className="material-icons" style={{ fontSize: 44, color: '#cbd5e1' }}>{search ? 'search_off' : 'lightbulb'}</span>
             <p className={styles.centerText}>
-              {search ? `No results for "${search}"` : 'No requests yet — add the first one above!'}
+              {search ? `No results for "${search}"` : 'No requests yet — press + to add the first one!'}
             </p>
           </div>
         ) : (
@@ -331,41 +296,102 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
                     <span className={styles.cardMeta}>{formatAuthorName(item.authorName)} · {timeAgo(item.createdAt)}</span>
                   </div>
 
-                  {/* Mark Complete */}
-                  {(() => {
-                    const completions = item.completions ?? {};
-                    const count = Object.keys(completions).length;
-                    const iMarked = !!completions[userId];
-                    return (
-                      <button
-                        className={`${styles.completeBtn} ${iMarked ? styles.completeBtnActive : ''}`}
-                        onClick={() => handleMarkComplete(item.id)}
-                        aria-label={iMarked ? 'Unmark as completed' : 'Mark as completed'}
-                        title={iMarked ? `You marked this done (${count}/3 confirmations)` : `Mark as done (${count}/3 confirmations)`}
-                      >
-                        <span className="material-icons">{iMarked ? 'check_circle' : 'check_circle_outline'}</span>
-                        {count > 0 && <span className={styles.completionCount}>{count}/3</span>}
-                      </button>
-                    );
-                  })()}
+                  {/* Actions column */}
+                  <div className={styles.actionsCol}>
+                    {/* Mark Complete */}
+                    {(() => {
+                      const completions = item.completions ?? {};
+                      const count = Object.keys(completions).length;
+                      const iMarked = !!completions[userId];
+                      return (
+                        <button
+                          className={`${styles.completeBtn} ${iMarked ? styles.completeBtnActive : ''}`}
+                          onClick={() => handleMarkComplete(item.id)}
+                          aria-label={iMarked ? 'Unmark as completed' : 'Mark as completed'}
+                          title={iMarked ? `You marked this done (${count}/3 confirmations)` : `Mark as done (${count}/3 confirmations)`}
+                        >
+                          <span className="material-icons">{iMarked ? 'check_circle' : 'check_circle_outline'}</span>
+                          {count > 0 && <span className={styles.completionCount}>{count}/3</span>}
+                        </button>
+                      );
+                    })()}
 
-                  {/* Delete (own only) */}
-                  {isOwn && (
-                    <button
-                      className={styles.deleteBtn}
-                      onClick={() => handleDelete(item.id)}
-                      aria-label="Delete"
-                      title="Delete your request"
-                    >
-                      <span className="material-icons">delete_outline</span>
-                    </button>
-                  )}
+                    {/* Delete (own only) */}
+                    {isOwn && (
+                      <button
+                        className={styles.deleteBtn}
+                        onClick={() => handleDelete(item.id)}
+                        aria-label="Delete"
+                        title="Delete your request"
+                      >
+                        <span className="material-icons">close</span>
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}
           </ul>
         )}
       </div>
+
+      {/* ── Bottom sheet: Add Feedback ── */}
+      <ModalOverlay
+        open={showAddPanel}
+        onClose={() => { setShowAddPanel(false); setAddTitle(''); setAddError(null); }}
+        className={styles.bottomSheetOverlay}
+        contentClassName={styles.bottomSheetContent}
+      >
+        <div className={styles.bottomSheetHandle} />
+        <div className={styles.bottomSheetHeader}>
+          <span className={styles.bottomSheetTitle}>Add Feedback</span>
+          <button
+            type="button"
+            className={styles.bottomSheetClose}
+            onClick={() => { setShowAddPanel(false); setAddTitle(''); setAddError(null); }}
+            aria-label="Close"
+          >
+            <span className="material-icons">close</span>
+          </button>
+        </div>
+        <form onSubmit={handleAdd} noValidate className={styles.bottomSheetForm}>
+          <div className={styles.typeChips}>
+            <button
+              type="button"
+              className={`${styles.chip} ${addType === 'feature' ? styles.chipFeature : ''}`}
+              onClick={() => setAddType('feature')}
+              aria-pressed={addType === 'feature'}
+            >
+              <span className="material-icons" style={{ fontSize: 14 }}>auto_awesome</span>
+              Feature
+            </button>
+            <button
+              type="button"
+              className={`${styles.chip} ${addType === 'bug' ? styles.chipBug : ''}`}
+              onClick={() => setAddType('bug')}
+              aria-pressed={addType === 'bug'}
+            >
+              <span className="material-icons" style={{ fontSize: 14 }}>bug_report</span>
+              Bug
+            </button>
+          </div>
+          <textarea
+            ref={addInputRef}
+            className={`${styles.addInput} ${styles.addInputFull} ${addError ? styles.addInputError : ''}`}
+            rows={2}
+            placeholder={addType === 'feature' ? 'Describe the feature you want…' : 'Describe the bug…'}
+            value={addTitle}
+            onChange={(e) => { setAddTitle(e.target.value); if (addError) setAddError(null); }}
+            maxLength={120}
+            aria-label="Request title"
+          />
+          {addError && <p className={styles.addErr}>{addError}</p>}
+          <button type="submit" className={styles.addBtnFull} disabled={adding}>
+            <span className="material-icons">{adding ? 'hourglass_top' : 'send'}</span>
+            {adding ? 'Submitting…' : 'Submit'}
+          </button>
+        </form>
+      </ModalOverlay>
     </div>
   );
 }

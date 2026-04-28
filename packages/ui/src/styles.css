@@ -295,17 +295,13 @@
 }
 
 .contact-tile__actions-cell {
-  padding: 0px;
+  padding: 0px 0px 0px 0px;
   text-align: right;
 }
 
 @media (max-width: 480px) {
-  .contact-tile__status-cell .contact-tile__status {
-    /* Hide text but keep icon */
-    font-size: 0;
-  }
-  .contact-tile__status-cell .contact-tile__status .material-icons {
-    font-size: 14px;
+  .contact-tile__status-cell {
+    display: none;
   }
 }
 
@@ -990,7 +986,7 @@
   }
   .contact-tile__avatar-cell {
     width: auto;
-    padding: 5px;
+    padding: 5px 5px 5px 10px;
   }
   .contact-tile__name-cell {
     flex: 1;
@@ -998,8 +994,7 @@
     min-width: 0;
   }
   .contact-tile__status-cell {
-    width: 100%;
-    padding: 5px 5px 5px 42px; /* indent to match name */
+    display: none;
   }
   .contact-tile__actions-cell {
     position: absolute;

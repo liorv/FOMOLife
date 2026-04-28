@@ -32,6 +32,8 @@ interface ProjectEditorProps {
   currentUserId?: string;
   onInviteMember?: (member: ProjectMember) => void;
   onRemoveMember?: (userId: string) => void;
+  collapseAllRef?: React.MutableRefObject<(() => void) | null>;
+  expandAllRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 type DashboardTileProps = {
@@ -82,6 +84,7 @@ function DashboardTile({ icon, label, value, accent, active, clickable, onClick 
 import SubprojectEditor from "./SubprojectEditor";
 import { TaskList } from "@myorg/ui";
 import { generateId, applyFilters } from '@myorg/utils';
+import DismissibleHint from "../DismissibleHint";
 
 // Initialize local project state with collapsed defaults for subprojects
 function initLocalProject(project: ProjectItem): LocalProject {
@@ -116,6 +119,8 @@ export default function ProjectEditor({
   currentUserId = '',
   onInviteMember,
   onRemoveMember,
+  collapseAllRef,
+  expandAllRef,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -329,6 +334,12 @@ export default function ProjectEditor({
     } as LocalProject;
     setLocalAndApply(updated);
   };
+
+  // Expose collapse/expand to parent via refs
+  useEffect(() => {
+    if (collapseAllRef) collapseAllRef.current = collapseAll;
+    if (expandAllRef) expandAllRef.current = expandAll;
+  });
 
   const updateProjectField = (field: keyof ProjectItem, value: any, commit = true) => {
     if (!canManage) return;
@@ -921,23 +932,7 @@ export default function ProjectEditor({
 
         {/* Project header controls */}
         <div className="project-editor-header-controls">
-          <div className="tab-controls">
-            <button onClick={expandAll} className="expand-collapse-btn" title="Expand All">
-              <span className="material-icons">unfold_more</span>
-              <span className="btn-label">Expand</span>
-            </button>
-            <button onClick={collapseAll} className="expand-collapse-btn" title="Collapse All">
-              <span className="material-icons">unfold_less</span>
-              <span className="btn-label">Collapse</span>
-            </button>
-            {typeof onExport === 'function' && (
-              <button onClick={onExport} className="expand-collapse-btn export-btn" title="Export JSON">
-                <span className="material-icons">download</span>
-                <span className="btn-label">Export</span>
-              </button>
-            )}
-          </div>
-          {/* Member avatars + invite button, pushed to the right */}
+          {/* Member avatars + invite button, aligned to the left */}
           <div className="project-members-bar">
             {members.map((m) => (
               <div key={m.userId} className="project-member-avatar-wrap" title={m.name}>
@@ -955,31 +950,37 @@ export default function ProjectEditor({
               className="expand-collapse-btn invite-members-btn"
               title="Invite a connection to this project"
               onClick={() => setShowInviteModal(true)}
+              style={local.color ? { background: `#${local.color.replace(/^#/, '')}`, color: '#fff' } : undefined}
             >
               <span className="material-icons">person_add</span>
               <span className="btn-label">Invite</span>
             </button>
           </div>
+          <div className="tab-controls">
+            {/* Expand/Collapse moved to dashboard actions bar when collapseAllRef/expandAllRef are provided */}
+            {!collapseAllRef && (
+              <>
+                <button onClick={expandAll} className="expand-collapse-btn" title="Expand All">
+                  <span className="material-icons">unfold_more</span>
+                  <span className="btn-label">Expand</span>
+                </button>
+                <button onClick={collapseAll} className="expand-collapse-btn" title="Collapse All">
+                  <span className="material-icons">unfold_less</span>
+                  <span className="btn-label">Collapse</span>
+                </button>
+              </>
+            )}
+            {typeof onExport === 'function' && (
+              <button onClick={onExport} className="expand-collapse-btn export-btn" title="Export JSON">
+                <span className="material-icons">download</span>
+                <span className="btn-label">Export</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Project profile icon */}
         <div className="project-profile-icon-container">
-          {/* Leave project button */}
-          {(() => {
-            const members = project.members ?? [];
-            const isCurrentUserMember = currentUserId && members.some((m) => m.userId === currentUserId);
-            const canLeave = isCurrentUserMember && onRemoveMember;
-            
-            return canLeave ? (
-              <button
-                className="project-leave-btn"
-                title="Leave project"
-                onClick={() => onRemoveMember?.(currentUserId)}
-              >
-                <span className="material-icons">logout</span>
-              </button>
-            ) : null;
-          })()}
           <div
             className="project-profile-icon"
             onClick={() => setShowOverviewEditor(true)}
@@ -1418,6 +1419,17 @@ export default function ProjectEditor({
       ) : (
         /* ── Normal subproject view ──────────────────────────────────────── */
         <div className="subprojects-list">
+        <div className="subprojects-drag-hint-row">
+          <DismissibleHint
+            storageKey="subproject-drag-hint-dismissed"
+            direction="down"
+            lines={[
+              'Drag...Tasks 2 re-order them',
+              'Drag...Tasks 2 move between sub-projects',
+              'Drag...Sub-projects 2 reorder',
+            ]}
+          />
+        </div>
       {(local.subprojects || []).map((sub) => (
         <SubprojectEditor
           key={sub.id}

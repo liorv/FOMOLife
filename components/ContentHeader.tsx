@@ -4,6 +4,7 @@ import React from 'react';
 import ReleaseNotes from './ReleaseNotes';
 import homeStyles from './HomePage.module.css';
 import headerStyles from './ContentHeader.module.css';
+import DismissibleHint from './DismissibleHint';
 
 type Props = {
   title: string;
@@ -13,6 +14,11 @@ export default function ContentHeader({ title }: Props) {
   return (
     <div className={headerStyles.header}>
       <h1 className={homeStyles.title}>{title}</h1>
+      <DismissibleHint
+        storageKey="swipe-nav-hint-dismissed"
+        lines={['swipe 2', 'navigate']}
+        className={headerStyles.swipeHint}
+      />
       <div className={homeStyles.headerActions}>
         <a
           href="https://paypal.me/lior441"

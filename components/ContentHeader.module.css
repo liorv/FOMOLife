@@ -14,3 +14,16 @@
     padding: 10px 12px 10px;
   }
 }
+
+/* ── Swipe hint: visible on all screen sizes ── */
+.header {
+  flex-wrap: wrap;
+}
+
+.swipeHint {
+  display: flex;
+  order: 3;
+  width: 100%;
+  justify-content: center;
+  padding-bottom: 4px;
+}

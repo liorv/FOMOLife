@@ -1,6 +1,7 @@
 import React, {
   useState,
   useMemo,
+  useRef,
   KeyboardEvent,
   MouseEvent,
   useEffect,
@@ -14,6 +15,7 @@ import { ProjectTile, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
 import ProjectAssistant from "./ProjectAssistant";
+import DismissibleHint from "../DismissibleHint";
 
 // Helper function to convert hex color to RGB string
 function hexToRgb(hex: string | undefined): string {
@@ -141,6 +143,10 @@ export default function ProjectsDashboard({
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
+
+  const [showFilters, setShowFilters] = useState(false);
+  const collapseAllRef = useRef<(() => void) | null>(null);
+  const expandAllRef = useRef<(() => void) | null>(null);
 
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [llmAvailable, setLlmAvailable] = useState<boolean | null>(null);
@@ -389,63 +395,126 @@ export default function ProjectsDashboard({
                       {selectedProject.text}
                     </h2>
                   </div>
-                  <div className="dashboard-summary dashboard-project-header-summary">
-                    <SummaryCard
-                      icon="person"
-                      label="Assigned"
-                      value={assignedToMeCount}
-                      accent="primary"
-                      clickable
-                      active={filters.includes('assigned_to_me')}
-                      onClick={() => onToggleFilter?.('assigned_to_me')}
-                    />
-                    <SummaryCard
-                      icon="check_circle"
-                      label="Completed"
-                      value={completedTasks}
-                      accent="success"
-                      clickable
-                      active={filters.includes('completed')}
-                      onClick={() => onToggleFilter?.('completed')}
-                    />
-                    <SummaryCard
-                      icon="star"
-                      label="Starred"
-                      value={starredCount}
-                      accent="star"
-                      clickable
-                      active={filters.includes('starred')}
-                      onClick={() => onToggleFilter?.('starred')}
-                    />
-                    <SummaryCard
-                      icon="warning"
-                      label="Overdue"
-                      value={overdueCount}
-                      accent="danger"
-                      clickable
-                      active={filters.includes('overdue')}
-                      onClick={() => onToggleFilter?.('overdue')}
-                    />
-                    <SummaryCard
-                      icon="upcoming"
-                      label="Upcoming"
-                      value={upcomingCount}
-                      accent="info"
-                      clickable
-                      active={filters.includes('upcoming')}
-                      onClick={() => onToggleFilter?.('upcoming')}
-                    />
-                  </div>
+                  {showFilters ? (
+                    <div className="project-actions-bar project-filter-bar">
+                      <button
+                        className="project-action-btn project-action-btn--close-filters"
+                        onClick={() => { setShowFilters(false); onToggleFilter?.(null); }}
+                        title="Close filters"
+                      >
+                        <span className="material-icons">close</span>
+                      </button>
+                      <SummaryCard
+                        icon="person"
+                        label="Assigned"
+                        value={assignedToMeCount}
+                        accent="primary"
+                        clickable
+                        active={filters.includes('assigned_to_me')}
+                        onClick={() => onToggleFilter?.('assigned_to_me')}
+                      />
+                      <SummaryCard
+                        icon="check_circle"
+                        label="Completed"
+                        value={completedTasks}
+                        accent="success"
+                        clickable
+                        active={filters.includes('completed')}
+                        onClick={() => onToggleFilter?.('completed')}
+                      />
+                      <SummaryCard
+                        icon="star"
+                        label="Starred"
+                        value={starredCount}
+                        accent="star"
+                        clickable
+                        active={filters.includes('starred')}
+                        onClick={() => onToggleFilter?.('starred')}
+                      />
+                      <SummaryCard
+                        icon="warning"
+                        label="Overdue"
+                        value={overdueCount}
+                        accent="danger"
+                        clickable
+                        active={filters.includes('overdue')}
+                        onClick={() => onToggleFilter?.('overdue')}
+                      />
+                      <SummaryCard
+                        icon="upcoming"
+                        label="Upcoming"
+                        value={upcomingCount}
+                        accent="info"
+                        clickable
+                        active={filters.includes('upcoming')}
+                        onClick={() => onToggleFilter?.('upcoming')}
+                      />
+                    </div>
+                  ) : (
+                    <div className="project-actions-bar">
+                      <button
+                        className={`project-action-btn${filters.length > 0 ? ' project-action-btn--active' : ''}`}
+                        onClick={() => setShowFilters(true)}
+                        title="Filter tasks"
+                      >
+                        <span className="material-icons">filter_list</span>
+                        <span>Filter{filters.length > 0 ? ` (${filters.length})` : ''}</span>
+                      </button>
+                      <button
+                        className="project-action-btn project-action-btn--collapse"
+                        onClick={() => collapseAllRef.current?.()}
+                        title="Collapse all"
+                      >
+                        <span className="material-icons">unfold_less</span>
+                        <span>Collapse</span>
+                      </button>
+                      <button
+                        className="project-action-btn project-action-btn--expand"
+                        onClick={() => expandAllRef.current?.()}
+                        title="Expand all"
+                      >
+                        <span className="material-icons">unfold_more</span>
+                        <span>Expand</span>
+                      </button>
+                      <button
+                        className="project-action-btn"
+                        title="Export JSON"
+                        onClick={() => {
+                          const exportObj = buildProjectExport(selectedProject, people);
+                          const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
+                          downloadJSON(exportObj, `${safeName}_export.json`);
+                        }}
+                      >
+                        <span className="material-icons">download</span>
+                        <span>Export</span>
+                      </button>
+                      {(()  => {
+                        const members = selectedProject.members ?? [];
+                        const isCurrentUserMember = currentUserId && members.some((m) => m.userId === currentUserId);
+                        const canLeave = isCurrentUserMember && onRemoveMember;
+                        return canLeave ? (
+                          <button
+                            className="project-action-btn project-action-btn--leave"
+                            title="Leave project"
+                            onClick={() => onRemoveMember?.(selectedProject.id, currentUserId)}
+                          >
+                            <span className="material-icons">logout</span>
+                            <span>Leave</span>
+                          </button>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
                 </div>
               }
               onToggleFilter={onToggleFilter}
               key={selectedProject.id}
               project={selectedProject}
-              onExport={() => {
+              {...(collapseAllRef ? {} : { onExport: () => {
                 const exportObj = buildProjectExport(selectedProject, people);
                 const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
                 downloadJSON(exportObj, `${safeName}_export.json`);
-              }}
+              } })}
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
@@ -461,6 +530,8 @@ export default function ProjectsDashboard({
               currentUserId={currentUserId}
               onInviteMember={(member) => onInviteMember?.(selectedProject.id, member)}
               onRemoveMember={(userId) => onRemoveMember?.(selectedProject.id, userId)}
+              collapseAllRef={collapseAllRef}
+              expandAllRef={expandAllRef}
             />
             {/* Floating AI assistant FAB (project editor) */}
             <button
@@ -650,32 +721,41 @@ export default function ProjectsDashboard({
                 />
               </div>
             ) : (
-              <div className="dashboard-tiles-grid">
-                {projects.map((p) => (
-                  <div
-                    key={p.id}
-                    className="dashboard-tile-wrapper"
-                    onClick={() => handleSelectProject(p.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
-                  >
-                    <ProjectTile
-                      project={p}
-                      onEdit={handleSelectProject}
-                      onTitleChange={onTitleChange}
-                      onDelete={onDeleteProject}
-                      onConfirmDelete={onConfirmDeleteProject}
-                      isPendingDelete={pendingDeleteProjectId === p.id}
-                      onChangeColor={onColorChange}
-                      onOpenColorPicker={onOpenColorPicker}
-                      onReorder={onReorder}
-                      currentUserId={currentUserId}
-                      onLeave={onLeave ? () => onLeave(p.id) : undefined}
-                    />
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="dashboard-drag-hint-row">
+                  <DismissibleHint
+                    storageKey="project-drag-reorder-hint-dismissed"
+                    direction="down"
+                    lines={['drag a project 2 reorder']}
+                  />
+                </div>
+                <div className="dashboard-tiles-grid">
+                  {projects.map((p) => (
+                    <div
+                      key={p.id}
+                      className="dashboard-tile-wrapper"
+                      onClick={() => handleSelectProject(p.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === "Enter" && handleSelectProject(p.id)}
+                    >
+                      <ProjectTile
+                        project={p}
+                        onEdit={handleSelectProject}
+                        onTitleChange={onTitleChange}
+                        onDelete={onDeleteProject}
+                        onConfirmDelete={onConfirmDeleteProject}
+                        isPendingDelete={pendingDeleteProjectId === p.id}
+                        onChangeColor={onColorChange}
+                        onOpenColorPicker={onOpenColorPicker}
+                        onReorder={onReorder}
+                        currentUserId={currentUserId}
+                        onLeave={onLeave ? () => onLeave(p.id) : undefined}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
             )
           )}
         </>

@@ -138,9 +138,8 @@
   width: 56px;
   pointer-events: none;
   z-index: 100;
-  color: var(--color-accent, #d32998);
-  opacity: 0.8;
-  animation: graffitiDrift 2.8s ease-in-out infinite;
+  color: #555;
+  opacity: 0.7;
 }
 
 .graffitiArrow svg {
@@ -161,7 +160,7 @@
   font-weight: 600;
   white-space: nowrap;
   letter-spacing: 0.04em;
-  color: var(--color-accent, #d32998);
+  color: #555;
 }
 
 @keyframes graffitiDrift {
