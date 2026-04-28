@@ -14,7 +14,7 @@ interface DismissibleHintProps {
    */
   direction?: 'horizontal' | 'up' | 'down';
   /** Optional extra className for the wrapper */
-  className?: string;
+  className?: string | undefined;
 }
 
 export default function DismissibleHint({ storageKey, lines, direction = 'horizontal', className }: DismissibleHintProps) {
