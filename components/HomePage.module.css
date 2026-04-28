@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
   padding: 24px 32px 8px;
   box-sizing: border-box;
   gap: 24px;
@@ -29,9 +28,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px;
-  flex: 1;
-  min-height: 0;
-  align-items: stretch;
+  align-items: start;
 }
 
 .card {
@@ -43,8 +40,24 @@
   flex-direction: column;
   gap: 16px;
   border: 1px solid var(--color-border);
-  min-height: 0;
+  min-height: 220px;
   overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 16px 12px 8px;
+    gap: 16px;
+  }
+
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    min-height: unset;
+  }
 }
 
 .cardHeader {

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { createProjectsApiClient } from "@myorg/api-client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { createProjectsApiClient, createTasksApiClient } from "@myorg/api-client";
 import { createContactsApiClient } from "@myorg/api-client";
-import type { ProjectItem, ProjectSubproject, Contact } from "@myorg/types";
+import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
 import { generateId } from "@myorg/utils";
 import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
+import GlobalSearchResults, { type FeedbackItem } from "../GlobalSearchResults";
 
 // ProjectsDashboard is now a typed TSX component
 
@@ -21,6 +22,7 @@ export type Props = {
 export default function ProjectsPage({ canManage, style, className }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const embeddedUid = searchParams.get("uid") ?? "";
   const initialProjectId = searchParams.get("projectId") || null;
   const apiClient = useMemo(
@@ -29,6 +31,7 @@ export default function ProjectsPage({ canManage, style, className }: Props) {
   );
   // Contacts are served from the same origin in the monolith.
   const contactsClient = useMemo(() => createContactsApiClient(""), []);
+  const tasksClient = useMemo(() => createTasksApiClient(""), []);
 
   // --- API helper wrappers to centralize optimistic updates and error handling
   const apiUpdateProject = async (projectId: string, updated: Partial<ProjectItem>) => {
@@ -64,6 +67,8 @@ export default function ProjectsPage({ canManage, style, className }: Props) {
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [people, setPeople] = useState<Contact[]>([]);
+  const [globalTasks, setGlobalTasks] = useState<TaskItem[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [contactsError, setContactsError] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(initialProjectId);
   const [newlyAddedSubprojectId, setNewlyAddedSubprojectId] = useState<
@@ -135,9 +140,22 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
           setContactsError(msg);
         }
 
+        let loadedTasks: TaskItem[] = [];
+        let loadedFeedback: FeedbackItem[] = [];
+        try {
+          [loadedTasks, loadedFeedback] = await Promise.all([
+            tasksClient.listTasks(),
+            fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback),
+          ]);
+        } catch {
+          // non-critical — search will still work with project tasks
+        }
+
         if (active) {
           setProjects(loadedProjects);
           setPeople(loadedContacts);
+          setGlobalTasks(loadedTasks);
+          setFeedbackItems(loadedFeedback);
         }
       } catch (error) {
         if (active)
@@ -154,7 +172,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     return () => {
       active = false;
     };
-  }, [apiClient, contactsClient]);
+  }, [apiClient, contactsClient, tasksClient]);
 
   // re-pull contacts when the user returns to the tab (might have added contacts elsewhere)
   useEffect(() => {
@@ -197,6 +215,48 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     params.set('tab', 'people');
     window.location.href = `${window.location.pathname}?${params.toString()}`;
   };
+
+  // Flat task list for global search (global tasks + project tasks)
+  const allTasksForSearch = useMemo(() => {
+    const list: Array<TaskItem & { projectId?: string; projectName?: string; projectIcon?: string | null; source: 'global' | 'project' }> = globalTasks.map(t => ({ ...t, source: 'global' as const }));
+    projects.forEach(p => {
+      p.subprojects.forEach(sp => {
+        sp.tasks.forEach(t => {
+          list.push({
+            id: t.id,
+            text: t.text,
+            done: t.done,
+            dueDate: t.dueDate,
+            favorite: t.favorite || (t as any).starred || false,
+            description: t.description || '',
+            people: t.people,
+            priority: (t as any).priority,
+            projectId: p.id,
+            projectName: p.text,
+            projectIcon: (p as any).avatarUrl || null,
+            source: 'project' as const,
+          });
+        });
+      });
+    });
+    return list;
+  }, [globalTasks, projects]);
+
+  const handleGlobalNavigate = useCallback((tab: string, query: string, projectId?: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set('tab', tab);
+    if (query) {
+      nextParams.set('q', query);
+    } else {
+      nextParams.delete('q');
+    }
+    if (projectId) {
+      nextParams.set('projectId', projectId);
+    } else {
+      nextParams.delete('projectId');
+    }
+    router.push(`${pathname}?${nextParams.toString()}`);
+  }, [router, pathname, searchParams]);
 
   const showUndoSnackbar = (
     message: string,
@@ -504,16 +564,27 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               </div>
             ) : null}
 
+            {projectSearch && !loading && !editingProjectId ? (
+              <GlobalSearchResults
+                searchQuery={projectSearch}
+                allTasks={allTasksForSearch}
+                projects={projects}
+                contacts={people}
+                feedbackItems={feedbackItems}
+                onNavigate={handleGlobalNavigate}
+              />
+            ) : (
               <ProjectsDashboard
               projects={projects}
               people={people}
               selectedProjectId={editingProjectId}
               onSelectProject={(id: string | null) => {
                 setEditingProjectId(id);
-                if (id === null && searchParams.has('q')) {
+                if (id === null) {
                   const nextParams = new URLSearchParams(searchParams.toString());
                   nextParams.delete('q');
-                  router.replace(`/?${nextParams.toString()}`);
+                  nextParams.delete('projectId');
+                  router.replace(`${pathname}?${nextParams.toString()}`);
                 }
               }}
               onApplyChange={handleProjectApplyChange}
@@ -535,6 +606,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               filters={filters}
               onToggleFilter={handleToggleFilter}
             />
+            )}
 
           {colorPickerProjectId && (
             <ColorPickerOverlay

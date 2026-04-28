@@ -52,7 +52,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const activeTab = normalizeTab(searchParams.get('tab') ?? undefined);
   const tabs = useMemo(() => getFrameworkTabLinks(), []);
   const activeTabConfig = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
-  const showHeaderSearch = activeTab === 'projects' || activeTab === 'people' || activeTab === 'feedback';
+  const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people' || activeTab === 'feedback';
   const headerSearchQuery = searchParams.get('q') ?? '';
 
   // Local draft keeps the input controlled by React state (not URL) so focus
@@ -83,7 +83,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search tasks' : activeTab === 'people' ? 'Search contacts' : activeTab === 'feedback' ? 'Search requests' : 'Search projects');
+  const defaultSearchPlaceholder = isSmallScreen ? 'Search' : (activeTab === 'tasks' ? 'Search everything' : activeTab === 'people' ? 'Search contacts' : activeTab === 'feedback' ? 'Search requests' : 'Search projects');
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
   const handleTabChange = (tab: FrameworkTab) => {
@@ -185,7 +185,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     };
 
     if (tab.key === 'tasks') {
-      return <HomePage key="home" style={style} />;
+      return <HomePage key="home" style={style} searchQuery={searchDraft} />;
     }
     if (tab.key === 'projects') {
       return <ProjectsPage key="projects" canManage={true} style={style} />;

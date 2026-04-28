@@ -6,16 +6,19 @@ import styles from './HomePage.module.css';
 import ReleaseNotes from './ReleaseNotes';
 import { createTasksApiClient, createProjectsApiClient, createContactsApiClient } from '@myorg/api-client';
 import type { TaskItem, ProjectItem, Contact, ProjectTask } from '@myorg/types';
+import GlobalSearchResults, { type FeedbackItem } from './GlobalSearchResults';
 
 type Props = {
   style?: React.CSSProperties;
+  searchQuery?: string;
 };
 
-export default function HomePage({ style }: Props) {
+export default function HomePage({ style, searchQuery = '' }: Props) {
   const router = useRouter();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
@@ -28,12 +31,14 @@ export default function HomePage({ style }: Props) {
     Promise.all([
       tasksApi.listTasks().catch(() => []),
       projectsApi.listProjects().catch(() => []),
-      contactsApi.listContacts().catch(() => [])
-    ]).then(([t, p, c]) => {
+      contactsApi.listContacts().catch(() => []),
+      fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback).catch(() => [] as FeedbackItem[])
+    ]).then(([t, p, c, f]) => {
       if (mounted) {
         setTasks(t);
         setProjects(p);
         setContacts(c);
+        setFeedbackItems(f);
         setLoading(false);
       }
     });
@@ -93,17 +98,13 @@ export default function HomePage({ style }: Props) {
   }, [allTasks]);
 
   const handleNavigate = React.useCallback((tab: string, query: string, projectId?: string) => {
-    // Navigate via event to avoid passing internal IDs in URL
-    if (projectId) {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('framework-navigate-project', { detail: { projectId } }));
-      }, 0);
-    }
-
     const params = new URLSearchParams();
     params.set('tab', tab);
     if (query) {
       params.set('q', query);
+    }
+    if (projectId) {
+      params.set('projectId', projectId);
     }
     router.push(`/?${params.toString()}`);
   }, [router]);
@@ -209,6 +210,9 @@ export default function HomePage({ style }: Props) {
     }
   };
 
+  // Global search results across all content types
+  const hasSearch = searchQuery.trim().length > 0;
+
   return (
     <div className={styles.container} style={style}>
       <div className={styles.header}>
@@ -246,6 +250,15 @@ export default function HomePage({ style }: Props) {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>Loading dashboard...</div>
+      ) : hasSearch ? (
+        <GlobalSearchResults
+          searchQuery={searchQuery}
+          allTasks={allTasks}
+          projects={projects}
+          contacts={contacts}
+          feedbackItems={feedbackItems}
+          onNavigate={handleNavigate}
+        />
       ) : (
       <div className={styles.dashboardGrid}>
         {/* Favorite Tasks */}

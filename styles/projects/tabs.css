@@ -1575,6 +1575,21 @@
   letter-spacing: 0.04em;
 }
 
+.search-result-badge--task {
+  color: var(--color-text-muted, #64748b);
+  background: rgba(100, 116, 139, 0.1);
+}
+
+.search-result-badge--contact {
+  color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
+}
+
+.search-result-badge--feedback {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
 .search-result-chevron {
   color: var(--color-text-muted, #94a3b8);
   font-size: 20px;
