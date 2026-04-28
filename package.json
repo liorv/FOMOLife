@@ -28,6 +28,7 @@
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "deploy": "bash deploy.sh",
     "lint:app": "eslint \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\"",
+    "test": "jest",
     "test:app": "jest",
     "typecheck:app": "tsc --noEmit"
   },
