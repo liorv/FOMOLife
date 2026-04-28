@@ -129,6 +129,36 @@
   text-align: center;
 }
 
+.graffitiArrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 12px;
+  color: var(--color-accent, #d32998);
+  opacity: 0.75;
+  animation: graffitiDrift 2.8s ease-in-out infinite;
+}
+
+.graffitiArrow svg {
+  width: 44px;
+  height: 90px;
+}
+
+.graffitiLabel {
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-accent, #d32998);
+  margin-top: 2px;
+  opacity: 0.85;
+}
+
+@keyframes graffitiDrift {
+  0%, 100% { transform: rotate(-4deg) translateX(-2px); }
+  50%       { transform: rotate(4deg)  translateX(3px);  }
+}
+
 .banner {
   border: 1px solid #4caf50;
   background: #e8f5e8;

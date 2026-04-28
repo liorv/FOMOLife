@@ -333,6 +333,21 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
               <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people_outline</span>
               <p>No contacts yet.</p>
               <p className={styles.emptySub}>Generate an invite link to add contacts.</p>
+              {canManage && (
+                <div className={styles.graffitiArrow} aria-hidden="true">
+                  <svg viewBox="0 0 90 180" xmlns="http://www.w3.org/2000/svg" fill="none">
+                    <path
+                      d="M 44 6 C 62 28 22 58 46 98 C 54 114 54 132 50 152 C 48 160 46 166 44 172"
+                      stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                    />
+                    <path
+                      d="M 44 172 L 30 150 M 44 172 L 60 150"
+                      stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className={styles.graffitiLabel}>tap here</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.table}>
