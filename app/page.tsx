@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import FrameworkHost from '@/components/FrameworkHost';
 import LandingPage from '@/components/LandingPage';
 import { getDisplayNameFromUserId, getFrameworkSession, getInitials } from '@/lib/server/frameworkAuth';
@@ -16,7 +15,6 @@ export default async function FrameworkPage() {
   const userInitials = getInitials(userName);
 
   return (
-    <Suspense fallback={<main className="main-layout" />}>
       <FrameworkHost
         userId={session.userId}
         userName={userName}
@@ -27,6 +25,5 @@ export default async function FrameworkPage() {
         devMode={env.authMode === 'none'}
         defaultUserId={env.defaultUserId}
       />
-    </Suspense>
   );
 }

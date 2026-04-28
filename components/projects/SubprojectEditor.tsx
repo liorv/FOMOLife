@@ -7,8 +7,8 @@ import type { ProjectSubproject, ProjectItem, ProjectTask, Contact } from "@myor
 import type { TaskFilter } from "@myorg/types";
 
 // Helper to return visible tasks after applying filters
-function getVisibleTasks(tasks: ProjectTask[] = [], taskFilters: TaskFilter[] = []) {
-  return applyFilters(tasks as any, taskFilters, "") as ProjectTask[];
+function getVisibleTasks(tasks: ProjectTask[] = [], taskFilters: TaskFilter[] = [], currentUserName?: string | undefined) {
+  return applyFilters(tasks as any, taskFilters, "", { currentUserName }) as ProjectTask[];
 }
 
 interface SubprojectEditorProps {
@@ -45,6 +45,7 @@ interface SubprojectEditorProps {
   onReorder?: (fromId: string, toId: string) => void;
   isDragging?: boolean;
   taskFilters?: TaskFilter[];
+  currentUserName?: string | undefined;
 }
 
 export default function SubprojectEditor({
@@ -81,9 +82,10 @@ export default function SubprojectEditor({
   onReorder = () => {},
   isDragging = false,
   taskFilters = [],
+  currentUserName,
 }: SubprojectEditorProps) {
   // Apply filter to the task list if one is active
-  const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters), [sub.tasks, JSON.stringify(taskFilters)]);
+  const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters, currentUserName), [sub.tasks, JSON.stringify(taskFilters), currentUserName]);
 
   const collapsed = sub.collapsed;
 

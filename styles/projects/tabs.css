@@ -715,6 +715,108 @@
   cursor: pointer;
 }
 
+/* Member avatar picker (task editor) */
+.member-avatar-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.member-avatar-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  background: #e8f0fe;
+  overflow: visible;
+  transition: border-color 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.member-avatar-btn:hover {
+  border-color: #4285f4;
+  transform: scale(1.1);
+}
+
+.member-avatar-btn--active {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px #c6dafc;
+}
+
+.member-avatar-btn .member-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+}
+
+.member-avatar-btn .member-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a73e8;
+  background: #e8f0fe;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.member-avatar-btn .member-avatar-check {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 11px !important;
+  background: #1a73e8;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #fff;
+  z-index: 1;
+}
+
+/* Hover name tooltip */
+.member-avatar-btn::after {
+  content: attr(data-name);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.88);
+  color: #fff;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+}
+
+.member-avatar-btn:hover::after {
+  opacity: 1;
+}
+
+.people-empty-hint {
+  font-size: 0.82rem;
+  color: #999;
+  margin: 4px 0 0;
+}
+
 
 /* ============================================================
   14. PERSON METHODS / SERVICE ICONS
@@ -1374,7 +1476,27 @@
 }
 .dashboard-back-btn .material-icons { font-size: 18px !important; }
 
-/* Global stats chips shown in empty state */
+/* Leave group button */
+.dashboard-leave-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 2px 4px 4px;
+  margin-left: 4px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.dashboard-leave-btn:hover {
+  color: var(--color-danger);
+  background: rgba(244, 67, 54, 0.08);
+}
+.dashboard-leave-btn .material-icons { font-size: 18px !important; }
+
+
 .dashboard-global-stats {
   display: flex;
   gap: 10px;

@@ -20,7 +20,8 @@ import type { TaskItem, TaskFilter } from '@myorg/types';
 export function applyFilters(
   tasks: TaskItem[] = [],
   filters: string[] = [],
-  searchQuery: string = ""
+  searchQuery: string = "",
+  options?: { currentUserName?: string | undefined }
 ): TaskItem[] {
   const active = filters || [];
   const now = new Date();
@@ -33,6 +34,10 @@ export function applyFilters(
     if (active.length > 0 && !active.includes("completed") && t.done) return false;
     // If 'completed' is selected, only show completed tasks
     if (active.includes("completed") && !t.done) return false;
+    if (active.includes("assigned_to_me")) {
+      if (!options?.currentUserName) return false; // Hide completely if username not known
+      if (!t.people?.some((p) => p.name === options.currentUserName)) return false;
+    }
     if (active.includes("overdue")) {
       if (!(t.dueDate && new Date(t.dueDate) < now)) return false;
     }

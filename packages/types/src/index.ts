@@ -32,7 +32,7 @@ export type {
 } from './contact';
 
 // Project types
-export type { ProjectTaskPerson, ProjectTask, ProjectSubproject, ProjectItem, ProjectCreateInput, ProjectUpdateInput } from './project';
+export type { ProjectTaskPerson, ProjectTask, ProjectSubproject, ProjectItem, ProjectMember, ProjectCreateInput, ProjectUpdateInput } from './project';
 
 // Task types
 export type { TaskItem, TaskFilter, TaskCreateInput, TaskUpdateInput } from './task';

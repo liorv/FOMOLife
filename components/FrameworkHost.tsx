@@ -188,7 +188,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       return <HomePage key="home" style={style} searchQuery={searchDraft} />;
     }
     if (tab.key === 'projects') {
-      return <ProjectsPage key="projects" canManage={true} style={style} />;
+      return <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={style} />;
     }
     if (tab.key === 'people') {
       return <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={style} />;

@@ -12,7 +12,7 @@ export default function ReleaseNotes() {
         onClick={() => setIsOpen(true)}
       >
         <span className="material-icons">campaign</span>
-        What's New
+        <span className="btn-label">What's New</span>
       </button>
 
       {isOpen && (

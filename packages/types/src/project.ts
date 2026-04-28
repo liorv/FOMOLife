@@ -59,6 +59,20 @@ export interface ProjectSubproject {
 }
 
 /**
+ * ProjectMember - A user who is a member of a project
+ */
+export interface ProjectMember {
+  /** User ID of the member */
+  userId: string;
+  /** Display name */
+  name: string;
+  /** Avatar URL */
+  avatarUrl?: string;
+  /** Optional role label (unused by app logic — all members are equal) */
+  role?: string;
+}
+
+/**
  * ProjectItem - Core project entity
  */
 export interface ProjectItem {
@@ -84,6 +98,10 @@ export interface ProjectItem {
   aiInstructions?: string;
   /** Project avatar/picture URL */
   avatarUrl?: string;
+  /** ID of the user who created this project */
+  creatorId?: string;
+  /** Members of this project (owner + invited members) */
+  members?: ProjectMember[];
 }
 
 /**
@@ -97,6 +115,7 @@ export interface ProjectCreateInput {
   dueDate?: string | null;
   aiInstructions?: string;
   avatarUrl?: string;
+  members?: ProjectMember[];
 }
 
 /**
@@ -113,4 +132,5 @@ export interface ProjectUpdateInput {
   dueDate?: string | null;
   aiInstructions?: string;
   avatarUrl?: string;
+  members?: ProjectMember[];
 }

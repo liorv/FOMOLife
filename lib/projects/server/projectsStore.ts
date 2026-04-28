@@ -9,6 +9,13 @@ export interface ProjectTaskPerson {
   name: string;
 }
 
+export interface ProjectMember {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  role?: string;
+}
+
 export interface ProjectTask {
   id: string;
   text: string;
@@ -42,6 +49,13 @@ export interface ProjectItem {
   dueDate?: string | null;
   aiInstructions?: string;
   avatarUrl?: string;
+  creatorId?: string;
+  members?: ProjectMember[];
+}
+
+export interface SharedProjectRef {
+  ownerUserId: string;
+  projectId: string;
 }
 
 const projectsByUser = new Map<string, ProjectItem[]>();
@@ -57,6 +71,26 @@ function generateId(): string {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
+}
+
+function validateTaskOwners(project: ProjectItem): void {
+  const memberUserIds = new Set(project.members?.map(m => m.userId) ?? []);
+  
+  // Check all tasks in all subprojects
+  for (const subproject of project.subprojects ?? []) {
+    for (const task of subproject.tasks ?? []) {
+      for (const person of task.people ?? []) {
+        // For now, we can't validate by name since we don't have access to contacts here
+        // But we can at least ensure that if there are members, tasks don't have owners
+        // This is a basic validation - the frontend should prevent this
+        if (project.members && project.members.length > 0 && task.people && task.people.length > 0) {
+          // If the project has members defined, we expect the frontend to have filtered
+          // For backend validation, we'd need contact lookup which is complex
+          // For now, we'll rely on frontend validation
+        }
+      }
+    }
+  }
 }
 
 function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
@@ -94,7 +128,7 @@ function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
 
 
 
-async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
+export async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   if (process.env.NODE_ENV !== 'production') {
     const existing = projectsByUser.get(userId);
     if (existing) return existing;
@@ -113,14 +147,69 @@ async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   return [];
 }
 
+async function getSharedProjectRefs(userId: string): Promise<SharedProjectRef[]> {
+  const persisted = await storage.load(userId).catch(() => null);
+  const refs = persisted?.sharedProjectRefs;
+  if (!Array.isArray(refs)) return [];
+  return refs as SharedProjectRef[];
+}
+
+async function saveSharedProjectRefs(userId: string, refs: SharedProjectRef[]): Promise<void> {
+  const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await storage.save(userId, { ...persisted, sharedProjectRefs: refs }).catch(() => {});
+}
+
+export async function addSharedProjectRef(userId: string, ref: SharedProjectRef): Promise<void> {
+  const refs = await getSharedProjectRefs(userId);
+  if (refs.some((r) => r.ownerUserId === ref.ownerUserId && r.projectId === ref.projectId)) return;
+  await saveSharedProjectRefs(userId, [...refs, ref]);
+}
+
+export async function removeSharedProjectRef(userId: string, projectId: string): Promise<void> {
+  const refs = await getSharedProjectRefs(userId);
+  await saveSharedProjectRefs(userId, refs.filter((r) => r.projectId !== projectId));
+}
+
+/** Returns the userId who owns the storage for the given project (may differ from the requesting user for shared projects). */
+export async function resolveProjectOwner(projectId: string, requestingUserId: string): Promise<string> {
+  const ownProjects = await getOrInitUserProjects(requestingUserId);
+  if (ownProjects.some((p) => p.id === projectId)) return requestingUserId;
+  const refs = await getSharedProjectRefs(requestingUserId);
+  const ref = refs.find((r) => r.projectId === projectId);
+  return ref ? ref.ownerUserId : requestingUserId;
+}
+
 export async function listProjects(userId: string): Promise<ProjectItem[]> {
-  const projects = await getOrInitUserProjects(userId);
-  return [...projects].map((project) => ensureProjectLevelTasks(project));
+  const ownProjects = await getOrInitUserProjects(userId);
+
+  // Only include own projects where the user is still a member.
+  // If members is empty/absent (legacy projects), include them unconditionally.
+  const visibleOwnProjects = ownProjects.filter((p) => {
+    const members = p.members ?? [];
+    return members.length === 0 || members.some((m) => m.userId === userId);
+  });
+
+  // Also include projects shared with this user (where they are a member)
+  const refs = await getSharedProjectRefs(userId);
+  const sharedProjects: ProjectItem[] = [];
+  for (const ref of refs) {
+    const ownerProjects = await getOrInitUserProjects(ref.ownerUserId);
+    const project = ownerProjects.find((p) => p.id === ref.projectId);
+    if (project) sharedProjects.push(ensureProjectLevelTasks(project));
+  }
+
+  // Combine and deduplicate by project ID to prevent duplicate keys in React
+  const allProjects = [...visibleOwnProjects.map((p) => ensureProjectLevelTasks(p)), ...sharedProjects];
+  const uniqueProjects = allProjects.filter((project, index, self) =>
+    index === self.findIndex((p) => p.id === project.id)
+  );
+
+  return uniqueProjects;
 }
 
 export async function createProject(
   userId: string,
-  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>,
+  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
 ): Promise<ProjectItem> {
   const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
@@ -129,6 +218,8 @@ export async function createProject(
     text: input.text,
     color: input.color ?? nextColor,
     subprojects: input.subprojects ?? [],
+    creatorId: userId,
+    members: input.members ?? [],
     ...(typeof input.progress === 'number' ? { progress: input.progress } : {}),
     ...(typeof input.order === 'number' ? { order: input.order } : {}),
     ...(input.goal ? { goal: input.goal } : {}),
@@ -148,7 +239,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>,
+  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {
@@ -159,7 +250,7 @@ export async function updateProject(
   const updated = next.find((item) => item.id === id) ?? null;
   projectsByUser.set(userId, next);
   const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
-  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) });
   return updated;
 }
 
@@ -168,7 +259,7 @@ export async function deleteProject(userId: string, id: string): Promise<boolean
   const next = current.filter((item) => item.id !== id);
   projectsByUser.set(userId, next);
   const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
-  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) });
   return next.length !== current.length;
 }
 
@@ -205,17 +296,22 @@ export async function initFromJSON(userId: string, exported: any): Promise<Proje
     return sub;
   });
 
+  const options: Record<string, any> = {};
+  if (exported.metadata?.progress !== undefined) options.progress = exported.metadata.progress;
+  if (exported.metadata?.order !== undefined) options.order = exported.metadata.order;
+  if (exported.metadata?.goal) options.goal = exported.metadata.goal;
+  if (exported.metadata?.description) options.description = exported.metadata.description;
+  if (exported.metadata?.dueDate !== undefined) options.dueDate = exported.metadata.dueDate;
+  if (exported.metadata?.aiInstructions) options.aiInstructions = exported.metadata.aiInstructions;
+  if (exported.metadata?.avatarUrl) options.avatarUrl = exported.metadata.avatarUrl;
+
   const project: ProjectItem = {
     id: projectId,
     text: projectName,
     color: projectColor,
     subprojects: subprojects,
-    ...(exported.metadata?.progress !== undefined ? { progress: exported.metadata.progress } : {}),
-    ...(exported.metadata?.order !== undefined ? { order: exported.metadata.order } : {}),
-    ...(exported.metadata?.goal ? { goal: exported.metadata.goal } : {}),
-    ...(exported.metadata?.description ? { description: exported.metadata.description } : {}),
-    ...(exported.metadata?.dueDate !== undefined ? { dueDate: exported.metadata.dueDate } : {}),
-    ...(exported.metadata?.aiInstructions ? { aiInstructions: exported.metadata.aiInstructions } : {}),
+    members: [{ userId, name: userId }], // Assign the importing user as the owner
+    ...options
   };
 
   const normalized = ensureProjectLevelTasks(project);

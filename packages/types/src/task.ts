@@ -26,7 +26,7 @@ export interface TaskItem {
 /**
  * TaskFilter - Available filter types for task lists
  */
-export type TaskFilter = 'completed' | 'overdue' | 'upcoming' | 'starred';
+export type TaskFilter = 'completed' | 'overdue' | 'upcoming' | 'starred' | 'assigned_to_me';
 
 /**
  * TaskCreateInput - Input for creating a new task

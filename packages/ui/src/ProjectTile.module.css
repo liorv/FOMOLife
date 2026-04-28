@@ -564,6 +564,10 @@
   color: #d33b27;
 }
 
+.leaveMenuItem:hover .material-icons {
+  color: #e65100;
+}
+
 .menuArrow {
   margin-left: auto;
 }

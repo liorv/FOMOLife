@@ -23,6 +23,16 @@
   font-size: 1.25rem;
 }
 
+@media (max-width: 600px) {
+  .triggerButton {
+    padding: 0.5rem;
+    gap: 0;
+  }
+  .triggerButton :global(.btn-label) {
+    display: none;
+  }
+}
+
 .overlay {
   position: fixed;
   top: 0;

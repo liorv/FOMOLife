@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import type { ProjectItem, ProjectSubproject, ProjectTask, Contact } from "@myorg/types";
+import type { ProjectItem, ProjectSubproject, ProjectTask, Contact, ProjectMember } from "@myorg/types";
 import type { TaskFilter, TaskItem } from "@myorg/types";
 
 // Subprojects used within the editor always have a defined `collapsed` boolean
@@ -29,6 +29,9 @@ interface ProjectEditorProps {
   dashboardSummary?: React.ReactNode;
   onToggleFilter?: (filter: string | null) => void;
   onExport?: () => void;
+  currentUserId?: string;
+  onInviteMember?: (member: ProjectMember) => void;
+  onRemoveMember?: (userId: string) => void;
 }
 
 type DashboardTileProps = {
@@ -110,6 +113,9 @@ export default function ProjectEditor({
   dashboardSummary,
   onToggleFilter,
   onExport,
+  currentUserId = '',
+  onInviteMember,
+  onRemoveMember,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -194,13 +200,35 @@ export default function ProjectEditor({
   const safeOnToggleFilter = onToggleFilter ?? (() => {});
   const safeOnExport = onExport ?? (() => {});
 
+  // Members derived from project prop (always up-to-date from parent)
+  const members: ProjectMember[] = project.members ?? [];
+
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
   // small helper to set local UI state and optionally persist via callback
   const setLocalAndApply = (updated: LocalProject, persist = true) => {
     setLocal(updated);
     if (persist) safeOnApplyChange(updated);
   };
 
-  const peopleList: Contact[] = allPeople ?? [];
+  // Only show contacts who are members of this project as assignable people
+  const allPeopleList: Contact[] = allPeople ?? [];
+  const memberUserIds = new Set(members.map((m) => m.userId));
+  
+  // Create an assignable people list directly from project members so everyone (including the current user) can be assigned
+  const peopleList: Contact[] = members.map((m) => ({
+    id: m.userId,
+    name: m.name,
+    status: 'linked' as const,
+    linkedUserId: m.userId,
+    ...(m.avatarUrl ? { avatarUrl: m.avatarUrl } : {}),
+  }));
+
+  // Contacts eligible to be invited: linked, not already a member
+  const invitableContacts = allPeopleList.filter(
+    (c) => c.linkedUserId && !memberUserIds.has(c.linkedUserId)
+  );
 
   // Which subproject, if any, is currently expanded?  We collapse all
   // others whenever one is toggled, so there should be at most one.
@@ -853,8 +881,9 @@ export default function ProjectEditor({
     const flat: TaskItem[] = (local.subprojects || []).flatMap((sub) =>
       (sub.tasks || []).map((t) => ({ ...t, _subId: sub.id } as any))
     );
-    return (applyFilters(flat, taskFilters, searchQuery) as unknown) as FlatTask[];
-  }, [local.subprojects, JSON.stringify(taskFilters), searchQuery]);
+    const currentUserName = members.find((m) => m.userId === currentUserId)?.name;
+    return (applyFilters(flat, taskFilters, searchQuery, { currentUserName }) as unknown) as FlatTask[];
+  }, [local.subprojects, JSON.stringify(taskFilters), searchQuery, members, currentUserId]);
 
   const findSubIdForTask = (taskId: string): string | undefined =>
     filteredFlatTasks.find((t) => t.id === taskId)?._subId;
@@ -908,10 +937,49 @@ export default function ProjectEditor({
               </button>
             )}
           </div>
+          {/* Member avatars + invite button, pushed to the right */}
+          <div className="project-members-bar">
+            {members.map((m) => (
+              <div key={m.userId} className="project-member-avatar-wrap" title={m.name}>
+                {m.avatarUrl ? (
+                  <img src={m.avatarUrl} alt={m.name} className="project-member-avatar" />
+                ) : (
+                  <span className="project-member-avatar project-member-avatar--initials">
+                    {m.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                {/* Remove button removed - leave functionality moved to header */}
+              </div>
+            ))}
+            <button
+              className="expand-collapse-btn invite-members-btn"
+              title="Invite a connection to this project"
+              onClick={() => setShowInviteModal(true)}
+            >
+              <span className="material-icons">person_add</span>
+              <span className="btn-label">Invite</span>
+            </button>
+          </div>
         </div>
 
         {/* Project profile icon */}
         <div className="project-profile-icon-container">
+          {/* Leave project button */}
+          {(() => {
+            const members = project.members ?? [];
+            const isCurrentUserMember = currentUserId && members.some((m) => m.userId === currentUserId);
+            const canLeave = isCurrentUserMember && onRemoveMember;
+            
+            return canLeave ? (
+              <button
+                className="project-leave-btn"
+                title="Leave project"
+                onClick={() => onRemoveMember?.(currentUserId)}
+              >
+                <span className="material-icons">logout</span>
+              </button>
+            ) : null;
+          })()}
           <div
             className="project-profile-icon"
             onClick={() => setShowOverviewEditor(true)}
@@ -939,6 +1007,66 @@ export default function ProjectEditor({
         </div>
 
       </div>
+
+      {/* Invite Member Modal */}
+      {showInviteModal && (
+        <div className="project-overview-modal-overlay" onClick={() => { setShowInviteModal(false); }}>
+          <div className="project-overview-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="project-overview-modal-header">
+              <h2>Invite to project</h2>
+              <button
+                className="project-overview-modal-close"
+                onClick={() => { setShowInviteModal(false); }}
+                title="Close"
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="project-overview-modal-content">
+              {invitableContacts.length === 0 && (
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+                  {allPeopleList.some((c) => c.linkedUserId)
+                    ? 'All your connections are already members.'
+                    : 'No linked connections found. Connect with people in the Contacts tab first.'}
+                </p>
+              )}
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {invitableContacts
+                  .map((c) => (
+                    <li
+                      key={c.id}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', cursor: 'pointer', borderRadius: 6 }}
+                      className="invite-contact-row"
+                      onClick={() => {
+                        if (!c.linkedUserId) return;
+                        onInviteMember?.({
+                          userId: c.linkedUserId,
+                          name: c.realName || c.name,
+                          ...(c.avatarUrl ? { avatarUrl: c.avatarUrl } : {}),
+                          role: 'member',
+                        });
+                        setShowInviteModal(false);
+                      }}
+                    >
+                      {c.avatarUrl ? (
+                        <img src={c.avatarUrl} alt={c.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                      ) : (
+                        <span className="project-member-avatar project-member-avatar--initials" style={{ width: 32, height: 32, fontSize: 14 }}>
+                          {c.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{c.realName || c.name}</div>
+                        {c.realEmail && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.realEmail}</div>}
+                      </div>
+                      <span className="material-icons" style={{ marginLeft: 'auto', color: 'var(--accent-primary)', fontSize: 20 }}>add</span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overview Editor Modal */}
       {showOverviewEditor && (
@@ -1325,6 +1453,8 @@ export default function ProjectEditor({
           onClearNewTask={() => setNewlyAddedTaskId(null)}
           onReorder={handleReorderSubprojects}
           isDragging={draggedSubprojectId === sub.id}
+          taskFilters={taskFilters as any[]}
+          currentUserName={members.find((m) => m.userId === currentUserId)?.name}
         />
       ))}
         </div>

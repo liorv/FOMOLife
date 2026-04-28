@@ -104,6 +104,10 @@ interface ProjectsDashboardProps {
   projectSearch?: string;
   filters?: string[];
   onToggleFilter?: (filter: string | null) => void;
+  currentUserId?: string;
+  onInviteMember?: (projectId: string, member: import('@myorg/types').ProjectMember) => void;
+  onRemoveMember?: (projectId: string, userId: string) => void;
+  onLeave?: (projectId: string) => void;
 }
 
 export default function ProjectsDashboard({
@@ -129,6 +133,10 @@ export default function ProjectsDashboard({
   projectSearch = "",
   filters = [] as string[],
   onToggleFilter = () => { },
+  currentUserId = '',
+  onInviteMember,
+  onRemoveMember,
+  onLeave,
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -305,6 +313,13 @@ export default function ProjectsDashboard({
     }).length;
   }, [scopedTasks]);
 
+  const assignedToMeCount = useMemo(() => {
+    if (!currentUserId) return 0;
+    const currentUserName = projects.flatMap(p => p.members || []).find(m => m.userId === currentUserId)?.name;
+    if (!currentUserName) return 0;
+    return scopedTasks.filter(t => t.people?.some(p => p.name === currentUserName)).length;
+  }, [scopedTasks, projects, currentUserId]);
+
 
   // Clear filter when switching projects
   const handleSelectProject = (id: string | null) => {
@@ -350,6 +365,14 @@ export default function ProjectsDashboard({
                       className="dashboard-project-title"
                       contentEditable
                       suppressContentEditableWarning
+                      onFocus={(e) => {
+                        // Select all text when focusing
+                        const range = document.createRange();
+                        range.selectNodeContents(e.currentTarget);
+                        const selection = window.getSelection();
+                        selection?.removeAllRanges();
+                        selection?.addRange(range);
+                      }}
                       onBlur={(e) => {
                         const newText = e.currentTarget.textContent.trim();
                         if (newText && newText !== selectedProject.text) {
@@ -367,6 +390,15 @@ export default function ProjectsDashboard({
                     </h2>
                   </div>
                   <div className="dashboard-summary dashboard-project-header-summary">
+                    <SummaryCard
+                      icon="person"
+                      label="Assigned"
+                      value={assignedToMeCount}
+                      accent="primary"
+                      clickable
+                      active={filters.includes('assigned_to_me')}
+                      onClick={() => onToggleFilter?.('assigned_to_me')}
+                    />
                     <SummaryCard
                       icon="check_circle"
                       label="Completed"
@@ -426,6 +458,9 @@ export default function ProjectsDashboard({
               onSubprojectDeleted={onSubprojectDeleted ?? (() => { })}
               taskFilters={filters}
               searchQuery={projectSearch}
+              currentUserId={currentUserId}
+              onInviteMember={(member) => onInviteMember?.(selectedProject.id, member)}
+              onRemoveMember={(userId) => onRemoveMember?.(selectedProject.id, userId)}
             />
             {/* Floating AI assistant FAB (project editor) */}
             <button
@@ -635,6 +670,8 @@ export default function ProjectsDashboard({
                       onChangeColor={onColorChange}
                       onOpenColorPicker={onOpenColorPicker}
                       onReorder={onReorder}
+                      currentUserId={currentUserId}
+                      onLeave={onLeave ? () => onLeave(p.id) : undefined}
                     />
                   </div>
                 ))}

@@ -27,11 +27,14 @@ function randomIconUrl(): string {
 
 export type Props = {
   canManage: boolean;
+  currentUserId?: string;
+  currentUserName?: string;
+  currentUserAvatarUrl?: string;
   style?: React.CSSProperties;
   className?: string;
 };
 
-export default function ProjectsPage({ canManage, style, className }: Props) {
+export default function ProjectsPage({ canManage, currentUserId = '', currentUserName = '', currentUserAvatarUrl = '', style, className }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -545,6 +548,49 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     );
   };
 
+  const handleInviteMember = async (projectId: string, member: import('@myorg/types').ProjectMember) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(member),
+      });
+      if (!res.ok) {
+        let message = 'Failed to invite member';
+        try {
+          const errBody = await res.json();
+          if (errBody?.error) message = errBody.error;
+        } catch {}
+        throw new Error(message);
+      }
+      const updated = await res.json();
+      setProjects((prev) => prev.map((p) => p.id === projectId ? updated : p));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to invite member');
+    }
+  };
+
+  const handleRemoveMember = async (projectId: string, userId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) throw new Error('Failed to remove member');
+      const data = await res.json();
+      if (data.deleted) {
+        // Last member left — project was deleted server-side
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      } else {
+        // User left the project (not deleted) - remove from their view since they're no longer a member
+        setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to remove member');
+    }
+  };
+
   const panelClassName = [
     "projects-content-panel",
     className,
@@ -623,6 +669,10 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               projectSearch={projectSearch}
               filters={filters}
               onToggleFilter={handleToggleFilter}
+              currentUserId={currentUserId}
+              onInviteMember={handleInviteMember}
+              onRemoveMember={handleRemoveMember}
+              onLeave={(projectId) => handleRemoveMember(projectId, currentUserId)}
             />
             )}
 

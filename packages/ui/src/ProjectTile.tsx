@@ -25,6 +25,8 @@ export interface ProjectTileProps {
   onOpenColorPicker?: ((id: string, targetEl: HTMLElement) => void) | undefined;
   onReorder?: ((fromId: string, toId: string) => void) | undefined;
   isDragging?: boolean;
+  currentUserId?: string;
+  onLeave?: ((id: string) => void) | undefined;
 }
 
 // a simple hash function to convert a string into an index for a color list
@@ -74,6 +76,8 @@ export default function ProjectTile({
   onOpenColorPicker = () => {},
   onReorder = () => {},
   isDragging = false,
+  currentUserId,
+  onLeave,
 }: ProjectTileProps) {
   const progress = useMemo(() => {
     // Derive progress solely from tasks; ignore any stored project.progress value.
@@ -93,6 +97,7 @@ export default function ProjectTile({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const color = useMemo(() => {
     const computedColor =
@@ -106,6 +111,13 @@ export default function ProjectTile({
   useEffect(() => {
     setDraftName(project.text || "");
   }, [project.text]);
+
+  // Select all text when starting to edit the name
+  useEffect(() => {
+    if (editingName && nameInputRef.current) {
+      nameInputRef.current.select();
+    }
+  }, [editingName]);
 
   // Close menu when clicking outside (including portal dropdown)
   useEffect(() => {
@@ -224,6 +236,28 @@ export default function ProjectTile({
     setMenuOpen(false);
   };
 
+  const handleLeave = () => {
+    onLeave?.(project.id);
+    setMenuOpen(false);
+  };
+
+  // Membership-aware menu logic:
+  // - sole member → show Delete only
+  // - multiple members → show Leave only
+  // - no membership info → show Delete (legacy / no-member projects)
+  const members = project.members ?? [];
+  const isSoleMember =
+    !!currentUserId &&
+    members.length === 1 &&
+    members[0]!.userId === currentUserId;
+  const isAmongMultiple =
+    !!currentUserId &&
+    !!onLeave &&
+    members.length > 1 &&
+    members.some((m) => m.userId === currentUserId);
+  const showDelete = !isAmongMultiple; // hide delete when others are present
+  const showLeave = isAmongMultiple;   // show leave only when others are present
+
   const handleColorChange = (newColor: string) => {
     onChangeColor(project.id, newColor);
     setMenuOpen(false);
@@ -327,6 +361,7 @@ export default function ProjectTile({
             <div className={`${styles.nameRow} project-name-row`}>
               {editingName ? (
                 <input
+                  ref={nameInputRef}
                   className={`${styles.nameInput} project-name-input`}
                   name={`project-name-${project.id}`}
                   value={draftName}
@@ -453,14 +488,31 @@ export default function ProjectTile({
                       <span className="material-icons">edit</span>
                       <span>Edit</span>
                     </button>
-                    <button
-                      className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
-                      onClick={handleDelete}
-                      title="Delete project"
-                    >
-                      <span className="material-icons">delete</span>
-                      <span>Delete</span>
-                    </button>
+
+                    {showDelete && (
+                      <button
+                        className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
+                        onClick={handleDelete}
+                        title="Delete project"
+                      >
+                        <span className="material-icons">delete</span>
+                        <span>Delete</span>
+                      </button>
+                    )}
+
+                    {showLeave && (
+                      <>
+                        <div className={`${styles.menuDivider} menu-divider`} />
+                        <button
+                          className={`${styles.menuItem} ${styles.leaveMenuItem} menu-item leave-menu-item`}
+                          onClick={handleLeave}
+                          title="Leave project"
+                        >
+                          <span className="material-icons">exit_to_app</span>
+                          <span>Leave Project</span>
+                        </button>
+                      </>
+                    )}
                   </div>,
                   document.body,
                 )}
