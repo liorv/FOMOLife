@@ -186,6 +186,7 @@ item,
               if (e.key === "Enter") finishEdit();
             }}
             autoFocus
+            onFocus={(e) => e.currentTarget.select()}
           />
         ) : (
           <div className="task-title-container">

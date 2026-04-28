@@ -381,6 +381,7 @@ export default function ProjectTile({
                   }}
                   aria-label="Edit project name"
                   autoFocus
+                  onFocus={(e) => e.currentTarget.select()}
                 />
               ) : (
                 <>

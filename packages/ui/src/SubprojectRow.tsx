@@ -55,6 +55,7 @@ export default function SubprojectRow({
   useEffect(() => {
     if (editingName && nameInputRef.current) {
       nameInputRef.current.focus();
+      nameInputRef.current.select();
     }
   }, [editingName]);
 
