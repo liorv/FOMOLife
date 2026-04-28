@@ -179,11 +179,13 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const t = e.touches[0];
+    if (!t) return;
     swipeTouchStart.current = { x: t.clientX, y: t.clientY };
   }, []);
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (!swipeTouchStart.current) return;
     const t = e.changedTouches[0];
+    if (!t) return;
     const dx = t.clientX - swipeTouchStart.current.x;
     const dy = t.clientY - swipeTouchStart.current.y;
     swipeTouchStart.current = null;
@@ -195,6 +197,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1;
     if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) return;
     const toTab = TAB_ORDER[nextIndex];
+    if (!toTab) return;
     const dir: 'left' | 'right' = dx < 0 ? 'left' : 'right';
     setSwipeAnim({ dir, from: activeTab as FrameworkTab, to: toTab });
     if (animClearRef.current) clearTimeout(animClearRef.current);
