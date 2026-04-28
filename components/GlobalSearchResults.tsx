@@ -110,8 +110,15 @@ export default function GlobalSearchResults({
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && onNavigate('projects', '', p.id)}
               >
-                <span className="search-result-dot" style={{ background: (p as any).color || '#1a73e8' }} />
+                <span className="search-result-dot" style={{ background: p.color || '#1a73e8' }} />
                 <span className="search-result-text">{p.text}</span>
+                {p.avatarUrl ? (
+                  <img src={p.avatarUrl} alt="" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: p.color || '#1a73e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                    {p.text.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <span className="search-result-badge">Project</span>
                 <span className="material-icons search-result-chevron">chevron_right</span>
               </div>
@@ -140,7 +147,11 @@ export default function GlobalSearchResults({
                   <span className="search-result-meta">
                     {t.projectName ? (
                       <>
-                        <span className="search-result-dot search-result-dot--sm" style={{ background: 'var(--color-warning, #f59e0b)' }} />
+                        {t.projectIcon ? (
+                          <img src={t.projectIcon} alt="" style={{ width: '12px', height: '12px', borderRadius: '2px', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <span className="search-result-dot search-result-dot--sm" style={{ background: 'var(--color-warning, #f59e0b)' }} />
+                        )}
                         {t.projectName}
                       </>
                     ) : 'Global Task'}

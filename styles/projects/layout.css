@@ -100,6 +100,7 @@ body {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  gap: 16px;
   overflow: visible;
 }
 
@@ -110,7 +111,7 @@ body {
   max-width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
-  padding-top: 16px;
+  padding-top: 24px;
   overflow: visible;
   -webkit-overflow-scrolling: touch;
 }
@@ -282,19 +283,3 @@ body {
 
 
 
-
-.projects-content-panel::before {
-  content: "";
-  display: block;
-  flex: 0 0 20px;
-  height: 20px;
-  min-height: 20px;
-}
-
-.projects-content-panel::before {
-  content: "";
-  display: block;
-  flex: 0 0 20px;
-  height: 20px;
-  min-height: 20px;
-}

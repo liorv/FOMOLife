@@ -1,10 +1,10 @@
 /* ── Page shell ── */
 .page {
   width: 100%;
-  padding: 20px 12px calc(var(--nav-height, 64px) + 32px);
+  padding: 0 0 calc(var(--nav-height, 64px) + 32px);
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center the inner content container */
+  align-items: stretch;
   box-sizing: border-box;
   overflow-y: auto;
   height: 100%;
@@ -12,10 +12,12 @@
 
 .contentContainer {
   width: 100%;
-  max-width: 800px; /* Matching tasks page width */
+  max-width: 800px;
+  padding: 0 12px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
 /* ── Inline Add Bar ── */
@@ -213,13 +215,13 @@
 /* ── Card ── */
 .card {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 0;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   overflow: hidden;
-  min-height: 44px;
+  min-height: 36px;
   transition: box-shadow 0.15s;
 }
 
@@ -230,15 +232,16 @@
 /* ── Vote column ── */
 .voteCol {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  padding: 4px 4px 0;
+  justify-content: center;
+  padding: 0 8px;
   gap: 0;
   background: #f8fafc;
   border-right: 1px solid #f1f5f9;
-  width: 42px;
+  width: 80px;
   flex-shrink: 0;
+  align-self: stretch;
 }
 
 .voteBtn {
@@ -276,7 +279,7 @@
   font-weight: 700;
   color: #94a3b8;
   line-height: 1;
-  min-width: 18px;
+  min-width: 32px;
   text-align: center;
 }
 
@@ -286,11 +289,11 @@
 /* ── Type pill ── */
 .typePill {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  width: 24px;
+  width: 20px;
   flex-shrink: 0;
-  margin: 12px 6px 0 8px;
+  margin: 0 4px 0 6px;
 }
 
 .pillFeature {
@@ -306,10 +309,11 @@
   flex: 1 1 0;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 6px 8px 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 0;
+  flex-wrap: wrap;
 }
 
 .cardTitle {
@@ -322,7 +326,7 @@
 }
 
 .cardMeta {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: #94a3b8;
   white-space: nowrap;
   flex-shrink: 0;

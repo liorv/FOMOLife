@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './FeedbackPage.module.css';
+import ContentHeader from './ContentHeader';
 
 type FeedbackType = 'feature' | 'bug';
 
@@ -207,6 +208,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
 
   return (
     <div className={styles.page} style={style}>
+      <ContentHeader title="Feedback" />
       <div className={styles.contentContainer}>
         {/* ── Inline Add Bar ── */}
         <form className={styles.addBar} onSubmit={handleAdd} noValidate>
@@ -302,7 +304,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
                       onClick={() => handleVote(item.id, 1)}
                       aria-label="Upvote"
                     >
-                      <span className="material-icons">expand_less</span>
+                      <span className="material-icons">add</span>
                     </button>
                     <span className={`${styles.score} ${score > 0 ? styles.scorePos : score < 0 ? styles.scoreNeg : ''}`}>
                       {score}
@@ -312,7 +314,7 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
                       onClick={() => handleVote(item.id, -1)}
                       aria-label="Downvote"
                     >
-                      <span className="material-icons">expand_more</span>
+                      <span className="material-icons">remove</span>
                     </button>
                   </div>
 

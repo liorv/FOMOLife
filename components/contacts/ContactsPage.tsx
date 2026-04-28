@@ -8,6 +8,7 @@ import { ContactTile, ModalOverlay } from '@myorg/ui';
 import { createContactsApiClient } from '@myorg/api-client';
 
 import styles from '../../styles/contacts/layout.module.css';
+import ContentHeader from '../ContentHeader';
 
 export type Props = {
   canManage: boolean;
@@ -259,24 +260,15 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const panelClassName = [
     "contacts-content-panel",
     className,
-    !displayReady || style?.display === 'none' ? "content-panel-hidden" : undefined,
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className={panelClassName}>
-      {!displayReady ? (
-        <div style={{ height: 0 }} />
-      ) : (
+    <div style={style}>
+      <ContentHeader title="People" />
+      <div className={panelClassName}>
         <div className={styles.shell}>
-          <header className={styles.header}>
-            <div></div> {/* empty left spacer */}
-            
-            {/* search bar */}
-
-            {/* no notification bell here, moved to framework titlebar */}
-          </header>
 
           {activeInvite && canManage && (
             <div className={styles.persistedInvite}>
@@ -375,7 +367,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 

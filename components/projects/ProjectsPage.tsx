@@ -10,6 +10,7 @@ import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
 import GlobalSearchResults, { type FeedbackItem } from "../GlobalSearchResults";
+import ContentHeader from "../ContentHeader";
 
 // ProjectsDashboard is now a typed TSX component
 
@@ -530,14 +531,14 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   const panelClassName = [
     "projects-content-panel",
     className,
-    !displayReady || style?.display === "none" ? "content-panel-hidden" : undefined,
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className={panelClassName}>
-          
+    <div style={style}>
+      <ContentHeader title="Projects" />
+      <div className={panelClassName}>
 
           {!canManage ? (
               <div
@@ -624,6 +625,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               }}
             />
           )}
+      </div>
     </div>
   );
 }
