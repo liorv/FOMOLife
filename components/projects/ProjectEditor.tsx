@@ -122,6 +122,7 @@ export default function ProjectEditor({
   const [showOverviewEditor, setShowOverviewEditor] = useState(false);
   const [iconSearchQuery, setIconSearchQuery] = useState('');
   const [iconSearchResults, setIconSearchResults] = useState<any[]>([]);
+  const iconDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSearchingIcons, setIsSearchingIcons] = useState(false);
   const [iconInputMode, setIconInputMode] = useState<'upload' | 'search'>('search');
   
@@ -1095,11 +1096,21 @@ export default function ProjectEditor({
                       <input
                         type="text"
                         value={iconSearchQuery}
-                        onChange={(e) => setIconSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setIconSearchQuery(val);
+                          if (iconDebounceRef.current) clearTimeout(iconDebounceRef.current);
+                          if (val.trim()) {
+                            iconDebounceRef.current = setTimeout(() => searchIcons(val), 400);
+                          } else {
+                            setIconSearchResults([]);
+                          }
+                        }}
                         placeholder="Search for icons online..."
                         className="icon-search-input"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
+                            if (iconDebounceRef.current) clearTimeout(iconDebounceRef.current);
                             searchIcons(iconSearchQuery);
                           }
                         }}
