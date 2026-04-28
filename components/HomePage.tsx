@@ -124,6 +124,7 @@ export default function HomePage({ style }: Props) {
         title: t.text,
         meta: t.projectName ? '' : 'Global Task',
         projectIcon: t.projectIcon,
+        projectInitial: t.projectName ? t.projectName.charAt(0).toUpperCase() : undefined,
         icon: 'check_circle',
         iconColor: '#10b981',
         time: timeStr,
@@ -139,6 +140,7 @@ export default function HomePage({ style }: Props) {
         title: t.text,
         meta: `Completed by ${t.people!.map(p => p.name).join(', ')}`,
         projectIcon: t.projectIcon,
+        projectInitial: t.projectName ? t.projectName.charAt(0).toUpperCase() : undefined,
         icon: 'contacts',
         iconColor: 'var(--color-primary, #6366f1)',
         avatarText: t.people?.[0]?.name.charAt(0).toUpperCase() || 'P',
@@ -171,9 +173,10 @@ export default function HomePage({ style }: Props) {
         type: 'project',
         title: p.text,
         meta: `${p.subprojects.length} subprojects`,
-        icon: (p as any).avatarUrl || 'folder',
-        isImageIcon: !!(p as any).avatarUrl,
-        iconColor: (p as any).avatarUrl ? 'var(--color-text)' : 'var(--color-warning, #f59e0b)',
+        icon: p.avatarUrl || 'folder',
+        isImageIcon: !!p.avatarUrl,
+        projectInitial: p.text.charAt(0).toUpperCase(),
+        iconColor: p.avatarUrl ? 'var(--color-text)' : 'var(--color-warning, #f59e0b)',
         time: timeStr,
         onClick: () => handleNavigate('projects', '', p.id)
        });
@@ -320,6 +323,10 @@ export default function HomePage({ style }: Props) {
               <li key={item.id} className={styles.listItem} onClick={item.onClick}>
                 {item.isImageIcon ? (
                   <img src={item.icon} alt="" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover', marginTop: '2px' }} />
+                ) : item.type === 'project' && item.projectInitial ? (
+                  <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: item.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0, marginTop: '2px' }}>
+                    {item.projectInitial}
+                  </div>
                 ) : (
                   <span className={`material-icons ${styles.itemIcon}`} style={{ color: item.iconColor }}>{item.icon}</span>
                 )}
@@ -327,9 +334,13 @@ export default function HomePage({ style }: Props) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 className={styles.itemTitle}>{item.title}</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {item.projectIcon && (
+                      {item.projectIcon ? (
                         <img src={item.projectIcon} alt="Project" style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'cover' }} title={item.meta || 'Project'} />
-                      )}
+                      ) : item.projectInitial && item.type !== 'project' ? (
+                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'var(--color-warning, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff', flexShrink: 0 }} title={item.meta || 'Project'}>
+                          {item.projectInitial}
+                        </div>
+                      ) : null}
                       {item.time && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{formatDate(item.time)}</span>}
                     </div>
                   </div>
