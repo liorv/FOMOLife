@@ -129,7 +129,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         },
       });
     } finally {
-      router.replace('/login');
+      router.replace('/login?loggedOut=1');
     }
   };
 
@@ -174,6 +174,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   // Swipe-to-navigate between tabs on mobile
   const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const [swipeAnim, setSwipeAnim] = useState<{ dir: 'left' | 'right'; from: FrameworkTab; to: FrameworkTab } | null>(null);
+  const animClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const t = e.touches[0];
     swipeTouchStart.current = { x: t.clientX, y: t.clientY };
@@ -191,34 +194,61 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     // Swipe left → next tab; swipe right → previous tab
     const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1;
     if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) return;
-    handleTabChange(TAB_ORDER[nextIndex]);
+    const toTab = TAB_ORDER[nextIndex];
+    const dir: 'left' | 'right' = dx < 0 ? 'left' : 'right';
+    setSwipeAnim({ dir, from: activeTab as FrameworkTab, to: toTab });
+    if (animClearRef.current) clearTimeout(animClearRef.current);
+    animClearRef.current = setTimeout(() => setSwipeAnim(null), 320);
+    handleTabChange(toTab);
   }, [activeTab, handleTabChange]);
 
   const renderComponent = (tab: typeof activeTabConfig) => {
     if (!tab) return null;
     const isActive = tab.key === activeTab;
-    const style: React.CSSProperties = {
-      display: isActive ? 'flex' : 'none',
+    const isExiting = swipeAnim?.from === tab.key;
+    const isEntering = swipeAnim?.to === tab.key;
+    const isVisible = (!swipeAnim && isActive) || isExiting || isEntering;
+
+    let animClass = '';
+    if (isEntering) {
+      animClass = swipeAnim!.dir === 'left' ? 'tab-slide-enter-right' : 'tab-slide-enter-left';
+    } else if (isExiting) {
+      animClass = swipeAnim!.dir === 'left' ? 'tab-slide-exit-left' : 'tab-slide-exit-right';
+    }
+
+    const wrapperStyle: React.CSSProperties = {
+      display: isVisible ? 'flex' : 'none',
+      flexDirection: 'column',
+      width: '100%',
+      ...(animClass ? {} : { flex: 1, minHeight: 0 }),
+    };
+
+    const innerStyle: React.CSSProperties = {
+      display: 'flex',
       flexDirection: 'column',
       width: '100%',
       flex: 1,
       minHeight: 0,
       overflowY: 'auto',
+      ...(animClass ? { height: '100%' } : {}),
     };
 
+    let content: React.ReactNode = null;
     if (tab.key === 'tasks') {
-      return <HomePage key="home" style={style} searchQuery={searchDraft} />;
+      content = <HomePage key="home" style={innerStyle} searchQuery={searchDraft} />;
+    } else if (tab.key === 'projects') {
+      content = <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={innerStyle} />;
+    } else if (tab.key === 'people') {
+      content = <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={innerStyle} />;
+    } else if (tab.key === 'feedback') {
+      content = <FeedbackPage key="feedback" userId={userId} userName={userName} style={innerStyle} />;
     }
-    if (tab.key === 'projects') {
-      return <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={style} />;
-    }
-    if (tab.key === 'people') {
-      return <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={style} />;
-    }
-    if (tab.key === 'feedback') {
-      return <FeedbackPage key="feedback" userId={userId} userName={userName} style={style} />;
-    }
-    return null;
+
+    return (
+      <div key={tab.key} style={wrapperStyle} className={animClass || undefined}>
+        {content}
+      </div>
+    );
   };
 
   const handleThumbClick = () => {
@@ -262,7 +292,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         rightContent={<NotificationBell userId={userId} />}
         {...(aboutInfo ? { aboutInfo } : {})}
       />
-      {tabs.map(tab => renderComponent(tab))}
+      <div className="tab-viewport">
+        {tabs.map(tab => renderComponent(tab))}
+      </div>
       <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" onThumbClick={handleThumbClick} />
       <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
     </main>

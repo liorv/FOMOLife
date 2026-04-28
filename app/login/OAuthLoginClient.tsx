@@ -34,9 +34,10 @@ const PROVIDERS: ProviderConfig[] = [
 type OAuthLoginClientProps = {
   returnTo: string;
   forceAccountSelect?: boolean;
+  suppressAutoLogin?: boolean;
 };
 
-export default function OAuthLoginClient({ returnTo, forceAccountSelect = false }: OAuthLoginClientProps) {
+export default function OAuthLoginClient({ returnTo, forceAccountSelect = false, suppressAutoLogin = false }: OAuthLoginClientProps) {
   const [isBusy, setIsBusy] = useState(false);
   const [errorText, setErrorText] = useState('');
   const router = useRouter();
@@ -45,11 +46,20 @@ export default function OAuthLoginClient({ returnTo, forceAccountSelect = false 
   useEffect(() => {
     let isMounted = true;
 
-    async function completePendingOauth() {
+    async function run() {
+      if (suppressAutoLogin) {
+        // User explicitly logged out or wants to switch accounts.
+        // Clear the local Supabase session so getSession() returns null on the
+        // next visit, but use scope:'local' so the OAuth grant is NOT revoked —
+        // the next explicit sign-in will still be seamless (no re-authorization).
+        await supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
+
       const { data, error } = await supabase.auth.getSession();
       if (!isMounted) return;
       if (error) {
-        setErrorText('Could not finish Google sign-in. Please try again.');
+        setErrorText('Could not finish sign-in. Please try again.');
         return;
       }
 
@@ -74,24 +84,20 @@ export default function OAuthLoginClient({ returnTo, forceAccountSelect = false 
       if (!isMounted) return;
 
       if (!apiResponse.ok) {
-        setErrorText('Sign-in succeeded with Google, but app session could not be created.');
+        setErrorText('Sign-in succeeded but app session could not be created. Please try again.');
         setIsBusy(false);
         return;
       }
 
-      // Do NOT sign out of Supabase here — doing so revokes the OAuth grant and
-      // forces re-authorization with the provider (e.g. X) on every login.
-      // The app relies on its own cookie session; the Supabase token is only
-      // needed for the exchange above.
       router.replace(returnTo);
     }
 
-    void completePendingOauth();
+    void run();
 
     return () => {
       isMounted = false;
     };
-  }, [returnTo, router, supabase]);
+  }, [returnTo, router, supabase, suppressAutoLogin]);
 
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     setErrorText('');
@@ -115,7 +121,7 @@ export default function OAuthLoginClient({ returnTo, forceAccountSelect = false 
     });
 
     if (error) {
-      setErrorText(`Unable to start ${PROVIDERS.find(p => p.id === provider)?.name} sign-in. Please check provider configuration.`);
+      setErrorText(`Unable to sign in with ${PROVIDERS.find(p => p.id === provider)?.name}. Please try again.`);
       setIsBusy(false);
     }
   };

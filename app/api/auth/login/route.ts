@@ -21,6 +21,14 @@ function sanitizeDisplayName(rawValue: unknown): string {
   return rawValue.trim().slice(0, 120);
 }
 
+// When Next.js binds to 0.0.0.0 the request.url host becomes "0.0.0.0".
+// Use the Host header so redirects resolve to the address the browser used.
+function getBaseUrl(request: Request): string {
+  const host = request.headers.get('host') ?? new URL(request.url).host;
+  const proto = request.headers.get('x-forwarded-proto') ?? 'http';
+  return `${proto}://${host}`;
+}
+
 function sanitizeAvatarUrl(rawValue: unknown): string {
   if (typeof rawValue !== 'string') return '';
   const normalized = rawValue.trim();
@@ -37,13 +45,13 @@ export async function POST(request: Request) {
     if (isJsonRequest(request)) {
       return NextResponse.json({ ok: true, authMode: env.authMode });
     }
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/', getBaseUrl(request)));
   }
 
   if (env.authMode === 'supabase-google') {
     const jsonMode = isJsonRequest(request);
     if (!jsonMode) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL('/login', getBaseUrl(request)));
     }
 
     const body = (await request.json().catch(() => ({}))) as {
@@ -61,7 +69,7 @@ export async function POST(request: Request) {
     const supabase = createClient(env.supabaseUrl!, env.supabaseAnonKey!);
     const { data, error } = await supabase.auth.getUser(accessToken);
     if (error || !data.user) {
-      return NextResponse.json({ error: 'Invalid Supabase session' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
     }
 
     const user = data.user;
@@ -123,7 +131,7 @@ export async function POST(request: Request) {
     if (jsonMode) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
-    const failUrl = new URL('/login', request.url);
+    const failUrl = new URL('/login', getBaseUrl(request));
     failUrl.searchParams.set('error', 'missing-user');
     return NextResponse.redirect(failUrl);
   }
@@ -140,7 +148,7 @@ export async function POST(request: Request) {
     return response;
   }
 
-  const response = NextResponse.redirect(new URL(returnTo, request.url));
+  const response = NextResponse.redirect(new URL(returnTo, getBaseUrl(request)));
   response.cookies.set('framework_session', userId, {
     httpOnly: true,
     sameSite: 'lax',

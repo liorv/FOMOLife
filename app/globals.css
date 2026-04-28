@@ -871,6 +871,52 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+/* ============================================================
+   TAB SWIPE ANIMATIONS (mobile)
+   ============================================================ */
+.tab-viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+@keyframes tabSlideInFromRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes tabSlideInFromLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes tabSlideOutToLeft {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes tabSlideOutToRight {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.tab-slide-enter-right,
+.tab-slide-enter-left,
+.tab-slide-exit-left,
+.tab-slide-exit-right {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tab-slide-enter-right { animation: tabSlideInFromRight 0.28s ease-out both; }
+.tab-slide-enter-left  { animation: tabSlideInFromLeft  0.28s ease-out both; }
+.tab-slide-exit-left   { animation: tabSlideOutToLeft   0.28s ease-out both; pointer-events: none; }
+.tab-slide-exit-right  { animation: tabSlideOutToRight  0.28s ease-out both; pointer-events: none; }
+
 @media (max-width: 480px) {
   .invite-card {
     padding: 32px 24px 24px;

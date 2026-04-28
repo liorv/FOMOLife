@@ -23,6 +23,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const returnTo = typeof returnToRaw === 'string' && returnToRaw.startsWith('/') ? returnToRaw : '/';
   const switchUserRaw = Array.isArray(resolvedSearch.switchUser) ? resolvedSearch.switchUser[0] : resolvedSearch.switchUser;
   const forceAccountSelect = switchUserRaw === '1' || switchUserRaw === 'true';
+  const loggedOutRaw = Array.isArray(resolvedSearch.loggedOut) ? resolvedSearch.loggedOut[0] : resolvedSearch.loggedOut;
+  const suppressAutoLogin = forceAccountSelect || loggedOutRaw === '1';
 
   return (
     <main className={env.authMode === 'supabase-google' ? 'login-page' : 'auth-screen'}>
@@ -55,7 +57,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <MockCookieLogin showMissingUserError={showMissingUserError} />
         ) : (
           <>
-            <OAuthLoginClient returnTo={returnTo} forceAccountSelect={forceAccountSelect} />
+            <OAuthLoginClient returnTo={returnTo} forceAccountSelect={forceAccountSelect} suppressAutoLogin={suppressAutoLogin} />
             <p className="login-fine-print">
               Your data is private and only accessible with your account.
               <br />
