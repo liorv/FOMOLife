@@ -333,16 +333,20 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
               <span className={`material-icons ${styles.emptyIcon}`} aria-hidden="true">people_outline</span>
               <p>No contacts yet.</p>
               <p className={styles.emptySub}>Generate an invite link to add contacts.</p>
-              {canManage && (
+              {canManage && !activeInvite && (
                 <div className={styles.graffitiArrow} aria-hidden="true">
-                  <svg viewBox="0 0 90 180" xmlns="http://www.w3.org/2000/svg" fill="none">
+                  {/* preserveAspectRatio="none" lets the shaft stretch to fill whatever
+                      height the fixed container spans (empty-state area → FAB) */}
+                  <svg viewBox="0 0 50 300" xmlns="http://www.w3.org/2000/svg" fill="none" preserveAspectRatio="none">
                     <path
-                      d="M 44 6 C 62 28 22 58 46 98 C 54 114 54 132 50 152 C 48 160 46 166 44 172"
+                      d="M 25 4 C 38 55 12 105 28 165 C 40 210 16 250 25 292"
                       stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
                     />
                     <path
-                      d="M 44 172 L 30 150 M 44 172 L 60 150"
+                      d="M 25 292 L 11 268 M 25 292 L 39 268"
                       stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
                     />
                   </svg>
                   <span className={styles.graffitiLabel}>tap here</span>

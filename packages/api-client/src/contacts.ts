@@ -264,17 +264,18 @@ export interface ContactsApiClient {
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `Request failed with ${response.status}`;
+    let body: any;
     try {
-      const data = (await response.json()) as { error?: string, message?: string };
-      if (data.message) {
-        message = data.message;
-      } else if (data.error) {
-        message = data.error;
+      body = (await response.json()) as { error?: string, message?: string };
+      if (body.message) {
+        message = body.message;
+      } else if (body.error) {
+        message = body.error;
       }
     } catch {
       // ignore parse error and keep default message
     }
-    throw new Error(message);
+    throw new ApiError(message, response.status, body);
   }
   return (await response.json()) as T;
 }

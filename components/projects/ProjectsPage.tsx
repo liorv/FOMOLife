@@ -14,6 +14,17 @@ import ContentHeader from "../ContentHeader";
 
 // ProjectsDashboard is now a typed TSX component
 
+const RANDOM_ICONS = [
+  'rocket', 'star', 'fire', 'wrapped-gift', 'briefcase', 'laptop', 'memo',
+  'clipboard', 'books', 'rainbow', 'target', 'art', 'bell', 'trophy',
+  'tangerine', 'pizza', 'hamburger', 'doughnut', 'cookie', 'strawberry'
+];
+
+function randomIconUrl(): string {
+  const name = RANDOM_ICONS[Math.floor(Math.random() * RANDOM_ICONS.length)];
+  return `https://api.iconify.design/twemoji/${name}.svg`;
+}
+
 export type Props = {
   canManage: boolean;
   style?: React.CSSProperties;
@@ -153,7 +164,20 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         }
 
         if (active) {
-          setProjects(loadedProjects);
+          // Backfill icons for existing projects that have none
+          const projectsWithIcons = loadedProjects.map((p) =>
+            p.avatarUrl ? p : { ...p, avatarUrl: randomIconUrl() }
+          );
+          setProjects(projectsWithIcons);
+          // Persist backfilled icons in the background (fire-and-forget)
+          const missingIconIds = new Set(
+            loadedProjects.filter((p) => !p.avatarUrl).map((p) => p.id)
+          );
+          projectsWithIcons
+            .filter((p) => missingIconIds.has(p.id))
+            .forEach((p) => {
+              apiClient.updateProject(p.id, { avatarUrl: p.avatarUrl! }).catch(() => {});
+            });
           setPeople(loadedContacts);
           setGlobalTasks(loadedTasks);
           setFeedbackItems(loadedFeedback);
@@ -282,14 +306,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     const idx = len % PROJECT_COLORS.length;
     const color = PROJECT_COLORS[idx];
     
-    // Choose a random twemoji icon for the new project
-    const RANDOM_ICONS = [
-      'rocket', 'star', 'fire', 'wrapped-gift', 'briefcase', 'laptop', 'memo', 
-      'clipboard', 'books', 'rainbow', 'target', 'art', 'bell', 'trophy', 
-      'tangerine', 'pizza', 'hamburger', 'doughnut', 'cookie', 'strawberry'
-    ];
-    const randomIconName = RANDOM_ICONS[Math.floor(Math.random() * RANDOM_ICONS.length)];
-    const avatarUrl = `https://api.iconify.design/twemoji/${randomIconName}.svg`;
+    const avatarUrl = randomIconUrl();
 
     const baseName = text.trim() || "New Project";
     const tempId = generateId();

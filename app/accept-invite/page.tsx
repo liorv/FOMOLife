@@ -35,6 +35,11 @@ function AcceptInvitePageInner() {
     apiClient.getInviteDetails(token)
       .then(setInviterProfile)
       .catch((err: any) => {
+        if (err?.status === 401) {
+          const returnTo = `/accept-invite?token=${encodeURIComponent(token)}`;
+          router.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+          return;
+        }
         let msg = err?.message || "Invalid or expired invitation.";
         if (err?.body?.error) {
           msg += ` (${err.body.error})`;
