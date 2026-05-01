@@ -5,7 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { createProjectsApiClient, createTasksApiClient } from "@myorg/api-client";
 import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
-import { generateId } from "@myorg/utils";
+import { generateId, preloadImages } from "@myorg/utils";
 import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -172,6 +172,8 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
             p.avatarUrl ? p : { ...p, avatarUrl: randomIconUrl() }
           );
           setProjects(projectsWithIcons);
+          // Preload all project avatar images to warm the browser cache before they render
+          preloadImages(projectsWithIcons.map((p) => p.avatarUrl).filter(Boolean) as string[]);
           // Persist backfilled icons in the background (fire-and-forget)
           const missingIconIds = new Set(
             loadedProjects.filter((p) => !p.avatarUrl).map((p) => p.id)

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './HomePage.module.css';
 import { createTasksApiClient, createProjectsApiClient, createContactsApiClient } from '@myorg/api-client';
+import { preloadImages } from '@myorg/utils';
 import type { TaskItem, ProjectItem, Contact, ProjectTask } from '@myorg/types';
 import GlobalSearchResults, { type FeedbackItem } from './GlobalSearchResults';
 import ContentHeader from './ContentHeader';
@@ -66,6 +67,8 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
         setContacts(c);
         setFeedbackItems(f);
         setLoading(false);
+        // Preload all project avatar images so they are cached before the activity feed renders
+        preloadImages((p as ProjectItem[]).map((proj) => proj.avatarUrl).filter(Boolean) as string[]);
       }
     });
     return () => { mounted = false; };

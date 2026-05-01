@@ -17,3 +17,5 @@ export {
   isValidInviteToken,
   parseInviteTokenFromUrl,
 } from "./invite";
+
+export { preloadImages } from './client';
