@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import ReactDOM from "react-dom";
 import styles from "./ProjectTile.module.css";
+import ModalOverlay from "./ModalOverlay";
+import { UiButton } from "./ui-button";
 
 import type { ProjectItem } from "@myorg/types";
 
@@ -94,6 +96,7 @@ export default function ProjectTile({
   const [dropdownStyle, setDropdownStyle] = useState({});
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(project.text || "");
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -237,8 +240,13 @@ export default function ProjectTile({
   };
 
   const handleLeave = () => {
-    onLeave?.(project.id);
     setMenuOpen(false);
+    setShowLeaveConfirm(true);
+  };
+
+  const confirmLeave = () => {
+    onLeave?.(project.id);
+    setShowLeaveConfirm(false);
   };
 
   // Membership-aware menu logic:
@@ -648,6 +656,32 @@ export default function ProjectTile({
           style={{ backgroundColor: color }}
         />
       </div>
+
+      {/* Leave Project Confirmation Modal */}
+      <ModalOverlay
+        open={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        className="leave-confirm-modal-overlay"
+        contentClassName="leave-confirm-modal-content"
+      >
+        <div className="leave-confirm-modal-header">
+          <h3>Leave Project</h3>
+        </div>
+        <div className="leave-confirm-modal-body">
+          <p>Are you sure you want to leave <strong>"{project.text}"</strong>?</p>
+          <p className="leave-confirm-warning">
+            You will lose access to this project and all its tasks.
+          </p>
+        </div>
+        <div className="leave-confirm-modal-actions">
+          <UiButton variant="secondary" onClick={() => setShowLeaveConfirm(false)}>
+            Cancel
+          </UiButton>
+          <UiButton variant="primary" onClick={confirmLeave}>
+            Leave Project
+          </UiButton>
+        </div>
+      </ModalOverlay>
     </div>
   );
 }

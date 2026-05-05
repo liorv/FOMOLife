@@ -460,6 +460,20 @@ export default function ProjectsDashboard({
                         <span className="material-icons">filter_list</span>
                         <span>Filter{filters.length > 0 ? ` (${filters.length})` : ''}</span>
                       </button>
+                      
+                      {/* Toggle for showing/hiding completed tasks */}
+                      <div className="project-action-toggle">
+                        <label className="toggle-label" title="Show completed tasks">
+                          <input
+                            type="checkbox"
+                            checked={filters.includes('completed')}
+                            onChange={(e) => onToggleFilter?.(e.target.checked ? 'completed' : null)}
+                          />
+                          <span className="toggle-slider"></span>
+                          <span className="toggle-text">Show Completed</span>
+                        </label>
+                      </div>
+
                       <button
                         className="project-action-btn project-action-btn--collapse"
                         onClick={() => collapseAllRef.current?.()}
