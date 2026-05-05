@@ -915,8 +915,8 @@ export default function ProjectEditor({
 
   // --- Render --------------------------------------------------------------
 
-  // Show flat filter view whenever any filter is active
-  const showFlatFilterView = taskFilters.length > 0;
+  // Show flat filter view whenever any filter except 'hide_completed' is active
+  const showFlatFilterView = taskFilters.length > 0 && !taskFilters.includes('hide_completed');
 
   return (
     <div
