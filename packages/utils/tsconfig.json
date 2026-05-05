@@ -4,7 +4,7 @@
     "composite": true,
     "rootDir": "src",
     "outDir": "dist",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "dom"],
     "types": ["node", "jest"],
     "declaration": true,
     "emitDeclarationOnly": false,
