@@ -955,6 +955,21 @@ export default function ProjectEditor({
               <span className="material-icons">person_add</span>
               <span className="btn-label">Invite</span>
             </button>
+            
+            {/* Toggle for hiding/showing completed tasks */}
+            {onToggleFilter && (
+              <div className="project-action-toggle project-action-toggle--inline">
+                <label className="toggle-label" title="Hide completed tasks">
+                  <input
+                    type="checkbox"
+                    checked={taskFilters?.includes('hide_completed') ?? false}
+                    onChange={(e) => onToggleFilter?.(e.target.checked ? 'hide_completed' : null)}
+                  />
+                  <span className="toggle-slider"></span>
+                  <span className="toggle-text">Hide Completed</span>
+                </label>
+              </div>
+            )}
           </div>
           <div className="tab-controls">
             {/* Expand/Collapse moved to dashboard actions bar when collapseAllRef/expandAllRef are provided */}

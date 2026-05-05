@@ -1520,6 +1520,10 @@
   margin: 0 8px;
 }
 
+.project-action-toggle--inline {
+  margin: 0 0 0 12px;
+}
+
 .toggle-label {
   display: flex;
   align-items: center;

@@ -30,6 +30,8 @@ export function applyFilters(
   inSeven.setDate(now.getDate() + 7);
 
   return tasks.filter((t) => {
+    // If 'hide_completed' is selected, hide completed tasks
+    if (active.includes("hide_completed") && t.done) return false;
     // If there are active filters (excluding search), and 'completed' is NOT selected, hide completed tasks
     if (active.length > 0 && !active.includes("completed") && t.done) return false;
     // If 'completed' is selected, only show completed tasks
