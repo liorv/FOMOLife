@@ -1578,69 +1578,6 @@
   white-space: nowrap;
 }
 
-/* Sort Toggle Styles */
-.subproject-sort-controls {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 16px 4px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 8px;
-}
-
-.sort-toggle-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: #6b7280;
-  user-select: none;
-}
-
-.sort-toggle-label input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
-  height: 0;
-  width: 0;
-}
-
-.sort-toggle-slider {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  background-color: #d1d5db;
-  border-radius: 20px;
-  margin-right: 6px;
-  transition: background-color 0.3s ease;
-}
-
-.sort-toggle-slider:before {
-  content: "";
-  position: absolute;
-  height: 16px;
-  width: 16px;
-  left: 2px;
-  bottom: 2px;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.sort-toggle-label input[type="checkbox"]:checked + .sort-toggle-slider {
-  background-color: #3b82f6;
-}
-
-.sort-toggle-label input[type="checkbox"]:checked + .sort-toggle-slider:before {
-  transform: translateX(16px);
-}
-
-.sort-toggle-text {
-  white-space: nowrap;
-}
-
 /* Leave Project Confirmation Modal */
 .leave-confirm-modal-overlay {
   position: fixed;

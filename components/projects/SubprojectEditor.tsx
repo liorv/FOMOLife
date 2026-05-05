@@ -208,21 +208,10 @@ export default function SubprojectEditor({
         autoEdit={autoEdit}
         isDragging={isDragging}
         expanded={!collapsed}
+        sortByDaysLeft={sortByDaysLeft}
+        onToggleSort={() => setSortByDaysLeft(!sortByDaysLeft)}
       />
       {!collapsed && <div className="subproject-body">
-        {/* Sort toggle */}
-        <div className="subproject-sort-controls">
-          <label className="sort-toggle-label" title="Sort by days left (ascending)">
-            <input
-              type="checkbox"
-              checked={sortByDaysLeft}
-              onChange={(e) => setSortByDaysLeft(e.target.checked)}
-            />
-            <span className="sort-toggle-slider"></span>
-            <span className="sort-toggle-text">Sort by Due Date</span>
-          </label>
-        </div>
-        
         <div className="subproject-tasks">
           <ul className="item-list">
             <TaskList

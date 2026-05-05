@@ -113,6 +113,28 @@
   color: #757575;
 }
 
+.sortIcon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.sortIcon:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #3b82f6;
+}
+
+.sortIcon .material-icons {
+  font-size: 18px;
+}
+
 .menu {
   position: absolute;
   right: 10px;

@@ -959,14 +959,14 @@ export default function ProjectEditor({
             {/* Toggle for hiding/showing completed tasks */}
             {onToggleFilter && (
               <div className="project-action-toggle project-action-toggle--inline">
-                <label className="toggle-label" title="Hide completed tasks">
+                <label className="toggle-label" title="Show completed tasks">
                   <input
                     type="checkbox"
-                    checked={taskFilters?.includes('hide_completed') ?? false}
-                    onChange={(e) => onToggleFilter?.(e.target.checked ? 'hide_completed' : null)}
+                    checked={!taskFilters?.includes('hide_completed')}
+                    onChange={(e) => onToggleFilter?.(e.target.checked ? null : 'hide_completed')}
                   />
                   <span className="toggle-slider"></span>
-                  <span className="toggle-text">Hide Completed</span>
+                  <span className="toggle-text">Show Completed</span>
                 </label>
               </div>
             )}

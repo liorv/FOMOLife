@@ -19,6 +19,9 @@ export interface SubprojectRowProps {
   expanded?: boolean;
   autoEdit?: boolean;
   isDragging?: boolean;
+  /* sort functionality */
+  sortByDaysLeft?: boolean;
+  onToggleSort?: () => void;
 }
 
 export default function SubprojectRow({ 
@@ -35,6 +38,8 @@ export default function SubprojectRow({
   expanded = false,
   autoEdit = false, 
   isDragging = false,
+  sortByDaysLeft = false,
+  onToggleSort,
 }: SubprojectRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
@@ -284,6 +289,23 @@ export default function SubprojectRow({
               <div className={`${styles.peopleCount} people-count`}>+{owners.length - 2}</div>
             )}
           </div>
+        )}
+        
+        {/* Sort by due date icon - only show when expanded */}
+        {expanded && onToggleSort && (
+          <button
+            className={`${styles.sortIcon} subproject-sort-icon`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSort();
+            }}
+            title={sortByDaysLeft ? "Disable sorting by due date" : "Sort by due date (ascending)"}
+          >
+            <span className="material-icons" style={{ color: sortByDaysLeft ? '#3b82f6' : '#6b7280' }}>
+              {sortByDaysLeft ? 'sort' : 'sort'}
+            </span>
+          </button>
         )}
       </div>
 
