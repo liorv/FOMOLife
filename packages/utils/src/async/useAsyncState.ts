@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * useAsyncState - React hook for handling async data fetching
  * 
