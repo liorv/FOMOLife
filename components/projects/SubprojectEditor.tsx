@@ -87,24 +87,33 @@ export default function SubprojectEditor({
   // Apply filter to the task list if one is active
   const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters, currentUserName), [sub.tasks, JSON.stringify(taskFilters), currentUserName]);
 
-  // Sort toggle state
-  const [sortByDaysLeft, setSortByDaysLeft] = useState(false);
+  // Sort state - 'none', 'due_date', or 'alphabetical'
+  const [sortMode, setSortMode] = useState<'none' | 'due_date' | 'alphabetical'>('none');
 
   // Apply sorting to visible tasks
   const sortedTasks = useMemo(() => {
-    if (!sortByDaysLeft) return visibleTasks;
+    if (sortMode === 'none') return visibleTasks;
     
     return [...visibleTasks].sort((a, b) => {
-      // Tasks without due dates go to the end
-      if (!a.dueDate && !b.dueDate) return 0;
-      if (!a.dueDate) return 1;
-      if (!b.dueDate) return -1;
+      if (sortMode === 'due_date') {
+        // Tasks without due dates go to the end
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        
+        const dateA = new Date(a.dueDate);
+        const dateB = new Date(b.dueDate);
+        return dateA.getTime() - dateB.getTime(); // ascending order (earliest first)
+      } else if (sortMode === 'alphabetical') {
+        // Alphabetical sort by task text
+        const textA = (a.text || '').toLowerCase();
+        const textB = (b.text || '').toLowerCase();
+        return textA.localeCompare(textB);
+      }
       
-      const dateA = new Date(a.dueDate);
-      const dateB = new Date(b.dueDate);
-      return dateA.getTime() - dateB.getTime(); // ascending order (earliest first)
+      return 0;
     });
-  }, [visibleTasks, sortByDaysLeft]);
+  }, [visibleTasks, sortMode]);
 
   const collapsed = sub.collapsed;
 
@@ -208,8 +217,15 @@ export default function SubprojectEditor({
         autoEdit={autoEdit}
         isDragging={isDragging}
         expanded={!collapsed}
-        sortByDaysLeft={sortByDaysLeft}
-        onToggleSort={() => setSortByDaysLeft(!sortByDaysLeft)}
+        sortMode={sortMode}
+        onToggleSort={() => {
+          // Cycle through sort modes: none -> due_date -> alphabetical -> none
+          setSortMode(current => 
+            current === 'none' ? 'due_date' : 
+            current === 'due_date' ? 'alphabetical' : 
+            'none'
+          );
+        }}
       />
       {!collapsed && <div className="subproject-body">
         <div className="subproject-tasks">

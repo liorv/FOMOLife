@@ -20,7 +20,7 @@ export interface SubprojectRowProps {
   autoEdit?: boolean;
   isDragging?: boolean;
   /* sort functionality */
-  sortByDaysLeft?: boolean;
+  sortMode?: 'none' | 'due_date' | 'alphabetical';
   onToggleSort?: () => void;
 }
 
@@ -38,7 +38,7 @@ export default function SubprojectRow({
   expanded = false,
   autoEdit = false, 
   isDragging = false,
-  sortByDaysLeft = false,
+  sortMode = 'none',
   onToggleSort,
 }: SubprojectRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -276,7 +276,7 @@ export default function SubprojectRow({
       )}
 
       {/* Right group: description icon, owners, and menu button */}
-      <div className={`${styles.rightGroup} subproject-right-group`}>
+      <div className={`${styles.rightGroup} subproject-right-group`} style={{ right: sub.isProjectLevel ? '16px' : '60px' }}>
         {hasDescription && (
           <span className={`material-icons ${styles.descIcon} desc-icon`} title="Has description">
             description
@@ -291,7 +291,7 @@ export default function SubprojectRow({
           </div>
         )}
         
-        {/* Sort by due date icon - only show when expanded */}
+        {/* Sort icon - only show when expanded */}
         {expanded && onToggleSort && (
           <button
             className={`${styles.sortIcon} subproject-sort-icon`}
@@ -300,10 +300,19 @@ export default function SubprojectRow({
               e.stopPropagation();
               onToggleSort();
             }}
-            title={sortByDaysLeft ? "Disable sorting by due date" : "Sort by due date (ascending)"}
+            title={
+              sortMode === 'none' ? "Sort by due date" :
+              sortMode === 'due_date' ? "Sort alphabetically" :
+              "Disable sorting"
+            }
           >
-            <span className="material-icons" style={{ color: sortByDaysLeft ? '#3b82f6' : '#6b7280' }}>
-              {sortByDaysLeft ? 'sort' : 'sort'}
+            <span className="material-icons" style={{ 
+              color: sortMode === 'none' ? '#6b7280' : '#3b82f6',
+              fontSize: '18px'
+            }}>
+              {sortMode === 'due_date' ? 'schedule' : 
+               sortMode === 'alphabetical' ? 'sort_by_alpha' : 
+               'schedule'}
             </span>
           </button>
         )}
