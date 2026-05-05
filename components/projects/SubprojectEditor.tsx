@@ -87,6 +87,25 @@ export default function SubprojectEditor({
   // Apply filter to the task list if one is active
   const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters, currentUserName), [sub.tasks, JSON.stringify(taskFilters), currentUserName]);
 
+  // Sort toggle state
+  const [sortByDaysLeft, setSortByDaysLeft] = useState(false);
+
+  // Apply sorting to visible tasks
+  const sortedTasks = useMemo(() => {
+    if (!sortByDaysLeft) return visibleTasks;
+    
+    return [...visibleTasks].sort((a, b) => {
+      // Tasks without due dates go to the end
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      
+      const dateA = new Date(a.dueDate);
+      const dateB = new Date(b.dueDate);
+      return dateA.getTime() - dateB.getTime(); // ascending order (earliest first)
+    });
+  }, [visibleTasks, sortByDaysLeft]);
+
   const collapsed = sub.collapsed;
 
   // local state for the inline add-bar that appears when subproject is
@@ -191,11 +210,24 @@ export default function SubprojectEditor({
         expanded={!collapsed}
       />
       {!collapsed && <div className="subproject-body">
+        {/* Sort toggle */}
+        <div className="subproject-sort-controls">
+          <label className="sort-toggle-label" title="Sort by days left (ascending)">
+            <input
+              type="checkbox"
+              checked={sortByDaysLeft}
+              onChange={(e) => setSortByDaysLeft(e.target.checked)}
+            />
+            <span className="sort-toggle-slider"></span>
+            <span className="sort-toggle-text">Sort by Due Date</span>
+          </label>
+        </div>
+        
         <div className="subproject-tasks">
           <ul className="item-list">
             <TaskList
               {...{
-                items: visibleTasks as any,
+                items: sortedTasks as any,
                 type: "tasks",
                 editorTaskId: editorTaskId ?? null,
                 setEditorTaskId,
