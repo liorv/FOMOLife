@@ -812,6 +812,10 @@ function buildAIContext(proj: ProjectItem | any, _people: any[] = []) {
         id: t.id,
         title: t.text ?? t.description ?? '',
         effort: t.effort ?? null,
+        done: t.done ?? false,
+        due_date: t.dueDate ?? null,
+        notes: t.notes ?? t.detailedDescription ?? null,
+        owners: (t.people || []).map((p: any) => p.name ?? p),
       }))
     })),
   };

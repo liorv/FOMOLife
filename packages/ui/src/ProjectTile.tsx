@@ -627,9 +627,9 @@ export default function ProjectTile({
         <div className={`${styles.stats} project-stats`}>
           <div className={`${styles.statItem} stat-item`}>
             <span className={`${styles.statNumber} stat-number`}>
-              {(project.subprojects || []).flatMap((s) => s.tasks || []).length}
+              {(project.subprojects || []).flatMap((s) => s.tasks || []).filter((t) => !t.done).length}
             </span>
-            <span className={`${styles.statLabel} stat-label`}>Tasks</span>
+            <span className={`${styles.statLabel} stat-label`}>{(project.subprojects || []).flatMap((s) => s.tasks || []).filter((t) => !t.done).length === 1 ? "Task" : "Tasks"}</span>
           </div>
         </div>
       </div>

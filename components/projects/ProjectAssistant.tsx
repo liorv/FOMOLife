@@ -627,9 +627,17 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
       const modifiedTasks: any[] = mSub.tasks || [];
 
       const updatedTasks = modifiedTasks.map((mTask: any) => {
-        const origTask = origTasks.find((t: any) => t.id === mTask.id);
+        // First check this subproject's original tasks
+        let origTask = origTasks.find((t: any) => t.id === mTask.id);
+        // If not found locally, search all subprojects (task may have been moved here)
+        if (!origTask && mTask.id) {
+          for (const s of originalSubs) {
+            origTask = (s.tasks || []).find((t: any) => t.id === mTask.id);
+            if (origTask) break;
+          }
+        }
         if (origTask) {
-          // Merge: apply AI-modified fields, preserve everything else
+          // Merge: apply AI-modified fields, preserve everything else (including done)
           return {
             ...origTask,
             text: mTask.title ?? mTask.text ?? origTask.text,
@@ -637,16 +645,17 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
             effort: mTask.effort !== undefined ? normalizeEffort(mTask.effort) : origTask.effort,
           };
         } else {
-          // New task added by the LLM
+          // Genuinely new task added by the LLM
           return {
             id: mTask.id || genId('task'),
             text: mTask.title || mTask.text || 'New Task',
             description: mTask.title || mTask.text || '',
-            done: false,
+            done: mTask.done ?? false,
             effort: normalizeEffort(mTask.effort),
-            dueDate: null,
+            dueDate: mTask.due_date ?? mTask.dueDate ?? null,
+            notes: mTask.notes ?? null,
             favorite: false,
-            people: [],
+            people: (mTask.owners || []).map((o: any) => typeof o === 'string' ? { name: o } : o),
           };
         }
       });
