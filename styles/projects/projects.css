@@ -1083,10 +1083,26 @@
 }
 .project-action-btn--leave {
   color: var(--color-text-muted, #888);
+  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .project-action-btn--leave:hover {
   color: var(--color-danger, #e53935);
   background: rgba(229, 57, 53, 0.07);
+}
+.project-action-btn--leave-armed {
+  color: #fff !important;
+  background: var(--color-danger, #e53935) !important;
+  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.35);
+  animation: leave-arm-pulse 0.3s ease;
+}
+.project-action-btn--leave-armed:hover {
+  background: #c62828 !important;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.4);
+}
+@keyframes leave-arm-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
 }
 
 /* ============================================================

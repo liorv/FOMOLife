@@ -272,6 +272,8 @@ export default function ProjectsDashboard({
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [leaveArmed, setLeaveArmed] = useState(false);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Metrics: scoped to selected project when one is selected ──────────────
 
@@ -495,12 +497,25 @@ export default function ProjectsDashboard({
                         const canLeave = isCurrentUserMember && onRemoveMember;
                         return canLeave ? (
                           <button
-                            className="project-action-btn project-action-btn--leave"
-                            title="Leave project"
-                            onClick={() => onRemoveMember?.(selectedProject.id, currentUserId)}
+                            className={`project-action-btn project-action-btn--leave${leaveArmed ? " project-action-btn--leave-armed" : ""}`}
+                            title={leaveArmed ? "Click again to confirm" : "Leave project"}
+                            onClick={() => {
+                              if (!leaveArmed) {
+                                setLeaveArmed(true);
+                                leaveTimerRef.current = setTimeout(() => setLeaveArmed(false), 3000);
+                              } else {
+                                if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+                                setLeaveArmed(false);
+                                onRemoveMember?.(selectedProject.id, currentUserId);
+                              }
+                            }}
+                            onBlur={() => {
+                              if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+                              setLeaveArmed(false);
+                            }}
                           >
-                            <span className="material-icons">logout</span>
-                            <span>Leave</span>
+                            <span className="material-icons">{leaveArmed ? "warning" : "logout"}</span>
+                            <span>{leaveArmed ? "Confirm Leave?" : "Leave"}</span>
                           </button>
                         ) : null;
                       })()}
