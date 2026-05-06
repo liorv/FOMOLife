@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import type { Contact } from '@myorg/types';
@@ -209,9 +209,10 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   }, [searchParams, router]);
 
   // if user navigates back to this tab (or window regains focus), refresh list
+  const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!canManage) return;
-    const onFocus = async () => {
+    const doRefresh = async () => {
       try {
         console.log('[ContactsPage] Refetching contacts...');
         const updated = await apiClient.listContacts();
@@ -222,17 +223,27 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
         console.warn('[Contacts] refresh failed', err);
       }
     };
+    // Debounce: coalesce multiple rapid triggers (focus events, broadcasts,
+    // storage events) into a single fetch to avoid request bursts.
+    const scheduleRefresh = () => {
+      if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+      refreshDebounceRef.current = setTimeout(doRefresh, 400);
+    };
+    const onFocus = () => scheduleRefresh();
     const onMessage = (event: MessageEvent) => {
+      // Only accept messages from the same origin to prevent third-party
+      // scripts / extensions from triggering API calls.
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'contacts-updated') {
         console.log('[ContactsPage] Received contacts-updated message event, refreshing data');
-        onFocus();
+        scheduleRefresh();
       }
     };
     window.addEventListener('focus', onFocus);
     window.addEventListener('message', onMessage);
     const onStorage = (evt: StorageEvent) => {
       if (evt.key === 'fomo:contactsUpdated') {
-        onFocus();
+        scheduleRefresh();
       }
     };
     window.addEventListener('storage', onStorage);
@@ -240,6 +251,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('message', onMessage);
       window.removeEventListener('storage', onStorage);
+      if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     };
   }, [apiClient, canManage]);
 

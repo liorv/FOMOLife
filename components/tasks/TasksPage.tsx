@@ -141,8 +141,9 @@ export default function TasksPage({ canManage, style, className }: Props) {
   }, [api, contactsApi]);
 
   // update contact list when returning to page
+  const focusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const onFocus = async () => {
+    const doRefresh = async () => {
       try {
         const refreshed = await contactsApi.listContacts();
         setPeople(refreshed);
@@ -158,8 +159,16 @@ export default function TasksPage({ canManage, style, className }: Props) {
         setContactsError(msg);
       }
     };
+    // Debounce: prevent burst of requests when the user rapidly switches tabs.
+    const onFocus = () => {
+      if (focusDebounceRef.current) clearTimeout(focusDebounceRef.current);
+      focusDebounceRef.current = setTimeout(doRefresh, 400);
+    };
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      if (focusDebounceRef.current) clearTimeout(focusDebounceRef.current);
+    };
   }, [contactsApi]);
 
   

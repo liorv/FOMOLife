@@ -21,10 +21,15 @@ export function NotificationBell({ userId }: { userId?: string }) {
   }, []);
 
   const currentUserId = userId;
+  const fetchInFlight = useRef(false);
 
   useEffect(() => {
     let mounted = true;
     const checkRequests = async () => {
+      // Skip if a fetch is already in-flight to avoid request pile-up from
+      // rapid Supabase broadcast events or focus events.
+      if (fetchInFlight.current) return;
+      fetchInFlight.current = true;
       try {
         const { requests } = await apiClient.getPendingRequests();
         if (mounted) {
@@ -32,10 +37,10 @@ export function NotificationBell({ userId }: { userId?: string }) {
         }
       } catch (err) {
         console.warn('Failed to fetch pending requests in bell:', err);
+      } finally {
+        fetchInFlight.current = false;
       }
     };
-
-    checkRequests();
 
     if (!currentUserId) return;
     const supabase = getSupabaseBrowserClient();
