@@ -3,7 +3,7 @@ import type { ProjectItem } from '@myorg/types';
 export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
   createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }) => Promise<ProjectItem>;
-  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>) => Promise<ProjectItem>;
+  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences'>>) => Promise<ProjectItem>;
   deleteProject: (id: string) => Promise<void>;
 }
 
@@ -45,7 +45,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
       return parseResponse<ProjectItem>(response);
     },
 
-    async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl'>>): Promise<ProjectItem> {
+    async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences'>>): Promise<ProjectItem> {
       const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },

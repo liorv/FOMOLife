@@ -117,7 +117,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
 const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     string | null
   >(null);
-  const [filters, setFilters] = useState<string[]>([]);
+  const [filters, setFilters] = useState<string[]>(['hide_completed']);
   const projectSearch = searchParams.get('q') || '';
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -538,16 +538,35 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     });
   };
 
+  // Sync filters from the selected project's preferences when switching projects
+  useEffect(() => {
+    if (!editingProjectId) return;
+    const proj = projects.find((p) => p.id === editingProjectId);
+    if (!proj) return;
+    const savedFilters = proj.preferences?.activeFilters;
+    // If no saved preference yet, default to hiding completed tasks
+    setFilters(savedFilters !== undefined ? savedFilters : ['hide_completed']);
+  }, [editingProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleToggleFilter = (filterType: string | null) => {
-    if (filterType === null) {
-      setFilters([]);
-      return;
-    }
-    setFilters((prev) =>
-      prev.includes(filterType)
-        ? prev.filter((item) => item !== filterType)
-        : [...prev, filterType],
-    );
+    setFilters((prev) => {
+      const next =
+        filterType === null
+          ? []
+          : prev.includes(filterType)
+          ? prev.filter((item) => item !== filterType)
+          : [...prev, filterType];
+
+      // Persist filters + showCompleted preference to the active project
+      if (editingProjectId) {
+        const showCompleted = !next.includes('hide_completed');
+        void apiUpdateProject(editingProjectId, {
+          preferences: { showCompleted, activeFilters: next },
+        });
+      }
+
+      return next;
+    });
   };
 
   const handleInviteMember = async (projectId: string, member: import('@myorg/types').ProjectMember) => {

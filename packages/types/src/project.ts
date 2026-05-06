@@ -56,6 +56,8 @@ export interface ProjectSubproject {
   description?: string;
   /** Owners of this subproject */
   owners?: ProjectTaskPerson[];
+  /** Saved sort mode for this subproject */
+  sortMode?: 'none' | 'due_date' | 'alphabetical';
 }
 
 /**
@@ -102,6 +104,13 @@ export interface ProjectItem {
   creatorId?: string;
   /** Members of this project (owner + invited members) */
   members?: ProjectMember[];
+  /** Persisted UI preferences for this project */
+  preferences?: {
+    /** Whether to show completed tasks (default: false = hide them) */
+    showCompleted?: boolean;
+    /** Active filter keys for this project */
+    activeFilters?: string[];
+  };
 }
 
 /**
@@ -116,6 +125,10 @@ export interface ProjectCreateInput {
   aiInstructions?: string;
   avatarUrl?: string;
   members?: ProjectMember[];
+  preferences?: {
+    showCompleted?: boolean;
+    activeFilters?: string[];
+  };
 }
 
 /**
@@ -133,4 +146,8 @@ export interface ProjectUpdateInput {
   aiInstructions?: string;
   avatarUrl?: string;
   members?: ProjectMember[];
+  preferences?: {
+    showCompleted?: boolean;
+    activeFilters?: string[];
+  };
 }

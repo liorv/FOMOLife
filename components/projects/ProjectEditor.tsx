@@ -420,6 +420,9 @@ export default function ProjectEditor({
               // Preserve it across prop updates (e.g. async API responses)
               // so that out-of-order responses don't overwrite the user's toggle.
               collapsed: existing !== undefined ? existing.collapsed : (s.collapsed ?? false),
+              // sortMode is persisted state — prefer local value if set, then fall back to prop.
+              // This guards against out-of-order API responses overwriting the user's choice.
+              sortMode: existing?.sortMode ?? s.sortMode,
             };
           })
         : [],
@@ -527,6 +530,14 @@ export default function ProjectEditor({
     );
     setLocal({ ...local, subprojects: updatedSubprojects });
     // Only send the changed subprojects — not the full project — to minimise payload
+    safeOnApplyChange({ subprojects: updatedSubprojects });
+  };
+
+  const updateSubSortMode = (id: string, mode: 'none' | 'due_date' | 'alphabetical') => {
+    const updatedSubprojects = (local.subprojects || []).map((s) =>
+      s.id === id ? { ...s, sortMode: mode } : s,
+    );
+    setLocal({ ...local, subprojects: updatedSubprojects });
     safeOnApplyChange({ subprojects: updatedSubprojects });
   };
 
@@ -1482,6 +1493,7 @@ export default function ProjectEditor({
           isDragging={draggedSubprojectId === sub.id}
           taskFilters={taskFilters as any[]}
           currentUserName={members.find((m) => m.userId === currentUserId)?.name}
+          onSortModeChange={(subId, mode) => updateSubSortMode(subId, mode)}
         />
       ))}
         </div>

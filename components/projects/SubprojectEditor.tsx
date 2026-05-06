@@ -46,6 +46,7 @@ interface SubprojectEditorProps {
   isDragging?: boolean;
   taskFilters?: TaskFilter[];
   currentUserName?: string | undefined;
+  onSortModeChange?: (subId: string, mode: 'none' | 'due_date' | 'alphabetical') => void;
 }
 
 export default function SubprojectEditor({
@@ -83,12 +84,20 @@ export default function SubprojectEditor({
   isDragging = false,
   taskFilters = [],
   currentUserName,
+  onSortModeChange,
 }: SubprojectEditorProps) {
   // Apply filter to the task list if one is active
   const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters, currentUserName), [sub.tasks, JSON.stringify(taskFilters), currentUserName]);
 
-  // Sort state - 'none', 'due_date', or 'alphabetical'
-  const [sortMode, setSortMode] = useState<'none' | 'due_date' | 'alphabetical'>('none');
+  // Sort state - 'none', 'due_date', or 'alphabetical'; initialized from saved subproject data
+  const [sortMode, setSortMode] = useState<'none' | 'due_date' | 'alphabetical'>(
+    (sub.sortMode as 'none' | 'due_date' | 'alphabetical') || 'none'
+  );
+
+  const handleSortModeChange = (mode: 'none' | 'due_date' | 'alphabetical') => {
+    setSortMode(mode);
+    onSortModeChange?.(sub.id, mode);
+  };
 
   // Apply sorting to visible tasks
   const sortedTasks = useMemo(() => {
@@ -220,11 +229,8 @@ export default function SubprojectEditor({
         sortMode={sortMode}
         onToggleSort={() => {
           // Cycle through sort modes: none -> due_date -> alphabetical -> none
-          setSortMode(current => 
-            current === 'none' ? 'due_date' : 
-            current === 'due_date' ? 'alphabetical' : 
-            'none'
-          );
+          const next = sortMode === 'none' ? 'due_date' : sortMode === 'due_date' ? 'alphabetical' : 'none';
+          handleSortModeChange(next);
         }}
       />
       {!collapsed && <div className="subproject-body">

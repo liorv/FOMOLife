@@ -35,6 +35,7 @@ export interface ProjectSubproject {
   color?: string;
   description?: string;
   owners?: ProjectTaskPerson[];
+  sortMode?: 'none' | 'due_date' | 'alphabetical';
 }
 
 export interface ProjectItem {
@@ -51,6 +52,10 @@ export interface ProjectItem {
   avatarUrl?: string;
   creatorId?: string;
   members?: ProjectMember[];
+  preferences?: {
+    showCompleted?: boolean;
+    activeFilters?: string[];
+  };
 }
 
 export interface SharedProjectRef {
@@ -119,6 +124,7 @@ function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
       color: project.color,
       ...(firstSubproject?.description ? { description: firstSubproject.description } : {}),
       ...(firstSubproject?.owners ? { owners: firstSubproject.owners } : {}),
+      ...(firstSubproject?.sortMode ? { sortMode: firstSubproject.sortMode } : {}),
       isProjectLevel: true,
     };
   }
@@ -239,7 +245,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
+  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {

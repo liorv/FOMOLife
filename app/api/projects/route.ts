@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>> };
+  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences'>> };
   if (!body?.id || !body.patch) {
     return NextResponse.json({ error: 'id and patch are required' }, { status: 400 });
   }
