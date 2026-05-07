@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { TaskList } from "@myorg/ui";
 import { AddBar } from "@myorg/ui";
 import { SubprojectRow } from "@myorg/ui";
@@ -190,14 +190,6 @@ export default function SubprojectEditor({
     "subproject" +
     (collapsed ? " collapsed" : "") +
     (!collapsed ? " expanded" : "");
-
-  // focus input when subproject expands
-  useEffect(() => {
-    if (!collapsed && addBarRef.current) {
-      const input = addBarRef.current.querySelector('input');
-      if (input) input.focus();
-    }
-  }, [collapsed]);
 
   return (
     <div

@@ -146,8 +146,9 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
     const now = new Date();
 
     recentlyCompleted.forEach(t => {
-      // simulate completed time based on ID or fallback
-      const timeStr = t.dueDate || new Date(now.getTime() - Math.random() * 86400000).toISOString();
+      // Use the real completedAt timestamp; fall back to dueDate if not yet populated
+      const timeStr = (t as any).completedAt || t.dueDate;
+      if (!timeStr) return; // skip if no timestamp at all — won't pass the 7-day cutoff anyway
       feed.push({
         id: `task-${t.id}`,
         type: 'task',
@@ -163,7 +164,8 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
     });
 
     partnerActivity.forEach(t => {
-      const timeStr = t.dueDate || new Date(now.getTime() - Math.random() * 86400000 * 2).toISOString();
+      const timeStr = (t as any).completedAt || t.dueDate;
+      if (!timeStr) return;
       feed.push({
         id: `partner-${t.id}`,
         type: 'partner',
@@ -215,7 +217,10 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
     // Sort showing more recent on top
     feed.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
-    return feed;
+    // Only show activity from the last 7 days
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const cutoff = now.getTime() - ONE_WEEK_MS;
+    return feed.filter(item => new Date(item.time).getTime() >= cutoff);
   }, [recentlyCompleted, partnerActivity, contacts, projects, handleNavigate]);
 
   const filteredFeed = useMemo(() => {
@@ -304,7 +309,7 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span className={`material-icons ${styles.cardIcon}`}>receipt_long</span>
-            <h2 className={styles.cardTitle}>Activities</h2>
+            <h2 className={styles.cardTitle}>Recent Activity</h2>
             <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', alignItems: 'center' }}>
               <button 
                 onClick={() => toggleFilter('task')}
@@ -330,7 +335,7 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
             </div>
           </div>
           <ul className={styles.list}>
-            {filteredFeed.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No recent activity.</p></div></li>}
+            {filteredFeed.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No activity in the last 7 days.</p></div></li>}
             {filteredFeed.map(item => (
               <li key={item.id} className={styles.listItem} onClick={item.onClick}>
                 {item.isImageIcon ? (

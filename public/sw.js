@@ -26,6 +26,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Only handle same-origin GET requests
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
   // Always go network for: navigation (HTML), API routes, Next.js chunks, and auth
   if (
     request.mode === 'navigate' ||
@@ -33,23 +36,23 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/login') ||
     url.pathname.startsWith('/_next/')
   ) {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request).then((cached) => cached || Response.error()))
+    );
     return;
   }
 
   // Cache-first only for same-origin static assets (images, fonts, etc.)
-  if (url.origin === self.location.origin && request.method === 'GET') {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
-      })
-    );
-  }
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      });
+    })
+  );
 });

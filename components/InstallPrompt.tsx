@@ -3,8 +3,22 @@
 import { useEffect, useState } from 'react';
 import styles from './InstallPrompt.module.css';
 
-const STORAGE_KEY = 'pwa-install-dismissed';
 const NEVER_KEY = 'pwa-install-never';
+const SNOOZE_COOKIE = 'pwa-install-snoozed';
+const SNOOZE_HOURS = 24;
+
+function isSnoozed(): boolean {
+  try {
+    return document.cookie.split(';').some((c) => c.trim().startsWith(SNOOZE_COOKIE + '='));
+  } catch { return false; }
+}
+
+function setSnooze(): void {
+  try {
+    const expires = new Date(Date.now() + SNOOZE_HOURS * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${SNOOZE_COOKIE}=1; expires=${expires}; path=/; SameSite=Lax`;
+  } catch { /* ignore */ }
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -20,9 +34,9 @@ export default function InstallPrompt() {
     // Don't show if already running as installed PWA
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     // Don't show if user chose "don't show again"
-    try {
-      if (localStorage.getItem(NEVER_KEY)) return;
-    } catch { /* ignore */ }
+    try { if (localStorage.getItem(NEVER_KEY)) return; } catch { /* ignore */ }
+    // Don't show if snoozed within the last 24 hours
+    if (isSnoozed()) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -47,6 +61,9 @@ export default function InstallPrompt() {
   const handleDismiss = () => {
     if (neverShow) {
       try { localStorage.setItem(NEVER_KEY, '1'); } catch { /* ignore */ }
+    } else {
+      // Snooze for 24 hours via cookie
+      setSnooze();
     }
     setVisible(false);
   };

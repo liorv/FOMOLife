@@ -46,7 +46,7 @@
   position: absolute;
   top: 100%;
   right: -20px;
-  z-index: 1000;
+  z-index: 12000;
   margin-top: 8px;
   background: white;
   border: 1px solid var(--gray-200, #e2e8f0);

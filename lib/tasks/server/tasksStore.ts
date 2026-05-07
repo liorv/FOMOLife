@@ -90,13 +90,19 @@ export async function createTask(
 export async function updateTask(
   userId: string,
   id: string,
-  patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort' | 'effort' | 'effort' | 'effort' | 'priority'>>,
+  patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort' | 'completedAt'>>,
 ): Promise<TaskItem | null> {
   console.log("tasksStore: updateTask", userId, id, patch);
   const current = await getOrInitUserTasks(userId);
-  const next = current.map((item) =>
-    item.id === id ? { ...item, ...patch, id } : item,
-  );
+  const next = current.map((item) => {
+    if (item.id !== id) return item;
+    const merged = { ...item, ...patch, id };
+    // Auto-manage completedAt when done toggles, unless the caller explicitly set it
+    if ('done' in patch && !('completedAt' in patch)) {
+      merged.completedAt = patch.done ? new Date().toISOString() : null;
+    }
+    return merged;
+  });
   const updated = next.find((item) => item.id === id) ?? null;
   tasksByUser.set(userId, next);
   await savePersisted(userId);

@@ -21,6 +21,8 @@ export interface TaskItem {
   people?: import("./project").ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
   effort?: number | null;
+  /** ISO 8601 timestamp of when the task was marked done, or null if not yet completed */
+  completedAt?: string | null;
 }
 
 /**
@@ -53,4 +55,5 @@ export interface TaskUpdateInput {
   people?: import("./project").ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
   effort?: number | null;
+  completedAt?: string | null;
 }

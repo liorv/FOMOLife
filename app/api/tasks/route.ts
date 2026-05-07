@@ -57,7 +57,7 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json()) as {
     id?: string;
-    patch?: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'effort' | 'effort'>>;
+    patch?: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'effort' | 'completedAt'>>;
   };
 
   if (!body.id || !body.patch) {

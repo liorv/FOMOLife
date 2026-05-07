@@ -6,6 +6,7 @@ import { createProjectsApiClient, createTasksApiClient } from "@myorg/api-client
 import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
 import { generateId, preloadImages } from "@myorg/utils";
+import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
 import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -142,7 +143,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         let loadedContacts: Contact[] = [];
 
         try {
-          loadedContacts = await contactsClient.listContacts();
+          loadedContacts = await getCachedContacts(() => contactsClient.listContacts());
         } catch (err) {
           console.warn("[Projects] failed to load contacts", err);
           let msg = "Failed to load contacts";
@@ -167,22 +168,36 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         }
 
         if (active) {
-          // Backfill icons for existing projects that have none
-          const projectsWithIcons = loadedProjects.map((p) =>
-            p.avatarUrl ? p : { ...p, avatarUrl: randomIconUrl() }
-          );
+          // Backfill icons for existing projects that have none.
+          // Use localStorage as a write-once cache so we only call updateProject
+          // once per project instead of on every page load.
+          const ICON_CACHE_KEY = 'fomo:projectIcons';
+          let localIconCache: Record<string, string> = {};
+          try { localIconCache = JSON.parse(localStorage.getItem(ICON_CACHE_KEY) || '{}'); } catch {}
+
+          const projectsWithIcons = loadedProjects.map((p) => {
+            if (p.avatarUrl) return p;
+            // Reuse the locally-cached icon so the assignment is stable across reloads
+            return { ...p, avatarUrl: localIconCache[p.id] ?? randomIconUrl() };
+          });
+
           setProjects(projectsWithIcons);
           // Preload all project avatar images to warm the browser cache before they render
           preloadImages(projectsWithIcons.map((p) => p.avatarUrl).filter(Boolean) as string[]);
-          // Persist backfilled icons in the background (fire-and-forget)
-          const missingIconIds = new Set(
-            loadedProjects.filter((p) => !p.avatarUrl).map((p) => p.id)
+
+          // Only persist icons that are genuinely new (not already on server or in localStorage)
+          const newlyAssigned = projectsWithIcons.filter(
+            (p) => !loadedProjects.find((r) => r.id === p.id)?.avatarUrl && !localIconCache[p.id]
           );
-          projectsWithIcons
-            .filter((p) => missingIconIds.has(p.id))
-            .forEach((p) => {
+          if (newlyAssigned.length > 0) {
+            const updatedCache = { ...localIconCache };
+            newlyAssigned.forEach((p) => { updatedCache[p.id] = p.avatarUrl!; });
+            try { localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(updatedCache)); } catch {}
+            newlyAssigned.forEach((p) => {
               apiClient.updateProject(p.id, { avatarUrl: p.avatarUrl! }).catch(() => {});
             });
+          }
+
           setPeople(loadedContacts);
           setGlobalTasks(loadedTasks);
           setFeedbackItems(loadedFeedback);
@@ -204,26 +219,35 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     };
   }, [apiClient, contactsClient, tasksClient]);
 
-  // re-pull contacts when the user returns to the tab (might have added contacts elsewhere)
+  // re-pull contacts when the user returns to the tab — only if data is stale (> 45 s)
+  const focusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const handleFocus = async () => {
-      try {
-        const updated = await contactsClient.listContacts();
-        setPeople(updated);
-        setContactsError(null);
-      } catch (err) {
-        console.warn("[Projects] refresh contacts failed", err);
-        let msg = "Failed to load contacts";
-        if (err instanceof TypeError && err.message === "Failed to fetch") {
-          msg = "Unable to reach contacts service – make sure it is running";
-        } else if (err instanceof Error) {
-          msg = err.message;
+    const handleFocus = () => {
+      if (focusDebounceRef.current) clearTimeout(focusDebounceRef.current);
+      focusDebounceRef.current = setTimeout(async () => {
+        const age = getContactsCacheAge();
+        if (age !== null && age < 45_000) return;
+        try {
+          const updated = await getCachedContacts(() => contactsClient.listContacts(), true);
+          setPeople(updated);
+          setContactsError(null);
+        } catch (err) {
+          console.warn("[Projects] refresh contacts failed", err);
+          let msg = "Failed to load contacts";
+          if (err instanceof TypeError && err.message === "Failed to fetch") {
+            msg = "Unable to reach contacts service – make sure it is running";
+          } else if (err instanceof Error) {
+            msg = err.message;
+          }
+          setContactsError(msg);
         }
-        setContactsError(msg);
-      }
+      }, 400);
     };
     window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      if (focusDebounceRef.current) clearTimeout(focusDebounceRef.current);
+    };
   }, [contactsClient]);
 
   

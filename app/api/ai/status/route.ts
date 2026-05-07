@@ -12,14 +12,20 @@ export async function GET() {
   const isMock = !hasKey && providerType !== 'groq';
 
   if (isMock) {
-    return NextResponse.json({
-      available: false,
-      provider: 'Mock (not connected)',
-      message: 'AI assistant is not configured. Contact the administrator to set up the GROQ_API_KEY.',
-    });
+    return NextResponse.json(
+      {
+        available: false,
+        provider: 'Mock (not connected)',
+        message: 'AI assistant is not configured. Contact the administrator to set up the GROQ_API_KEY.',
+      },
+      { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=60' } }
+    );
   }
 
   const model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
   const modelLabel = model.replace(/-instant$/, '').replace(/-/g, ' ');
-  return NextResponse.json({ available: true, provider: `Groq · ${modelLabel}`, message: '' });
+  return NextResponse.json(
+    { available: true, provider: `Groq · ${modelLabel}`, message: '' },
+    { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=60' } }
+  );
 }

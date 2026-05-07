@@ -76,7 +76,9 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setSearchDraft(headerSearchQuery);
   }, [headerSearchQuery]);
 
-const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
+const [loadedApps, setLoadedApps] = useState<Set<string>>(
+    () => new Set([normalizeTab(searchParams.get('tab') ?? undefined)])
+  );
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -116,6 +118,7 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
   const handleTabChange = (tab: FrameworkTab) => {
     // Update local state immediately so the UI switches without waiting for the server.
     setActiveTab(tab);
+    setLoadedApps(prev => { const next = new Set(prev); next.add(tab); return next; });
     if (tab === 'projects') {
       setSearchDraft('');
     }
@@ -241,6 +244,12 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
     const isExiting = swipeAnim?.from === tab.key;
     const isEntering = swipeAnim?.to === tab.key;
     const isVisible = (!swipeAnim && isActive) || isExiting || isEntering;
+    // Don't mount until the tab has been visited — avoids firing all data-fetching
+    // useEffects on page load for tabs the user may never open.
+    const hasBeenLoaded = loadedApps.has(tab.key);
+    if (!hasBeenLoaded && !isEntering) {
+      return <div key={tab.key} style={{ display: 'none' }} />;
+    }
 
     let animClass = '';
     if (isEntering) {

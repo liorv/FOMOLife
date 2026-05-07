@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  return NextResponse.json({
-    versions: {
-      framework: '1.0.0'
+  return NextResponse.json(
+    {
+      versions: {
+        framework: '1.0.0'
+      },
+      dbSource: 'integrated'
     },
-    dbSource: 'integrated'
-  });
+    { headers: { 'Cache-Control': 'public, max-age=86400' } }
+  );
 }

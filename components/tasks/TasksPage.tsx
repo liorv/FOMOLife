@@ -8,6 +8,7 @@ import { createContactsApiClient } from "@myorg/api-client";
 import type { TaskItem, ProjectTask, Contact } from "@myorg/types";
 import { TaskList, AddBar } from "@myorg/ui";
 import { applyFilters, generateId } from "@myorg/utils";
+import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
 
 // using shared TaskList from ui package; it is fully typed
 
@@ -108,7 +109,7 @@ export default function TasksPage({ canManage, style, className }: Props) {
         let loadedContacts: Contact[] = [];
 
         try {
-          loadedContacts = await contactsApi.listContacts();
+          loadedContacts = await getCachedContacts(() => contactsApi.listContacts());
         } catch (err) {
           console.warn("[Tasks] failed to load contacts", err);
           let msg = "Failed to load contacts";
@@ -140,12 +141,15 @@ export default function TasksPage({ canManage, style, className }: Props) {
     };
   }, [api, contactsApi]);
 
-  // update contact list when returning to page
+  // update contact list when returning to page — but only if data is stale (> 45 s)
   const focusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const doRefresh = async () => {
+      // Skip if contacts were fetched recently (shared cache is still fresh)
+      const age = getContactsCacheAge();
+      if (age !== null && age < 45_000) return;
       try {
-        const refreshed = await contactsApi.listContacts();
+        const refreshed = await getCachedContacts(() => contactsApi.listContacts(), true);
         setPeople(refreshed);
         setContactsError(null);
       } catch (err) {
