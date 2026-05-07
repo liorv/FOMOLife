@@ -1,8 +1,7 @@
-const CACHE_NAME = 'fomo-life-v1';
+const CACHE_NAME = 'fomo-life-v2';
 
-// Assets to cache on install (app shell)
+// Only cache immutable static assets — never HTML or JS chunks
 const PRECACHE_URLS = [
-  '/',
   '/assets/logo_fomo.png',
   '/assets/circuit-bg.png',
 ];
@@ -23,24 +22,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first for API/auth routes, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Always go network for API routes and auth
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/login')) {
+  // Always go network for: navigation (HTML), API routes, Next.js chunks, and auth
+  if (
+    request.mode === 'navigate' ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/_next/')
+  ) {
     event.respondWith(fetch(request));
     return;
   }
 
-  // Cache-first for same-origin static assets
-  if (url.origin === self.location.origin) {
+  // Cache-first only for same-origin static assets (images, fonts, etc.)
+  if (url.origin === self.location.origin && request.method === 'GET') {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          if (response.ok && request.method === 'GET') {
+          if (response.ok) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

@@ -93,3 +93,24 @@
 .btnInstall:hover {
   opacity: 0.9;
 }
+
+.neverRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.neverCheck {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent, #d32998);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.neverLabel {
+  font-size: 13px;
+  color: var(--color-text-muted, #5f6368);
+  user-select: none;
+}

@@ -27,6 +27,7 @@ export interface LogoBarProps {
   };
   className?: string;
   rightContent?: React.ReactNode;
+  onInstall?: () => void;
 }
 
 export default function LogoBar({
@@ -50,6 +51,7 @@ export default function LogoBar({
   aboutInfo,
   className,
   rightContent,
+  onInstall,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -176,6 +178,22 @@ export default function LogoBar({
                 </div>
               </div>
               <div className="logobar-menu-divider" />
+              {onInstall ? (
+                <button
+                  type="button"
+                  className="logobar-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onInstall();
+                  }}
+                >
+                  <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
+                    install_mobile
+                  </span>
+                  Install App
+                </button>
+              ) : null}
               {aboutInfo ? (
                 <button
                   type="button"

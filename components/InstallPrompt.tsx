@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import styles from './InstallPrompt.module.css';
 
 const STORAGE_KEY = 'pwa-install-dismissed';
+const NEVER_KEY = 'pwa-install-never';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,13 +14,14 @@ interface BeforeInstallPromptEvent extends Event {
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
+  const [neverShow, setNeverShow] = useState(false);
 
   useEffect(() => {
     // Don't show if already running as installed PWA
     if (window.matchMedia('(display-mode: standalone)').matches) return;
-    // Don't show if user already dismissed
+    // Don't show if user chose "don't show again"
     try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
+      if (localStorage.getItem(NEVER_KEY)) return;
     } catch { /* ignore */ }
 
     const handler = (e: Event) => {
@@ -43,7 +45,9 @@ export default function InstallPrompt() {
   };
 
   const handleDismiss = () => {
-    try { localStorage.setItem(STORAGE_KEY, '1'); } catch { /* ignore */ }
+    if (neverShow) {
+      try { localStorage.setItem(NEVER_KEY, '1'); } catch { /* ignore */ }
+    }
     setVisible(false);
   };
 
@@ -59,6 +63,15 @@ export default function InstallPrompt() {
             <div className={styles.subtitle}>Launch instantly, works offline</div>
           </div>
         </div>
+        <label className={styles.neverRow}>
+          <input
+            type="checkbox"
+            className={styles.neverCheck}
+            checked={neverShow}
+            onChange={(e) => setNeverShow(e.target.checked)}
+          />
+          <span className={styles.neverLabel}>Don&apos;t show this again</span>
+        </label>
         <div className={styles.actions}>
           <button className={styles.btnDismiss} onClick={handleDismiss}>Not now</button>
           <button className={styles.btnInstall} onClick={handleInstall}>Install</button>

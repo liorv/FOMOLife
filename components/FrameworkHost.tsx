@@ -49,7 +49,18 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const router = useRouter();
   const pathname = usePathname();
 
-  const activeTab = normalizeTab(searchParams.get('tab') ?? undefined);
+  // activeTab is local state for instant tab switching (no server round-trip).
+  // It is initialised from the URL and stays in sync via the effect below.
+  const [activeTab, setActiveTab] = useState<FrameworkTab>(() =>
+    normalizeTab(searchParams.get('tab') ?? undefined)
+  );
+
+  // Sync activeTab if the URL changes externally (back/forward, direct link).
+  useEffect(() => {
+    const tabFromUrl = normalizeTab(searchParams.get('tab') ?? undefined);
+    setActiveTab(tabFromUrl);
+  }, [searchParams]);
+
   const tabs = useMemo(() => getFrameworkTabLinks(), []);
   const activeTabConfig = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
   const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people' || activeTab === 'feedback';
@@ -65,11 +76,27 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setSearchDraft(headerSearchQuery);
   }, [headerSearchQuery]);
 
-  // Track which apps have finished loading
-  const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
+const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  // PWA install prompt — only shown in browser (not standalone)
+  const [installPrompt, setInstallPrompt] = useState<{ prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> } | null>(null);
+  const [isStandalone, setIsStandalone] = useState(true); // assume standalone until we check
+  useEffect(() => {
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as any);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+  const handleInstall = installPrompt && !isStandalone ? async () => {
+    await (installPrompt as any).prompt();
+    setInstallPrompt(null);
+  } : undefined;
   
 
   // Check screen size for responsive placeholder
@@ -87,9 +114,12 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const effectiveSearchPlaceholder = searchPlaceholder ?? defaultSearchPlaceholder;
 
   const handleTabChange = (tab: FrameworkTab) => {
+    // Update local state immediately so the UI switches without waiting for the server.
+    setActiveTab(tab);
     if (tab === 'projects') {
       setSearchDraft('');
     }
+    // Also update the URL (for deep-linking and browser back/forward).
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('tab', tab);
     if (tab === 'projects') {
@@ -294,6 +324,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         className="logobar-top"
         rightContent={<NotificationBell userId={userId} />}
         {...(aboutInfo ? { aboutInfo } : {})}
+        onInstall={handleInstall}
       />
       <div className="tab-viewport">
         {tabs.map(tab => renderComponent(tab))}
