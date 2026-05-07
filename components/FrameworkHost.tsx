@@ -324,7 +324,7 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(new Set());
         className="logobar-top"
         rightContent={<NotificationBell userId={userId} />}
         {...(aboutInfo ? { aboutInfo } : {})}
-        onInstall={handleInstall}
+        {...(handleInstall ? { onInstall: handleInstall } : {})}
       />
       <div className="tab-viewport">
         {tabs.map(tab => renderComponent(tab))}
