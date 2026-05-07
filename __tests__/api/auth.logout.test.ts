@@ -1,4 +1,4 @@
-declare var jest: any;
+export {};
 
 const logout = require('../../app/api/auth/logout/route');
 

@@ -19,6 +19,16 @@ export function getContactsCacheAge(): number | null {
   return Date.now() - entry.fetchedAt;
 }
 
+/**
+ * Synchronously returns the cached contacts (even if stale) so components
+ * can initialise their state without showing a loading spinner on re-mount.
+ * Returns null if no data has ever been fetched.
+ */
+export function getCachedContactsSync<T>(): T[] | null {
+  if (!entry) return null;
+  return entry.data as T[];
+}
+
 /** Force the next call to re-fetch from the server. */
 export function invalidateContactsCache(): void {
   entry = null;

@@ -1,4 +1,4 @@
-declare var jest: any;
+export {};
 
 // Test framework login behavior in JSON mode by mocking the env getter
 jest.mock('@/lib/frameworkEnv.server', () => ({

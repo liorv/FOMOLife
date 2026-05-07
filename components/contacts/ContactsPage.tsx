@@ -6,6 +6,7 @@ import type { ContactsApiClient } from '@myorg/api-client';
 import type { Contact } from '@myorg/types';
 import { ContactTile, ModalOverlay } from '@myorg/ui';
 import { createContactsApiClient } from '@myorg/api-client';
+import { getCachedContacts, getCachedContactsSync } from '@/lib/client/contactsCache';
 
 import styles from '../../styles/contacts/layout.module.css';
 import ContentHeader from '../ContentHeader';
@@ -24,9 +25,10 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const router = useRouter();
   
 
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  // general loading/error state
-  const [loading, setLoading] = useState(true);
+  // Initialise from module-level cache so re-mounts never show a loading spinner
+  const [contacts, setContacts] = useState<Contact[]>(() => getCachedContactsSync<Contact>() ?? []);
+  // Only show loading on the very first render (before any data has been cached)
+  const [loading, setLoading] = useState(() => getCachedContactsSync() === null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // display ready state - only show content after framework acknowledges loading
   // If not embedded, immediately show content for standalone usage and tests
@@ -170,7 +172,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     let active = true;
     const loadContacts = async () => {
       try {
-        const loaded = await apiClient.listContacts();
+        const loaded = await getCachedContacts(() => apiClient.listContacts());
         if (active) {
           setContacts(loaded);
           setErrorMessage(null);

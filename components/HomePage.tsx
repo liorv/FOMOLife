@@ -8,6 +8,12 @@ import { preloadImages } from '@myorg/utils';
 import type { TaskItem, ProjectItem, Contact, ProjectTask } from '@myorg/types';
 import GlobalSearchResults, { type FeedbackItem } from './GlobalSearchResults';
 import ContentHeader from './ContentHeader';
+import { getCachedProjectsSync, setCachedProjects } from '@/lib/client/projectsCache';
+import { getCachedContactsSync } from '@/lib/client/contactsCache';
+
+// Module-level snapshot for tasks and feedback (survives React remounts)
+let _tasksSnap: TaskItem[] | null = null;
+let _feedbackSnap: FeedbackItem[] | null = null;
 
 type Props = {
   style?: React.CSSProperties;
@@ -42,11 +48,12 @@ function ProjectBadgeImg({ src, initial, title }: { src: string; initial?: strin
 
 export default function HomePage({ style, searchQuery = '' }: Props) {
   const router = useRouter();
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialise from module-level caches so re-mounts never flash the loading spinner
+  const [tasks, setTasks] = useState<TaskItem[]>(() => _tasksSnap ?? []);
+  const [projects, setProjects] = useState<ProjectItem[]>(() => getCachedProjectsSync() ?? []);
+  const [contacts, setContacts] = useState<Contact[]>(() => getCachedContactsSync<Contact>() ?? []);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>(() => _feedbackSnap ?? []);
+  const [loading, setLoading] = useState(() => _tasksSnap === null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   const tasksApi = useMemo(() => createTasksApiClient(''), []);
@@ -62,6 +69,9 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
       fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback).catch(() => [] as FeedbackItem[])
     ]).then(([t, p, c, f]) => {
       if (mounted) {
+        _tasksSnap = t as TaskItem[];
+        _feedbackSnap = f as FeedbackItem[];
+        setCachedProjects(p as ProjectItem[]);
         setTasks(t);
         setProjects(p);
         setContacts(c);

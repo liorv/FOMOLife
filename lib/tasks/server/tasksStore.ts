@@ -17,6 +17,7 @@ export interface TaskItem {
   people?: import('@myorg/types').ProjectTaskPerson[];
   priority?: "low" | "medium" | "high" | null;
   effort?: number | null;
+  completedAt?: string | null;
 }
 
 

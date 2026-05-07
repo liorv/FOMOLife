@@ -7,6 +7,7 @@ import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
 import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
+import { getCachedProjectsSync, setCachedProjects } from "@/lib/client/projectsCache";
 import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -81,7 +82,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
     }
   };
 
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>(() => getCachedProjectsSync() ?? []);
   const [people, setPeople] = useState<Contact[]>([]);
   const [globalTasks, setGlobalTasks] = useState<TaskItem[]>([]);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
@@ -120,7 +121,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   >(null);
   const [filters, setFilters] = useState<string[]>(['hide_completed']);
   const projectSearch = searchParams.get('q') || '';
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCachedProjectsSync() === null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // display ready state - only show content after framework acknowledges loading
   // If not embedded, immediately show content for standalone usage and tests
@@ -136,7 +137,8 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   useEffect(() => {
     let active = true;
     const loadData = async () => {
-      setLoading(true);
+      // Only show the loading spinner when we have no cached data to display yet
+      if (getCachedProjectsSync() === null) setLoading(true);
       setErrorMessage(null);
       try {
         const loadedProjects = await apiClient.listProjects();
@@ -182,6 +184,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
           });
 
           setProjects(projectsWithIcons);
+          setCachedProjects(projectsWithIcons);
           // Preload all project avatar images to warm the browser cache before they render
           preloadImages(projectsWithIcons.map((p) => p.avatarUrl).filter(Boolean) as string[]);
 
