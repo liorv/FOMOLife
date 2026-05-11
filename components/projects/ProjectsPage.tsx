@@ -252,13 +252,8 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     const doSilentRefresh = async () => {
       try {
         const loadedProjects = await apiClient.listProjects();
-        const projectsWithIcons = loadedProjects.map((p) => {
-          if (p.avatarUrl) return p;
-          const existing = getCachedProjectsSync()?.find(c => c.id === p.id);
-          return { ...p, avatarUrl: existing?.avatarUrl ?? p.avatarUrl };
-        });
-        setProjects(projectsWithIcons);
-        setCachedProjects(projectsWithIcons);
+        setProjects(loadedProjects);
+        setCachedProjects(loadedProjects);
         try {
           const [updatedTasks, updatedFeedback] = await Promise.all([
             tasksClient.listTasks(),
