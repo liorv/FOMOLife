@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fomo-life-v2';
+const CACHE_NAME = 'fomo-life-v3';
 
 // Only cache immutable static assets — never HTML or JS chunks
 const PRECACHE_URLS = [
@@ -29,13 +29,25 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin GET requests
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Always go network for: navigation (HTML), API routes, Next.js chunks, and auth
+  // Always go network for: navigation (HTML), API routes, Next.js chunks, auth, and RSC requests
   if (
     request.mode === 'navigate' ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/login') ||
-    url.pathname.startsWith('/_next/')
+    url.pathname.startsWith('/_next/') ||
+    request.headers.has('rsc') ||
+    request.headers.has('next-router-prefetch') ||
+    request.headers.has('next-router-state-tree')
   ) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request).then((cached) => cached || Response.error()))
+    );
+    return;
+  }
+
+  // Cache-first only for same-origin static assets (images, fonts, etc.)
+  // Avoid caching paths at the root (like /?tab=...)
+  if (url.pathname === '/' || !url.pathname.match(/\.(png|jpg|jpeg|gif|svg|woff2?|ttf|css|js|ico|webmanifest)$/i)) {
     event.respondWith(
       fetch(request).catch(() => caches.match(request).then((cached) => cached || Response.error()))
     );

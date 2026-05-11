@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+import { useMemo, useRef, useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { LogoBar, TabNav } from '@myorg/ui';
 import { getFrameworkTabLinks, normalizeTab, TAB_ORDER, type FrameworkTab } from '../lib/frameworkConfig';
@@ -23,7 +23,9 @@ let _pageHasLoaded: boolean = (() => {
   try {
     return (
       sessionStorage.getItem('fomo:tasksCache') !== null ||
-      sessionStorage.getItem('fomo:projectsCache') !== null
+      sessionStorage.getItem('fomo:projectsCache') !== null ||
+      sessionStorage.getItem('fomo:contactsCache') !== null ||
+      sessionStorage.getItem('fomo:feedbackCache') !== null
     );
   } catch {
     return false;
@@ -148,9 +150,16 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   // Show the progress bar only during the very first page load, for the initial tab.
   // Once _pageHasLoaded flips true it stays true for the lifetime of the module.
-  const [pageLoading, setPageLoading] = useState<boolean>(
-    () => !_pageHasLoaded && !_sessionReadyTabs.has(initialTabRef.current)
-  );
+  const [pageLoading, setPageLoading] = useState<boolean>(true);
+
+  // Sync state after hydration to check sessionStorage without mismatch
+  useLayoutEffect(() => {
+    // If the cache indicates we've been here, or the tab is already marked ready
+    const hasCache = _pageHasLoaded;
+    if (hasCache || _sessionReadyTabs.has(initialTabRef.current)) {
+      setPageLoading(false);
+    }
+  }, []);
 
   const handleTabReady = useCallback((tab: FrameworkTab) => {
     _sessionReadyTabs.add(tab);

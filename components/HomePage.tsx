@@ -136,7 +136,8 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   useEffect(() => {
     let mounted = true;
     const hasCache = _tasksSnap !== null;
-    fetchAllData(!hasCache).catch(() => {}).finally(() => { if (!mounted) return; });
+    // silent = true if we already have a cache, false if we don't
+    fetchAllData(hasCache).catch(() => {}).finally(() => { if (!mounted) return; });
     return () => { mounted = false; };
   }, [fetchAllData]);
 

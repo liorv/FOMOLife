@@ -8,11 +8,24 @@ const ChangePreview = ({ modified, original }: { modified: any, original: any })
   const origSubs = original.sub_projects || [];
   const modSubs = modified.sub_projects || [];
 
+  // Helper: find an original sub by id first, then fall back to title match
+  const findOrigSub = (ms: any) =>
+    origSubs.find((os: any) => os.id === ms.id) ||
+    origSubs.find((os: any) => (os.text || os.title || '').toLowerCase() === (ms.title || ms.text || '').toLowerCase());
+
   // New subprojects - show simplified static version
-  const newSubs = modSubs.filter((ms: any) => !origSubs.find((os: any) => os.id === ms.id));
-  newSubs.forEach((s: any) => {
+  // Deduplicate by id to guard against LLM returning the same id twice
+  const seenNewSubIds = new Set<string>();
+  const newSubs = modSubs.filter((ms: any) => {
+    if (findOrigSub(ms)) return false;
+    const key = ms.id || ms.title || '';
+    if (seenNewSubIds.has(key)) return false;
+    seenNewSubIds.add(key);
+    return true;
+  });
+  newSubs.forEach((s: any, idx: number) => {
     changes.push(
-      <div key={`new-sub-${s.id}`} style={{ marginBottom: '8px' }}>
+      <div key={`new-sub-${s.id || idx}`} style={{ marginBottom: '8px' }}>
         <div style={{
           fontSize: '0.85em',
           color: '#666',
@@ -92,12 +105,15 @@ const ChangePreview = ({ modified, original }: { modified: any, original: any })
 
   // Modified subprojects - show new tasks as simple text
   modSubs.forEach((ms: any) => {
-    const os = origSubs.find((s: any) => s.id === ms.id);
+    const os = findOrigSub(ms);
     if (!os) return; // already handled as new
 
     const origTasks = os.tasks || [];
     const modTasks = ms.tasks || [];
-    const newTasks = modTasks.filter((mt: any) => !origTasks.find((ot: any) => ot.id === mt.id));
+    const newTasks = modTasks.filter((mt: any) =>
+      !origTasks.find((ot: any) => ot.id === mt.id) &&
+      !origTasks.find((ot: any) => (ot.text || ot.title || '').toLowerCase() === (mt.title || mt.text || '').toLowerCase())
+    );
 
     if (newTasks.length > 0) {
       changes.push(
@@ -306,6 +322,8 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [appliedActionIds, setAppliedActionIds] = useState<Record<string, boolean>>({});
+  // Track the latest applied project so follow-up messages use the updated context
+  const [currentProjectExport, setCurrentProjectExport] = useState<any>(projectExport);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const onApplyBlueprint = (patch: any) => {
@@ -622,13 +640,16 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
     const modifiedSubs: any[] = modifiedProject?.sub_projects || modifiedProject?.subprojects || [];
 
     const updatedSubprojects = modifiedSubs.map((mSub: any) => {
-      const origSub = originalSubs.find((s: any) => s.id === mSub.id);
+      // Match by id first, then fall back to title in case the LLM regenerated the id
+      const origSub = originalSubs.find((s: any) => s.id === mSub.id) ||
+        originalSubs.find((s: any) => (s.text || '').toLowerCase() === (mSub.title || mSub.text || '').toLowerCase());
       const origTasks: any[] = origSub?.tasks || [];
       const modifiedTasks: any[] = mSub.tasks || [];
 
       const updatedTasks = modifiedTasks.map((mTask: any) => {
-        // First check this subproject's original tasks
-        let origTask = origTasks.find((t: any) => t.id === mTask.id);
+        // First check this subproject's original tasks (by id or title)
+        let origTask = origTasks.find((t: any) => t.id === mTask.id) ||
+          origTasks.find((t: any) => (t.text || '').toLowerCase() === (mTask.title || mTask.text || '').toLowerCase());
         // If not found locally, search all subprojects (task may have been moved here)
         if (!origTask && mTask.id) {
           for (const s of originalSubs) {
@@ -745,7 +766,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
       const resp = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg.text, project: projectExport, history: messages.map(x=>({role:x.role,text:x.text})), jsonMode: AI_JSON_MODE })
+        body: JSON.stringify({ message: userMsg.text, project: currentProjectExport, history: messages.map(x=>({role:x.role,text:x.text})), jsonMode: AI_JSON_MODE })
       });
       const data = await resp.json();
       if (data.error) {
@@ -767,7 +788,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           } catch (_) { /* ignore */ }
         }
         // Only show Apply Changes if modified_project is non-null and actually differs from what was sent
-        const originalJson = JSON.stringify(projectExport);
+        const originalJson = JSON.stringify(currentProjectExport);
         const hasRealChanges = modified && JSON.stringify(modified) !== originalJson;
         setMessages((m) => [...m, {
           id: `a-${Date.now()}`,
@@ -775,7 +796,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           text: assistantText,
           meta: hasRealChanges ? { 
             modified_project: modified,
-            preview_component: <ChangePreview modified={modified} original={projectExport} />
+            preview_component: <ChangePreview modified={modified} original={currentProjectExport} />
           } : undefined,
         }]);
       } else {
@@ -870,7 +891,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           // Find the modified_project from the current message
           const modifiedProject = m.meta.modified_project;
           if (modifiedProject) {
-            const previewText = previewToText(modifiedProject, projectExport);
+            const previewText = previewToText(modifiedProject, currentProjectExport);
             if (previewText) {
               txt += '\n\n[Visual Preview]\n' + previewText;
             }
@@ -938,6 +959,8 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                       if (appliedActionIds[m.id]) return;
                       const merged = mergeAIProjectBack(m.meta!.modified_project);
                       onApplyChange?.(project?.id, merged);
+                      // Update local project context so follow-up messages see the new state
+                      setCurrentProjectExport(m.meta!.modified_project);
                       setAppliedActionIds((prev) => ({ ...prev, [m.id]: true }));
                       setMessages((mm) => [...mm, { id: `sys-${Date.now()}`, role: 'system', text: 'Changes applied.' }]);
                     }}
@@ -1081,12 +1104,14 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
             placeholder="Ask the assistant to modify this project (e.g., 'Add a QA subproject with 3 tasks')"
             aria-label="Message"
           />
-          <button onClick={() => sendMessage()} disabled={loading || !input.trim()}>Send</button>
+          <button className="send-btn" onClick={() => sendMessage()} disabled={loading || !input.trim()} title="Send">
+            <span className="material-icons">send</span>
+          </button>
         </div>
       </div>
 
       <style jsx>{`
-        .assistant-modal { position: fixed; inset: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; }
+        .assistant-modal { position: fixed; inset: 0; z-index: 13000; display: flex; align-items: center; justify-content: center; }
         .assistant-backdrop { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); } 
         .assistant-panel { 
           position: relative;
@@ -1186,13 +1211,36 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
         .assistant-input input:focus {
           outline: none; background: white; border-color: #1a73e8; box-shadow: 0 2px 6px rgba(26,115,232,0.1);
         }
-        .assistant-input button {
-          background: linear-gradient(135deg, #1a73e8, #8ab4f8); color: white; border: none; border-radius: 28px;
-          padding: 12px 24px; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;
+        .assistant-input button.send-btn {
+          background: linear-gradient(135deg, #1a73e8, #8ab4f8); color: white; border: none; border-radius: 50%;
+          width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
           cursor: pointer; box-shadow: 0 2px 6px rgba(26,115,232,0.3); transition: all 0.2s ease;
+          padding: 0;
         }
-        .assistant-input button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(26,115,232,0.4); }
-        .assistant-input button:disabled { background: #e0e0e0; color: #9e9e9e; box-shadow: none; cursor: default; }
+        .assistant-input button.send-btn .material-icons {
+          font-size: 20px;
+          margin-left: 3px; /* visual center for send icon */
+        }
+        .assistant-input button.send-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(26,115,232,0.4); }
+        .assistant-input button.send-btn:disabled { background: #e0e0e0; color: #9e9e9e; box-shadow: none; cursor: default; }
+
+        @media (max-width: 480px) {
+          .assistant-panel {
+            width: 100vw; height: 100vh;
+            max-width: 100vw; max-height: 100vh;
+            border-radius: 0;
+          }
+          .assistant-header {
+            border-radius: 0;
+          }
+          .assistant-input {
+            padding: 12px 16px;
+            gap: 12px;
+          }
+          .assistant-input button.send-btn {
+            width: 44px; height: 44px;
+          }
+        }
       `}</style>
     </div>
   );
