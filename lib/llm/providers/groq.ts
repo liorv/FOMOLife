@@ -22,10 +22,11 @@ ALWAYS respond with EXACTLY this format (no markdown, no code blocks, STRICTLY v
 { "text": "Brief human-readable description of what you changed", "modified_project": { ...complete project... } }
 
 Rules for modified_project:
-- It MUST have the same top-level structure as the input: { "name", "goal", "description", "end_date", "special_instructions", "sub_projects": [ { "id", "title", "tasks": [ { "id", "title", "effort" } ] } ] }
+- It MUST have the same top-level structure as the input: { "name", "goal", "description", "end_date", "special_instructions", "sub_projects": [ { "id", "title", "tasks": [ { "id", "title", "effort", "due_date" } ] } ] }
 - KEEP ALL existing "id" fields exactly as received — never change, omit, re-order, or invent IDs
 - Only modify fields the user explicitly asked to change; preserve everything else verbatim
 - "effort" is a decimal number of days (0.5 = half day, 1 = one day, 2 = two days); null if unset
+- "due_date" on a task is an ISO date string (YYYY-MM-DD) or null; when the user asks to set due dates use this field
 - "goal", "description", "special_instructions" are plain text strings or null; "end_date" is an ISO date string (YYYY-MM-DD) or null
 - When the user asks to ADD a new list/category of items (movies, books, songs, ideas, recipes, etc.), create a brand NEW object in sub_projects with a new unique "id" (format: "ai-sub-<timestamp>"), appropriate "title", and populate it with 5-10 relevant items as tasks. Generate specific, high-quality recommendations based on the request. For example, if asked for "80s movies", include actual movie titles like "Back to the Future (1985)", "The Breakfast Club (1985)", etc. Do NOT add unrelated content to existing sub_projects.
 - New tasks added by you get a new unique "id" (format: "ai-<timestamp>-<random>")

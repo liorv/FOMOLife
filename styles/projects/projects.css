@@ -1346,7 +1346,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 12000;
+  z-index: 13000;
   padding: 20px;
 }
 
@@ -1369,6 +1369,20 @@
   align-items: center;
   padding: 20px 24px 16px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+@media (max-width: 480px) {
+  .project-overview-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .project-overview-modal {
+    border-radius: 0;
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+  }
 }
 
 .project-overview-modal-header h2 {
@@ -1398,6 +1412,82 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0; /* Allow flex child to shrink */
+}
+
+/* ── Avatar / Icon panel inside the overview editor ── */
+.project-overview-avatar-preview {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.project-overview-avatar-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+}
+
+.project-overview-avatar-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.project-overview-avatar-link {
+  font-size: 10px;
+  color: #2196f3;
+  text-decoration: none;
+  word-break: break-all;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.project-overview-avatar-hint {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  max-width: 80px;
+}
+
+.project-overview-avatar-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .project-overview-avatar-preview {
+    flex-direction: column;
+    align-items: center;
+  }
+  .project-overview-avatar-left {
+    width: 100%;
+    align-items: center;
+  }
+  .project-overview-avatar-img {
+    width: 100px;
+    height: 100px;
+  }
+  .project-overview-avatar-right {
+    width: 100%;
+  }
+  .project-overview-modal-content {
+    padding: 16px;
+  }
+  .project-overview-modal-header {
+    padding: 16px 16px 12px;
+  }
 }
 
 /* ============================================================

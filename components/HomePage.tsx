@@ -78,6 +78,9 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [showMoreFavorites, setShowMoreFavorites] = useState(false);
+  const [showMoreDue, setShowMoreDue] = useState(false);
+  const [showMoreFeed, setShowMoreFeed] = useState(false);
   const onReadyCalledRef = useRef(false);
 
   // Sync from module-level cache immediately after mount, before first paint.
@@ -185,15 +188,14 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   }, [tasks, projects]);
 
   const favoriteTasks = useMemo(() => {
-    return allTasks.filter(t => !t.done && t.favorite).slice(0, 3);
+    return allTasks.filter(t => !t.done && t.favorite);
   }, [allTasks]);
 
   const comingDue = useMemo(() => {
     const now = new Date().toISOString();
     return allTasks
       .filter(t => !t.done && t.dueDate && t.dueDate >= now)
-      .sort((a, b) => (a.dueDate! > b.dueDate! ? 1 : -1))
-      .slice(0, 3);
+      .sort((a, b) => (a.dueDate! > b.dueDate! ? 1 : -1));
   }, [allTasks]);
 
   const recentlyCompleted = useMemo(() => {
@@ -352,7 +354,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
           </div>
           <ul className={styles.list}>
             {favoriteTasks.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No favorite tasks.</p></div></li>}
-            {favoriteTasks.map(t => (
+            {(showMoreFavorites ? favoriteTasks : favoriteTasks.slice(0, 5)).map(t => (
               <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
                 <span className={`material-icons ${styles.itemIcon}`}>star</span>
                 <div className={styles.itemContent}>
@@ -361,6 +363,12 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
                 </div>
               </li>
             ))}
+            {favoriteTasks.length > 5 && (
+              <li className={styles.showMoreItem} onClick={() => setShowMoreFavorites(v => !v)}>
+                <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreFavorites ? 'expand_less' : 'expand_more'}</span>
+                {showMoreFavorites ? 'Show less' : `Show ${favoriteTasks.length - 5} more`}
+              </li>
+            )}
           </ul>
         </div>
 
@@ -372,7 +380,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
           </div>
           <ul className={styles.list}>
             {comingDue.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No upcoming tasks due shortly.</p></div></li>}
-            {comingDue.map(t => (
+            {(showMoreDue ? comingDue : comingDue.slice(0, 5)).map(t => (
               <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
                 <span className={`material-icons ${styles.itemIcon}`}>event</span>
                 <div className={styles.itemContent}>
@@ -381,6 +389,12 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
                 </div>
               </li>
             ))}
+            {comingDue.length > 5 && (
+              <li className={styles.showMoreItem} onClick={() => setShowMoreDue(v => !v)}>
+                <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreDue ? 'expand_less' : 'expand_more'}</span>
+                {showMoreDue ? 'Show less' : `Show ${comingDue.length - 5} more`}
+              </li>
+            )}
           </ul>
         </div>
 
@@ -415,7 +429,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
           </div>
           <ul className={styles.list}>
             {filteredFeed.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No activity in the last 7 days.</p></div></li>}
-            {filteredFeed.map(item => (
+            {(showMoreFeed ? filteredFeed : filteredFeed.slice(0, 5)).map(item => (
               <li key={item.id} className={styles.listItem} onClick={item.onClick}>
                 {item.isImageIcon ? (
                   <ActivityIconImg src={item.icon} initial={item.projectInitial} iconColor={item.iconColor} />
@@ -444,6 +458,12 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
                 </div>
               </li>
             ))}
+            {filteredFeed.length > 5 && (
+              <li className={styles.showMoreItem} onClick={() => setShowMoreFeed(v => !v)}>
+                <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreFeed ? 'expand_less' : 'expand_more'}</span>
+                {showMoreFeed ? 'Show less' : `Show ${filteredFeed.length - 5} more`}
+              </li>
+            )}
           </ul>
         </div>
       </div>

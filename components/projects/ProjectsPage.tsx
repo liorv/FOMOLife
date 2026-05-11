@@ -7,7 +7,7 @@ import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
 import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
-import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjectsCacheAge } from '@/lib/client/projectsCache';
+import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjectsCacheAge, invalidateProjectsCache } from '@/lib/client/projectsCache';
 import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -433,6 +433,8 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         item.id === projectId ? { ...item, ...updated } : item,
       ),
     );
+    // Mark the shared projects cache as stale so Home re-fetches on next tab switch
+    invalidateProjectsCache();
     try {
       await apiUpdateProject(projectId, updated);
     } catch (_) {

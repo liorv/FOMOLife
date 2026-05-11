@@ -1138,15 +1138,15 @@ export default function ProjectEditor({
                 </label>
 
                 {/* Visible Preview in Editor */}
-                <div className="project-overview-avatar-preview" style={{ marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                <div className="project-overview-avatar-preview">
                   
                   {/* Left Column: Image and Link */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '80px' }}>
+                  <div className="project-overview-avatar-left">
                     <div style={{ position: 'relative' }}>
                       <img 
                         src={local.avatarUrl || effectiveDefaultIconUrl} 
                         alt="Project preview" 
-                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc' }} 
+                        className="project-overview-avatar-img"
                       />
                     </div>
                     {local.avatarUrl && local.avatarUrl.startsWith('http') && (
@@ -1154,19 +1154,19 @@ export default function ProjectEditor({
                         href={local.avatarUrl} 
                         target="_blank" 
                         rel="noreferrer" 
-                        style={{ fontSize: '10px', color: '#2196f3', textDecoration: 'none', wordBreak: 'break-all', maxWidth: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center' }}
+                        className="project-overview-avatar-link"
                         title={local.avatarUrl}
                       >
                         Source Link
                       </a>
                     )}
                     {!local.avatarUrl && (
-                      <span style={{ fontSize: '10px', color: '#666', textAlign: 'center', maxWidth: '80px' }}>Suggested default icon</span>
+                      <span className="project-overview-avatar-hint">Suggested default icon</span>
                     )}
                   </div>
 
                   {/* Right Column: Toggle Switch and Input Area */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="project-overview-avatar-right">
                     
                     {/* Switch Toggle */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

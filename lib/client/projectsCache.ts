@@ -56,3 +56,11 @@ export function setCachedProjects(projects: ProjectItem[]): void {
     // ignore
   }
 }
+
+/**
+ * Mark the cache as stale without clearing data.
+ * Call this after mutating a project so that the next tab switch triggers a re-fetch.
+ */
+export function invalidateProjectsCache(): void {
+  _fetchedAt = 0;
+}

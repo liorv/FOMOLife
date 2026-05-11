@@ -105,6 +105,24 @@
   background: var(--color-bg);
 }
 
+.showMoreItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.showMoreItem:hover {
+  background: var(--color-bg);
+}
+
 .itemIcon {
   font-size: 1.25rem;
   color: var(--color-text-muted);

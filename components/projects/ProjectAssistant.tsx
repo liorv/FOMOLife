@@ -658,12 +658,17 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
           }
         }
         if (origTask) {
-          // Merge: apply AI-modified fields, preserve everything else (including done)
+          // Merge: apply AI-modified fields, preserve everything else
           return {
             ...origTask,
             text: mTask.title ?? mTask.text ?? origTask.text,
             description: mTask.title ?? mTask.text ?? origTask.description,
             effort: mTask.effort !== undefined ? normalizeEffort(mTask.effort) : origTask.effort,
+            dueDate: (mTask.due_date !== undefined || mTask.dueDate !== undefined)
+              ? (mTask.due_date ?? mTask.dueDate ?? null)
+              : origTask.dueDate,
+            done: mTask.done !== undefined ? mTask.done : origTask.done,
+            notes: mTask.notes !== undefined ? mTask.notes : origTask.notes,
           };
         } else {
           // Genuinely new task added by the LLM
