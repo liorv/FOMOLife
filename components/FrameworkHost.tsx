@@ -13,6 +13,73 @@ import FeedbackPage from './FeedbackPage';
 
 
 
+// ─── Tab Loading Skeleton Overlay ────────────────────────────────────────────
+function TabLoadingOverlay({ active, tab, onFaded }: {
+  active: boolean;
+  tab: string;
+  onFaded: () => void;
+}) {
+  const [visible, setVisible] = useState(active);
+  const [fading, setFading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (active) {
+      setVisible(true);
+      setFading(false);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    } else if (visible) {
+      setFading(true);
+      timerRef.current = setTimeout(() => {
+        setVisible(false);
+        setFading(false);
+        onFaded();
+      }, 260);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  if (!visible) return null;
+
+  // Skeleton layout varies per tab for a more realistic feel
+  const isContacts = tab === 'people';
+  const isFeedback = tab === 'feedback';
+
+  return (
+    <div className={`tab-loading-overlay${fading ? ' fade-out' : ''}`}>
+      <div className="tab-skeleton-bar tab-skeleton-header" />
+      {isContacts ? (
+        <>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="tab-skeleton-row">
+              <div className="tab-skeleton-bar tab-skeleton-avatar" />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="tab-skeleton-bar tab-skeleton-line" />
+                <div className="tab-skeleton-bar tab-skeleton-line-short" />
+              </div>
+            </div>
+          ))}
+        </>
+      ) : isFeedback ? (
+        <>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="tab-skeleton-bar tab-skeleton-card" />
+          ))}
+        </>
+      ) : (
+        <>
+          <div className="tab-skeleton-bar tab-skeleton-card" />
+          <div className="tab-skeleton-bar tab-skeleton-card-sm" />
+          <div className="tab-skeleton-bar tab-skeleton-card" />
+          <div className="tab-skeleton-bar tab-skeleton-card-sm" />
+          <div className="tab-skeleton-bar tab-skeleton-card" />
+        </>
+      )}
+    </div>
+  );
+}
+
 const COLOR_PICKER_COLORS = [
   "#D32F2F", // dark red
   "#0D47A1", // dark blue
@@ -76,9 +143,25 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setSearchDraft(headerSearchQuery);
   }, [headerSearchQuery]);
 
-const [loadedApps, setLoadedApps] = useState<Set<string>>(
-    () => new Set([normalizeTab(searchParams.get('tab') ?? undefined)])
+// Pre-mount ALL tabs immediately so data fetches begin in the background.
+  const [loadedApps, setLoadedApps] = useState<Set<string>>(
+    () => new Set(TAB_ORDER)
   );
+
+  // Track which tabs have finished their initial data load.
+  const [tabsReady, setTabsReady] = useState<Set<FrameworkTab>>(() => new Set());
+  // When the active tab transitions from not-ready to ready we fade out the overlay.
+  const [overlayFading, setOverlayFading] = useState(false);
+  const overlayFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTabReady = useCallback((tab: FrameworkTab) => {
+    setTabsReady(prev => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
+  }, []);
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -119,6 +202,11 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(
     // Update local state immediately so the UI switches without waiting for the server.
     setActiveTab(tab);
     setLoadedApps(prev => { const next = new Set(prev); next.add(tab); return next; });
+    // Reset fade state when switching to a tab that may not be ready yet
+    if (!tabsReady.has(tab)) {
+      setOverlayFading(false);
+      if (overlayFadeTimer.current) clearTimeout(overlayFadeTimer.current);
+    }
     if (tab === 'projects') {
       setSearchDraft('');
     }
@@ -244,12 +332,6 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(
     const isExiting = swipeAnim?.from === tab.key;
     const isEntering = swipeAnim?.to === tab.key;
     const isVisible = (!swipeAnim && isActive) || isExiting || isEntering;
-    // Don't mount until the tab has been visited — avoids firing all data-fetching
-    // useEffects on page load for tabs the user may never open.
-    const hasBeenLoaded = loadedApps.has(tab.key);
-    if (!hasBeenLoaded && !isEntering) {
-      return <div key={tab.key} style={{ display: 'none' }} />;
-    }
 
     let animClass = '';
     if (isEntering) {
@@ -277,13 +359,13 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(
 
     let content: React.ReactNode = null;
     if (tab.key === 'tasks') {
-      content = <HomePage key="home" style={innerStyle} searchQuery={searchDraft} />;
+      content = <HomePage key="home" style={innerStyle} searchQuery={searchDraft} onReady={() => handleTabReady('tasks')} />;
     } else if (tab.key === 'projects') {
-      content = <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={innerStyle} />;
+      content = <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={innerStyle} onReady={() => handleTabReady('projects')} />;
     } else if (tab.key === 'people') {
-      content = <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={innerStyle} />;
+      content = <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={innerStyle} onReady={() => handleTabReady('people')} />;
     } else if (tab.key === 'feedback') {
-      content = <FeedbackPage key="feedback" userId={userId} userName={userName} style={innerStyle} />;
+      content = <FeedbackPage key="feedback" userId={userId} userName={userName} style={innerStyle} onReady={() => handleTabReady('feedback')} />;
     }
 
     return (
@@ -337,6 +419,11 @@ const [loadedApps, setLoadedApps] = useState<Set<string>>(
       />
       <div className="tab-viewport">
         {tabs.map(tab => renderComponent(tab))}
+        <TabLoadingOverlay
+          active={!tabsReady.has(activeTab)}
+          tab={activeTab}
+          onFaded={() => {}}
+        />
       </div>
       <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" onThumbClick={handleThumbClick} />
       <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />

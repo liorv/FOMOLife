@@ -24,6 +24,7 @@ type Props = {
   userId: string;
   userName: string;
   style?: React.CSSProperties;
+  onReady?: () => void;
 };
 
 type FilterType = 'all' | 'feature' | 'bug';
@@ -52,7 +53,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function FeedbackPage({ userId, userName, style }: Props) {
+export default function FeedbackPage({ userId, userName, style, onReady }: Props) {
   const searchParams = useSearchParams();
   const search = searchParams.get('q') ?? '';
 
@@ -60,6 +61,16 @@ export default function FeedbackPage({ userId, userName, style }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
+  const onReadyCalledRef = useRef(false);
+
+  // Notify parent when initial data is available
+  useEffect(() => {
+    if (!loading && !onReadyCalledRef.current) {
+      onReadyCalledRef.current = true;
+      onReady?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   // Add panel state
   const [showAddPanel, setShowAddPanel] = useState(false);

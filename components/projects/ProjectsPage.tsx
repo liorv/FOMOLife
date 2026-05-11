@@ -34,9 +34,10 @@ export type Props = {
   currentUserAvatarUrl?: string;
   style?: React.CSSProperties;
   className?: string;
+  onReady?: () => void;
 };
 
-export default function ProjectsPage({ canManage, currentUserId = '', currentUserName = '', currentUserAvatarUrl = '', style, className }: Props) {
+export default function ProjectsPage({ canManage, currentUserId = '', currentUserName = '', currentUserAvatarUrl = '', style, className, onReady }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -123,6 +124,16 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   const projectSearch = searchParams.get('q') || '';
   const [loading, setLoading] = useState(() => getCachedProjectsSync() === null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const onReadyCalledRef = useRef(false);
+
+  // Notify parent when initial data is available (cached or freshly loaded)
+  useEffect(() => {
+    if (!loading && !onReadyCalledRef.current) {
+      onReadyCalledRef.current = true;
+      onReady?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
   // display ready state - only show content after framework acknowledges loading
   // If not embedded, immediately show content for standalone usage and tests
   

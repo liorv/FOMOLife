@@ -17,9 +17,10 @@ export type Props = {
   currentUserEmail?: string | undefined;
   style?: React.CSSProperties;
   className?: string;
+  onReady?: () => void;
 };
 
-export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail, style, className }: Props) {
+export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail, style, className, onReady }: Props) {
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,6 +31,16 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   // Only show loading on the very first render (before any data has been cached)
   const [loading, setLoading] = useState(() => getCachedContactsSync() === null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const onReadyCalledRef = useRef(false);
+
+  // Notify parent when initial data is available (cached or freshly loaded)
+  useEffect(() => {
+    if (!loading && !onReadyCalledRef.current) {
+      onReadyCalledRef.current = true;
+      onReady?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
   // display ready state - only show content after framework acknowledges loading
   // If not embedded, immediately show content for standalone usage and tests
   const displayReady = true;

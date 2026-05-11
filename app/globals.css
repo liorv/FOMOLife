@@ -917,6 +917,99 @@ body {
 .tab-slide-exit-left   { animation: tabSlideOutToLeft   0.28s ease-out both; pointer-events: none; }
 .tab-slide-exit-right  { animation: tabSlideOutToRight  0.28s ease-out both; pointer-events: none; }
 
+/* ============================================================
+   TAB LOADING SKELETON
+   ============================================================ */
+@keyframes tabSkeletonShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes tabLoadingFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes tabLoadingFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.tab-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 16px;
+  background: var(--color-bg, #f1f3f4);
+  animation: tabLoadingFadeIn 0.18s ease-out both;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tab-loading-overlay.fade-out {
+  animation: tabLoadingFadeOut 0.25s ease-in both;
+}
+
+.tab-skeleton-bar {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--color-border, rgba(60,64,67,0.12)) 25%,
+    rgba(255,255,255,0.55) 50%,
+    var(--color-border, rgba(60,64,67,0.12)) 75%
+  );
+  background-size: 200% 100%;
+  animation: tabSkeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.tab-skeleton-header {
+  height: 36px;
+  width: 55%;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.tab-skeleton-card {
+  height: 68px;
+  border-radius: 12px;
+  width: 100%;
+}
+
+.tab-skeleton-card-sm {
+  height: 48px;
+  border-radius: 12px;
+  width: 100%;
+}
+
+.tab-skeleton-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tab-skeleton-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tab-skeleton-line {
+  flex: 1;
+  height: 14px;
+  border-radius: 6px;
+}
+
+.tab-skeleton-line-short {
+  width: 40%;
+  height: 12px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
 @media (max-width: 480px) {
   .invite-card {
     padding: 32px 24px 24px;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './HomePage.module.css';
 import { createTasksApiClient, createProjectsApiClient, createContactsApiClient } from '@myorg/api-client';
@@ -18,6 +18,7 @@ let _feedbackSnap: FeedbackItem[] | null = null;
 type Props = {
   style?: React.CSSProperties;
   searchQuery?: string;
+  onReady?: () => void;
 };
 
 // Renders a project icon image with a letter-initial fallback when the image fails to load
@@ -46,7 +47,7 @@ function ProjectBadgeImg({ src, initial, title }: { src: string; initial?: strin
   return <img src={src} alt="Project" style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'cover' }} title={title} onError={() => setErr(true)} />;
 }
 
-export default function HomePage({ style, searchQuery = '' }: Props) {
+export default function HomePage({ style, searchQuery = '', onReady }: Props) {
   const router = useRouter();
   // Initialise from module-level caches so re-mounts never flash the loading spinner
   const [tasks, setTasks] = useState<TaskItem[]>(() => _tasksSnap ?? []);
@@ -55,6 +56,16 @@ export default function HomePage({ style, searchQuery = '' }: Props) {
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>(() => _feedbackSnap ?? []);
   const [loading, setLoading] = useState(() => _tasksSnap === null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const onReadyCalledRef = useRef(false);
+
+  // Notify parent when initial data is available (cached or freshly loaded)
+  useEffect(() => {
+    if (!loading && !onReadyCalledRef.current) {
+      onReadyCalledRef.current = true;
+      onReady?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const tasksApi = useMemo(() => createTasksApiClient(''), []);
   const projectsApi = useMemo(() => createProjectsApiClient(''), []);
