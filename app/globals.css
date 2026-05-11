@@ -918,96 +918,49 @@ body {
 .tab-slide-exit-right  { animation: tabSlideOutToRight  0.28s ease-out both; pointer-events: none; }
 
 /* ============================================================
-   TAB LOADING SKELETON
+   TAB LOADING PROGRESS BAR
    ============================================================ */
-@keyframes tabSkeletonShimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+@keyframes tabProgressSlide {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(-10%); }
+  100% { transform: translateX(0%); }
 }
 
-@keyframes tabLoadingFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes tabProgressFadeOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
 }
 
-@keyframes tabLoadingFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-.tab-loading-overlay {
+.tab-progress-bar-wrap {
   position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px 16px;
-  background: var(--color-bg, #f1f3f4);
-  animation: tabLoadingFadeIn 0.18s ease-out both;
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 20;
   overflow: hidden;
+  pointer-events: none;
 }
 
-.tab-loading-overlay.fade-out {
-  animation: tabLoadingFadeOut 0.25s ease-in both;
+.tab-progress-bar-wrap.done {
+  animation: tabProgressFadeOut 0.3s ease-out 0.1s both;
 }
 
-.tab-skeleton-bar {
-  border-radius: 8px;
+.tab-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(
     90deg,
-    var(--color-border, rgba(60,64,67,0.12)) 25%,
-    rgba(255,255,255,0.55) 50%,
-    var(--color-border, rgba(60,64,67,0.12)) 75%
+    var(--color-primary, #1a73e8) 0%,
+    var(--color-accent, #d32998) 50%,
+    var(--color-primary, #1a73e8) 100%
   );
   background-size: 200% 100%;
-  animation: tabSkeletonShimmer 1.4s ease-in-out infinite;
-}
-
-.tab-skeleton-header {
-  height: 36px;
-  width: 55%;
-  border-radius: 10px;
-  margin-bottom: 8px;
-}
-
-.tab-skeleton-card {
-  height: 68px;
-  border-radius: 12px;
-  width: 100%;
-}
-
-.tab-skeleton-card-sm {
-  height: 48px;
-  border-radius: 12px;
-  width: 100%;
-}
-
-.tab-skeleton-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.tab-skeleton-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.tab-skeleton-line {
-  flex: 1;
-  height: 14px;
-  border-radius: 6px;
-}
-
-.tab-skeleton-line-short {
-  width: 40%;
-  height: 12px;
-  border-radius: 6px;
-  margin-top: 4px;
+  animation:
+    tabProgressSlide 2s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @media (max-width: 480px) {

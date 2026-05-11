@@ -11,71 +11,36 @@ import ProjectsPage from './projects/ProjectsPage';
 import ContactsPage from './contacts/ContactsPage';
 import FeedbackPage from './FeedbackPage';
 
+// Module-level: which tabs have finished their first data load this browser session.
+// Persists across React re-renders and soft navigations (not across hard page reloads).
+const _sessionReadyTabs = new Set<FrameworkTab>();
 
-
-// ─── Tab Loading Skeleton Overlay ────────────────────────────────────────────
-function TabLoadingOverlay({ active, tab, onFaded }: {
-  active: boolean;
-  tab: string;
-  onFaded: () => void;
-}) {
-  const [visible, setVisible] = useState(active);
-  const [fading, setFading] = useState(false);
+// ─── Tab Loading Progress Bar ─────────────────────────────────────────────────
+function TabProgressBar({ loading }: { loading: boolean }) {
+  const [visible, setVisible] = useState(loading);
+  const [done, setDone] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (active) {
+    if (loading) {
       setVisible(true);
-      setFading(false);
+      setDone(false);
       if (timerRef.current) clearTimeout(timerRef.current);
     } else if (visible) {
-      setFading(true);
+      setDone(true);
       timerRef.current = setTimeout(() => {
         setVisible(false);
-        setFading(false);
-        onFaded();
-      }, 260);
+        setDone(false);
+      }, 400);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [loading]);
 
   if (!visible) return null;
-
-  // Skeleton layout varies per tab for a more realistic feel
-  const isContacts = tab === 'people';
-  const isFeedback = tab === 'feedback';
-
   return (
-    <div className={`tab-loading-overlay${fading ? ' fade-out' : ''}`}>
-      <div className="tab-skeleton-bar tab-skeleton-header" />
-      {isContacts ? (
-        <>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="tab-skeleton-row">
-              <div className="tab-skeleton-bar tab-skeleton-avatar" />
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div className="tab-skeleton-bar tab-skeleton-line" />
-                <div className="tab-skeleton-bar tab-skeleton-line-short" />
-              </div>
-            </div>
-          ))}
-        </>
-      ) : isFeedback ? (
-        <>
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="tab-skeleton-bar tab-skeleton-card" />
-          ))}
-        </>
-      ) : (
-        <>
-          <div className="tab-skeleton-bar tab-skeleton-card" />
-          <div className="tab-skeleton-bar tab-skeleton-card-sm" />
-          <div className="tab-skeleton-bar tab-skeleton-card" />
-          <div className="tab-skeleton-bar tab-skeleton-card-sm" />
-          <div className="tab-skeleton-bar tab-skeleton-card" />
-        </>
-      )}
+    <div className={`tab-progress-bar-wrap${done ? ' done' : ''}`}>
+      <div className="tab-progress-bar" />
     </div>
   );
 }
@@ -144,17 +109,24 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   }, [headerSearchQuery]);
 
 // Pre-mount ALL tabs immediately so data fetches begin in the background.
-  const [loadedApps, setLoadedApps] = useState<Set<string>>(
-    () => new Set(TAB_ORDER)
-  );
+  const [loadedApps] = useState<Set<string>>(() => new Set(TAB_ORDER));
 
   // Track which tabs have finished their initial data load.
-  const [tabsReady, setTabsReady] = useState<Set<FrameworkTab>>(() => new Set());
-  // When the active tab transitions from not-ready to ready we fade out the overlay.
-  const [overlayFading, setOverlayFading] = useState(false);
-  const overlayFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Initialise from the module-level session Set so previously-loaded tabs
+  // are instantly considered ready (no progress bar on re-visits within the session).
+  const [tabsReady, setTabsReady] = useState<Set<FrameworkTab>>(
+    () => new Set(_sessionReadyTabs)
+  );
+
+  // The tab that was active when the page first loaded — we only show the
+  // progress bar for this tab (background tabs load silently).
+  const initialTabRef = useRef<FrameworkTab>(normalizeTab(searchParams.get('tab') ?? undefined));
+
+  // Whether to show the progress bar: only for the initial active tab while it loads.
+  const showProgressBar = !tabsReady.has(activeTab) && activeTab === initialTabRef.current;
 
   const handleTabReady = useCallback((tab: FrameworkTab) => {
+    _sessionReadyTabs.add(tab);
     setTabsReady(prev => {
       if (prev.has(tab)) return prev;
       const next = new Set(prev);
@@ -201,12 +173,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const handleTabChange = (tab: FrameworkTab) => {
     // Update local state immediately so the UI switches without waiting for the server.
     setActiveTab(tab);
-    setLoadedApps(prev => { const next = new Set(prev); next.add(tab); return next; });
-    // Reset fade state when switching to a tab that may not be ready yet
-    if (!tabsReady.has(tab)) {
-      setOverlayFading(false);
-      if (overlayFadeTimer.current) clearTimeout(overlayFadeTimer.current);
-    }
     if (tab === 'projects') {
       setSearchDraft('');
     }
@@ -418,12 +384,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         {...(handleInstall ? { onInstall: handleInstall } : {})}
       />
       <div className="tab-viewport">
+        <TabProgressBar loading={showProgressBar} />
         {tabs.map(tab => renderComponent(tab))}
-        <TabLoadingOverlay
-          active={!tabsReady.has(activeTab)}
-          tab={activeTab}
-          onFaded={() => {}}
-        />
       </div>
       <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" onThumbClick={handleThumbClick} />
       <FrameworkColorPickerOverlay colors={COLOR_PICKER_COLORS} />
