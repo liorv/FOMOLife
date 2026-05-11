@@ -16,7 +16,19 @@ import FeedbackPage from './FeedbackPage';
 const _sessionReadyTabs = new Set<FrameworkTab>();
 // Flips to true once the initial active tab has loaded. After that the progress
 // bar is never shown again — not on tab switches, not on re-visits.
-let _pageHasLoaded = false;
+// Initialised from sessionStorage: if any tab cache already exists the user has
+// visited before, so we skip the boot overlay entirely.
+let _pageHasLoaded: boolean = (() => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return (
+      sessionStorage.getItem('fomo:tasksCache') !== null ||
+      sessionStorage.getItem('fomo:projectsCache') !== null
+    );
+  } catch {
+    return false;
+  }
+})();
 
 // ─── Tab Loading Progress Bar ─────────────────────────────────────────────────
 function TabProgressBar({ loading }: { loading: boolean }) {

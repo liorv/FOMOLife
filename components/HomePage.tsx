@@ -132,9 +132,11 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   }, [tasksApi, projectsApi, contactsApi]);
 
   // Initial data load on mount.
+  // Use silent mode (no loading spinner) if we already have cached data to display.
   useEffect(() => {
     let mounted = true;
-    fetchAllData(false).catch(() => {}).finally(() => { if (!mounted) return; });
+    const hasCache = _tasksSnap !== null;
+    fetchAllData(!hasCache).catch(() => {}).finally(() => { if (!mounted) return; });
     return () => { mounted = false; };
   }, [fetchAllData]);
 
