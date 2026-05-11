@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { createProjectsApiClient, createTasksApiClient } from "@myorg/api-client";
 import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
 import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
-import { getCachedProjectsSync, setCachedProjects } from "@/lib/client/projectsCache";
+import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjectsCacheAge } from '@/lib/client/projectsCache';
 import ProjectsDashboard from "./ProjectsDashboard";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -35,9 +35,10 @@ export type Props = {
   style?: React.CSSProperties;
   className?: string;
   onReady?: () => void;
+  isActive?: boolean;
 };
 
-export default function ProjectsPage({ canManage, currentUserId = '', currentUserName = '', currentUserAvatarUrl = '', style, className, onReady }: Props) {
+export default function ProjectsPage({ canManage, currentUserId = '', currentUserName = '', currentUserAvatarUrl = '', style, className, onReady, isActive }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -83,7 +84,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
     }
   };
 
-  const [projects, setProjects] = useState<ProjectItem[]>(() => getCachedProjectsSync() ?? []);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [people, setPeople] = useState<Contact[]>([]);
   const [globalTasks, setGlobalTasks] = useState<TaskItem[]>([]);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
@@ -122,9 +123,18 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   >(null);
   const [filters, setFilters] = useState<string[]>(['hide_completed']);
   const projectSearch = searchParams.get('q') || '';
-  const [loading, setLoading] = useState(() => getCachedProjectsSync() === null);
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const onReadyCalledRef = useRef(false);
+
+  // Sync from cache immediately after mount, before first paint (avoids hydration mismatch).
+  useLayoutEffect(() => {
+    const cached = getCachedProjectsSync();
+    if (cached !== null) {
+      setProjects(cached);
+      setLoading(false);
+    }
+  }, []);
 
   // Notify parent when initial data is available (cached or freshly loaded)
   useEffect(() => {
@@ -232,6 +242,36 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
       active = false;
     };
   }, [apiClient, contactsClient, tasksClient]);
+
+  // Stale-while-revalidate: silently refresh all projects data when the user switches
+  // back to this tab and the cache is older than 60 seconds, picking up other users' edits.
+  useEffect(() => {
+    if (!isActive) return;
+    if (!areProjectsStale()) return;
+    // Re-use the existing full data-load but without showing the loading spinner.
+    const doSilentRefresh = async () => {
+      try {
+        const loadedProjects = await apiClient.listProjects();
+        const projectsWithIcons = loadedProjects.map((p) => {
+          if (p.avatarUrl) return p;
+          const existing = getCachedProjectsSync()?.find(c => c.id === p.id);
+          return { ...p, avatarUrl: existing?.avatarUrl ?? p.avatarUrl };
+        });
+        setProjects(projectsWithIcons);
+        setCachedProjects(projectsWithIcons);
+        try {
+          const [updatedTasks, updatedFeedback] = await Promise.all([
+            tasksClient.listTasks(),
+            fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback),
+          ]);
+          setGlobalTasks(updatedTasks);
+          setFeedbackItems(updatedFeedback);
+        } catch { /* non-critical */ }
+      } catch { /* ignore silent refresh errors */ }
+    };
+    void doSilentRefresh();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
 
   // re-pull contacts when the user returns to the tab — only if data is stale (> 45 s)
   const focusDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -917,50 +917,167 @@ body {
 .tab-slide-exit-left   { animation: tabSlideOutToLeft   0.28s ease-out both; pointer-events: none; }
 .tab-slide-exit-right  { animation: tabSlideOutToRight  0.28s ease-out both; pointer-events: none; }
 
-/* ============================================================
-   TAB LOADING PROGRESS BAR
-   ============================================================ */
-@keyframes tabProgressSlide {
-  0%   { transform: translateX(-100%); }
-  60%  { transform: translateX(-10%); }
-  100% { transform: translateX(0%); }
+/* ─── Cyberpunk boot overlay ─────────────────────────────────────────────── */
+
+.cyb-boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease-out;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-@keyframes tabProgressFadeOut {
+.cyb-boot-overlay--done {
+  animation: cybFadeOut 0.55s ease-out forwards;
+}
+
+@keyframes cybFadeOut {
   0%   { opacity: 1; }
   100% { opacity: 0; }
 }
 
-.tab-progress-bar-wrap {
+/* scanlines */
+.cyb-scanlines {
   position: absolute;
-  top: 0;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 255, 180, 0.03) 3px,
+    rgba(0, 255, 180, 0.03) 4px
+  );
+  pointer-events: none;
+  animation: cybScanMove 8s linear infinite;
+}
+
+@keyframes cybScanMove {
+  from { background-position: 0 0; }
+  to   { background-position: 0 400px; }
+}
+
+/* corner brackets */
+.cyb-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #00ffb4;
+  border-style: solid;
+  border-width: 0;
+  opacity: 0.7;
+}
+.cyb-corner--tl { top: 18px; left: 18px;  border-top-width: 2px;    border-left-width: 2px; }
+.cyb-corner--tr { top: 18px; right: 18px; border-top-width: 2px;    border-right-width: 2px; }
+.cyb-corner--bl { bottom: 18px; left: 18px;  border-bottom-width: 2px; border-left-width: 2px; }
+.cyb-corner--br { bottom: 18px; right: 18px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* center spinner */
+.cyb-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.cyb-hex-ring {
+  width: 72px;
+  height: 72px;
+  position: relative;
+  animation: cybSpin 1.6s linear infinite;
+  filter: drop-shadow(0 0 10px #00ffb4);
+}
+
+@keyframes cybSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.cyb-hex-ring::before,
+.cyb-hex-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+/* outer ring — neon cyan */
+.cyb-hex-ring::before {
+  border: 3px solid transparent;
+  border-top-color: #00ffb4;
+  border-right-color: #00ffb4;
+}
+
+/* inner ring — magenta, counter-spin */
+.cyb-hex-ring__inner {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-bottom-color: #ff2d78;
+  border-left-color: #ff2d78;
+  animation: cybSpinReverse 1s linear infinite;
+  filter: drop-shadow(0 0 6px #ff2d78);
+}
+
+@keyframes cybSpinReverse {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+/* glitch text */
+.cyb-status-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: #00ffb4;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px #00ffb4, 0 0 20px #00ffb480;
+  animation: cybGlitch 3.5s infinite;
+}
+
+@keyframes cybGlitch {
+  0%, 90%, 100% { opacity: 1; transform: translateX(0); }
+  92%           { opacity: 0.6; transform: translateX(-2px); clip-path: inset(10% 0 80% 0); }
+  94%           { opacity: 1; transform: translateX(2px); clip-path: inset(60% 0 10% 0); }
+  96%           { opacity: 0.8; transform: translateX(0); clip-path: none; }
+}
+
+.cyb-blink {
+  animation: cybBlink 1s step-end infinite;
+}
+
+@keyframes cybBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* bottom progress bar */
+.cyb-bar-wrap {
+  position: absolute;
+  bottom: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  z-index: 20;
+  height: 2px;
+  background: rgba(0, 255, 180, 0.1);
   overflow: hidden;
-  pointer-events: none;
 }
 
-.tab-progress-bar-wrap.done {
-  animation: tabProgressFadeOut 0.3s ease-out 0.1s both;
-}
-
-.tab-progress-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
+.cyb-bar {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--color-primary, #1a73e8) 0%,
-    var(--color-accent, #d32998) 50%,
-    var(--color-primary, #1a73e8) 100%
-  );
-  background-size: 200% 100%;
-  animation:
-    tabProgressSlide 2s cubic-bezier(0.4, 0, 0.2, 1) both;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #00ffb4, #ff2d78, transparent);
+  animation: cybBarSlide 1.4s ease-in-out infinite;
+}
+
+@keyframes cybBarSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
 }
 
 @media (max-width: 480px) {

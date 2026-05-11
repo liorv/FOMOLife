@@ -1,16 +1,28 @@
 /**
  * Module-level contacts cache shared across all components in the same browser session.
- * Prevents redundant simultaneous or back-to-back listContacts() calls.
+ * Initialized from sessionStorage so data survives page reloads within the same session.
  */
 
-const CACHE_TTL_MS = 30_000; // 30 seconds
+const CACHE_TTL_MS = 30_000; // 30 seconds — re-fetch if data is older than this
+const SESSION_KEY = 'fomo:contactsCache';
 
 interface CacheEntry {
   data: unknown[];
   fetchedAt: number;
 }
 
-let entry: CacheEntry | null = null;
+function tryLoadSession(): CacheEntry | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CacheEntry;
+  } catch {
+    return null;
+  }
+}
+
+let entry: CacheEntry | null =
+  typeof sessionStorage !== 'undefined' ? tryLoadSession() : null;
 let inflight: Promise<unknown[]> | null = null;
 
 /** Returns how many ms ago contacts were last fetched, or null if never. */
@@ -53,6 +65,11 @@ export async function getCachedContacts<T>(
   inflight = fetcher()
     .then((data) => {
       entry = { data: data as unknown[], fetchedAt: Date.now() };
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(entry));
+      } catch {
+        // ignore
+      }
       inflight = null;
       return data as unknown[];
     })
@@ -63,3 +80,4 @@ export async function getCachedContacts<T>(
 
   return inflight as Promise<T[]>;
 }
+

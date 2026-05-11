@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import type { Contact } from '@myorg/types';
 import { ContactTile, ModalOverlay } from '@myorg/ui';
 import { createContactsApiClient } from '@myorg/api-client';
-import { getCachedContacts, getCachedContactsSync } from '@/lib/client/contactsCache';
+import { getCachedContacts, getCachedContactsSync, getContactsCacheAge } from '@/lib/client/contactsCache';
 
 import styles from '../../styles/contacts/layout.module.css';
 import ContentHeader from '../ContentHeader';
@@ -18,20 +18,29 @@ export type Props = {
   style?: React.CSSProperties;
   className?: string;
   onReady?: () => void;
+  isActive?: boolean;
 };
 
-export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail, style, className, onReady }: Props) {
+export default function ContactsPage({ canManage, currentUserId = '', currentUserEmail, style, className, onReady, isActive }: Props) {
   const apiClient: ContactsApiClient = useMemo(() => createContactsApiClient(''), []);
   const searchParams = useSearchParams();
   const router = useRouter();
   
 
-  // Initialise from module-level cache so re-mounts never show a loading spinner
-  const [contacts, setContacts] = useState<Contact[]>(() => getCachedContactsSync<Contact>() ?? []);
-  // Only show loading on the very first render (before any data has been cached)
-  const [loading, setLoading] = useState(() => getCachedContactsSync() === null);
+  // Always start empty/loading so SSR and client initial render match,
+  // then sync from cache in useLayoutEffect (client-only, before first paint).
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const onReadyCalledRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const cached = getCachedContactsSync<Contact>();
+    if (cached !== null) {
+      setContacts(cached);
+      setLoading(false);
+    }
+  }, []);
 
   // Notify parent when initial data is available (cached or freshly loaded)
   useEffect(() => {
@@ -267,6 +276,18 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     };
   }, [apiClient, canManage]);
+
+  // Stale-while-revalidate: silently refresh when the user switches to this tab
+  // and the contacts cache is older than 60 seconds, picking up other users' edits.
+  useEffect(() => {
+    if (!isActive) return;
+    const age = getContactsCacheAge();
+    if (age !== null && age < 60_000) return; // still fresh
+    getCachedContacts(() => apiClient.listContacts(), true)
+      .then(updated => setContacts(updated))
+      .catch(() => {}); // silent failure
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
 
   
 

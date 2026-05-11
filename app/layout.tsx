@@ -4,6 +4,7 @@ import "../styles/projects/tabs.css";
 import type { Metadata } from 'next';
 import './globals.css';
 import InstallPrompt from '../components/InstallPrompt';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'FOMO Life',
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <InstallPrompt />
           {/* Footer removed manually since it breaks the app feeling and pushes bottom nav up if visible */}
         </div>
-        <script dangerouslySetInnerHTML={{ __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js'); }); }` }} />
+        <Script id="sw-register" strategy="afterInteractive">{`if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js'); }); }`}</Script>
       </body>
     </html>
   );

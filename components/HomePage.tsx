@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './HomePage.module.css';
 import { createTasksApiClient, createProjectsApiClient, createContactsApiClient } from '@myorg/api-client';
@@ -8,17 +8,37 @@ import { preloadImages } from '@myorg/utils';
 import type { TaskItem, ProjectItem, Contact, ProjectTask } from '@myorg/types';
 import GlobalSearchResults, { type FeedbackItem } from './GlobalSearchResults';
 import ContentHeader from './ContentHeader';
-import { getCachedProjectsSync, setCachedProjects } from '@/lib/client/projectsCache';
+import { getCachedProjectsSync, setCachedProjects, areProjectsStale } from '@/lib/client/projectsCache';
 import { getCachedContactsSync } from '@/lib/client/contactsCache';
 
 // Module-level snapshot for tasks and feedback (survives React remounts)
-let _tasksSnap: TaskItem[] | null = null;
+// Initialized from sessionStorage so data is available immediately on page reload.
+const TASKS_SESSION_KEY = 'fomo:tasksCache';
+
+function tryLoadTasksSession(): { data: TaskItem[]; fetchedAt: number } | null {
+  try {
+    const raw = sessionStorage.getItem(TASKS_SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+const _initialTasksCache =
+  typeof sessionStorage !== 'undefined' ? tryLoadTasksSession() : null;
+
+let _tasksSnap: TaskItem[] | null = _initialTasksCache?.data ?? null;
+let _tasksFetchedAt: number | null = _initialTasksCache?.fetchedAt ?? null;
 let _feedbackSnap: FeedbackItem[] | null = null;
+
+const TASKS_STALE_AFTER_MS = 60_000;
 
 type Props = {
   style?: React.CSSProperties;
   searchQuery?: string;
   onReady?: () => void;
+  isActive?: boolean;
 };
 
 // Renders a project icon image with a letter-initial fallback when the image fails to load
@@ -47,16 +67,31 @@ function ProjectBadgeImg({ src, initial, title }: { src: string; initial?: strin
   return <img src={src} alt="Project" style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'cover' }} title={title} onError={() => setErr(true)} />;
 }
 
-export default function HomePage({ style, searchQuery = '', onReady }: Props) {
+export default function HomePage({ style, searchQuery = '', onReady, isActive }: Props) {
   const router = useRouter();
-  // Initialise from module-level caches so re-mounts never flash the loading spinner
-  const [tasks, setTasks] = useState<TaskItem[]>(() => _tasksSnap ?? []);
-  const [projects, setProjects] = useState<ProjectItem[]>(() => getCachedProjectsSync() ?? []);
-  const [contacts, setContacts] = useState<Contact[]>(() => getCachedContactsSync<Contact>() ?? []);
-  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>(() => _feedbackSnap ?? []);
-  const [loading, setLoading] = useState(() => _tasksSnap === null);
+  // Always start with empty/loading state so SSR and client initial render match.
+  // We sync from the module-level cache in useLayoutEffect (runs before paint on client
+  // only, so there's no visual flash and no hydration mismatch).
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const onReadyCalledRef = useRef(false);
+
+  // Sync from module-level cache immediately after mount, before first paint.
+  // This avoids a hydration mismatch (server always renders loading state)
+  // while still giving instant content when cache is populated.
+  useLayoutEffect(() => {
+    if (_tasksSnap !== null) {
+      setTasks(_tasksSnap);
+      setProjects(getCachedProjectsSync() ?? []);
+      setContacts(getCachedContactsSync<Contact>() ?? []);
+      setFeedbackItems(_feedbackSnap ?? []);
+      setLoading(false);
+    }
+  }, []);
 
   // Notify parent when initial data is available (cached or freshly loaded)
   useEffect(() => {
@@ -71,29 +106,49 @@ export default function HomePage({ style, searchQuery = '', onReady }: Props) {
   const projectsApi = useMemo(() => createProjectsApiClient(''), []);
   const contactsApi = useMemo(() => createContactsApiClient(''), []);
 
+  // Fetches all home data. `silent` = true skips the loading spinner (background refresh).
+  const fetchAllData = React.useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    const [t, p, c, f] = await Promise.all([
+      tasksApi.listTasks().catch(() => [] as TaskItem[]),
+      projectsApi.listProjects().catch(() => [] as ProjectItem[]),
+      contactsApi.listContacts().catch(() => [] as Contact[]),
+      fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback).catch(() => [] as FeedbackItem[])
+    ]);
+    _tasksSnap = t;
+    _tasksFetchedAt = Date.now();
+    _feedbackSnap = f;
+    setCachedProjects(p);
+    try {
+      sessionStorage.setItem(TASKS_SESSION_KEY, JSON.stringify({ data: t, fetchedAt: _tasksFetchedAt }));
+    } catch { /* ignore */ }
+    setTasks(t);
+    setProjects(p);
+    setContacts(c);
+    setFeedbackItems(f);
+    if (!silent) setLoading(false);
+    // Preload all project avatar images so they are cached before the activity feed renders
+    preloadImages(p.map((proj) => proj.avatarUrl).filter(Boolean) as string[]);
+  }, [tasksApi, projectsApi, contactsApi]);
+
+  // Initial data load on mount.
   useEffect(() => {
     let mounted = true;
-    Promise.all([
-      tasksApi.listTasks().catch(() => []),
-      projectsApi.listProjects().catch(() => []),
-      contactsApi.listContacts().catch(() => []),
-      fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback).catch(() => [] as FeedbackItem[])
-    ]).then(([t, p, c, f]) => {
-      if (mounted) {
-        _tasksSnap = t as TaskItem[];
-        _feedbackSnap = f as FeedbackItem[];
-        setCachedProjects(p as ProjectItem[]);
-        setTasks(t);
-        setProjects(p);
-        setContacts(c);
-        setFeedbackItems(f);
-        setLoading(false);
-        // Preload all project avatar images so they are cached before the activity feed renders
-        preloadImages((p as ProjectItem[]).map((proj) => proj.avatarUrl).filter(Boolean) as string[]);
-      }
-    });
+    fetchAllData(false).catch(() => {}).finally(() => { if (!mounted) return; });
     return () => { mounted = false; };
-  }, [tasksApi, projectsApi, contactsApi]);
+  }, [fetchAllData]);
+
+  // Stale-while-revalidate: silently refresh when the user switches back to this tab
+  // and the tasks cache is older than 60 seconds, picking up changes from other users.
+  useEffect(() => {
+    if (!isActive) return;
+    const taskAge = _tasksFetchedAt !== null ? Date.now() - _tasksFetchedAt : Infinity;
+    const projectsStale = areProjectsStale();
+    if (taskAge > TASKS_STALE_AFTER_MS || projectsStale) {
+      fetchAllData(true).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
 
   // Consolidate all tasks from global tasks and project tasks
   const allTasks = useMemo(() => {

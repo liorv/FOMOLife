@@ -14,6 +14,9 @@ import FeedbackPage from './FeedbackPage';
 // Module-level: which tabs have finished their first data load this browser session.
 // Persists across React re-renders and soft navigations (not across hard page reloads).
 const _sessionReadyTabs = new Set<FrameworkTab>();
+// Flips to true once the initial active tab has loaded. After that the progress
+// bar is never shown again — not on tab switches, not on re-visits.
+let _pageHasLoaded = false;
 
 // ─── Tab Loading Progress Bar ─────────────────────────────────────────────────
 function TabProgressBar({ loading }: { loading: boolean }) {
@@ -31,7 +34,7 @@ function TabProgressBar({ loading }: { loading: boolean }) {
       timerRef.current = setTimeout(() => {
         setVisible(false);
         setDone(false);
-      }, 400);
+      }, 600);
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,8 +42,25 @@ function TabProgressBar({ loading }: { loading: boolean }) {
 
   if (!visible) return null;
   return (
-    <div className={`tab-progress-bar-wrap${done ? ' done' : ''}`}>
-      <div className="tab-progress-bar" />
+    <div className={`cyb-boot-overlay${done ? ' cyb-boot-overlay--done' : ''}`} aria-hidden="true">
+      {/* scanline overlay */}
+      <div className="cyb-scanlines" />
+      {/* corner brackets */}
+      <div className="cyb-corner cyb-corner--tl" />
+      <div className="cyb-corner cyb-corner--tr" />
+      <div className="cyb-corner cyb-corner--bl" />
+      <div className="cyb-corner cyb-corner--br" />
+      {/* center logo / spinner */}
+      <div className="cyb-center">
+        <div className="cyb-hex-ring">
+          <div className="cyb-hex-ring__inner" />
+        </div>
+        <div className="cyb-status-text">INITIALIZING<span className="cyb-blink">_</span></div>
+      </div>
+      {/* bottom progress bar */}
+      <div className="cyb-bar-wrap">
+        <div className="cyb-bar" />
+      </div>
     </div>
   );
 }
@@ -111,28 +131,22 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 // Pre-mount ALL tabs immediately so data fetches begin in the background.
   const [loadedApps] = useState<Set<string>>(() => new Set(TAB_ORDER));
 
-  // Track which tabs have finished their initial data load.
-  // Initialise from the module-level session Set so previously-loaded tabs
-  // are instantly considered ready (no progress bar on re-visits within the session).
-  const [tabsReady, setTabsReady] = useState<Set<FrameworkTab>>(
-    () => new Set(_sessionReadyTabs)
-  );
-
-  // The tab that was active when the page first loaded — we only show the
-  // progress bar for this tab (background tabs load silently).
+  // The tab that was active when the page first loaded.
   const initialTabRef = useRef<FrameworkTab>(normalizeTab(searchParams.get('tab') ?? undefined));
 
-  // Whether to show the progress bar: only for the initial active tab while it loads.
-  const showProgressBar = !tabsReady.has(activeTab) && activeTab === initialTabRef.current;
+  // Show the progress bar only during the very first page load, for the initial tab.
+  // Once _pageHasLoaded flips true it stays true for the lifetime of the module.
+  const [pageLoading, setPageLoading] = useState<boolean>(
+    () => !_pageHasLoaded && !_sessionReadyTabs.has(initialTabRef.current)
+  );
 
   const handleTabReady = useCallback((tab: FrameworkTab) => {
     _sessionReadyTabs.add(tab);
-    setTabsReady(prev => {
-      if (prev.has(tab)) return prev;
-      const next = new Set(prev);
-      next.add(tab);
-      return next;
-    });
+    // Only the initial tab's readiness clears the progress bar.
+    if (!_pageHasLoaded && tab === initialTabRef.current) {
+      _pageHasLoaded = true;
+      setPageLoading(false);
+    }
   }, []);
   const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
@@ -325,13 +339,13 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
     let content: React.ReactNode = null;
     if (tab.key === 'tasks') {
-      content = <HomePage key="home" style={innerStyle} searchQuery={searchDraft} onReady={() => handleTabReady('tasks')} />;
+      content = <HomePage key="home" style={innerStyle} searchQuery={searchDraft} onReady={() => handleTabReady('tasks')} isActive={isActive} />;
     } else if (tab.key === 'projects') {
-      content = <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={innerStyle} onReady={() => handleTabReady('projects')} />;
+      content = <ProjectsPage key="projects" canManage={true} currentUserId={userId} currentUserName={userName} currentUserAvatarUrl={userAvatarUrl ?? ''} style={innerStyle} onReady={() => handleTabReady('projects')} isActive={isActive} />;
     } else if (tab.key === 'people') {
-      content = <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={innerStyle} onReady={() => handleTabReady('people')} />;
+      content = <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={innerStyle} onReady={() => handleTabReady('people')} isActive={isActive} />;
     } else if (tab.key === 'feedback') {
-      content = <FeedbackPage key="feedback" userId={userId} userName={userName} style={innerStyle} onReady={() => handleTabReady('feedback')} />;
+      content = <FeedbackPage key="feedback" userId={userId} userName={userName} style={innerStyle} onReady={() => handleTabReady('feedback')} isActive={isActive} />;
     }
 
     return (
@@ -384,7 +398,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         {...(handleInstall ? { onInstall: handleInstall } : {})}
       />
       <div className="tab-viewport">
-        <TabProgressBar loading={showProgressBar} />
+        <TabProgressBar loading={pageLoading} />
         {tabs.map(tab => renderComponent(tab))}
       </div>
       <TabNav active={activeTab} tabs={tabs} onChange={handleTabChange} className="tabnav-bottom" onThumbClick={handleThumbClick} />

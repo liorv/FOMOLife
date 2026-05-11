@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './FeedbackPage.module.css';
 import ContentHeader from './ContentHeader';
 import { ModalOverlay } from '@myorg/ui';
+import { getFeedbackCacheSync, isFeedbackStale, setFeedbackCache } from '@/lib/client/feedbackCache';
 
 type FeedbackType = 'feature' | 'bug';
 
@@ -25,6 +26,7 @@ type Props = {
   userName: string;
   style?: React.CSSProperties;
   onReady?: () => void;
+  isActive?: boolean;
 };
 
 type FilterType = 'all' | 'feature' | 'bug';
@@ -53,15 +55,26 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function FeedbackPage({ userId, userName, style, onReady }: Props) {
+export default function FeedbackPage({ userId, userName, style, onReady, isActive }: Props) {
   const searchParams = useSearchParams();
   const search = searchParams.get('q') ?? '';
 
+  // Always start with empty/loading state so SSR and client initial render match,
+  // then sync from cache in useLayoutEffect (client-only, runs before first paint).
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const onReadyCalledRef = useRef(false);
+
+  // Sync from cache immediately after mount, before first paint.
+  useLayoutEffect(() => {
+    const cached = getFeedbackCacheSync<FeedbackItem>();
+    if (cached !== null) {
+      setItems(cached);
+      setLoading(false);
+    }
+  }, []);
 
   // Notify parent when initial data is available
   useEffect(() => {
@@ -80,20 +93,43 @@ export default function FeedbackPage({ userId, userName, style, onReady }: Props
   const [adding, setAdding] = useState(false);
   const addInputRef = useRef<HTMLTextAreaElement>(null);
 
-  const fetchItems = async () => {
+  // Core fetch — `silent` skips the loading spinner (used for background refresh).
+  const fetchItems = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch('/api/feedback');
       if (!res.ok) throw new Error('Failed to load');
       const data = await res.json();
-      setItems(data.feedback ?? []);
+      const feedback: FeedbackItem[] = data.feedback ?? [];
+      setFeedbackCache(feedback);
+      setItems(feedback);
     } catch {
-      setError('Failed to load feedback. Please try again.');
+      if (!silent) setError('Failed to load feedback. Please try again.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  // Initial fetch (skipped if cache already has data).
+  useEffect(() => {
+    if (getFeedbackCacheSync() === null) {
+      fetchItems();
+    } else {
+      // Already have data from cache; still do a silent refresh to get latest.
+      fetchItems(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Stale-while-revalidate: silently refresh when the user switches back to this tab
+  // and the cache is older than 60 seconds, ensuring multi-user edits are picked up.
+  useEffect(() => {
+    if (!isActive) return;
+    if (isFeedbackStale()) {
+      fetchItems(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
 
   useEffect(() => {
     const openPanel = () => setShowAddPanel(true);
@@ -256,7 +292,7 @@ export default function FeedbackPage({ userId, userName, style, onReady }: Props
           <div className={styles.center}>
             <span className="material-icons" style={{ color: '#ef4444', fontSize: 32 }}>error_outline</span>
             <p className={styles.centerText}>{error}</p>
-            <button className={styles.retryBtn} onClick={fetchItems}>Retry</button>
+            <button className={styles.retryBtn} onClick={() => fetchItems()}>Retry</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className={styles.center}>
