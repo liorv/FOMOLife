@@ -9,6 +9,7 @@ import type { TaskItem, ProjectTask, Contact } from "@myorg/types";
 import { TaskList, AddBar } from "@myorg/ui";
 import { applyFilters, generateId } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
+import { invalidateTasksCache, patchTaskInCache } from "@/lib/client/tasksCache";
 
 // using shared TaskList from ui package; it is fully typed
 
@@ -373,6 +374,8 @@ export default function TasksPage({ canManage, style, className }: Props) {
       setTasks((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item)),
       );
+      patchTaskInCache(updated);
+      invalidateTasksCache();
     } catch (error) {
       if (isTaskNotFoundError(error)) {
         return;

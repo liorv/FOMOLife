@@ -9,30 +9,11 @@ import type { TaskItem, ProjectItem, Contact, ProjectTask } from '@myorg/types';
 import GlobalSearchResults, { type FeedbackItem } from './GlobalSearchResults';
 import ContentHeader from './ContentHeader';
 import { getCachedProjectsSync, setCachedProjects, areProjectsStale } from '@/lib/client/projectsCache';
+import { getCachedTasksSync, setCachedTasks, areTasksStale } from '@/lib/client/tasksCache';
 import { getCachedContactsSync } from '@/lib/client/contactsCache';
 
-// Module-level snapshot for tasks and feedback (survives React remounts)
-// Initialized from sessionStorage so data is available immediately on page reload.
-const TASKS_SESSION_KEY = 'fomo:tasksCache';
-
-function tryLoadTasksSession(): { data: TaskItem[]; fetchedAt: number } | null {
-  try {
-    const raw = sessionStorage.getItem(TASKS_SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-const _initialTasksCache =
-  typeof sessionStorage !== 'undefined' ? tryLoadTasksSession() : null;
-
-let _tasksSnap: TaskItem[] | null = _initialTasksCache?.data ?? null;
-let _tasksFetchedAt: number | null = _initialTasksCache?.fetchedAt ?? null;
+// Module-level snapshot for feedback (survives React remounts)
 let _feedbackSnap: FeedbackItem[] | null = null;
-
-const TASKS_STALE_AFTER_MS = 60_000;
 
 type Props = {
   style?: React.CSSProperties;
@@ -87,8 +68,9 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   // This avoids a hydration mismatch (server always renders loading state)
   // while still giving instant content when cache is populated.
   useLayoutEffect(() => {
-    if (_tasksSnap !== null) {
-      setTasks(_tasksSnap);
+    const cachedTasks = getCachedTasksSync();
+    if (cachedTasks !== null) {
+      setTasks(cachedTasks);
       setProjects(getCachedProjectsSync() ?? []);
       setContacts(getCachedContactsSync<Contact>() ?? []);
       setFeedbackItems(_feedbackSnap ?? []);
@@ -118,13 +100,9 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
       contactsApi.listContacts().catch(() => [] as Contact[]),
       fetch('/api/feedback').then(r => r.ok ? r.json() : { feedback: [] }).then((d: { feedback: FeedbackItem[] }) => d.feedback).catch(() => [] as FeedbackItem[])
     ]);
-    _tasksSnap = t;
-    _tasksFetchedAt = Date.now();
+    setCachedTasks(t);
     _feedbackSnap = f;
     setCachedProjects(p);
-    try {
-      sessionStorage.setItem(TASKS_SESSION_KEY, JSON.stringify({ data: t, fetchedAt: _tasksFetchedAt }));
-    } catch { /* ignore */ }
     setTasks(t);
     setProjects(p);
     setContacts(c);
@@ -138,7 +116,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   // Use silent mode (no loading spinner) if we already have cached data to display.
   useEffect(() => {
     let mounted = true;
-    const hasCache = _tasksSnap !== null;
+    const hasCache = getCachedTasksSync() !== null;
     // silent = true if we already have a cache, false if we don't
     fetchAllData(hasCache).catch(() => {}).finally(() => { if (!mounted) return; });
     return () => { mounted = false; };
@@ -148,13 +126,23 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   // and the tasks cache is older than 60 seconds, picking up changes from other users.
   useEffect(() => {
     if (!isActive) return;
-    const taskAge = _tasksFetchedAt !== null ? Date.now() - _tasksFetchedAt : Infinity;
     const projectsStale = areProjectsStale();
-    if (taskAge > TASKS_STALE_AFTER_MS || projectsStale) {
+    if (areTasksStale() || projectsStale) {
       fetchAllData(true).catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
+
+  // Listen for immediate task updates dispatched by other tabs (e.g. TasksPage)
+  // so the Coming Due panel reflects due date changes without waiting for a re-fetch.
+  useEffect(() => {
+    const handleTaskUpdated = (e: Event) => {
+      const updated = (e as CustomEvent<TaskItem>).detail;
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+    };
+    window.addEventListener('fomo:taskUpdated', handleTaskUpdated);
+    return () => window.removeEventListener('fomo:taskUpdated', handleTaskUpdated);
+  }, []);
 
   // Consolidate all tasks from global tasks and project tasks
   const allTasks = useMemo(() => {
