@@ -170,7 +170,16 @@ export default function SubprojectRow({
       // defer until the next frame when the browser has computed its size.
       if (dropdownRect.height === 0) return;
 
-      const isBottomCutOff = buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
+      // Account for the fixed bottom navbar so the dropdown is never hidden
+      // behind it. Read the CSS custom property so it stays in sync with the
+      // design token; fall back to 70 which is the default --nav-height.
+      const navHeight = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--nav-height') || '70',
+        10
+      );
+      const effectiveBottom = viewportHeight - navHeight - threshold;
+
+      const isBottomCutOff = buttonRect.bottom + dropdownRect.height > effectiveBottom;
       setMenuFlippedVertically(isBottomCutOff);
 
       // Calculate the left position
@@ -190,7 +199,9 @@ export default function SubprojectRow({
         ? buttonRect.top - dropdownRect.height
         : buttonRect.bottom;
 
-      setDropdownStyle({ top: `${top}px`, left: `${left}px` });
+      // Clamp top so dropdown doesn't go above the viewport either
+      const clampedTop = Math.max(threshold, top);
+      setDropdownStyle({ top: `${clampedTop}px`, left: `${left}px` });
     };
 
     // Use rAF so the portal has been painted and getBoundingClientRect
