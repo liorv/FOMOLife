@@ -21,6 +21,7 @@ export interface TaskProps {
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
   onChatClick?: (taskId: string) => void;
+  commentCount?: number;
 }
 
 export default function Task({
@@ -42,6 +43,7 @@ item,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
   onChatClick,
+  commentCount,
 }: TaskProps) {
   return (
     <li
@@ -92,6 +94,7 @@ item,
           {...(onTitleChange !== undefined && { onTitleChange })}
           {...(onTaskUpdate !== undefined && { onTaskUpdate })}
           {...(onChatClick !== undefined && { onChatClick })}
+          {...(commentCount !== undefined && { commentCount })}
           newlyAddedTaskId={newlyAddedTaskId}
           onClearNewTask={onClearNewTask}
         />

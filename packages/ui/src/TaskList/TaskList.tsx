@@ -45,6 +45,7 @@ export interface TaskListProps {
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
   onChatClick?: (taskId: string) => void;
+  commentCounts?: Record<string, number>;
 }
 
 export default function TaskList({
@@ -76,6 +77,7 @@ export default function TaskList({
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
   onChatClick,
+  commentCounts,
 }: TaskListProps) {
   return (
     <>
@@ -123,6 +125,7 @@ export default function TaskList({
             onClearNewTask={onClearNewTask}
             {...(onEditorUpdate !== undefined && { onTaskUpdate: onEditorUpdate })}
             {...(onChatClick !== undefined && { onChatClick })}
+            {...(commentCounts?.[id] !== undefined && { commentCount: commentCounts[id] })}
           />
         );
 
@@ -158,6 +161,7 @@ export default function TaskList({
               {...(onDrop !== undefined && { onDrop })}
               {...(onDragEnd !== undefined && { onDragEnd })}
             {...(onChatClick !== undefined && { onChatClick })}
+            {...(commentCounts?.[id] !== undefined && { commentCount: commentCounts[id] })}
             >
               {editor}
             </Task>

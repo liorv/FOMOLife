@@ -66,6 +66,26 @@ export async function listThreadComments(threadId: string): Promise<ProjectThrea
   return loadThread(threadId);
 }
 
+/**
+ * Returns comment counts for a project thread and all specified task threads.
+ * Keys: "proj:{projectId}" and "task:{projectId}:{taskId}"
+ */
+export async function getProjectThreadCounts(
+  projectId: string,
+  taskIds: string[]
+): Promise<Record<string, number>> {
+  const threadIds = [
+    `proj:${projectId}`,
+    ...taskIds.map((id) => `task:${projectId}:${id}`),
+  ];
+  const results = await Promise.all(threadIds.map((tid) => loadThread(tid)));
+  const counts: Record<string, number> = {};
+  threadIds.forEach((tid, i) => {
+    counts[tid] = results[i]?.length ?? 0;
+  });
+  return counts;
+}
+
 export async function addThreadComment(opts: {
   threadId: string;
   threadTitle: string;

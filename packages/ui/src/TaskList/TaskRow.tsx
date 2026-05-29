@@ -23,6 +23,7 @@ export interface TaskRowProps {
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
   onChatClick?: (taskId: string) => void;
+  commentCount?: number;
 }
 
 export default function TaskRow({
@@ -43,6 +44,7 @@ item,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
   onChatClick,
+  commentCount,
 }: TaskRowProps) {
   const isOpen = editorTaskId === id;
 
@@ -271,12 +273,17 @@ item,
         )}
         {type === "tasks" && onChatClick && (
           <button
-            className="chat-btn"
-            title="Open conversation"
+            className={`chat-btn${(commentCount ?? 0) > 0 ? ' chat-btn--has-messages' : ''}`}
+            title={(commentCount ?? 0) > 0 ? `${commentCount} message${commentCount === 1 ? '' : 's'}` : 'Start conversation'}
             onClick={(e) => { e.stopPropagation(); onChatClick(id); }}
-            aria-label="Open conversation"
+            aria-label={(commentCount ?? 0) > 0 ? `${commentCount} conversation messages` : 'Open conversation'}
           >
-            <span className="material-icons" style={{ fontSize: '1.15rem' }}>chat_bubble_outline</span>
+            <span className="material-icons" style={{ fontSize: '1.15rem' }}>
+              {(commentCount ?? 0) > 0 ? 'chat_bubble' : 'chat_bubble_outline'}
+            </span>
+            {(commentCount ?? 0) > 0 && (
+              <span className="chat-count">{commentCount! > 9 ? '9+' : commentCount}</span>
+            )}
           </button>
         )}
         {type === "tasks" && (

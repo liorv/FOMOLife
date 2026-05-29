@@ -48,6 +48,7 @@ interface SubprojectEditorProps {
   currentUserName?: string | undefined;
   onSortModeChange?: (subId: string, mode: 'none' | 'due_date' | 'alphabetical') => void;
   onTaskChatClick?: (task: ProjectTask) => void;
+  taskCommentCounts?: Record<string, number>;
 }
 
 export default function SubprojectEditor({
@@ -87,6 +88,7 @@ export default function SubprojectEditor({
   currentUserName,
   onSortModeChange,
   onTaskChatClick,
+  taskCommentCounts,
 }: SubprojectEditorProps) {
   // Apply filter to the task list if one is active
   const visibleTasks = useMemo(() => getVisibleTasks(sub.tasks || [], taskFilters, currentUserName), [sub.tasks, JSON.stringify(taskFilters), currentUserName]);
@@ -256,6 +258,7 @@ export default function SubprojectEditor({
                   const task = (sub.tasks || []).find(t => t.id === taskId);
                   if (task) onTaskChatClick(task);
                 }} : {}),
+                ...(taskCommentCounts ? { commentCounts: taskCommentCounts } : {}),
               } as any}
             />
           </ul>

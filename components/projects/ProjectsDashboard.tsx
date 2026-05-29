@@ -156,6 +156,16 @@ export default function ProjectsDashboard({
   const [llmAvailable, setLlmAvailable] = useState<boolean | null>(null);
   const [llmUnavailableMsg, setLlmUnavailableMsg] = useState('');
   const [llmProvider, setLlmProvider] = useState<string | null>(null);
+  const [threadCounts, setThreadCounts] = useState<Record<string, number>>({});
+
+  // Fetch thread comment counts when project changes
+  useEffect(() => {
+    if (!selectedProjectId) { setThreadCounts({}); return; }
+    fetch(`/api/projects/thread-counts?projectId=${encodeURIComponent(selectedProjectId)}`)
+      .then((r) => r.ok ? r.json() : { counts: {} })
+      .then((data) => setThreadCounts(data.counts ?? {}))
+      .catch(() => setThreadCounts({}));
+  }, [selectedProjectId]);
 
   useEffect(() => {
     fetch('/api/ai/status')
@@ -484,12 +494,12 @@ export default function ProjectsDashboard({
                         <span>Expand</span>
                       </button>
                       <button
-                        className="project-action-btn"
-                        title="Project conversation"
+                        className={`project-action-btn${(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? ' project-action-btn--has-messages' : ''}`}
+                        title={`Project conversation${(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? ` (${threadCounts[`proj:${selectedProject.id}`]} messages)` : ''}`}
                         onClick={() => onOpenProjectThread?.(selectedProject)}
                       >
-                        <span className="material-icons">forum</span>
-                        <span>Chat</span>
+                        <span className="material-icons">{(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? 'forum' : 'chat_bubble_outline'}</span>
+                        <span>Chat{(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? ` (${threadCounts[`proj:${selectedProject.id}`]})` : ''}</span>
                       </button>
                       <button
                         className="project-action-btn"
@@ -561,6 +571,7 @@ export default function ProjectsDashboard({
               collapseAllRef={collapseAllRef}
               expandAllRef={expandAllRef}
               {...(onOpenTaskThread ? { onTaskChatClick: (task: ProjectTask) => onOpenTaskThread(task, selectedProject) } : {})}
+              {...(Object.keys(threadCounts).length > 0 ? { taskCommentCounts: threadCounts } : {})}
             />
             {/* Floating AI assistant FAB (project editor) */}
             <button

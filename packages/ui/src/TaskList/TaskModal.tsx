@@ -128,41 +128,48 @@ export default function TaskEditor({
 
   // unique ids for inputs (avoid duplicates when multiple editors are mounted)
   const dateId = `task-date-${task.id || 'editor'}`;
+  const effortId = `task-effort-${task.id || 'editor'}`;
 
   return (
     <div className={containerClass}>
       {!inline && <h2>Edit Task</h2>}
-      <div className="editor-columns">
-        <div className="left-column">
-          <div className="editor-section effort-section">
-            <label htmlFor={`task-effort-${task.id || 'editor'}`} className="desc-label">
-              Effort (Days)
-            </label>
+      <div className="task-editor-fields">
+
+        {/* Effort */}
+        <div className="task-editor-field">
+          <label htmlFor={effortId} className="task-editor-label">
+            <span className="material-icons task-editor-label-icon">schedule</span>
+            Effort
+          </label>
+          <div className="task-editor-input-wrap">
             <input
-              id={`task-effort-${task.id || 'editor'}`}
+              id={effortId}
               type="number"
               min="0"
               step="0.5"
-              className="effort-input"
-              value={effort || ""}
+              className="task-editor-input task-editor-input--short"
+              value={effort ?? ''}
+              placeholder="days"
               onChange={(e) => {
-                const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                const val = e.target.value === '' ? null : parseFloat(e.target.value);
                 setEffort(val);
-                const updatedTask = { ...task, effort: val };
-                onUpdateTask(updatedTask);
+                onUpdateTask({ ...task, effort: val });
               }}
-              style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px', width: '100%', background: '#fff' }}
             />
           </div>
+        </div>
 
-          <div className="editor-section date-section">
-            <label htmlFor={dateId} className="desc-label">
-              Due date
-            </label>
+        {/* Due Date */}
+        <div className="task-editor-field">
+          <label htmlFor={dateId} className="task-editor-label">
+            <span className="material-icons task-editor-label-icon">event</span>
+            Due date
+          </label>
+          <div className="task-editor-input-wrap">
             <input
               id={dateId}
               type="date"
-              className="due-date-input"
+              className="task-editor-input"
               value={dueDate}
               onChange={(e) => {
                 const newValue = e.target.value;
@@ -172,57 +179,61 @@ export default function TaskEditor({
             />
           </div>
         </div>
-        <div className="right-column">
-          <div className="editor-section people-section">
-            <label>Owners</label>
-            {allPeople.length > 0 ? (
-              <div className="member-avatar-picker">
-                {allPeople.map((p) => {
-                  const isAssigned = people.some(
-                    (pp) => pp.name.toLowerCase() === p.name.toLowerCase(),
-                  );
-                  const initials = p.name
-                    .split(' ')
-                    .map((w) => w[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase();
-                  return (
-                    <button
-                      key={p.name}
-                      type="button"
-                      className={`member-avatar-btn${isAssigned ? ' member-avatar-btn--active' : ''}`}
-                      title={p.name}
-                      data-name={p.name}
-                      onClick={() =>
-                        isAssigned
-                          ? handleRemovePerson(p.name)
-                          : handleAddFromAll(p)
-                      }
-                    >
-                      {(p as any).avatarUrl ? (
-                        <img
-                          src={(p as any).avatarUrl}
-                          alt={p.name}
-                          className="member-avatar-img"
-                        />
-                      ) : (
-                        <span className="member-avatar-initials">{initials}</span>
-                      )}
-                      {isAssigned && (
-                        <span className="member-avatar-check material-icons">check</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="people-empty-hint">
-                Invite members to this project to assign owners.
-              </p>
-            )}
-          </div>
+
+        {/* Owners */}
+        <div className="task-editor-field task-editor-field--owners">
+          <label className="task-editor-label">
+            <span className="material-icons task-editor-label-icon">group</span>
+            Owners
+          </label>
+          {allPeople.length > 0 ? (
+            <div className="member-avatar-picker">
+              {allPeople.map((p) => {
+                const isAssigned = people.some(
+                  (pp) => pp.name.toLowerCase() === p.name.toLowerCase(),
+                );
+                const initials = p.name
+                  .split(' ')
+                  .map((w) => w[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    className={`member-avatar-btn${isAssigned ? ' member-avatar-btn--active' : ''}`}
+                    title={p.name}
+                    data-name={p.name}
+                    onClick={() =>
+                      isAssigned
+                        ? handleRemovePerson(p.name)
+                        : handleAddFromAll(p)
+                    }
+                  >
+                    {(p as any).avatarUrl ? (
+                      <img
+                        src={(p as any).avatarUrl}
+                        alt={p.name}
+                        className="member-avatar-img"
+                      />
+                    ) : (
+                      <span className="member-avatar-initials">{initials}</span>
+                    )}
+                    {isAssigned && (
+                      <span className="member-avatar-check material-icons">check</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="people-empty-hint">
+              Invite members to assign owners.
+            </p>
+          )}
         </div>
+
       </div>
     </div>
   );

@@ -110,11 +110,11 @@
   margin-left: 4px;
   padding: 4px;
   border-radius: 50%;
-  transition: background 0.2s, color 0.2s;
   display: inline-flex;
   align-items: center;
+  position: relative;
   opacity: 0;
-  transition: opacity 0.15s, background 0.2s;
+  transition: opacity 0.15s, background 0.2s, color 0.2s;
 }
 
 .task-row:hover .chat-btn,
@@ -122,9 +122,36 @@
   opacity: 1;
 }
 
+/* Keep visible and styled when conversation has messages */
+.item-list li .chat-btn.chat-btn--has-messages,
+.task-row .chat-btn.chat-btn--has-messages {
+  opacity: 1;
+  color: #1a73e8;
+}
+
 .item-list li .chat-btn:hover {
   background: #e8f0fe;
   color: #1a73e8;
+}
+
+/* Badge showing message count */
+.chat-btn .chat-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #1a73e8;
+  color: #fff;
+  border-radius: 50%;
+  min-width: 14px;
+  height: 14px;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 2px;
+  box-shadow: 0 0 0 1.5px #fff;
 }
 
 
@@ -446,6 +473,93 @@
   transition: max-height 0.2s ease;
   overflow: hidden;
 }
+
+/* ── New modern task editor fields layout ── */
+
+.inline-editor {
+  animation: slideDown 0.14s ease;
+  border-left: 3px solid var(--accent-primary, #4285f4);
+  border-radius: 0 0 10px 10px;
+}
+
+.task-editor-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 24px;
+  width: 100%;
+}
+
+.task-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.task-editor-field--owners {
+  flex: 1 1 180px;
+}
+
+.task-editor-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #888);
+  white-space: nowrap;
+}
+
+.task-editor-label-icon {
+  font-size: 0.9rem !important;
+  line-height: 1;
+}
+
+.task-editor-input-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.task-editor-input {
+  padding: 6px 10px;
+  border: 1.5px solid var(--color-border, #e0e0e0);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  color: var(--color-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-editor-input:focus {
+  border-color: var(--accent-primary, #4285f4);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.12);
+}
+
+.task-editor-input--short {
+  width: 80px;
+}
+
+html[data-theme="dark"] .task-editor-input {
+  background: #1e2a3a;
+  border-color: rgba(255,255,255,0.12);
+  color: #e8edf4;
+}
+
+html[data-theme="dark"] .task-editor-input:focus {
+  border-color: #4285f4;
+  box-shadow: 0 0 0 3px rgba(66,133,244,0.2);
+}
+
+html[data-theme="dark"] .inline-editor {
+  background: rgba(30, 42, 58, 0.6);
+}
+
 
 .item-list li.editing > .inline-editor,
 .item-list li.editing > .side-editor {

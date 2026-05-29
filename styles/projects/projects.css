@@ -1035,6 +1035,13 @@
   color: var(--accent-primary, #1a73e8);
   background: rgba(26, 115, 232, 0.08);
 }
+.project-action-btn--has-messages {
+  color: #1a73e8;
+  font-weight: 600;
+}
+.project-action-btn--has-messages .material-icons {
+  color: #1a73e8;
+}
 .project-action-btn--close-filters {
   color: #e53935;
   background: rgba(229, 57, 53, 0.1);
