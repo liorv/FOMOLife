@@ -22,6 +22,7 @@ export interface TaskRowProps {
   onTaskUpdate?: (taskId: string, updates: Partial<ProjectTask>) => void;
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
+  onChatClick?: (taskId: string) => void;
 }
 
 export default function TaskRow({
@@ -41,6 +42,7 @@ item,
   onTaskUpdate,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
+  onChatClick,
 }: TaskRowProps) {
   const isOpen = editorTaskId === id;
 
@@ -266,6 +268,16 @@ item,
               </div>
             )}
           </div>
+        )}
+        {type === "tasks" && onChatClick && (
+          <button
+            className="chat-btn"
+            title="Open conversation"
+            onClick={(e) => { e.stopPropagation(); onChatClick(id); }}
+            aria-label="Open conversation"
+          >
+            <span className="material-icons">chat_bubble_outline</span>
+          </button>
         )}
         {type === "tasks" && (
           <button

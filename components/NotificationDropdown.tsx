@@ -17,6 +17,20 @@ interface FeedbackNotification {
   read: boolean;
 }
 
+interface ProjectNotification {
+  id: string;
+  type: 'project_comment';
+  threadId: string;
+  projectId: string;
+  taskId?: string;
+  threadTitle: string;
+  commentAuthorId: string;
+  commentAuthorName: string;
+  commentText: string;
+  createdAt: string;
+  read: boolean;
+}
+
 type NotificationDropdownProps = {
   apiClient: ContactsApiClient;
   onClose: () => void;
@@ -24,6 +38,7 @@ type NotificationDropdownProps = {
   onContactsUpdate: () => void;
   userId?: string | undefined;
   onFeedbackNotifsUpdate?: (count: number) => void;
+  onProjectNotifsUpdate?: (count: number) => void;
 };
 
 function timeAgo(iso: string): string {
@@ -38,7 +53,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-type TabType = 'contacts' | 'feedback';
+type TabType = 'contacts' | 'feedback' | 'projects';
 
 export function NotificationDropdown({
   apiClient,
@@ -46,6 +61,7 @@ export function NotificationDropdown({
   onRequestsUpdate,
   onContactsUpdate,
   onFeedbackNotifsUpdate,
+  onProjectNotifsUpdate,
 }: NotificationDropdownProps) {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,10 +69,13 @@ export function NotificationDropdown({
   const [activeTab, setActiveTab] = useState<TabType>('feedback');
   const [feedbackNotifs, setFeedbackNotifs] = useState<FeedbackNotification[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [projectNotifs, setProjectNotifs] = useState<ProjectNotification[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
 
   useEffect(() => {
     loadPendingRequests();
     loadFeedbackNotifs();
+    loadProjectNotifs();
 
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === 'contacts-updated') {
@@ -91,6 +110,19 @@ export function NotificationDropdown({
       }
     } catch { /* silent */ } finally {
       setFeedbackLoading(false);
+    }
+  };
+
+  const loadProjectNotifs = async () => {
+    try {
+      const res = await fetch('/api/projects/notifications');
+      if (res.ok) {
+        const d = await res.json();
+        setProjectNotifs(d.notifications ?? []);
+        onProjectNotifsUpdate?.(d.unreadCount ?? 0);
+      }
+    } catch { /* silent */ } finally {
+      setProjectsLoading(false);
     }
   };
 
@@ -162,9 +194,58 @@ export function NotificationDropdown({
     } catch { /* silent */ }
   };
 
+  const handleJumpToProjectThread = async (notif: ProjectNotification) => {
+    // Mark as read
+    try {
+      await fetch('/api/projects/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [notif.id] }),
+      });
+      setProjectNotifs((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
+      );
+      const unread = projectNotifs.filter((n) => !n.read && n.id !== notif.id).length;
+      onProjectNotifsUpdate?.(unread);
+      window.dispatchEvent(new Event('project-notifs-updated'));
+    } catch { /* silent */ }
+
+    // Navigate to Projects tab and open the thread
+    window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'projects' } }));
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent('framework-open-project-thread', {
+          detail: {
+            threadId: notif.threadId,
+            projectId: notif.projectId,
+            threadTitle: notif.threadTitle,
+            ...(notif.taskId ? { taskId: notif.taskId } : {}),
+          },
+        }),
+      );
+    }, 120);
+
+    onClose();
+  };
+
+  const handleMarkAllProjectRead = async () => {
+    try {
+      await fetch('/api/projects/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [] }),
+      });
+      setProjectNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+      onProjectNotifsUpdate?.(0);
+      window.dispatchEvent(new Event('project-notifs-updated'));
+    } catch { /* silent */ }
+  };
+
   const unreadFeedback = feedbackNotifs.filter((n) => !n.read).length;
+  const unreadProjects = projectNotifs.filter((n) => !n.read).length;
   const contactsTabLabel = `Contacts${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}`;
   const feedbackTabLabel = `Feedback${unreadFeedback > 0 ? ` (${unreadFeedback})` : ''}`;
+  const projectsTabLabel = `Projects${unreadProjects > 0 ? ` (${unreadProjects})` : ''}`;
 
   return (
     <div className="notification-dropdown">
@@ -180,6 +261,12 @@ export function NotificationDropdown({
           onClick={() => setActiveTab('feedback')}
         >
           {feedbackTabLabel}
+        </button>
+        <button
+          className={`notif-tab ${activeTab === 'projects' ? 'notif-tab-active' : ''}`}
+          onClick={() => setActiveTab('projects')}
+        >
+          {projectsTabLabel}
         </button>
         <button
           className={`notif-tab ${activeTab === 'contacts' ? 'notif-tab-active' : ''}`}
@@ -230,6 +317,47 @@ export function NotificationDropdown({
                 </div>
               </div>
             ))
+          )
+        ) : activeTab === 'projects' ? (
+          projectsLoading ? (
+            <div className="notification-loading">Loading...</div>
+          ) : projectNotifs.length === 0 ? (
+            <p className="notification-empty">No project notifications</p>
+          ) : (
+            <>
+              {unreadProjects > 0 && (
+                <div className="notif-mark-all-row">
+                  <button className="notif-mark-all-btn" onClick={handleMarkAllProjectRead}>
+                    Mark all as read
+                  </button>
+                </div>
+              )}
+              {projectNotifs.map((notif) => (
+                <div
+                  key={notif.id}
+                  className={`notification-item feedback-notif-item ${!notif.read ? 'feedback-notif-unread' : ''}`}
+                >
+                  <div className="feedback-notif-body">
+                    <span className="feedback-notif-icon material-icons">chat_bubble_outline</span>
+                    <div className="feedback-notif-text">
+                      <span className="feedback-notif-author">{notif.commentAuthorName}</span>
+                      {' commented on '}
+                      <span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span>
+                      <p className="feedback-notif-preview">{notif.commentText}</p>
+                      <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="btn-jump-thread"
+                    onClick={() => handleJumpToProjectThread(notif)}
+                    title="Go to thread"
+                  >
+                    <span className="material-icons" style={{ fontSize: 16 }}>open_in_new</span>
+                    View
+                  </button>
+                </div>
+              ))}
+            </>
           )
         ) : feedbackLoading ? (
           <div className="notification-loading">Loading...</div>

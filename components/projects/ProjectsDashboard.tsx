@@ -110,6 +110,8 @@ interface ProjectsDashboardProps {
   onInviteMember?: (projectId: string, member: import('@myorg/types').ProjectMember) => void;
   onRemoveMember?: (projectId: string, userId: string) => void;
   onLeave?: (projectId: string) => void;
+  onOpenProjectThread?: (project: ProjectItem) => void;
+  onOpenTaskThread?: (task: ProjectTask, project: ProjectItem) => void;
 }
 
 export default function ProjectsDashboard({
@@ -139,6 +141,8 @@ export default function ProjectsDashboard({
   onInviteMember,
   onRemoveMember,
   onLeave,
+  onOpenProjectThread,
+  onOpenTaskThread,
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -481,6 +485,14 @@ export default function ProjectsDashboard({
                       </button>
                       <button
                         className="project-action-btn"
+                        title="Project conversation"
+                        onClick={() => onOpenProjectThread?.(selectedProject)}
+                      >
+                        <span className="material-icons">forum</span>
+                        <span>Chat</span>
+                      </button>
+                      <button
+                        className="project-action-btn"
                         title="Export JSON"
                         onClick={() => {
                           const exportObj = buildProjectExport(selectedProject, people);
@@ -548,6 +560,7 @@ export default function ProjectsDashboard({
               onRemoveMember={(userId) => onRemoveMember?.(selectedProject.id, userId)}
               collapseAllRef={collapseAllRef}
               expandAllRef={expandAllRef}
+              {...(onOpenTaskThread ? { onTaskChatClick: (task: ProjectTask) => onOpenTaskThread(task, selectedProject) } : {})}
             />
             {/* Floating AI assistant FAB (project editor) */}
             <button

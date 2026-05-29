@@ -20,6 +20,7 @@ export interface TaskProps {
   onTaskUpdate?: (taskId: string, updates: Partial<ProjectTask>) => void;
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
+  onChatClick?: (taskId: string) => void;
 }
 
 export default function Task({
@@ -40,6 +41,7 @@ item,
   onTaskUpdate,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
+  onChatClick,
 }: TaskProps) {
   return (
     <li
@@ -89,6 +91,7 @@ item,
           {...(handleDelete !== undefined && { handleDelete })}
           {...(onTitleChange !== undefined && { onTitleChange })}
           {...(onTaskUpdate !== undefined && { onTaskUpdate })}
+          {...(onChatClick !== undefined && { onChatClick })}
           newlyAddedTaskId={newlyAddedTaskId}
           onClearNewTask={onClearNewTask}
         />

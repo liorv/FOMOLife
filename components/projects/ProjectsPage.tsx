@@ -4,11 +4,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { createProjectsApiClient, createTasksApiClient } from "@myorg/api-client";
 import { createContactsApiClient } from "@myorg/api-client";
-import type { ProjectItem, ProjectSubproject, Contact, TaskItem } from "@myorg/types";
+import type { ProjectItem, ProjectSubproject, Contact, TaskItem, ProjectTask } from "@myorg/types";
 import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
 import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjectsCacheAge, invalidateProjectsCache } from '@/lib/client/projectsCache';
 import ProjectsDashboard from "./ProjectsDashboard";
+import ConversationThread from "../ConversationThread";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
 import GlobalSearchResults, { type FeedbackItem } from "../GlobalSearchResults";
@@ -113,6 +114,46 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   }, [initialProjectId]);
 
   const [colorPickerProjectId, setColorPickerProjectId] = useState<string | null>(null);
+
+  // ── Conversation thread state ───────────────────────────────────────────
+  type ActiveThread = { threadId: string; threadTitle: string; projectId: string; taskId?: string };
+  const [activeThread, setActiveThread] = useState<ActiveThread | null>(null);
+
+  // Listen for navigation events from notifications
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      const { threadId, projectId } = e.detail ?? {};
+      if (!threadId || !projectId) return;
+      // Select the project first
+      setEditingProjectId(projectId);
+      // Find the thread title from project/task
+      setActiveThread((prev) => {
+        if (prev?.threadId === threadId) return prev;
+        const project = projects.find((p) => p.id === projectId);
+        const title = e.detail?.threadTitle || project?.text || 'Project';
+        return { threadId, projectId, threadTitle: title, ...(e.detail?.taskId ? { taskId: e.detail.taskId } : {}) };
+      });
+    };
+    window.addEventListener('framework-open-project-thread', handler as EventListener);
+    return () => window.removeEventListener('framework-open-project-thread', handler as EventListener);
+  }, [projects]);
+
+  const handleOpenProjectThread = (project: ProjectItem) => {
+    setActiveThread({
+      threadId: `proj:${project.id}`,
+      threadTitle: project.text,
+      projectId: project.id,
+    });
+  };
+
+  const handleOpenTaskThread = (task: ProjectTask, project: ProjectItem) => {
+    setActiveThread({
+      threadId: `task:${project.id}:${task.id}`,
+      threadTitle: task.text,
+      projectId: project.id,
+      taskId: task.id,
+    });
+  };
 
   const handleOpenColorPicker = (projectId: string) => {
     setColorPickerProjectId(projectId);
@@ -769,8 +810,24 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               onInviteMember={handleInviteMember}
               onRemoveMember={handleRemoveMember}
               onLeave={(projectId) => handleRemoveMember(projectId, currentUserId)}
+              onOpenProjectThread={handleOpenProjectThread}
+              onOpenTaskThread={handleOpenTaskThread}
             />
             )}
+
+          {/* Conversation thread overlay */}
+          {activeThread && (
+            <ConversationThread
+              threadId={activeThread.threadId}
+              threadTitle={activeThread.threadTitle}
+              projectId={activeThread.projectId}
+              {...(activeThread.taskId ? { taskId: activeThread.taskId } : {})}
+              userId={currentUserId}
+              userName={currentUserName || currentUserId}
+              {...(currentUserAvatarUrl ? { userAvatarUrl: currentUserAvatarUrl } : {})}
+              onClose={() => setActiveThread(null)}
+            />
+          )}
 
           {colorPickerProjectId && (
             <ColorPickerOverlay

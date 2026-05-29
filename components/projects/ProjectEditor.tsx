@@ -34,6 +34,7 @@ interface ProjectEditorProps {
   onRemoveMember?: (userId: string) => void;
   collapseAllRef?: React.MutableRefObject<(() => void) | null>;
   expandAllRef?: React.MutableRefObject<(() => void) | null>;
+  onTaskChatClick?: (task: ProjectTask) => void;
 }
 
 type DashboardTileProps = {
@@ -121,6 +122,7 @@ export default function ProjectEditor({
   onRemoveMember,
   collapseAllRef,
   expandAllRef,
+  onTaskChatClick,
 }: ProjectEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -1494,6 +1496,7 @@ export default function ProjectEditor({
           taskFilters={taskFilters as any[]}
           currentUserName={members.find((m) => m.userId === currentUserId)?.name}
           onSortModeChange={(subId, mode) => updateSubSortMode(subId, mode)}
+          {...(onTaskChatClick ? { onTaskChatClick } : {})}
         />
       ))}
         </div>

@@ -44,6 +44,7 @@ export interface TaskListProps {
   handleTogglePersonDefault?: (taskId: string) => void;
   newlyAddedTaskId?: string | null;
   onClearNewTask?: () => void;
+  onChatClick?: (taskId: string) => void;
 }
 
 export default function TaskList({
@@ -74,6 +75,7 @@ export default function TaskList({
   handleTogglePersonDefault,
   newlyAddedTaskId = null,
   onClearNewTask = () => {},
+  onChatClick,
 }: TaskListProps) {
   return (
     <>
@@ -120,6 +122,7 @@ export default function TaskList({
             newlyAddedTaskId={newlyAddedTaskId ?? null}
             onClearNewTask={onClearNewTask}
             {...(onEditorUpdate !== undefined && { onTaskUpdate: onEditorUpdate })}
+            {...(onChatClick !== undefined && { onChatClick })}
           />
         );
 
@@ -154,6 +157,7 @@ export default function TaskList({
               {...(onDragOver !== undefined && { onDragOver })}
               {...(onDrop !== undefined && { onDrop })}
               {...(onDragEnd !== undefined && { onDragEnd })}
+            {...(onChatClick !== undefined && { onChatClick })}
             >
               {editor}
             </Task>
