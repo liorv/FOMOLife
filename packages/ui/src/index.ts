@@ -29,6 +29,9 @@ export type { TabNavProps } from './TabNav';
 export { default as ThumbButton } from './ThumbButton';
 export type { ThumbButtonProps } from './ThumbButton';
 
+export { useUserPreferences } from './useUserPreferences';
+export type { UserPreferences } from './useUserPreferences';
+
 export { default as ProjectTile, PROJECT_COLORS } from './ProjectTile';
 export type { ProjectTileProps } from './ProjectTile';
 

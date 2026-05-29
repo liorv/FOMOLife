@@ -34,6 +34,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap" />
       </head>
       <body>
+        {/* Apply stored user preferences before first paint to avoid FOUC */}
+        <Script id="prefs-init" strategy="beforeInteractive">{`
+          try {
+            var p = JSON.parse(localStorage.getItem('fomo:prefs') || '{}');
+            if (p.fontScale) document.documentElement.style.setProperty('--font-scale', String(p.fontScale));
+            if (p.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
+          } catch(e) {}
+        `}</Script>
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{children}</div>
           <InstallPrompt />

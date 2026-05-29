@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import { useUserPreferences } from './useUserPreferences';
+import { SettingsModal } from './SettingsModal';
 
 export interface LogoBarProps {
   logoUrl?: string;
@@ -55,8 +57,10 @@ export default function LogoBar({
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [devSwitchId, setDevSwitchId] = useState(devCurrentUserId);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [prefs, setPrefs] = useUserPreferences();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -130,17 +134,11 @@ export default function LogoBar({
           <button
             type="button"
             className="logobar-avatar-btn"
-            aria-label={
-              onSoftLogout || onSwitchUsers
-                ? 'Open account menu'
-                : 'User account'
-            }
-            aria-haspopup={onSoftLogout || onSwitchUsers ? 'menu' : undefined}
-            aria-expanded={onSoftLogout || onSwitchUsers ? menuOpen : undefined}
+            aria-label="Open account menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
             onClick={() => {
-              if (onSoftLogout || onSwitchUsers) {
-                setMenuOpen((value) => !value);
-              }
+              setMenuOpen((value) => !value);
             }}
           >
             {userAvatarUrl ? (
@@ -157,7 +155,7 @@ export default function LogoBar({
             )}
           </button>
 
-          {(menuOpen && (onSoftLogout || onSwitchUsers)) ? (
+          {menuOpen ? (
             <div className="logobar-menu" role="menu" aria-label="Account menu">
               <div className="logobar-menu-header">
                 {userAvatarUrl ? (
@@ -178,6 +176,20 @@ export default function LogoBar({
                 </div>
               </div>
               <div className="logobar-menu-divider" />
+              <button
+                type="button"
+                className="logobar-menu-item"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setSettingsOpen(true);
+                }}
+              >
+                <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
+                  settings
+                </span>
+                Settings
+              </button>
               {onInstall ? (
                 <button
                   type="button"
@@ -276,6 +288,13 @@ export default function LogoBar({
           ) : null}
         </div>
       </div>
+      {settingsOpen ? (
+        <SettingsModal
+          prefs={prefs}
+          onSave={setPrefs}
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
       {aboutOpen && aboutInfo ? (
         <div
           style={{
