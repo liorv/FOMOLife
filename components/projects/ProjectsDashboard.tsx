@@ -571,7 +571,17 @@ export default function ProjectsDashboard({
               collapseAllRef={collapseAllRef}
               expandAllRef={expandAllRef}
               {...(onOpenTaskThread ? { onTaskChatClick: (task: ProjectTask) => onOpenTaskThread(task, selectedProject) } : {})}
-              {...(Object.keys(threadCounts).length > 0 ? { taskCommentCounts: threadCounts } : {})}
+              {...(Object.keys(threadCounts).length > 0 ? {
+                taskCommentCounts: Object.fromEntries(
+                  Object.entries(threadCounts)
+                    .filter(([k, v]) => k.startsWith('task:') && v > 0)
+                    .map(([k, v]) => {
+                      // key format: "task:{projectId}:{taskId}"
+                      const parts = k.split(':');
+                      return [parts.slice(2).join(':'), v];
+                    })
+                )
+              } : {})}
             />
             {/* Floating AI assistant FAB (project editor) */}
             <button
