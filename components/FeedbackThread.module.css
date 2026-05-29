@@ -14,7 +14,9 @@
 .sheet {
   width: 100%;
   max-width: 680px;
-  max-height: calc(100dvh - var(--nav-height, 70px) - 16px);
+  /* Mobile: fill the full viewport above the bottom nav */
+  height: calc(100dvh - var(--nav-height, 70px));
+  max-height: calc(100dvh - var(--nav-height, 70px));
   background: var(--color-surface, #fff);
   color: var(--color-text, #202124);
   border-radius: 20px 20px 0 0;
@@ -24,6 +26,19 @@
   animation: ft-slideup 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   margin-bottom: var(--nav-height, 70px);
+}
+
+/* Desktop: centre vertically and take ~88 % of the viewport height */
+@media (min-width: 640px) {
+  .overlay {
+    align-items: center;
+  }
+  .sheet {
+    height: 88vh;
+    max-height: 88vh;
+    border-radius: 20px;
+    margin-bottom: 0;
+  }
 }
 
 /* ── Handle ── */
