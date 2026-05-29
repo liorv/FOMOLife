@@ -127,6 +127,17 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setActiveTab(tabFromUrl);
   }, [searchParams]);
 
+  // Listen for external tab-switch requests (e.g. from notification bell "Jump to thread")
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail?.tab as string | undefined;
+      if (tab) handleTabChange(tab as FrameworkTab);
+    };
+    window.addEventListener('framework-navigate-tab', handler);
+    return () => window.removeEventListener('framework-navigate-tab', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const tabs = useMemo(() => getFrameworkTabLinks(), []);
   const activeTabConfig = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
   const showHeaderSearch = activeTab === 'tasks' || activeTab === 'projects' || activeTab === 'people' || activeTab === 'feedback';

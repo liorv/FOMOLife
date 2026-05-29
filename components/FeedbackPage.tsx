@@ -6,6 +6,7 @@ import styles from './FeedbackPage.module.css';
 import ContentHeader from './ContentHeader';
 import { ModalOverlay } from '@myorg/ui';
 import { getFeedbackCacheSync, isFeedbackStale, setFeedbackCache } from '@/lib/client/feedbackCache';
+import FeedbackThread from './FeedbackThread';
 
 type FeedbackType = 'feature' | 'bug';
 
@@ -19,6 +20,7 @@ interface FeedbackItem {
   createdAt: string;
   votes: Record<string, 1 | -1>;
   completions: Record<string, true>;
+  comments: { id: string }[];
 }
 
 type Props = {
@@ -89,9 +91,13 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [addType, setAddType] = useState<FeedbackType>('feature');
   const [addTitle, setAddTitle] = useState('');
+  const [addDescription, setAddDescription] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const addInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Thread state
+  const [threadItem, setThreadItem] = useState<FeedbackItem | null>(null);
 
   // Core fetch — `silent` skips the loading spinner (used for background refresh).
   const fetchItems = async (silent = false) => {
@@ -134,8 +140,21 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
   useEffect(() => {
     const openPanel = () => setShowAddPanel(true);
     window.addEventListener('framework-action-add-feedback', openPanel);
-    return () => window.removeEventListener('framework-action-add-feedback', openPanel);
-  }, []);
+    // Allow external navigation (e.g. from notification bell) to open a specific thread
+    const openThread = (e: Event) => {
+      const id = (e as CustomEvent).detail?.feedbackId as string | undefined;
+      if (!id) return;
+      const found = items.find((i) => i.id === id);
+      if (found) setThreadItem(found);
+    };
+    window.addEventListener('framework-open-feedback-thread', openThread);
+    return () => {
+      window.removeEventListener('framework-action-add-feedback', openPanel);
+      window.removeEventListener('framework-open-feedback-thread', openThread);
+    };
+  // items is intentionally excluded — we only need the latest value at time of event
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   const handleVote = async (id: string, direction: 1 | -1) => {
     const item = items.find((i) => i.id === id);
@@ -229,7 +248,7 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ type: addType, title, description: '' }),
+        body: JSON.stringify({ type: addType, title, description: addDescription.trim() }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -239,6 +258,7 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
       const created: FeedbackItem = await res.json();
       setItems((prev) => [created, ...prev]);
       setAddTitle('');
+      setAddDescription('');
       setShowAddPanel(false);
     } catch {
       setAddError('Submission failed.');
@@ -338,9 +358,22 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
                   </span>
 
                   {/* Title + meta */}
-                  <div className={styles.cardBody}>
+                  <div
+                    className={`${styles.cardBody} ${styles.cardBodyClickable}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open discussion: ${item.title}`}
+                    onClick={() => setThreadItem(item)}
+                    onKeyDown={(e) => e.key === 'Enter' && setThreadItem(item)}
+                  >
                     <span className={styles.cardTitle}>{item.title}</span>
                     <span className={styles.cardMeta}>{formatAuthorName(item.authorName)} · {timeAgo(item.createdAt)}</span>
+                    {(item.comments?.length ?? 0) > 0 && (
+                      <span className={styles.commentBadge}>
+                        <span className="material-icons" style={{ fontSize: 11 }}>forum</span>
+                        {item.comments.length}
+                      </span>
+                    )}
                   </div>
 
                   {/* Actions column */}
@@ -385,7 +418,7 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
       {/* ── Bottom sheet: Add Feedback ── */}
       <ModalOverlay
         open={showAddPanel}
-        onClose={() => { setShowAddPanel(false); setAddTitle(''); setAddError(null); }}
+        onClose={() => { setShowAddPanel(false); setAddTitle(''); setAddDescription(''); setAddError(null); }}
         className={styles.bottomSheetOverlay}
         contentClassName={styles.bottomSheetContent}
       >
@@ -395,7 +428,7 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
           <button
             type="button"
             className={styles.bottomSheetClose}
-            onClick={() => { setShowAddPanel(false); setAddTitle(''); setAddError(null); }}
+            onClick={() => { setShowAddPanel(false); setAddTitle(''); setAddDescription(''); setAddError(null); }}
             aria-label="Close"
           >
             <span className="material-icons">close</span>
@@ -426,12 +459,22 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
             ref={addInputRef}
             className={`${styles.addInput} ${styles.addInputFull} ${addError ? styles.addInputError : ''}`}
             rows={2}
-            placeholder={addType === 'feature' ? 'Describe the feature you want…' : 'Describe the bug…'}
+            placeholder={addType === 'feature' ? 'Title — what feature do you want?' : 'Title — describe the bug briefly'}
             value={addTitle}
             onChange={(e) => { setAddTitle(e.target.value); if (addError) setAddError(null); }}
-            maxLength={120}
+            maxLength={300}
             aria-label="Request title"
           />
+          <textarea
+            className={`${styles.addInput} ${styles.addInputFull} ${styles.addInputDescription}`}
+            rows={4}
+            placeholder="Details (optional) — the more context you provide, the better…"
+            value={addDescription}
+            onChange={(e) => setAddDescription(e.target.value)}
+            maxLength={2000}
+            aria-label="Request description"
+          />
+          <p className={styles.charHint}>{addDescription.length > 0 ? `${addDescription.length}/2000` : ''}</p>
           {addError && <p className={styles.addErr}>{addError}</p>}
           <button type="submit" className={styles.addBtnFull} disabled={adding}>
             <span className="material-icons">{adding ? 'hourglass_top' : 'send'}</span>
@@ -439,6 +482,16 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
           </button>
         </form>
       </ModalOverlay>
+
+      {/* ── Feedback Thread (conversation) ── */}
+      {threadItem && (
+        <FeedbackThread
+          item={threadItem}
+          userId={userId}
+          userName={userName}
+          onClose={() => setThreadItem(null)}
+        />
+      )}
     </div>
   );
 }
