@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { createContactsApiClient } from '@myorg/api-client';
 import { NotificationDropdown } from './NotificationDropdown';
 import { getSupabaseBrowserClient } from '@/lib/client/supabaseBrowser';
+import { invalidateContactsCache } from '@/lib/client/contactsCache';
 
 import type { ContactsApiClient } from '@myorg/api-client';
 import './NotificationBell.css';
@@ -151,7 +152,10 @@ export function NotificationBell({ userId }: { userId?: string }) {
             apiClient={apiClient} 
             onClose={closeDropdown} 
             onRequestsUpdate={(count) => setPendingRequestsCount(count)}
-            onContactsUpdate={() => {}}
+            onContactsUpdate={() => {
+                invalidateContactsCache();
+                window.postMessage({ type: 'contacts-updated' }, window.location.origin);
+              }}
             userId={currentUserId}
             onFeedbackNotifsUpdate={(count) => setFeedbackNotifCount(count)}
             onProjectNotifsUpdate={(count) => setProjectNotifCount(count)}
