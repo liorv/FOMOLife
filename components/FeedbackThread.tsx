@@ -8,6 +8,7 @@ interface FeedbackComment {
   feedbackId: string;
   authorId: string;
   authorName: string;
+  authorAvatarUrl?: string;
   text: string;
   createdAt: string;
 }
@@ -25,6 +26,7 @@ interface Props {
   item: FeedbackItem;
   userId: string;
   userName: string;
+  userAvatarUrl?: string;
   onClose: () => void;
 }
 
@@ -40,6 +42,15 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/** "John D" — first name + last initial */
+function shortName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  const first = parts[0] ?? '';
+  if (parts.length < 2) return first;
+  const lastInitial = parts[parts.length - 1]?.[0]?.toUpperCase() ?? '';
+  return lastInitial ? `${first} ${lastInitial}` : first;
+}
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   const first = parts[0] ?? '';
@@ -48,13 +59,48 @@ function initials(name: string): string {
 }
 
 const AVATAR_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+function Avatar({ name, avatarUrl, size = 28 }: { name: string; avatarUrl?: string; size?: number }) {
+  const [imgFailed, setImgFailed] = React.useState(false);
+  if (avatarUrl && !imgFailed) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={shortName(name)}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: `${size * 0.37}px`,
+        fontWeight: 700,
+        color: '#fff',
+        letterSpacing: '0.02em',
+        background: avatarColor(name),
+      }}
+      aria-hidden="true"
+    >
+      {initials(name)}
+    </div>
+  );
+}
 function avatarColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? '#6366f1';
 }
 
-export default function FeedbackThread({ item, userId, userName, onClose }: Props) {
+export default function FeedbackThread({ item, userId, userName, userAvatarUrl, onClose }: Props) {
   const [comments, setComments] = useState<FeedbackComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -93,7 +139,7 @@ export default function FeedbackThread({ item, userId, userName, onClose }: Prop
       const res = await fetch('/api/feedback/comments', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ feedbackId: item.id, text: trimmed }),
+        body: JSON.stringify({ feedbackId: item.id, text: trimmed, avatarUrl: userAvatarUrl }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -162,27 +208,15 @@ export default function FeedbackThread({ item, userId, userName, onClose }: Prop
               return (
                 <div key={c.id} className={`${styles.commentRow} ${isMe ? styles.commentRowMe : ''}`}>
                   {!isMe && (
-                    <div
-                      className={styles.avatar}
-                      style={{ background: avatarColor(c.authorName) }}
-                      aria-hidden="true"
-                    >
-                      {initials(c.authorName)}
-                    </div>
+                    <Avatar name={c.authorName} {...(c.authorAvatarUrl ? { avatarUrl: c.authorAvatarUrl } : {})} />
                   )}
                   <div className={styles.bubble}>
-                    {!isMe && <span className={styles.commentAuthor}>{c.authorName}</span>}
+                    {!isMe && <span className={styles.commentAuthor}>{shortName(c.authorName)}</span>}
                     <p className={styles.commentText}>{c.text}</p>
                     <span className={styles.commentTime}>{timeAgo(c.createdAt)}</span>
                   </div>
                   {isMe && (
-                    <div
-                      className={styles.avatar}
-                      style={{ background: avatarColor(userName) }}
-                      aria-hidden="true"
-                    >
-                      {initials(userName)}
-                    </div>
+                    <Avatar name={userName} {...(userAvatarUrl ? { avatarUrl: userAvatarUrl } : {})} />
                   )}
                 </div>
               );
@@ -196,13 +230,7 @@ export default function FeedbackThread({ item, userId, userName, onClose }: Prop
 
         {/* Compose */}
         <div className={styles.compose}>
-          <div
-            className={styles.composeAvatar}
-            style={{ background: avatarColor(userName) }}
-            aria-hidden="true"
-          >
-            {initials(userName)}
-          </div>
+          <Avatar name={userName} {...(userAvatarUrl ? { avatarUrl: userAvatarUrl } : {})} size={28} />
           <div className={styles.composeBox}>
             <textarea
               ref={textareaRef}

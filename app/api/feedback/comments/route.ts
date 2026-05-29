@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorized();
 
-  const body = (await request.json()) as { feedbackId?: string; text?: string };
+  const body = (await request.json()) as { feedbackId?: string; text?: string; avatarUrl?: string };
   if (!body.feedbackId?.trim()) {
     return NextResponse.json({ error: 'feedbackId is required' }, { status: 400 });
   }
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     session.userId,
     session.userName ?? session.userEmail ?? session.userId,
     text,
+    body.avatarUrl?.trim() || undefined,
   );
 
   if (!result) {

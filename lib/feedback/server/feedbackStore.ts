@@ -19,6 +19,7 @@ export interface FeedbackComment {
   feedbackId: string;
   authorId: string;
   authorName: string;
+  authorAvatarUrl?: string;
   text: string;
   createdAt: string;
 }
@@ -191,6 +192,7 @@ export async function addComment(
   authorId: string,
   authorName: string,
   text: string,
+  authorAvatarUrl?: string,
 ): Promise<{ comment: FeedbackComment; feedbackTitle: string } | null> {
   const items = await load();
   const item = items.find((i) => i.id === feedbackId);
@@ -203,6 +205,7 @@ export async function addComment(
     feedbackId,
     authorId,
     authorName: authorName?.trim() || getDisplayNameFromUserId(authorId),
+    ...(authorAvatarUrl ? { authorAvatarUrl } : {}),
     text: text.trim(),
     createdAt: new Date().toISOString(),
   };

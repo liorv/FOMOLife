@@ -3,7 +3,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 1200;
+  /* Must sit above nav bar (9999) and logo bar (9999) */
+  z-index: 10001;
   display: flex;
   align-items: flex-end;
   justify-content: center;

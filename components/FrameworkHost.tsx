@@ -377,7 +377,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     } else if (tab.key === 'people') {
       content = <ContactsPage key="contacts" canManage={true} currentUserId={userId} currentUserEmail={userEmail ?? ""} style={innerStyle} onReady={() => handleTabReady('people')} isActive={isActive} />;
     } else if (tab.key === 'feedback') {
-      content = <FeedbackPage key="feedback" userId={userId} userName={userName} style={innerStyle} onReady={() => handleTabReady('feedback')} isActive={isActive} />;
+      content = <FeedbackPage key="feedback" userId={userId} userName={userName} userAvatarUrl={userAvatarUrl ?? ''} style={innerStyle} onReady={() => handleTabReady('feedback')} isActive={isActive} />;
     }
 
     return (

@@ -26,6 +26,7 @@ interface FeedbackItem {
 type Props = {
   userId: string;
   userName: string;
+  userAvatarUrl?: string;
   style?: React.CSSProperties;
   onReady?: () => void;
   isActive?: boolean;
@@ -57,7 +58,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function FeedbackPage({ userId, userName, style, onReady, isActive }: Props) {
+export default function FeedbackPage({ userId, userName, userAvatarUrl, style, onReady, isActive }: Props) {
   const searchParams = useSearchParams();
   const search = searchParams.get('q') ?? '';
 
@@ -489,6 +490,7 @@ export default function FeedbackPage({ userId, userName, style, onReady, isActiv
           item={threadItem}
           userId={userId}
           userName={userName}
+          {...(userAvatarUrl ? { userAvatarUrl } : {})}
           onClose={() => setThreadItem(null)}
         />
       )}
