@@ -35,6 +35,7 @@ export interface FeedbackNotification {
   commentText: string;
   createdAt: string;
   read: boolean;
+  dismissed?: boolean;
 }
 
 export interface FeedbackItem {
@@ -334,6 +335,22 @@ export async function markNotificationsRead(
   const markAll = ids.length === 0;
   for (const n of notifs) {
     if (markAll || ids.includes(n.id)) n.read = true;
+  }
+  await saveNotifications(userId, notifs);
+}
+
+/** Dismisses (archives) specific notification IDs. Pass empty array to dismiss all. */
+export async function dismissNotifications(
+  userId: string,
+  ids: string[],
+): Promise<void> {
+  const notifs = await loadNotifications(userId);
+  const dismissAll = ids.length === 0;
+  for (const n of notifs) {
+    if (dismissAll || ids.includes(n.id)) {
+      n.read = true;
+      n.dismissed = true;
+    }
   }
   await saveNotifications(userId, notifs);
 }

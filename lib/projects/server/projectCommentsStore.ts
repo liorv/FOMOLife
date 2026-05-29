@@ -39,6 +39,7 @@ export interface ProjectNotification {
   commentText: string;
   createdAt: string;
   read: boolean;
+  dismissed?: boolean;
 }
 
 // ── Thread helpers ─────────────────────────────────────────────────────────────
@@ -167,5 +168,14 @@ export async function markProjectNotificationsRead(userId: string, ids: string[]
   const notifs = await loadNotifications(userId);
   const markAll = ids.length === 0;
   const updated = notifs.map((n) => (markAll || ids.includes(n.id) ? { ...n, read: true } : n));
+  await saveNotifications(userId, updated);
+}
+
+export async function dismissProjectNotifications(userId: string, ids: string[]): Promise<void> {
+  const notifs = await loadNotifications(userId);
+  const dismissAll = ids.length === 0;
+  const updated = notifs.map((n) =>
+    dismissAll || ids.includes(n.id) ? { ...n, read: true, dismissed: true } : n,
+  );
   await saveNotifications(userId, updated);
 }

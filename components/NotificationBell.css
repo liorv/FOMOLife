@@ -315,8 +315,9 @@
 /* Mark all row */
 .notif-mark-all-row {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   padding: 6px 12px 2px;
+  gap: 4px;
 }
 
 .notif-mark-all-btn {
@@ -331,6 +332,61 @@
 }
 
 .notif-mark-all-btn:hover {
+  background: #eef2ff;
+}
+
+/* Notification action buttons column (View + Dismiss) */
+.notif-actions-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Dismiss (checkmark) button */
+.btn-dismiss-notif {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+
+.btn-dismiss-notif:hover {
+  background: #d1fae5;
+  color: #059669;
+  border-color: #6ee7b7;
+}
+
+/* History toggle row */
+.notif-history-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+}
+
+.notif-history-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notif-history-btn:hover {
+  color: #6366f1;
   background: #eef2ff;
 }
 

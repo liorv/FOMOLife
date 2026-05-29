@@ -101,6 +101,33 @@
   transition: background 0.2s;
 }
 
+.item-list li .chat-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #888);
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-left: 4px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.2s;
+}
+
+.task-row:hover .chat-btn,
+.item-list li:hover .chat-btn {
+  opacity: 1;
+}
+
+.item-list li .chat-btn:hover {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+
 .item-list li .star.favorite {
   color: var(--color-star-active);
   text-shadow: 0 0 2px rgba(255, 215, 0, 0.6);

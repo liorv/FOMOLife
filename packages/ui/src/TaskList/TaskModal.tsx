@@ -29,7 +29,6 @@ export default function TaskEditor({
   // --- State ---------------------------------------------------------------
 
   const [title, setTitle] = useState(task.text || "");
-  const [description, setDescription] = useState(task.description || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
   const [effort, setEffort] = useState<number | null | undefined>(task.effort);
 
@@ -42,14 +41,13 @@ export default function TaskEditor({
   // Keep a ref to latest editable state so cleanup can persist on unmount
   const latestRef = React.useRef({
     title: task.text || "",
-    description: task.description || "",
     dueDate: task.dueDate || "",
     effort: task.effort,
     people: initialPeople,
   });
   useEffect(() => {
-    latestRef.current = { title, description, dueDate, effort, people };
-  }, [title, description, dueDate, effort, people]);
+    latestRef.current = { title, dueDate, effort, people };
+  }, [title, dueDate, effort, people]);
 
   // persist latest edits when editor unmounts (e.g. user switches tasks)
   // Use a flag to ensure cleanup only runs once (handles Strict Mode double-mount)
@@ -67,7 +65,6 @@ export default function TaskEditor({
       const updatedTask = {
         ...task,
         text: latest.title,
-        description: latest.description,
         dueDate: latest.dueDate || null,
         effort: latest.effort !== undefined ? latest.effort : null,
         people: normalizedPeople,
@@ -99,7 +96,6 @@ export default function TaskEditor({
     const updated: ProjectTask = {
       ...task,
       text: title,
-      description,
       people: normalizedPeople,
       effort: effort !== undefined ? effort : null,
       dueDate: dueDate || null,
@@ -124,7 +120,7 @@ export default function TaskEditor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [description, people, onSave, onUpdateTask, task]);
+  }, [people, onSave, onUpdateTask, task]);
 
   // --- Render ---
 
@@ -132,7 +128,6 @@ export default function TaskEditor({
 
   // unique ids for inputs (avoid duplicates when multiple editors are mounted)
   const dateId = `task-date-${task.id || 'editor'}`;
-  const descId = `task-desc-${task.id || 'editor'}`;
 
   return (
     <div className={containerClass}>
@@ -173,22 +168,6 @@ export default function TaskEditor({
                 const newValue = e.target.value;
                 setDueDate(newValue);
                 onUpdateTask({ ...task, dueDate: newValue || null });
-              }}
-            />
-          </div>
-
-          <div className="editor-section desc-section">
-            <label htmlFor={descId} className="desc-label">
-              Notes
-            </label>
-            <textarea
-              id={descId}
-              className="task-description"
-              value={description}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setDescription(newValue);
-                onUpdateTask({ ...task, description: newValue });
               }}
             />
           </div>

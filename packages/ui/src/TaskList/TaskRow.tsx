@@ -276,7 +276,7 @@ item,
             onClick={(e) => { e.stopPropagation(); onChatClick(id); }}
             aria-label="Open conversation"
           >
-            <span className="material-icons">chat_bubble_outline</span>
+            <span className="material-icons" style={{ fontSize: '1.15rem' }}>chat_bubble_outline</span>
           </button>
         )}
         {type === "tasks" && (

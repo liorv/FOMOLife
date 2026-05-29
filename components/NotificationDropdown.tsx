@@ -69,8 +69,10 @@ export function NotificationDropdown({
   const [activeTab, setActiveTab] = useState<TabType>('feedback');
   const [feedbackNotifs, setFeedbackNotifs] = useState<FeedbackNotification[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [feedbackShowHistory, setFeedbackShowHistory] = useState(false);
   const [projectNotifs, setProjectNotifs] = useState<ProjectNotification[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsShowHistory, setProjectsShowHistory] = useState(false);
 
   useEffect(() => {
     loadPendingRequests();
@@ -100,26 +102,28 @@ export function NotificationDropdown({
     }
   };
 
-  const loadFeedbackNotifs = async () => {
+  const loadFeedbackNotifs = async (showHistory = false) => {
     try {
-      const res = await fetch('/api/feedback/notifications');
+      const url = showHistory ? '/api/feedback/notifications?dismissed=1' : '/api/feedback/notifications';
+      const res = await fetch(url);
       if (res.ok) {
         const d = await res.json();
         setFeedbackNotifs(d.notifications ?? []);
-        onFeedbackNotifsUpdate?.(d.unreadCount ?? 0);
+        if (!showHistory) onFeedbackNotifsUpdate?.(d.unreadCount ?? 0);
       }
     } catch { /* silent */ } finally {
       setFeedbackLoading(false);
     }
   };
 
-  const loadProjectNotifs = async () => {
+  const loadProjectNotifs = async (showHistory = false) => {
     try {
-      const res = await fetch('/api/projects/notifications');
+      const url = showHistory ? '/api/projects/notifications?dismissed=1' : '/api/projects/notifications';
+      const res = await fetch(url);
       if (res.ok) {
         const d = await res.json();
         setProjectNotifs(d.notifications ?? []);
-        onProjectNotifsUpdate?.(d.unreadCount ?? 0);
+        if (!showHistory) onProjectNotifsUpdate?.(d.unreadCount ?? 0);
       }
     } catch { /* silent */ } finally {
       setProjectsLoading(false);
@@ -194,6 +198,20 @@ export function NotificationDropdown({
     } catch { /* silent */ }
   };
 
+  const handleDismissFeedback = async (id: string) => {
+    try {
+      await fetch('/api/feedback/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [id], action: 'dismiss' }),
+      });
+      setFeedbackNotifs((prev) => prev.filter((n) => n.id !== id));
+      const unread = feedbackNotifs.filter((n) => !n.read && n.id !== id).length;
+      onFeedbackNotifsUpdate?.(unread);
+      window.dispatchEvent(new Event('feedback-notifs-updated'));
+    } catch { /* silent */ }
+  };
+
   const handleJumpToProjectThread = async (notif: ProjectNotification) => {
     // Mark as read
     try {
@@ -237,6 +255,20 @@ export function NotificationDropdown({
       });
       setProjectNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
       onProjectNotifsUpdate?.(0);
+      window.dispatchEvent(new Event('project-notifs-updated'));
+    } catch { /* silent */ }
+  };
+
+  const handleDismissProject = async (id: string) => {
+    try {
+      await fetch('/api/projects/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [id], action: 'dismiss' }),
+      });
+      setProjectNotifs((prev) => prev.filter((n) => n.id !== id));
+      const unread = projectNotifs.filter((n) => !n.read && n.id !== id).length;
+      onProjectNotifsUpdate?.(unread);
       window.dispatchEvent(new Event('project-notifs-updated'));
     } catch { /* silent */ }
   };
@@ -322,20 +354,42 @@ export function NotificationDropdown({
           projectsLoading ? (
             <div className="notification-loading">Loading...</div>
           ) : projectNotifs.length === 0 ? (
-            <p className="notification-empty">No project notifications</p>
+            <>
+              <p className="notification-empty">
+                {projectsShowHistory ? 'No dismissed project notifications' : 'No project notifications'}
+              </p>
+              <div className="notif-history-row">
+                <button className="notif-history-btn" onClick={() => {
+                  const next = !projectsShowHistory;
+                  setProjectsShowHistory(next);
+                  setProjectsLoading(true);
+                  loadProjectNotifs(next);
+                }}>
+                  {projectsShowHistory ? 'Hide history' : 'View history'}
+                </button>
+              </div>
+            </>
           ) : (
             <>
-              {unreadProjects > 0 && (
-                <div className="notif-mark-all-row">
+              <div className="notif-mark-all-row">
+                {unreadProjects > 0 && (
                   <button className="notif-mark-all-btn" onClick={handleMarkAllProjectRead}>
                     Mark all as read
                   </button>
-                </div>
-              )}
+                )}
+                <button className="notif-history-btn" style={{ marginLeft: 'auto' }} onClick={() => {
+                  const next = !projectsShowHistory;
+                  setProjectsShowHistory(next);
+                  setProjectsLoading(true);
+                  loadProjectNotifs(next);
+                }}>
+                  {projectsShowHistory ? 'Hide history' : 'View history'}
+                </button>
+              </div>
               {projectNotifs.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`notification-item feedback-notif-item ${!notif.read ? 'feedback-notif-unread' : ''}`}
+                  className={`notification-item feedback-notif-item ${!notif.read && !projectsShowHistory ? 'feedback-notif-unread' : ''}`}
                 >
                   <div className="feedback-notif-body">
                     <span className="feedback-notif-icon material-icons">chat_bubble_outline</span>
@@ -347,14 +401,28 @@ export function NotificationDropdown({
                       <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                     </div>
                   </div>
-                  <button
-                    className="btn-jump-thread"
-                    onClick={() => handleJumpToProjectThread(notif)}
-                    title="Go to thread"
-                  >
-                    <span className="material-icons" style={{ fontSize: 16 }}>open_in_new</span>
-                    View
-                  </button>
+                  <div className="notif-actions-col">
+                    {!projectsShowHistory && (
+                      <button
+                        className="btn-jump-thread"
+                        onClick={() => handleJumpToProjectThread(notif)}
+                        title="Go to thread"
+                      >
+                        <span className="material-icons" style={{ fontSize: 16 }}>open_in_new</span>
+                        View
+                      </button>
+                    )}
+                    {!projectsShowHistory && (
+                      <button
+                        className="btn-dismiss-notif"
+                        onClick={() => handleDismissProject(notif.id)}
+                        title="Dismiss"
+                        aria-label="Dismiss notification"
+                      >
+                        <span className="material-icons" style={{ fontSize: 16 }}>check</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </>
@@ -362,20 +430,42 @@ export function NotificationDropdown({
         ) : feedbackLoading ? (
           <div className="notification-loading">Loading...</div>
         ) : feedbackNotifs.length === 0 ? (
-          <p className="notification-empty">No feedback notifications</p>
+          <>
+            <p className="notification-empty">
+              {feedbackShowHistory ? 'No dismissed feedback notifications' : 'No feedback notifications'}
+            </p>
+            <div className="notif-history-row">
+              <button className="notif-history-btn" onClick={() => {
+                const next = !feedbackShowHistory;
+                setFeedbackShowHistory(next);
+                setFeedbackLoading(true);
+                loadFeedbackNotifs(next);
+              }}>
+                {feedbackShowHistory ? 'Hide history' : 'View history'}
+              </button>
+            </div>
+          </>
         ) : (
           <>
-            {unreadFeedback > 0 && (
-              <div className="notif-mark-all-row">
+            <div className="notif-mark-all-row">
+              {unreadFeedback > 0 && (
                 <button className="notif-mark-all-btn" onClick={handleMarkAllRead}>
                   Mark all as read
                 </button>
-              </div>
-            )}
+              )}
+              <button className="notif-history-btn" style={{ marginLeft: 'auto' }} onClick={() => {
+                const next = !feedbackShowHistory;
+                setFeedbackShowHistory(next);
+                setFeedbackLoading(true);
+                loadFeedbackNotifs(next);
+              }}>
+                {feedbackShowHistory ? 'Hide history' : 'View history'}
+              </button>
+            </div>
             {feedbackNotifs.map((notif) => (
               <div
                 key={notif.id}
-                className={`notification-item feedback-notif-item ${!notif.read ? 'feedback-notif-unread' : ''}`}
+                className={`notification-item feedback-notif-item ${!notif.read && !feedbackShowHistory ? 'feedback-notif-unread' : ''}`}
               >
                 <div className="feedback-notif-body">
                   <span className="feedback-notif-icon material-icons">
@@ -389,14 +479,28 @@ export function NotificationDropdown({
                     <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                   </div>
                 </div>
-                <button
-                  className="btn-jump-thread"
-                  onClick={() => handleJumpToThread(notif)}
-                  title="Go to thread"
-                >
-                  <span className="material-icons" style={{ fontSize: 16 }}>open_in_new</span>
-                  View
-                </button>
+                <div className="notif-actions-col">
+                  {!feedbackShowHistory && (
+                    <button
+                      className="btn-jump-thread"
+                      onClick={() => handleJumpToThread(notif)}
+                      title="Go to thread"
+                    >
+                      <span className="material-icons" style={{ fontSize: 16 }}>open_in_new</span>
+                      View
+                    </button>
+                  )}
+                  {!feedbackShowHistory && (
+                    <button
+                      className="btn-dismiss-notif"
+                      onClick={() => handleDismissFeedback(notif.id)}
+                      title="Dismiss"
+                      aria-label="Dismiss notification"
+                    >
+                      <span className="material-icons" style={{ fontSize: 16 }}>check</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </>
