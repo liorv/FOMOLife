@@ -213,7 +213,7 @@ export default function FeedbackThread({ item, userId, userName, userAvatarUrl, 
                   <div className={styles.bubble}>
                     <p className={styles.commentText}>{c.text}</p>
                     <div className={styles.bubbleFooter}>
-                      {!isMe && <span className={styles.commentAuthor}>{shortName(c.authorName)}</span>}
+                      <span className={styles.commentAuthor}>{isMe ? shortName(userName) : shortName(c.authorName)}</span>
                       <span className={styles.commentTime}>{timeAgo(c.createdAt)}</span>
                     </div>
                   </div>

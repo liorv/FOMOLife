@@ -237,6 +237,10 @@
   justify-content: flex-end;
 }
 
+.commentRowMe .commentAuthor {
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .commentText {
   margin: 0;
   font-size: 0.88rem;
