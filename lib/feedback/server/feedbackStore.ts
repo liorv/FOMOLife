@@ -26,7 +26,7 @@ export interface FeedbackComment {
 
 export interface FeedbackNotification {
   id: string;
-  type: 'feedback_comment';
+  type: 'feedback_comment' | 'feedback_status';
   feedbackId: string;
   feedbackTitle: string;
   commentId: string;
@@ -138,6 +138,7 @@ export async function markFeedbackComplete(
   userId: string,
   id: string,
   mark: boolean,
+  markerName?: string,
 ): Promise<{ item: FeedbackItem | null; archived: boolean }> {
   const items = await load();
   const item = items.find((i) => i.id === id);
@@ -157,10 +158,55 @@ export async function markFeedbackComplete(
     const idx = items.findIndex((i) => i.id === id);
     items.splice(idx, 1);
     await persist(items);
+
+    // Notify the feedback author + commenters that item was completed/archived
+    if (mark) {
+      const toNotify = new Set<string>();
+      if (item.authorId !== userId) toNotify.add(item.authorId);
+      for (const c of item.comments ?? []) {
+        if (c.authorId !== userId) toNotify.add(c.authorId);
+      }
+      const displayName = markerName?.trim() || getDisplayNameFromUserId(userId);
+      const now = new Date().toISOString();
+      const notifPromises = Array.from(toNotify).map((recipientId) =>
+        appendNotification(recipientId, {
+          id: generateId(),
+          type: 'feedback_status',
+          feedbackId: id,
+          feedbackTitle: item.title,
+          commentId: '',
+          commentAuthorId: userId,
+          commentAuthorName: displayName,
+          commentText: 'Marked your feedback as completed ✔',
+          createdAt: now,
+          read: false,
+        }),
+      );
+      await Promise.allSettled(notifPromises);
+    }
+
     return { item: null, archived: true };
   }
 
   await persist(items);
+
+  // Notify feedback author when anyone else marks it complete (non-archiving)
+  if (mark && item.authorId !== userId) {
+    const displayName = markerName?.trim() || getDisplayNameFromUserId(userId);
+    await appendNotification(item.authorId, {
+      id: generateId(),
+      type: 'feedback_status',
+      feedbackId: id,
+      feedbackTitle: item.title,
+      commentId: '',
+      commentAuthorId: userId,
+      commentAuthorName: displayName,
+      commentText: 'Marked your feedback as completed ✔',
+      createdAt: new Date().toISOString(),
+      read: false,
+    });
+  }
+
   return { item, archived: false };
 }
 

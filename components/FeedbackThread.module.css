@@ -3,8 +3,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  /* Must sit above nav bar (9999) and logo bar (9999) */
-  z-index: 10001;
+  /* Must sit above logo bar (12001) and nav bar (9999) */
+  z-index: 12002;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -222,6 +222,19 @@
   font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-text-muted, #64748b);
+  white-space: nowrap;
+}
+
+.bubbleFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.commentRowMe .bubbleFooter {
+  justify-content: flex-end;
 }
 
 .commentText {

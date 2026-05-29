@@ -6,7 +6,7 @@ import type { PendingRequest, PendingRequestsResponse } from '@myorg/types';
 
 interface FeedbackNotification {
   id: string;
-  type: 'feedback_comment';
+  type: 'feedback_comment' | 'feedback_status';
   feedbackId: string;
   feedbackTitle: string;
   commentId: string;
@@ -250,12 +250,14 @@ export function NotificationDropdown({
                 className={`notification-item feedback-notif-item ${!notif.read ? 'feedback-notif-unread' : ''}`}
               >
                 <div className="feedback-notif-body">
-                  <span className="feedback-notif-icon material-icons">forum</span>
+                  <span className="feedback-notif-icon material-icons">
+                    {notif.type === 'feedback_status' ? 'check_circle' : 'forum'}
+                  </span>
                   <div className="feedback-notif-text">
                     <span className="feedback-notif-author">{notif.commentAuthorName}</span>
-                    {' commented on '}
-                    <span className="feedback-notif-title">&ldquo;{notif.feedbackTitle}&rdquo;</span>
-                    <p className="feedback-notif-preview">{notif.commentText}</p>
+                    {notif.type === 'feedback_status'
+                      ? <>{' completed '}<span className="feedback-notif-title">&ldquo;{notif.feedbackTitle}&rdquo;</span></>
+                      : <>{' commented on '}<span className="feedback-notif-title">&ldquo;{notif.feedbackTitle}&rdquo;</span><p className="feedback-notif-preview">{notif.commentText}</p></>}
                     <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                   </div>
                 </div>

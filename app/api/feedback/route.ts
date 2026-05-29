@@ -56,7 +56,7 @@ export async function PATCH(request: Request) {
 
   // Handle completion toggle
   if (body.complete !== undefined) {
-    const result = await markFeedbackComplete(session.userId, body.id, body.complete);
+    const result = await markFeedbackComplete(session.userId, body.id, body.complete, session.userName ?? session.userEmail ?? session.userId);
     if (result.archived) {
       return NextResponse.json({ archived: true });
     }
