@@ -42,15 +42,16 @@ function timeAgo(iso: string): string {
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const first = parts[0] ?? '';
+  if (parts.length === 1) return first[0]?.toUpperCase() ?? '?';
+  return ((first[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase() || '?';
 }
 
 const AVATAR_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 function avatarColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? '#6366f1';
 }
 
 export default function FeedbackThread({ item, userId, userName, onClose }: Props) {

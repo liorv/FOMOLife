@@ -22,7 +22,7 @@ type NotificationDropdownProps = {
   onClose: () => void;
   onRequestsUpdate: (count: number) => void;
   onContactsUpdate: () => void;
-  userId?: string;
+  userId?: string | undefined;
   onFeedbackNotifsUpdate?: (count: number) => void;
 };
 
