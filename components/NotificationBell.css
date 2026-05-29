@@ -205,33 +205,47 @@
   cursor: not-allowed;
 }
 
-/* ── Notification tabs ── */
-.notif-tabs {
+/* ── Notification type badges ── */
+.notif-type-row {
   display: flex;
-  border-bottom: 1px solid var(--gray-200, #e2e8f0);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
-.notif-tab {
-  flex: 1;
-  padding: 8px 4px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ui-text-muted, #666);
-  cursor: pointer;
-  transition: color 0.14s, border-color 0.14s;
-}
-
-.notif-tab:hover {
-  color: #6366f1;
-}
-
-.notif-tab-active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
+.notif-type-badge {
+  display: inline-block;
+  font-size: 10px;
   font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.notif-type-feedback {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.notif-type-project {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.notif-type-contact {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* Clickable notification rows */
+.notif-clickable {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.notif-clickable:hover {
+  background: #f5f3ff;
 }
 
 /* ── Feedback notification items ── */
@@ -290,103 +304,5 @@
 .feedback-notif-time {
   font-size: 10px;
   color: var(--ui-text-muted, #999);
-}
-
-.btn-jump-thread {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: #6366f1;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.14s;
-  align-self: flex-end;
-}
-
-.btn-jump-thread:hover {
-  background: #4f46e5;
-}
-
-/* Mark all row */
-.notif-mark-all-row {
-  display: flex;
-  align-items: center;
-  padding: 6px 12px 2px;
-  gap: 4px;
-}
-
-.notif-mark-all-btn {
-  background: none;
-  border: none;
-  font-size: 11px;
-  color: #6366f1;
-  cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.notif-mark-all-btn:hover {
-  background: #eef2ff;
-}
-
-/* Notification action buttons column (View + Dismiss) */
-.notif-actions-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-/* Dismiss (checkmark) button */
-.btn-dismiss-notif {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 6px;
-  background: transparent;
-  color: #9ca3af;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.14s, color 0.14s, border-color 0.14s;
-}
-
-.btn-dismiss-notif:hover {
-  background: #d1fae5;
-  color: #059669;
-  border-color: #6ee7b7;
-}
-
-/* History toggle row */
-.notif-history-row {
-  display: flex;
-  justify-content: center;
-  padding: 8px 12px;
-}
-
-.notif-history-btn {
-  background: none;
-  border: none;
-  font-size: 11px;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.notif-history-btn:hover {
-  color: #6366f1;
-  background: #eef2ff;
 }
 
