@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { createProject, deleteProject, listProjects, updateProject, resolveProjectOwner, removeSharedProjectRef } from '@/lib/projects/server/projectsStore';
+import { notifyTaskCompleted } from '@/lib/projects/server/projectCommentsStore';
 import type { ProjectItem } from '@myorg/types';
 
 function unauthorizedResponse() {
@@ -77,9 +78,56 @@ export async function PATCH(request: Request) {
   }
 
   const ownerUserId = await resolveProjectOwner(body.id, session.userId);
+
+  // Before saving, detect tasks that are newly completed so we can notify members
+  let newlyCompletedTasks: Array<{ id: string; text: string }> = [];
+  if (Array.isArray(body.patch.subprojects)) {
+    try {
+      const existing = await listProjects(ownerUserId);
+      const currentProject = existing.find((p) => p.id === body.id);
+      if (currentProject) {
+        // Build a map of taskId → done from the CURRENT persisted state
+        const currentDoneMap = new Map<string, boolean>();
+        for (const sub of currentProject.subprojects ?? []) {
+          for (const task of sub.tasks ?? []) {
+            currentDoneMap.set(task.id, task.done);
+          }
+        }
+        // Find any task in the incoming patch that is now done but wasn't before
+        for (const sub of body.patch.subprojects) {
+          for (const task of sub.tasks ?? []) {
+            if (task.done && currentDoneMap.get(task.id) === false) {
+              newlyCompletedTasks.push({ id: task.id, text: task.text });
+            }
+          }
+        }
+      }
+    } catch { /* non-critical */ }
+  }
+
   const updated = await updateProject(ownerUserId, body.id, body.patch);
   if (!updated) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  }
+
+  // Fire task-completion notifications (non-blocking)
+  if (newlyCompletedTasks.length > 0) {
+    const memberIds = (updated.members ?? []).map((m) => m.userId).filter(Boolean);
+    const projectTitle = updated.text;
+    const completedByName = session.userName ?? session.userEmail ?? session.userId;
+    void Promise.allSettled(
+      newlyCompletedTasks.map((task) =>
+        notifyTaskCompleted({
+          projectId: body.id!,
+          projectTitle,
+          taskId: task.id,
+          taskTitle: task.text,
+          completedByUserId: session.userId,
+          completedByName,
+          memberIds,
+        }),
+      ),
+    );
   }
 
   return NextResponse.json(updated);

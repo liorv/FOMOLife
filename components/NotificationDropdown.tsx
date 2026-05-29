@@ -19,7 +19,7 @@ interface FeedbackNotification {
 
 interface ProjectNotification {
   id: string;
-  type: 'project_comment';
+  type: 'project_comment' | 'task_completed';
   threadId: string;
   projectId: string;
   taskId?: string;
@@ -392,12 +392,14 @@ export function NotificationDropdown({
                   className={`notification-item feedback-notif-item ${!notif.read && !projectsShowHistory ? 'feedback-notif-unread' : ''}`}
                 >
                   <div className="feedback-notif-body">
-                    <span className="feedback-notif-icon material-icons">chat_bubble_outline</span>
+                    <span className="feedback-notif-icon material-icons">
+                      {notif.type === 'task_completed' ? 'check_circle' : 'chat_bubble_outline'}
+                    </span>
                     <div className="feedback-notif-text">
                       <span className="feedback-notif-author">{notif.commentAuthorName}</span>
-                      {' commented on '}
-                      <span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span>
-                      <p className="feedback-notif-preview">{notif.commentText}</p>
+                      {notif.type === 'task_completed'
+                        ? <>{' completed '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span>{' '}<span style={{ color: 'var(--ui-text-muted, #888)', fontSize: '0.9em' }}>{notif.commentText}</span></>
+                        : <>{' commented on '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span><p className="feedback-notif-preview">{notif.commentText}</p></>}
                       <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                     </div>
                   </div>

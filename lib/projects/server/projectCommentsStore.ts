@@ -24,7 +24,7 @@ export interface ProjectThreadComment {
 
 export interface ProjectNotification {
   id: string;
-  type: 'project_comment';
+  type: 'project_comment' | 'task_completed';
   /** e.g. "proj:abc" or "task:abc:xyz" */
   threadId: string;
   /** The project to open for navigation */
@@ -178,4 +178,39 @@ export async function dismissProjectNotifications(userId: string, ids: string[])
     dismissAll || ids.includes(n.id) ? { ...n, read: true, dismissed: true } : n,
   );
   await saveNotifications(userId, updated);
+}
+
+/**
+ * Fan-out a "task completed" notification to all project members except the completer.
+ */
+export async function notifyTaskCompleted(opts: {
+  projectId: string;
+  projectTitle: string;
+  taskId: string;
+  taskTitle: string;
+  completedByUserId: string;
+  completedByName: string;
+  /** All project member userIds */
+  memberIds: string[];
+}): Promise<void> {
+  const { projectId, projectTitle, taskId, taskTitle, completedByUserId, completedByName, memberIds } = opts;
+  const now = new Date().toISOString();
+  const threadId = `task:${projectId}:${taskId}`;
+  const toNotify = memberIds.filter((id) => id !== completedByUserId);
+  const notifPromises = toNotify.map((recipientId) =>
+    appendNotification(recipientId, {
+      id: generateId(),
+      type: 'task_completed',
+      threadId,
+      projectId,
+      taskId,
+      threadTitle: taskTitle,
+      commentAuthorId: completedByUserId,
+      commentAuthorName: completedByName,
+      commentText: `completed in “${projectTitle}”`,
+      createdAt: now,
+      read: false,
+    }),
+  );
+  await Promise.allSettled(notifPromises);
 }
