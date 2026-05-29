@@ -1,0 +1,59 @@
+{
+  "releases": [
+    {
+      "version": "May 2026 Update",
+      "date": "May 29, 2026",
+      "changes": [
+        "Tasks with active conversations now show a filled chat icon and message count badge right on the task row — no more guessing which tasks have ongoing discussions.",
+        "The project Chat button now highlights and shows a message count when there are messages in the project thread.",
+        "Expanding a task to edit it now shows a clean, modern inline editor with icon labels, smooth focus states, and a slide-in animation."
+      ]
+    },
+    {
+      "version": "April 2026 Update (End of Month)",
+      "date": "April 28, 2026",
+      "changes": [
+        "You can now invite people to collaborate on a project — the Invite button is colored to match your project so it's easy to spot.",
+        "Added an Export button to save a copy of your project data.",
+        "Added a new 'Assigned to me' filter so you can quickly find tasks assigned specifically to you.",
+        "Swipe left or right to jump between tabs on mobile.",
+        "Helpful on-screen tips appear to guide you around drag & drop and navigation — tap 'got it' to dismiss them.",
+        "Cleaned up the mobile toolbar so it stays compact and uncluttered on small screens.",
+        "Fixed an issue that occasionally prevented deleting older projects."
+      ]
+    },
+    {
+      "version": "April 2026 Update (late)",
+      "date": "April 2026",
+      "changes": [
+        "Invite links now redirect unauthenticated users to log in and return them to the acceptance page automatically.",
+        "Existing projects without an icon are automatically assigned a fun random emoji icon.",
+        "Icon search in Project Overview now shows results as you type with smart debouncing.",
+        "The arrow guide in Contacts is hidden when an active invite link is already visible on screen."
+      ]
+    },
+    {
+      "version": "April 2026 Update",
+      "date": "April 2026",
+      "changes": [
+        "Introduced a new Chat-based AI Assistant to effortlessly generate, organize, and enhance your projects.",
+        "Added 'Effort' and 'Priority' fields to tasks to help you better manage your workload.",
+        "Global search now instantly finds specific tasks directly within your projects.",
+        "You can now customize your projects by adding custom cover images.",
+        "Added the ability to log in quickly and securely using your X (Twitter) account.",
+        "Complete visual overhaul of the dashboard, project tiles, and task details for a more professional look.",
+        "Added a 'What's New' section on the home page so you never miss an update."
+      ]
+    },
+    {
+      "version": "March 2026 Update",
+      "date": "March 2026",
+      "changes": [
+        "Launched the Connections system! You can now invite contacts using easy-to-share links and collaborate seamlessly.",
+        "Dramatically improved app speed with instant, flicker-free tab switching and optimistic UI updates.",
+        "Added visual confirmations when deleting projects to prevent accidental removals.",
+        "Improved task navigation: you can now open and close a task's details simply by clicking its name."
+      ]
+    }
+  ]
+}
