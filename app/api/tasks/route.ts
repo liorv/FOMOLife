@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
+import { unauthorizedResponse } from '@/lib/server/apiUtils';
 import { createTask, deleteTask, listTasks, updateTask } from '@/lib/tasks/server/tasksStore';
 import type { TaskItem } from '@myorg/types';
-
-function unauthorizedResponse() {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
 
 export async function GET() {
   const session = await getFrameworkSession();

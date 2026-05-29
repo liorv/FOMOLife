@@ -8,20 +8,9 @@ import type {
 } from '@myorg/api-client';
 import { createContact, deleteContact, listContacts, updateContact } from '@/lib/contacts/server/contactsStore';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
+import { unauthorizedResponse, makeCorsResponse } from '@/lib/server/apiUtils';
 
-function unauthorizedResponse() {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
-
-function corsResponse(response: NextResponse, request?: Request) {
-  const origin = request?.headers.get('origin') || '*';
-  // when credentials are included we must echo the origin instead of '*'
-  response.headers.set('Access-Control-Allow-Origin', origin);
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
-  return response;
-}
+const corsResponse = makeCorsResponse('GET,POST,PATCH,DELETE,OPTIONS');
 
 export async function OPTIONS(request: Request) {
   // preflight handler

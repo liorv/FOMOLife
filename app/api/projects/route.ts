@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
+import { unauthorizedResponse } from '@/lib/server/apiUtils';
 import { createProject, deleteProject, listProjects, updateProject, resolveProjectOwner, removeSharedProjectRef } from '@/lib/projects/server/projectsStore';
 import { notifyTaskCompleted } from '@/lib/projects/server/projectCommentsStore';
 import type { ProjectItem } from '@myorg/types';
-
-function unauthorizedResponse() {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
 
 export async function GET(request: Request) {
   const session = await getFrameworkSession();

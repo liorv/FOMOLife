@@ -3,31 +3,9 @@ import 'server-only';
 import { createStorageProvider } from '@myorg/storage';
 import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
+import type { TaskItem } from '@myorg/types';
 
 const storage = createStorageProvider();
-
-export interface TaskItem {
-  id: string;
-  text: string;
-  done: boolean;
-  dueDate: string | null;
-  favorite: boolean;
-  description: string;
-  // people assigned to this task (project-style)
-  people?: import('@myorg/types').ProjectTaskPerson[];
-  priority?: "low" | "medium" | "high" | null;
-  effort?: number | null;
-  completedAt?: string | null;
-}
-
-
-
-
-
-
-
-
-
 
 const tasksByUser = new Map<string, TaskItem[]>();
 
@@ -67,7 +45,7 @@ export async function listTasks(userId: string): Promise<TaskItem[]> {
 export async function createTask(
   userId: string,
   input: Pick<TaskItem, 'text'> &
-    Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort' | 'effort'>>,
+    Partial<Pick<TaskItem, 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>,
 ): Promise<TaskItem> {
   const current = await getOrInitUserTasks(userId);
   const created: TaskItem = {
@@ -79,7 +57,6 @@ export async function createTask(
     description: input.description ?? '',
     ...(input.people ? { people: input.people } : {}),
     ...(input.priority !== undefined ? { priority: input.priority } : {}),
-    ...(input.effort !== undefined ? { effort: input.effort } : {}),
     ...(input.effort !== undefined ? { effort: input.effort } : {}),
   };
   current.push(created);

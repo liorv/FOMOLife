@@ -8,6 +8,7 @@ import { preloadImages } from '@myorg/utils';
 import type { TaskItem, ProjectItem, Contact, ProjectTask } from '@myorg/types';
 import GlobalSearchResults, { type FeedbackItem } from './GlobalSearchResults';
 import ContentHeader from './ContentHeader';
+import EntityIcon from './EntityIcon';
 import { getCachedProjectsSync, setCachedProjects, areProjectsStale } from '@/lib/client/projectsCache';
 import { getCachedTasksSync, setCachedTasks, areTasksStale } from '@/lib/client/tasksCache';
 import { getCachedContactsSync } from '@/lib/client/contactsCache';
@@ -21,32 +22,6 @@ type Props = {
   onReady?: () => void;
   isActive?: boolean;
 };
-
-// Renders a project icon image with a letter-initial fallback when the image fails to load
-function ActivityIconImg({ src, initial, iconColor }: { src: string; initial?: string; iconColor?: string }) {
-  const [err, setErr] = React.useState(false);
-  if (err) {
-    return (
-      <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: iconColor || 'var(--color-warning, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0, marginTop: '2px' }}>
-        {initial}
-      </div>
-    );
-  }
-  return <img src={src} alt="" style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover', marginTop: '2px' }} onError={() => setErr(true)} />;
-}
-
-// Renders a small project badge image with a letter-initial fallback when the image fails to load
-function ProjectBadgeImg({ src, initial, title }: { src: string; initial?: string; title?: string }) {
-  const [err, setErr] = React.useState(false);
-  if (err) {
-    return (
-      <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'var(--color-warning, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff', flexShrink: 0 }} title={title}>
-        {initial}
-      </div>
-    );
-  }
-  return <img src={src} alt="Project" style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'cover' }} title={title} onError={() => setErr(true)} />;
-}
 
 export default function HomePage({ style, searchQuery = '', onReady, isActive }: Props) {
   const router = useRouter();
@@ -420,7 +395,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
             {(showMoreFeed ? filteredFeed : filteredFeed.slice(0, 5)).map(item => (
               <li key={item.id} className={styles.listItem} onClick={item.onClick}>
                 {item.isImageIcon ? (
-                  <ActivityIconImg src={item.icon} initial={item.projectInitial} iconColor={item.iconColor} />
+                  <EntityIcon size={20} src={item.icon} initial={item.projectInitial} iconColor={item.iconColor} />
                 ) : item.type === 'project' && item.projectInitial ? (
                   <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: item.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0, marginTop: '2px' }}>
                     {item.projectInitial}
@@ -433,7 +408,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
                     <h3 className={styles.itemTitle}>{item.title}</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {item.projectIcon ? (
-                        <ProjectBadgeImg src={item.projectIcon} initial={item.projectInitial} title={item.meta || 'Project'} />
+                        <EntityIcon size={16} src={item.projectIcon} initial={item.projectInitial} title={item.meta || 'Project'} />
                       ) : item.projectInitial && item.type !== 'project' ? (
                         <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'var(--color-warning, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff', flexShrink: 0 }} title={item.meta || 'Project'}>
                           {item.projectInitial}

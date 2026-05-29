@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { InviterProfile } from '@myorg/types';
 import { getInviteDetails } from '@/lib/contacts/server/contactsStore';
+import { makeCorsResponse } from '@/lib/server/apiUtils';
 
-function corsResponse(response: NextResponse, request?: Request) {
-  const origin = request?.headers.get('origin') || '*';
-  response.headers.set('Access-Control-Allow-Origin', origin);
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
-  return response;
-}
+const corsResponse = makeCorsResponse('GET,OPTIONS');
 
 export async function OPTIONS(request: Request) {
   return corsResponse(NextResponse.json({}), request);

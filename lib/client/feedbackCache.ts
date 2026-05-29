@@ -3,49 +3,19 @@
  * Initialized from sessionStorage so data survives page reloads within the same session.
  */
 
-const SESSION_KEY = 'fomo:feedbackCache';
-const STALE_AFTER_MS = 60_000; // 60 seconds
+import { createCache } from './createCache';
 
-interface CacheEntry {
-  data: unknown[];
-  fetchedAt: number;
-}
-
-function tryLoadSession(): CacheEntry | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as CacheEntry;
-  } catch {
-    return null;
-  }
-}
-
-let entry: CacheEntry | null =
-  typeof sessionStorage !== 'undefined' ? tryLoadSession() : null;
+const _cache = createCache<unknown>('fomo:feedbackCache');
 
 /** Synchronously returns cached feedback (may be stale), or null if never fetched. */
-export function getFeedbackCacheSync<T>(): T[] | null {
-  return entry ? (entry.data as T[]) : null;
-}
+export const getFeedbackCacheSync = <T>(): T[] | null => _cache.getSync() as T[] | null;
 
 /** Returns how many ms ago feedback was last fetched, or null if never. */
-export function getFeedbackCacheAge(): number | null {
-  return entry ? Date.now() - entry.fetchedAt : null;
-}
+export const getFeedbackCacheAge = (): number | null => _cache.getAge();
 
 /** Returns true if there is no cache or the cache is older than the stale threshold. */
-export function isFeedbackStale(): boolean {
-  if (!entry) return true;
-  return Date.now() - entry.fetchedAt > STALE_AFTER_MS;
-}
+export const isFeedbackStale = (): boolean => _cache.isStale();
 
 /** Stores fresh feedback and persists it to sessionStorage. */
-export function setFeedbackCache<T>(data: T[]): void {
-  entry = { data: data as unknown[], fetchedAt: Date.now() };
-  try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(entry));
-  } catch {
-    // sessionStorage quota exceeded or unavailable — ignore
-  }
-}
+export const setFeedbackCache = <T>(data: T[]): void => _cache.set(data as unknown[]);
+

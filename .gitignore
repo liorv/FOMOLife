@@ -24,3 +24,7 @@ GCP.json
 google.json
 client_secret*.json
 .vercel
+
+# Dev notes / local documentation
+SIMPLIFICATION_OPPORTUNITIES.md
+start.log
