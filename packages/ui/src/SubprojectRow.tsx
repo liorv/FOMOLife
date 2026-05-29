@@ -153,7 +153,10 @@ export default function SubprojectRow({
 
   // Position the dropdown in a fixed portal and update on resize/scroll
   useLayoutEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) {
+      setDropdownStyle({});
+      return;
+    }
 
     const updatePosition = () => {
       if (!menuRef.current || !dropdownRef.current) return;
@@ -162,6 +165,10 @@ export default function SubprojectRow({
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
       const threshold = viewportWidth < 768 ? 20 : 10;
+
+      // If the dropdown hasn't been laid out yet (portal just mounted),
+      // defer until the next frame when the browser has computed its size.
+      if (dropdownRect.height === 0) return;
 
       const isBottomCutOff = buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
       setMenuFlippedVertically(isBottomCutOff);
@@ -186,10 +193,13 @@ export default function SubprojectRow({
       setDropdownStyle({ top: `${top}px`, left: `${left}px` });
     };
 
-    updatePosition();
+    // Use rAF so the portal has been painted and getBoundingClientRect
+    // returns actual dimensions on the first measurement.
+    const rafId = requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
@@ -348,6 +358,8 @@ export default function SubprojectRow({
                   ...dropdownStyle,
                   right: "auto",
                   zIndex: 1001,
+                  // Hide until rAF has measured and positioned the dropdown
+                  visibility: dropdownStyle.top ? "visible" : "hidden",
                 }}
               >
               {!sub.isProjectLevel && onColorChange && (

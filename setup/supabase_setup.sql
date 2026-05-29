@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS user_data (
 -- Create index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_user_data_user_id ON user_data(user_id);
 
+-- Grant explicit access to the Data API roles (required for PostgREST/supabase-js)
+-- as of Supabase's May 2026 change: new tables in public schema need explicit GRANTs
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.user_data TO authenticated;
+GRANT SELECT ON TABLE public.user_data TO anon;
+
 -- Enable Row Level Security
 ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
 
