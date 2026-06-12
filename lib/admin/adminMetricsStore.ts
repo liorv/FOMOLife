@@ -151,24 +151,38 @@ async function collectCurrentMetrics(
   let totalContacts = 0;
 
   for (const { data } of allUserData) {
-    const projects = Array.isArray(data.projects) ? data.projects : [];
-    const tasks = Array.isArray(data.tasks) ? data.tasks : [];
-    const contacts = Array.isArray(data.contacts) ? data.contacts : [];
+    const projects = Array.isArray(data.projects) ? (data.projects as Array<Record<string, unknown>>) : [];
+    // Standalone tasks (tasks store)
+    const standaloneTasks = Array.isArray(data.tasks) ? (data.tasks as Array<Record<string, unknown>>) : [];
+    // Contacts are stored under 'people' key by the contacts store
+    const people = Array.isArray(data.people) ? (data.people as unknown[]) : [];
 
     totalProjects += projects.length;
-    totalTasks += tasks.length;
-    totalContacts += contacts.length;
+    totalContacts += people.length;
 
-    const doneTasks = (tasks as Array<Record<string, unknown>>).filter((t) => t.done === true);
-    completedTasks += doneTasks.length;
+    // Standalone tasks
+    totalTasks += standaloneTasks.length;
+    completedTasks += standaloneTasks.filter((t) => t.done === true).length;
+
+    // Project-embedded tasks (inside subprojects)
+    for (const project of projects) {
+      const subprojects = Array.isArray(project.subprojects)
+        ? (project.subprojects as Array<Record<string, unknown>>)
+        : [];
+      for (const sub of subprojects) {
+        const subTasks = Array.isArray(sub.tasks) ? (sub.tasks as Array<Record<string, unknown>>) : [];
+        totalTasks += subTasks.length;
+        completedTasks += subTasks.filter((t) => t.done === true).length;
+      }
+    }
   }
 
   const activeUsers = allUserData.filter((u) => {
     const d = u.data;
-    return (
-      (Array.isArray(d.projects) && (d.projects as unknown[]).length > 0) ||
-      (Array.isArray(d.tasks) && (d.tasks as unknown[]).length > 0)
-    );
+    const hasProjects = Array.isArray(d.projects) && (d.projects as unknown[]).length > 0;
+    const hasTasks = Array.isArray(d.tasks) && (d.tasks as unknown[]).length > 0;
+    const hasPeople = Array.isArray(d.people) && (d.people as unknown[]).length > 0;
+    return hasProjects || hasTasks || hasPeople;
   }).length;
 
   // ── Conversations ────────────────────────────────────────────────────────

@@ -57,7 +57,7 @@ function Histogram({ snapshots, series, title, height = 180 }: HistogramProps) {
   for (let t = 0; t <= maxVal + niceStep; t += niceStep) ticks.push(t);
   const topTick = ticks[ticks.length - 1] ?? 1;
 
-  const xScale = (i: number) => padL + (i / Math.max(n - 1, 1)) * chartW;
+  const xScale = (i: number) => padL + (n > 1 ? (i / (n - 1)) : 0.5) * chartW;
   const yScale = (v: number) => padT + chartH - (v / topTick) * chartH;
 
   const barW = Math.max(3, chartW / (n + 1) - 2);
@@ -404,7 +404,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Histograms */}
-            {snapshots.length >= 2 && (
+            {snapshots.length >= 1 && (
               <>
                 <SectionLabel icon="people" label="Users & Engagement" />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginBottom: 28 }}>
