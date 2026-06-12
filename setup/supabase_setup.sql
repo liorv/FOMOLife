@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS admin_activity_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_admin_snapshots_date ON admin_activity_snapshots(date);
 
+-- Conversation columns (added after initial release)
+ALTER TABLE admin_activity_snapshots ADD COLUMN IF NOT EXISTS total_feedback INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE admin_activity_snapshots ADD COLUMN IF NOT EXISTS total_feedback_comments INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE admin_activity_snapshots ADD COLUMN IF NOT EXISTS total_project_thread_comments INTEGER NOT NULL DEFAULT 0;
+
 -- Only service-role (used by the cron and admin API) can access this table.
 -- Deny all access to anon and authenticated roles.
 ALTER TABLE admin_activity_snapshots ENABLE ROW LEVEL SECURITY;

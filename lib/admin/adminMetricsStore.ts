@@ -16,6 +16,10 @@ export interface DailyActivitySnapshot {
   completedTasks: number;
   totalContacts: number;
   newContacts: number;
+  // Conversations
+  totalFeedback: number;
+  totalFeedbackComments: number;
+  totalProjectThreadComments: number;
 }
 
 export interface AdminMetricsData {
@@ -61,6 +65,9 @@ async function upsertSnapshotSupabase(snapshot: DailyActivitySnapshot): Promise<
         completed_tasks: snapshot.completedTasks,
         total_contacts: snapshot.totalContacts,
         new_contacts: snapshot.newContacts,
+        total_feedback: snapshot.totalFeedback,
+        total_feedback_comments: snapshot.totalFeedbackComments,
+        total_project_thread_comments: snapshot.totalProjectThreadComments,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'date' },
@@ -82,16 +89,19 @@ async function loadSnapshotsSupabase(): Promise<DailyActivitySnapshot[]> {
   }
   return (data ?? []).map((row: Record<string, unknown>) => ({
     date: row.date as string,
-    totalUsers: row.total_users as number,
-    newUsers: row.new_users as number,
-    activeUsers: row.active_users as number,
-    totalProjects: row.total_projects as number,
-    newProjects: row.new_projects as number,
-    totalTasks: row.total_tasks as number,
-    newTasks: row.new_tasks as number,
-    completedTasks: row.completed_tasks as number,
-    totalContacts: row.total_contacts as number,
-    newContacts: row.new_contacts as number,
+    totalUsers: (row.total_users as number) ?? 0,
+    newUsers: (row.new_users as number) ?? 0,
+    activeUsers: (row.active_users as number) ?? 0,
+    totalProjects: (row.total_projects as number) ?? 0,
+    newProjects: (row.new_projects as number) ?? 0,
+    totalTasks: (row.total_tasks as number) ?? 0,
+    newTasks: (row.new_tasks as number) ?? 0,
+    completedTasks: (row.completed_tasks as number) ?? 0,
+    totalContacts: (row.total_contacts as number) ?? 0,
+    newContacts: (row.new_contacts as number) ?? 0,
+    totalFeedback: (row.total_feedback as number) ?? 0,
+    totalFeedbackComments: (row.total_feedback_comments as number) ?? 0,
+    totalProjectThreadComments: (row.total_project_thread_comments as number) ?? 0,
   }));
 }
 
@@ -139,7 +149,6 @@ async function collectCurrentMetrics(
   let totalTasks = 0;
   let completedTasks = 0;
   let totalContacts = 0;
-  const activeUserIds = new Set<string>();
 
   for (const { data } of allUserData) {
     const projects = Array.isArray(data.projects) ? data.projects : [];
@@ -152,20 +161,77 @@ async function collectCurrentMetrics(
 
     const doneTasks = (tasks as Array<Record<string, unknown>>).filter((t) => t.done === true);
     completedTasks += doneTasks.length;
-
-    // Consider a user active if they have any data at all
-    if (projects.length > 0 || tasks.length > 0) {
-      activeUserIds.add('active');
-    }
   }
 
-  const activeUsers = activeUserIds.size > 0 ? allUserData.filter((u) => {
+  const activeUsers = allUserData.filter((u) => {
     const d = u.data;
     return (
       (Array.isArray(d.projects) && (d.projects as unknown[]).length > 0) ||
       (Array.isArray(d.tasks) && (d.tasks as unknown[]).length > 0)
     );
-  }).length : 0;
+  }).length;
+
+  // ── Conversations ────────────────────────────────────────────────────────
+  // Feedback is stored under the special '__feedback__' key in user_data
+  let totalFeedback = 0;
+  let totalFeedbackComments = 0;
+  let totalProjectThreadComments = 0;
+
+  if (supabase) {
+    // Fetch global feedback row
+    const { data: fbRow } = await supabase
+      .from('user_data')
+      .select('data')
+      .eq('user_id', '__feedback__')
+      .single();
+    if (fbRow?.data) {
+      const fbItems = Array.isArray((fbRow.data as Record<string, unknown>).feedback)
+        ? ((fbRow.data as Record<string, unknown>).feedback as Array<Record<string, unknown>>)
+        : [];
+      totalFeedback = fbItems.length;
+      totalFeedbackComments = fbItems.reduce(
+        (sum, item) => sum + (Array.isArray(item.comments) ? (item.comments as unknown[]).length : 0),
+        0,
+      );
+    }
+    // Project thread comments: rows whose user_id starts with '__proj_thread__'
+    const { data: threadRows } = await supabase
+      .from('user_data')
+      .select('data')
+      .like('user_id', '__proj_thread__%');
+    if (threadRows) {
+      for (const row of threadRows) {
+        const comments = (row.data as Record<string, unknown>)?.comments;
+        if (Array.isArray(comments)) totalProjectThreadComments += comments.length;
+      }
+    }
+  } else {
+    // File-based: look for __feedback__.json and __proj_thread__*.json
+    const userDataDir = path.resolve(process.cwd(), 'data', 'user_data');
+    try {
+      const allFiles = fs.readdirSync(userDataDir).filter((f) => f.endsWith('.json'));
+      for (const file of allFiles) {
+        try {
+          const raw = fs.readFileSync(path.join(userDataDir, file), 'utf8');
+          const parsed = JSON.parse(raw) as Record<string, unknown>;
+          const decodedName = decodeURIComponent(file.replace('.json', ''));
+          if (decodedName === '__feedback__') {
+            const fbItems = Array.isArray(parsed.feedback)
+              ? (parsed.feedback as Array<Record<string, unknown>>)
+              : [];
+            totalFeedback = fbItems.length;
+            totalFeedbackComments = fbItems.reduce(
+              (sum, item) => sum + (Array.isArray(item.comments) ? (item.comments as unknown[]).length : 0),
+              0,
+            );
+          } else if (decodedName.startsWith('__proj_thread__')) {
+            const comments = parsed.comments;
+            if (Array.isArray(comments)) totalProjectThreadComments += comments.length;
+          }
+        } catch { /* skip */ }
+      }
+    } catch { /* dir may not exist */ }
+  }
 
   const prevTotalUsers = previousSnapshot?.totalUsers ?? 0;
   const prevTotalProjects = previousSnapshot?.totalProjects ?? 0;
@@ -184,6 +250,9 @@ async function collectCurrentMetrics(
     completedTasks,
     totalContacts,
     newContacts: Math.max(0, totalContacts - prevTotalContacts),
+    totalFeedback,
+    totalFeedbackComments,
+    totalProjectThreadComments,
   };
 }
 
