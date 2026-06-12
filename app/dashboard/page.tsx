@@ -213,14 +213,16 @@ function DashSection({
   icon: string; title: string; subtitle: string; accentColor: string;
   summary: React.ReactNode; detail?: React.ReactNode;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   return (
     <div style={{
-      marginBottom: 32,
+      flex: expanded ? '1 1 100%' : '1 1 300px',
+      minWidth: 0,
       borderRadius: 18,
       border: `1px solid ${accentColor}22`,
       background: 'linear-gradient(160deg, #111827 0%, #0a0f1e 100%)',
       boxShadow: `0 0 40px ${accentColor}0a`,
+      transition: 'flex 0.2s ease',
     }}>
       <div
         role="button"
@@ -393,6 +395,8 @@ export default function AdminDashboardPage() {
           </div>
         ) : (
           <>
+            {/* sections row — collapsed: side by side; expanded: full width */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
             {/* ── SECTION: Projects & Tasks ─────────────────────────────── */}
             <DashSection
               accentColor="#0ea5e9"
@@ -472,6 +476,8 @@ export default function AdminDashboardPage() {
                 </div>
               }
             />
+
+            </div>{/* end sections row */}
 
             {/* ── Raw snapshot table ───────────────────────────────────── */}
             <div style={{ marginTop: 8 }}>
