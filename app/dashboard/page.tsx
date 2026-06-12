@@ -208,10 +208,12 @@ function SectionLabel({ icon, label }: { icon: string; label: string }) {
 }
 
 function DashSection({
-  icon, title, subtitle, accentColor, children,
+  icon, title, subtitle, accentColor, summary, detail,
 }: {
-  icon: string; title: string; subtitle: string; accentColor: string; children: React.ReactNode;
+  icon: string; title: string; subtitle: string; accentColor: string;
+  summary: React.ReactNode; detail?: React.ReactNode;
 }) {
+  const [expanded, setExpanded] = useState(true);
   return (
     <div style={{
       marginBottom: 32,
@@ -220,13 +222,18 @@ function DashSection({
       background: 'linear-gradient(160deg, #111827 0%, #0a0f1e 100%)',
       boxShadow: `0 0 40px ${accentColor}0a`,
     }}>
-      {/* Section header bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 14,
-        padding: '16px 24px',
-        background: `linear-gradient(90deg, ${accentColor}18 0%, transparent 70%)`,
-        borderBottom: `1px solid ${accentColor}20`,
-      }}>
+      <div
+        role="button"
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          padding: '16px 24px',
+          background: `linear-gradient(90deg, ${accentColor}18 0%, transparent 70%)`,
+          borderBottom: expanded ? `1px solid ${accentColor}20` : 'none',
+          cursor: 'pointer', userSelect: 'none',
+          borderRadius: expanded ? '18px 18px 0 0' : 18,
+        }}
+      >
         <div style={{
           width: 36, height: 36, borderRadius: 10,
           background: `${accentColor}22`,
@@ -235,13 +242,18 @@ function DashSection({
         }}>
           <span className="material-icons" style={{ color: accentColor, fontSize: 20 }}>{icon}</span>
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>{title}</div>
           <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{subtitle}</div>
         </div>
+        <span
+          className="material-icons"
+          style={{ color: '#475569', fontSize: 22, transition: 'transform 0.2s ease', transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', flexShrink: 0 }}
+        >expand_more</span>
       </div>
       <div style={{ padding: '20px 24px' }}>
-        {children}
+        {summary}
+        {expanded && detail && <div style={{ marginTop: 16 }}>{detail}</div>}
       </div>
     </div>
   );
@@ -387,22 +399,25 @@ export default function AdminDashboardPage() {
               icon="folder_special"
               title="Projects & Tasks"
               subtitle="Work tracking across all users"
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                <StatCard icon="folder" label="Total Projects" value={latest.totalProjects} delta={delta('totalProjects')} color="#0ea5e9" />
-                <StatCard icon="task_alt" label="Total Tasks" value={latest.totalTasks} delta={delta('totalTasks')} color="#10b981" />
-                <StatCard icon="check_circle" label="Completed Tasks" value={latest.completedTasks} delta={delta('completedTasks')} color="#4ade80" />
-                <StatCard icon="pending" label="Open Tasks" value={latest.totalTasks - latest.completedTasks} delta={delta('totalTasks') - delta('completedTasks')} color="#64748b" />
-                <div style={{ ...cardStyle, flex: '1 1 160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  <Ring pct={completionPct} label="completion rate" />
+              summary={
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  <StatCard icon="folder" label="Total Projects" value={latest.totalProjects} delta={delta('totalProjects')} color="#0ea5e9" />
+                  <StatCard icon="task_alt" label="Total Tasks" value={latest.totalTasks} delta={delta('totalTasks')} color="#10b981" />
+                  <StatCard icon="check_circle" label="Completed Tasks" value={latest.completedTasks} delta={delta('completedTasks')} color="#4ade80" />
+                  <StatCard icon="pending" label="Open Tasks" value={latest.totalTasks - latest.completedTasks} delta={delta('totalTasks') - delta('completedTasks')} color="#64748b" />
+                  <div style={{ ...cardStyle, flex: '1 1 160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                    <Ring pct={completionPct} label="completion rate" />
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
-                <Histogram snapshots={snapshots} title="Projects over time" series={[{ key: 'totalProjects', label: 'Projects', color: '#0ea5e9' }]} />
-                <Histogram snapshots={snapshots} title="Tasks: total vs completed" series={[{ key: 'totalTasks', label: 'Total', color: '#0ea5e9' }, { key: 'completedTasks', label: 'Completed', color: '#10b981' }]} />
-                <Histogram snapshots={snapshots} title="New tasks added per day" series={[{ key: 'newTasks', label: 'New tasks', color: '#4ade80' }]} />
-              </div>
-            </DashSection>
+              }
+              detail={
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+                  <Histogram snapshots={snapshots} title="Projects over time" series={[{ key: 'totalProjects', label: 'Projects', color: '#0ea5e9' }]} />
+                  <Histogram snapshots={snapshots} title="Tasks: total vs completed" series={[{ key: 'totalTasks', label: 'Total', color: '#0ea5e9' }, { key: 'completedTasks', label: 'Completed', color: '#10b981' }]} />
+                  <Histogram snapshots={snapshots} title="New tasks added per day" series={[{ key: 'newTasks', label: 'New tasks', color: '#4ade80' }]} />
+                </div>
+              }
+            />
 
             {/* ── SECTION: People ──────────────────────────────────────── */}
             <DashSection
@@ -410,20 +425,23 @@ export default function AdminDashboardPage() {
               icon="people"
               title="People"
               subtitle="Users and contacts in the system"
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                <StatCard icon="group" label="Total Users" value={latest.totalUsers} delta={delta('totalUsers')} color="#7c3aed" />
-                <StatCard icon="person" label="Active Users" value={latest.activeUsers} delta={delta('activeUsers')} color="#d32998" />
-                <StatCard icon="person_add" label="New Users" value={latest.newUsers} delta={delta('newUsers')} color="#a78bfa" />
-                <StatCard icon="contacts" label="Total Contacts" value={latest.totalContacts} delta={delta('totalContacts')} color="#f59e0b" />
-                <StatCard icon="person_add_alt" label="New Contacts" value={latest.newContacts} delta={delta('newContacts')} color="#fbbf24" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
-                <Histogram snapshots={snapshots} title="Total users over time" series={[{ key: 'totalUsers', label: 'Users', color: '#7c3aed' }]} />
-                <Histogram snapshots={snapshots} title="New vs active users" series={[{ key: 'newUsers', label: 'New', color: '#d32998' }, { key: 'activeUsers', label: 'Active', color: '#7c3aed' }]} />
-                <Histogram snapshots={snapshots} title="Contacts over time" series={[{ key: 'totalContacts', label: 'Contacts', color: '#f59e0b' }]} />
-              </div>
-            </DashSection>
+              summary={
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  <StatCard icon="group" label="Total Users" value={latest.totalUsers} delta={delta('totalUsers')} color="#7c3aed" />
+                  <StatCard icon="person" label="Active Users" value={latest.activeUsers} delta={delta('activeUsers')} color="#d32998" />
+                  <StatCard icon="person_add" label="New Users" value={latest.newUsers} delta={delta('newUsers')} color="#a78bfa" />
+                  <StatCard icon="contacts" label="Total Contacts" value={latest.totalContacts} delta={delta('totalContacts')} color="#f59e0b" />
+                  <StatCard icon="person_add_alt" label="New Contacts" value={latest.newContacts} delta={delta('newContacts')} color="#fbbf24" />
+                </div>
+              }
+              detail={
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+                  <Histogram snapshots={snapshots} title="Total users over time" series={[{ key: 'totalUsers', label: 'Users', color: '#7c3aed' }]} />
+                  <Histogram snapshots={snapshots} title="New vs active users" series={[{ key: 'newUsers', label: 'New', color: '#d32998' }, { key: 'activeUsers', label: 'Active', color: '#7c3aed' }]} />
+                  <Histogram snapshots={snapshots} title="Contacts over time" series={[{ key: 'totalContacts', label: 'Contacts', color: '#f59e0b' }]} />
+                </div>
+              }
+            />
 
             {/* ── SECTION: Conversations ───────────────────────────────── */}
             <DashSection
@@ -431,26 +449,29 @@ export default function AdminDashboardPage() {
               icon="forum"
               title="Conversations"
               subtitle="Feedback posts, comments and project threads"
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                <StatCard icon="forum" label="Feedback Posts" value={latest.totalFeedback ?? 0} delta={delta('totalFeedback')} color="#a78bfa" />
-                <StatCard icon="chat_bubble" label="Feedback Replies" value={latest.totalFeedbackComments ?? 0} delta={delta('totalFeedbackComments')} color="#fb923c" />
-                <StatCard icon="comment" label="Project Thread Replies" value={latest.totalProjectThreadComments ?? 0} delta={delta('totalProjectThreadComments')} color="#38bdf8" />
-                <div style={{ ...cardStyle, flex: '1 1 200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
-                  <div style={{ fontSize: 11, color: '#475569', fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>Total Interactions</div>
-                  <div style={{ fontSize: 40, fontWeight: 800, color: '#f1f5f9', lineHeight: 1 }}>{totalConversations.toLocaleString()}</div>
-                  <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.6 }}>
-                    {latest.totalFeedback ?? 0} posts<br />
-                    {latest.totalFeedbackComments ?? 0} feedback replies<br />
-                    {latest.totalProjectThreadComments ?? 0} project replies
+              summary={
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  <StatCard icon="forum" label="Feedback Posts" value={latest.totalFeedback ?? 0} delta={delta('totalFeedback')} color="#a78bfa" />
+                  <StatCard icon="chat_bubble" label="Feedback Replies" value={latest.totalFeedbackComments ?? 0} delta={delta('totalFeedbackComments')} color="#fb923c" />
+                  <StatCard icon="comment" label="Project Thread Replies" value={latest.totalProjectThreadComments ?? 0} delta={delta('totalProjectThreadComments')} color="#38bdf8" />
+                  <div style={{ ...cardStyle, flex: '1 1 200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+                    <div style={{ fontSize: 11, color: '#475569', fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>Total Interactions</div>
+                    <div style={{ fontSize: 40, fontWeight: 800, color: '#f1f5f9', lineHeight: 1 }}>{totalConversations.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.6 }}>
+                      {latest.totalFeedback ?? 0} posts<br />
+                      {latest.totalFeedbackComments ?? 0} feedback replies<br />
+                      {latest.totalProjectThreadComments ?? 0} project replies
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
-                <Histogram snapshots={snapshots} title="Feedback posts over time" series={[{ key: 'totalFeedback', label: 'Posts', color: '#a78bfa' }]} />
-                <Histogram snapshots={snapshots} title="All replies over time" series={[{ key: 'totalFeedbackComments', label: 'Feedback replies', color: '#fb923c' }, { key: 'totalProjectThreadComments', label: 'Project replies', color: '#38bdf8' }]} />
-              </div>
-            </DashSection>
+              }
+              detail={
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+                  <Histogram snapshots={snapshots} title="Feedback posts over time" series={[{ key: 'totalFeedback', label: 'Posts', color: '#a78bfa' }]} />
+                  <Histogram snapshots={snapshots} title="All replies over time" series={[{ key: 'totalFeedbackComments', label: 'Feedback replies', color: '#fb923c' }, { key: 'totalProjectThreadComments', label: 'Project replies', color: '#38bdf8' }]} />
+                </div>
+              }
+            />
 
             {/* ── Raw snapshot table ───────────────────────────────────── */}
             <div style={{ marginTop: 8 }}>
