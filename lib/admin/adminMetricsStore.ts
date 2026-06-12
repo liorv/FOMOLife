@@ -119,10 +119,19 @@ async function collectCurrentMetrics(
     // Supabase available: query all rows from user_data table
     const { data, error } = await supabase.from('user_data').select('user_id, data');
     if (!error && data) {
-      allUserData = data.map((row: Record<string, unknown>) => ({
-        userId: row.user_id as string,
-        data: (row.data ?? {}) as Record<string, unknown>,
-      }));
+      allUserData = data
+        .map((row: Record<string, unknown>) => ({
+          userId: row.user_id as string,
+          data: (row.data ?? {}) as Record<string, unknown>,
+        }))
+        // Only real user rows — exclude system keys (__feedback__, __proj_thread__, etc.)
+        // and rows whose data doesn't contain the expected user data structure
+        .filter(({ userId, data: d }) => {
+          if (userId.startsWith('__')) return false;
+          if (userId === 'sys_trace_logs' || userId === 'system_contacts') return false;
+          // Must have at least one real user data key
+          return 'projects' in d || 'tasks' in d || 'people' in d;
+        });
     }
   } else {
     // File-based: scan data/user_data/*.json files
