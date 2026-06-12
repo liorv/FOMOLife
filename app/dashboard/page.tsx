@@ -347,9 +347,7 @@ export default function AdminDashboardPage() {
         ::-webkit-scrollbar{width:5px;height:5px}
         ::-webkit-scrollbar-track{background:#0f172a}
         ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
-        body, html { background:#0a0f1e!important; overflow-y:auto!important; height:auto!important; }
-        .app-outer { height:auto!important; min-height:100vh!important; }
-        .main-layout { overflow:visible!important; overflow-y:visible!important; }
+        body{background:#0a0f1e!important}
       `}</style>
 
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', flexWrap: 'wrap', gap: 10, background: 'linear-gradient(90deg,#0f172a,#1a1040)', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>

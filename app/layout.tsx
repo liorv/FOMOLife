@@ -42,8 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             if (p.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
           } catch(e) {}
         `}</Script>
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{children}</div>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>{children}</div>
           <InstallPrompt />
           {/* Footer removed manually since it breaks the app feeling and pushes bottom nav up if visible */}
         </div>
