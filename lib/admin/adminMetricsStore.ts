@@ -75,7 +75,11 @@ async function loadSnapshotsSupabase(): Promise<DailyActivitySnapshot[]> {
     .from('admin_activity_snapshots')
     .select('*')
     .order('date', { ascending: true });
-  if (error) throw error;
+  if (error) {
+    // Table may not exist yet — return empty rather than crashing
+    console.warn('[adminMetrics] Supabase load error (table may need creating):', error.message);
+    return [];
+  }
   return (data ?? []).map((row: Record<string, unknown>) => ({
     date: row.date as string,
     totalUsers: row.total_users as number,
@@ -98,12 +102,11 @@ async function collectCurrentMetrics(
   previousSnapshot: DailyActivitySnapshot | null,
 ): Promise<DailyActivitySnapshot> {
   const supabase = getSupabaseAdminClient();
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_SUPABASE === 'true';
 
   let allUserData: Array<{ userId: string; data: Record<string, unknown> }> = [];
 
-  if (isProduction && supabase) {
-    // Production: query all rows from user_data table
+  if (supabase) {
+    // Supabase available: query all rows from user_data table
     const { data, error } = await supabase.from('user_data').select('user_id, data');
     if (!error && data) {
       allUserData = data.map((row: Record<string, unknown>) => ({
@@ -112,7 +115,7 @@ async function collectCurrentMetrics(
       }));
     }
   } else {
-    // Dev: scan data/user_data/*.json files
+    // File-based: scan data/user_data/*.json files
     const userDataDir = path.resolve(process.cwd(), 'data', 'user_data');
     try {
       const files = fs.readdirSync(userDataDir).filter((f) => f.endsWith('.json'));
@@ -188,10 +191,11 @@ async function collectCurrentMetrics(
 
 export async function runDailySnapshotJob(): Promise<DailyActivitySnapshot> {
   const today = new Date().toISOString().slice(0, 10);
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_SUPABASE === 'true';
+  const supabase = getSupabaseAdminClient();
+  const useSupabase = !!supabase;
 
   let snapshots: DailyActivitySnapshot[];
-  if (isProduction) {
+  if (useSupabase) {
     snapshots = await loadSnapshotsSupabase();
   } else {
     snapshots = readMetricsFile().snapshots;
@@ -200,7 +204,7 @@ export async function runDailySnapshotJob(): Promise<DailyActivitySnapshot> {
   const previousSnapshot = snapshots.length > 0 ? (snapshots[snapshots.length - 1] ?? null) : null;
   const snapshot = await collectCurrentMetrics(today, previousSnapshot);
 
-  if (isProduction) {
+  if (useSupabase) {
     await upsertSnapshotSupabase(snapshot);
   } else {
     const existingIdx = snapshots.findIndex((s) => s.date === today);
@@ -216,8 +220,8 @@ export async function runDailySnapshotJob(): Promise<DailyActivitySnapshot> {
 }
 
 export async function loadAdminMetrics(): Promise<AdminMetricsData> {
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.USE_SUPABASE === 'true';
-  if (isProduction) {
+  const supabase = getSupabaseAdminClient();
+  if (supabase) {
     const snapshots = await loadSnapshotsSupabase();
     return { snapshots, lastUpdated: snapshots.length > 0 ? new Date().toISOString() : '' };
   }
