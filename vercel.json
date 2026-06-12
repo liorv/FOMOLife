@@ -2,5 +2,11 @@
   "framework": "nextjs",
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/admin/cron",
+      "schedule": "0 2 * * *"
+    }
+  ]
 }

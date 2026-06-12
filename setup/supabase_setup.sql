@@ -29,6 +29,34 @@ CREATE POLICY "Users can manage their own data"
   USING (user_id = current_user_id())
   WITH CHECK (user_id = current_user_id());
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Admin Activity Snapshots — daily time-series metrics
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS admin_activity_snapshots (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  date        DATE        NOT NULL,
+  total_users INTEGER     NOT NULL DEFAULT 0,
+  new_users   INTEGER     NOT NULL DEFAULT 0,
+  active_users INTEGER    NOT NULL DEFAULT 0,
+  total_projects INTEGER  NOT NULL DEFAULT 0,
+  new_projects   INTEGER  NOT NULL DEFAULT 0,
+  total_tasks    INTEGER  NOT NULL DEFAULT 0,
+  new_tasks      INTEGER  NOT NULL DEFAULT 0,
+  completed_tasks INTEGER NOT NULL DEFAULT 0,
+  total_contacts  INTEGER NOT NULL DEFAULT 0,
+  new_contacts    INTEGER NOT NULL DEFAULT 0,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_snapshots_date ON admin_activity_snapshots(date);
+
+-- Only service-role (used by the cron and admin API) can access this table.
+-- Deny all access to anon and authenticated roles.
+ALTER TABLE admin_activity_snapshots ENABLE ROW LEVEL SECURITY;
+-- No public policies — access is exclusively via the service role key.
+
+
 -- For public read/write (simpler, less secure):
 -- Comment out the policy above and uncomment this instead:
 -- CREATE POLICY "Enable all operations for authenticated users"
