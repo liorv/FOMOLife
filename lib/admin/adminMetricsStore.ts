@@ -197,7 +197,7 @@ export async function runDailySnapshotJob(): Promise<DailyActivitySnapshot> {
     snapshots = readMetricsFile().snapshots;
   }
 
-  const previousSnapshot = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+  const previousSnapshot = snapshots.length > 0 ? (snapshots[snapshots.length - 1] ?? null) : null;
   const snapshot = await collectCurrentMetrics(today, previousSnapshot);
 
   if (isProduction) {

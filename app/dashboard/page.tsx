@@ -431,7 +431,7 @@ export default function AdminDashboardPage() {
               <InfoRow label="Total snapshots" value={String(snapshots.length)} />
               <InfoRow
                 label="Data range"
-                value={snapshots.length > 1 ? `${snapshots[0].date} → ${latest.date}` : latest.date}
+                value={snapshots.length > 1 ? `${snapshots[0]!.date} → ${latest.date}` : latest.date}
               />
               <InfoRow label="Avg daily new users" value={avgDelta(snapshots, 'newUsers')} />
               <InfoRow label="Avg daily new tasks" value={avgDelta(snapshots, 'newTasks')} />
