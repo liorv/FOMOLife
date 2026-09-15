@@ -158,8 +158,19 @@ export default function ProjectTile({
       const viewportWidth = window.innerWidth;
       const threshold = viewportWidth < 768 ? 20 : 10;
 
+      // Account for the fixed bottom navbar so the dropdown is never hidden
+      // behind it. Read the CSS custom property so it stays in sync with the
+      // design token; fall back to 70 which is the default --nav-height.
+      const navHeight = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "--nav-height",
+        ) || "70",
+        10,
+      );
+      const effectiveBottom = viewportHeight - navHeight - threshold;
+
       const isBottomCutOff =
-        buttonRect.bottom + dropdownRect.height > viewportHeight - threshold;
+        buttonRect.bottom + dropdownRect.height > effectiveBottom;
       setMenuFlippedVertically(isBottomCutOff);
 
       const top = isBottomCutOff
@@ -179,7 +190,10 @@ export default function ProjectTile({
       // Ensure the dropdown doesn't go off the left edge either
       left = Math.max(threshold, left);
 
-      setDropdownStyle({ top: `${top}px`, left: `${left}px` });
+      // Clamp top so the dropdown doesn't go above the viewport either
+      const clampedTop = Math.max(threshold, top);
+
+      setDropdownStyle({ top: `${clampedTop}px`, left: `${left}px` });
     };
 
     updatePosition();
