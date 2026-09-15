@@ -639,66 +639,126 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
     const originalSubs: any[] = project?.subprojects || [];
     const modifiedSubs: any[] = modifiedProject?.sub_projects || modifiedProject?.subprojects || [];
 
-    const updatedSubprojects = modifiedSubs.map((mSub: any) => {
-      // Match by id first, then fall back to title in case the LLM regenerated the id
-      const origSub = originalSubs.find((s: any) => s.id === mSub.id) ||
-        originalSubs.find((s: any) => (s.text || '').toLowerCase() === (mSub.title || mSub.text || '').toLowerCase());
-      const origTasks: any[] = origSub?.tasks || [];
-      const modifiedTasks: any[] = mSub.tasks || [];
+    const findOriginalSub = (mSub: any) => {
+      const title = (mSub.title || mSub.text || '').trim().toLowerCase();
+      return originalSubs.find((s: any) => s.id === mSub.id) ||
+        originalSubs.find((s: any) => (s.text || '').trim().toLowerCase() === title);
+    };
 
-      const updatedTasks = modifiedTasks.map((mTask: any) => {
-        // First check this subproject's original tasks (by id or title)
-        let origTask = origTasks.find((t: any) => t.id === mTask.id) ||
-          origTasks.find((t: any) => (t.text || '').toLowerCase() === (mTask.title || mTask.text || '').toLowerCase());
-        // If not found locally, search all subprojects (task may have been moved here)
-        if (!origTask && mTask.id) {
-          for (const s of originalSubs) {
-            origTask = (s.tasks || []).find((t: any) => t.id === mTask.id);
-            if (origTask) break;
-          }
+    const findOriginalTask = (mTask: any, origTasks: any[]) => {
+      const title = (mTask.title || mTask.text || '').trim().toLowerCase();
+      let origTask = mTask.id ? origTasks.find((t: any) => t.id === mTask.id) : undefined;
+      if (!origTask && title) {
+        origTask = origTasks.find((t: any) => (t.text || '').trim().toLowerCase() === title);
+      }
+      if (!origTask && mTask.id) {
+        for (const s of originalSubs) {
+          origTask = (s.tasks || []).find((t: any) => t.id === mTask.id);
+          if (origTask) break;
         }
-        if (origTask) {
-          // Merge: apply AI-modified fields, preserve everything else
-          return {
-            ...origTask,
-            text: mTask.title ?? mTask.text ?? origTask.text,
-            description: mTask.title ?? mTask.text ?? origTask.description,
-            effort: mTask.effort !== undefined ? normalizeEffort(mTask.effort) : origTask.effort,
-            dueDate: (mTask.due_date !== undefined || mTask.dueDate !== undefined)
-              ? (mTask.due_date ?? mTask.dueDate ?? null)
-              : origTask.dueDate,
-            done: mTask.done !== undefined ? mTask.done : origTask.done,
-            notes: mTask.notes !== undefined ? mTask.notes : origTask.notes,
-          };
-        } else {
-          // Genuinely new task added by the LLM
-          return {
-            id: mTask.id || genId('task'),
-            text: mTask.title || mTask.text || 'New Task',
-            description: mTask.title || mTask.text || '',
-            done: mTask.done ?? false,
-            effort: normalizeEffort(mTask.effort),
-            dueDate: mTask.due_date ?? mTask.dueDate ?? null,
-            notes: mTask.notes ?? null,
-            favorite: false,
-            people: (mTask.owners || []).map((o: any) => typeof o === 'string' ? { name: o } : o),
-          };
-        }
-      });
+      }
+      return origTask;
+    };
 
-      if (origSub) {
-        return { ...origSub, text: mSub.title ?? mSub.text ?? origSub.text, tasks: updatedTasks };
-      } else {
+    const allModifiedTaskIds = new Set<string>(
+      modifiedSubs.flatMap((sub: any) => (sub.tasks || []).filter((t: any) => t.id).map((t: any) => t.id)),
+    );
+
+    const mergeTask = (mTask: any, origTask: any | null) => {
+      if (!origTask) {
         return {
-          id: mSub.id || genId('sub'),
-          text: mSub.title || mSub.text || 'New List',
-          isProjectLevel: false,
-          tasks: updatedTasks,
+          id: mTask.id || genId('task'),
+          text: mTask.title || mTask.text || 'New Task',
+          description: mTask.title || mTask.text || '',
+          done: mTask.done ?? false,
+          effort: normalizeEffort(mTask.effort),
+          dueDate: mTask.due_date ?? mTask.dueDate ?? null,
+          notes: mTask.notes ?? null,
+          favorite: false,
+          people: (mTask.owners || []).map((o: any) => typeof o === 'string' ? { name: o } : o),
         };
       }
-    });
+      return {
+        ...origTask,
+        text: mTask.title ?? mTask.text ?? origTask.text,
+        description: mTask.title ?? mTask.text ?? origTask.description,
+        effort: mTask.effort !== undefined ? normalizeEffort(mTask.effort) : origTask.effort,
+        dueDate: (mTask.due_date !== undefined || mTask.dueDate !== undefined)
+          ? (mTask.due_date ?? mTask.dueDate ?? null)
+          : origTask.dueDate,
+        done: mTask.done !== undefined ? mTask.done : origTask.done,
+        notes: mTask.notes !== undefined ? mTask.notes : origTask.notes,
+      };
+    };
 
-    // Build the result with subprojects, then map overview fields back to real field names
+    const updatedSubprojects: any[] = [];
+
+    for (const origSub of originalSubs) {
+      const matchedSub = modifiedSubs.find((mSub: any) => {
+        if (mSub.id && origSub.id === mSub.id) return true;
+        const title = (mSub.title || mSub.text || '').trim().toLowerCase();
+        return title && (origSub.text || '').trim().toLowerCase() === title;
+      });
+
+      if (!matchedSub) {
+        updatedSubprojects.push(origSub);
+        continue;
+      }
+
+      const modifiedTasks: any[] = Array.isArray(matchedSub.tasks) ? matchedSub.tasks : [];
+      const usedModifiedIds = new Set<string>();
+
+      const updatedTasks = (origSub.tasks || []).reduce((result: any[], origTask: any) => {
+        const matchedTask = modifiedTasks.find((mTask: any) => {
+          if (mTask.id && origTask.id === mTask.id) return true;
+          const title = (mTask.title || mTask.text || '').trim().toLowerCase();
+          return title && (origTask.text || '').trim().toLowerCase() === title;
+        });
+
+        if (matchedTask) {
+          if (matchedTask.id) usedModifiedIds.add(matchedTask.id);
+          return [...result, mergeTask(matchedTask, origTask)];
+        }
+
+        if (origTask.id && allModifiedTaskIds.has(origTask.id)) {
+          return result;
+        }
+
+        return [...result, origTask];
+      }, [] as any[]);
+
+      for (const mTask of modifiedTasks) {
+        const title = (mTask.title || mTask.text || '').trim().toLowerCase();
+        const alreadyMerged = Boolean(
+          (mTask.id && usedModifiedIds.has(mTask.id)) ||
+          (!mTask.id && updatedTasks.some((t: any) => (t.text || '').trim().toLowerCase() === title)),
+        );
+        if (!alreadyMerged) {
+          updatedTasks.push(mergeTask(mTask, findOriginalTask(mTask, origSub.tasks || [])));
+        }
+      }
+
+      updatedSubprojects.push({
+        ...origSub,
+        text: matchedSub.title ?? matchedSub.text ?? origSub.text,
+        tasks: updatedTasks,
+      });
+    }
+
+    for (const mSub of modifiedSubs) {
+      const existing = originalSubs.some((origSub: any) => origSub.id === mSub.id ||
+        (mSub.title || mSub.text || '').trim().toLowerCase() === (origSub.text || '').trim().toLowerCase());
+      if (existing) continue;
+      const modifiedTasks: any[] = Array.isArray(mSub.tasks) ? mSub.tasks : [];
+      const newTasks = modifiedTasks.map((mTask: any) => mergeTask(mTask, null));
+      updatedSubprojects.push({
+        id: mSub.id || genId('sub'),
+        text: mSub.title || mSub.text || 'New List',
+        isProjectLevel: false,
+        tasks: newTasks,
+      });
+    }
+
     const result: any = { subprojects: updatedSubprojects };
     if (modifiedProject.goal !== undefined) result.goal = modifiedProject.goal;
     if (modifiedProject.description !== undefined) result.description = modifiedProject.description;

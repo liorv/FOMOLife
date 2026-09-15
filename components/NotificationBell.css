@@ -90,6 +90,26 @@
   color: var(--ui-text, #212121);
 }
 
+.notification-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-clear-all {
+  background: none;
+  border: none;
+  color: var(--ui-primary, #1976d2);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+}
+
+.notification-clear-all:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .notification-close {
   background: none;
   border: none;

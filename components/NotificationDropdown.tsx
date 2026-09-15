@@ -73,6 +73,7 @@ export function NotificationDropdown({
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [projectNotifs, setProjectNotifs] = useState<ProjectNotification[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [clearingAll, setClearingAll] = useState(false);
 
   useEffect(() => {
     loadPendingRequests();
@@ -210,6 +211,36 @@ export function NotificationDropdown({
     onClose();
   };
 
+  const handleClearAll = async () => {
+    setClearingAll(true);
+    setFeedbackNotifs([]);
+    setProjectNotifs([]);
+    onFeedbackNotifsUpdate?.(0);
+    onProjectNotifsUpdate?.(0);
+    window.dispatchEvent(new Event('feedback-notifs-updated'));
+    window.dispatchEvent(new Event('project-notifs-updated'));
+
+    try {
+      await Promise.all([
+        fetch('/api/feedback/notifications', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ids: [], action: 'dismiss' }),
+        }),
+        fetch('/api/projects/notifications', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ids: [], action: 'dismiss' }),
+        }),
+      ]);
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+      await Promise.all([loadFeedbackNotifs(), loadProjectNotifs()]);
+    } finally {
+      setClearingAll(false);
+    }
+  };
+
   // Build unified sorted list
   const allItems: AnyItem[] = [
     ...pendingRequests.map((r): AnyItem => ({ kind: 'contact', date: r.requestedAt, data: r })),
@@ -223,7 +254,18 @@ export function NotificationDropdown({
     <div className="notification-dropdown">
       <div className="notification-header">
         <h3>Notifications</h3>
-        <button onClick={onClose} className="notification-close">&times;</button>
+        <div className="notification-header-actions">
+          {(feedbackNotifs.length > 0 || projectNotifs.length > 0) && (
+            <button
+              onClick={handleClearAll}
+              className="notification-clear-all"
+              disabled={clearingAll}
+            >
+              {clearingAll ? 'Clearing...' : 'Clear all'}
+            </button>
+          )}
+          <button onClick={onClose} className="notification-close" aria-label="Close notifications">&times;</button>
+        </div>
       </div>
 
       <div className="notification-content">

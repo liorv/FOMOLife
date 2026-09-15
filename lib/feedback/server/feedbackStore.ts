@@ -46,6 +46,8 @@ export interface FeedbackItem {
   authorId: string;
   authorName: string;
   createdAt: string;
+  /** Last time the item or its discussion changed. */
+  lastActivityAt?: string;
   /** userId → vote direction (+1 upvote, -1 downvote) */
   votes: Record<string, 1 | -1>;
   /** userId → true: users who marked this item as completed */
@@ -56,6 +58,7 @@ export interface FeedbackItem {
 
 /** Number of completion marks required to archive an item */
 export const COMPLETION_THRESHOLD = 3;
+const INACTIVE_COMPLETION_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Module-level cache (reset on server restart / module reload)
 let cache: FeedbackItem[] | null = null;
@@ -81,7 +84,23 @@ async function persist(items: FeedbackItem[]): Promise<void> {
 
 export async function listFeedback(): Promise<FeedbackItem[]> {
   const items = await load();
-  return [...items].sort((a, b) => {
+  const cutoff = Date.now() - INACTIVE_COMPLETION_AGE_MS;
+  const activeItems = items.filter((item) => {
+    if (Object.keys(item.completions ?? {}).length === 0) return true;
+
+    const latestCommentAt = (item.comments ?? []).reduce((latest, comment) => {
+      return Math.max(latest, new Date(comment.createdAt).getTime());
+    }, 0);
+    const activityAt = Math.max(
+      new Date(item.lastActivityAt ?? item.createdAt).getTime(),
+      latestCommentAt,
+    );
+    return activityAt > cutoff;
+  });
+
+  if (activeItems.length !== items.length) await persist(activeItems);
+
+  return [...activeItems].sort((a, b) => {
     const scoreA = Object.values(a.votes).reduce((s, v) => s + v, 0);
     const scoreB = Object.values(b.votes).reduce((s, v) => s + v, 0);
     if (scoreB !== scoreA) return scoreB - scoreA;
@@ -104,6 +123,7 @@ export async function createFeedback(
     authorId,
     authorName: displayName,
     createdAt: new Date().toISOString(),
+    lastActivityAt: new Date().toISOString(),
     votes: {},
     completions: {},
     comments: [],
@@ -126,6 +146,7 @@ export async function voteFeedback(
   } else {
     item.votes[userId] = vote;
   }
+  item.lastActivityAt = new Date().toISOString();
   await persist(items);
   return item;
 }
@@ -152,6 +173,7 @@ export async function markFeedbackComplete(
   } else {
     delete item.completions[userId];
   }
+  item.lastActivityAt = new Date().toISOString();
 
   const isCreator = item.authorId === userId;
   if (isCreator && mark || Object.keys(item.completions).length >= COMPLETION_THRESHOLD) {
@@ -257,6 +279,7 @@ export async function addComment(
     createdAt: new Date().toISOString(),
   };
   item.comments.push(comment);
+  item.lastActivityAt = comment.createdAt;
   await persist(items);
 
   // Collect users to notify: feedback author + previous commenters, excluding commenter
