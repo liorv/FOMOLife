@@ -112,6 +112,7 @@ interface ProjectsDashboardProps {
   onLeave?: (projectId: string) => void;
   onOpenProjectThread?: (project: ProjectItem) => void;
   onOpenTaskThread?: (task: ProjectTask, project: ProjectItem) => void;
+  onArchiveProject?: (projectId: string, archived: boolean) => void;
 }
 
 export default function ProjectsDashboard({
@@ -143,12 +144,25 @@ export default function ProjectsDashboard({
   onLeave,
   onOpenProjectThread,
   onOpenTaskThread,
+  onArchiveProject,
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
 
   const [showFilters, setShowFilters] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const visibleProjects = useMemo(
+    () => projects.filter((p) => (showArchived ? !!p.archived : !p.archived)),
+    [projects, showArchived],
+  );
+  const archivedCount = useMemo(() => projects.filter((p) => p.archived).length, [projects]);
+  // Switch back to the active view once the archived tab becomes empty (e.g. restoring the last archived project)
+  useEffect(() => {
+    if (showArchived && archivedCount === 0) {
+      setShowArchived(false);
+    }
+  }, [showArchived, archivedCount]);
   const collapseAllRef = useRef<(() => void) | null>(null);
   const expandAllRef = useRef<(() => void) | null>(null);
 
@@ -292,12 +306,12 @@ export default function ProjectsDashboard({
   // ── Metrics: scoped to selected project when one is selected ──────────────
 
   const scopedTasks = useMemo(() => {
-    const source = selectedProject ? [selectedProject] : projects;
+    const source = selectedProject ? [selectedProject] : visibleProjects;
     return source.flatMap((p) => (p.subprojects || []).flatMap((s) => s.tasks || []));
-  }, [projects, selectedProject]);
+  }, [visibleProjects, selectedProject]);
 
   const scopedSubprojects = useMemo(() => {
-    const source = selectedProject ? [selectedProject] : projects;
+    const source = selectedProject ? [selectedProject] : visibleProjects;
     return source.flatMap((p) =>
       (p.subprojects || []).filter((s) => !s.isProjectLevel),
     );
@@ -556,6 +570,9 @@ export default function ProjectsDashboard({
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
+              {...(onArchiveProject ? {
+                onArchiveToggle: (archived: boolean) => onArchiveProject(selectedProject.id, archived),
+              } : {})}
               onAddSubproject={(name: string) => onAddSubproject?.(selectedProject.id, name)}
               newlyAddedSubprojectId={newlyAddedSubprojectId ?? null}
               onClearNewSubproject={onClearNewSubproject ?? (() => { })}
@@ -779,8 +796,37 @@ export default function ProjectsDashboard({
                     lines={['drag a project 2 reorder']}
                   />
                 </div>
+                {archivedCount > 0 && (
+                  <div className="project-archive-tabs">
+                    <button
+                      className={`project-archive-tab${!showArchived ? ' project-archive-tab--active' : ''}`}
+                      onClick={() => setShowArchived(false)}
+                    >
+                      Active
+                    </button>
+                    <button
+                      className={`project-archive-tab${showArchived ? ' project-archive-tab--active' : ''}`}
+                      onClick={() => setShowArchived(true)}
+                    >
+                      Archived ({archivedCount})
+                    </button>
+                  </div>
+                )}
+                {visibleProjects.length === 0 ? (
+                  <div className="dashboard-watermark empty-watermark">
+                    <EmptyState
+                      icon={showArchived ? "archive" : "folder_open"}
+                      title={showArchived ? "No archived projects" : "No active projects"}
+                      description={
+                        showArchived
+                          ? "Projects you mark complete will show up here."
+                          : "All of your projects are archived. Switch to the Archived tab to restore one."
+                      }
+                    />
+                  </div>
+                ) : (
                 <div className="dashboard-tiles-grid">
-                  {projects.map((p) => (
+                  {visibleProjects.map((p) => (
                     <div
                       key={p.id}
                       className="dashboard-tile-wrapper"
@@ -801,10 +847,12 @@ export default function ProjectsDashboard({
                         onReorder={onReorder}
                         currentUserId={currentUserId}
                         onLeave={onLeave ? () => onLeave(p.id) : undefined}
+                        {...(onArchiveProject ? { onArchiveToggle: onArchiveProject } : {})}
                       />
                     </div>
                   ))}
                 </div>
+                )}
               </>
             )
           )}

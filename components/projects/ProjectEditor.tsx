@@ -32,6 +32,7 @@ interface ProjectEditorProps {
   currentUserId?: string;
   onInviteMember?: (member: ProjectMember) => void;
   onRemoveMember?: (userId: string) => void;
+  onArchiveToggle?: (archived: boolean) => void;
   collapseAllRef?: React.MutableRefObject<(() => void) | null>;
   expandAllRef?: React.MutableRefObject<(() => void) | null>;
   onTaskChatClick?: (task: ProjectTask) => void;
@@ -121,6 +122,7 @@ export default function ProjectEditor({
   currentUserId = '',
   onInviteMember,
   onRemoveMember,
+  onArchiveToggle,
   collapseAllRef,
   expandAllRef,
   onTaskChatClick,
@@ -970,6 +972,17 @@ export default function ProjectEditor({
               <span className="material-icons">person_add</span>
               <span className="btn-label">Invite</span>
             </button>
+
+            {onArchiveToggle && (
+              <button
+                className="expand-collapse-btn"
+                title={local.archived ? "Restore project from archive" : "Mark project complete and archive it"}
+                onClick={() => onArchiveToggle(!local.archived)}
+              >
+                <span className="material-icons">{local.archived ? "unarchive" : "archive"}</span>
+                <span className="btn-label">{local.archived ? "Restore" : "Mark Complete"}</span>
+              </button>
+            )}
             
             {/* Toggle for hiding/showing completed tasks */}
             {onToggleFilter && (

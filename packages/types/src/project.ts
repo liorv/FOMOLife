@@ -104,6 +104,10 @@ export interface ProjectItem {
   creatorId?: string;
   /** Members of this project (owner + invited members) */
   members?: ProjectMember[];
+  /** Whether this project is archived (marked complete) */
+  archived?: boolean;
+  /** Timestamp when the project was archived, if applicable */
+  archivedAt?: string | null;
   /** Persisted UI preferences for this project */
   preferences?: {
     /** Whether to show completed tasks (default: false = hide them) */
@@ -146,6 +150,8 @@ export interface ProjectUpdateInput {
   aiInstructions?: string;
   avatarUrl?: string;
   members?: ProjectMember[];
+  archived?: boolean;
+  archivedAt?: string | null;
   preferences?: {
     showCompleted?: boolean;
     activeFilters?: string[];

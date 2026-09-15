@@ -512,6 +512,21 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
   };
 
+  const handleArchiveProject = async (projectId: string, archived: boolean) => {
+    if (!canManage) return;
+    setProjects((prev) =>
+      prev.map((item) =>
+        item.id === projectId ? { ...item, archived, archivedAt: archived ? new Date().toISOString() : null } : item,
+      ),
+    );
+    invalidateProjectsCache();
+    try {
+      await apiUpdateProject(projectId, { archived, archivedAt: archived ? new Date().toISOString() : null });
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to update project");
+    }
+  };
+
   const handleReorderProjects = async (
     draggedProjectId: string,
     targetProjectId: string,
@@ -812,6 +827,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               onLeave={(projectId) => handleRemoveMember(projectId, currentUserId)}
               onOpenProjectThread={handleOpenProjectThread}
               onOpenTaskThread={handleOpenTaskThread}
+              onArchiveProject={handleArchiveProject}
             />
             )}
 

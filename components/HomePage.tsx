@@ -127,6 +127,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
     }));
 
     projects.forEach(p => {
+      if (p.archived) return;
       p.subprojects.forEach(sp => {
         sp.tasks.forEach(t => {
           list.push({

@@ -29,6 +29,7 @@ export interface ProjectTileProps {
   isDragging?: boolean;
   currentUserId?: string;
   onLeave?: ((id: string) => void) | undefined;
+  onArchiveToggle?: ((id: string, archived: boolean) => void) | undefined;
 }
 
 // a simple hash function to convert a string into an index for a color list
@@ -80,6 +81,7 @@ export default function ProjectTile({
   isDragging = false,
   currentUserId,
   onLeave,
+  onArchiveToggle,
 }: ProjectTileProps) {
   const progress = useMemo(() => {
     // Derive progress solely from tasks; ignore any stored project.progress value.
@@ -271,6 +273,11 @@ export default function ProjectTile({
     setMenuOpen(false);
   };
 
+  const handleArchiveToggle = () => {
+    onArchiveToggle?.(project.id, !project.archived);
+    setMenuOpen(false);
+  };
+
   const handleOpenColorPicker = (e: React.MouseEvent<HTMLButtonElement>) => {
     onOpenColorPicker(project.id, e.currentTarget);
   };
@@ -336,7 +343,7 @@ export default function ProjectTile({
           width: widthStr,
           height: heightStr,
           "--project-color": color,
-          opacity: isDragging ? 0.5 : 1,
+          opacity: isDragging ? 0.5 : project.archived ? 0.75 : 1,
           zIndex: menuOpen ? 999 : undefined,
         } as any
       }
@@ -509,6 +516,20 @@ export default function ProjectTile({
                       </button>
                     )}
 
+                    {onArchiveToggle && (
+                      <>
+                        <div className={`${styles.menuDivider} menu-divider`} />
+                        <button
+                          className={`${styles.menuItem} menu-item archive-menu-item`}
+                          onClick={handleArchiveToggle}
+                          title={project.archived ? "Restore project" : "Mark project complete"}
+                        >
+                          <span className="material-icons">{project.archived ? "unarchive" : "archive"}</span>
+                          <span>{project.archived ? "Restore" : "Mark Complete"}</span>
+                        </button>
+                      </>
+                    )}
+
                     {showLeave && (
                       <>
                         <div className={`${styles.menuDivider} menu-divider`} />
@@ -632,6 +653,30 @@ export default function ProjectTile({
             <span className={`${styles.statLabel} stat-label`}>{(project.subprojects || []).flatMap((s) => s.tasks || []).filter((t) => !t.done).length === 1 ? "Task" : "Tasks"}</span>
           </div>
         </div>
+
+        {project.archived && (
+          <span
+            className="project-archived-badge"
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 600,
+              padding: '4px 8px',
+              borderRadius: 999,
+              background: 'rgba(0, 0, 0, 0.55)',
+              color: '#fff',
+              zIndex: 3,
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: 13 }}>archive</span>
+            Archived
+          </span>
+        )}
       </div>
 
       {/* Hidden elements for backward compatibility with tests */}

@@ -52,6 +52,8 @@ export interface ProjectItem {
   avatarUrl?: string;
   creatorId?: string;
   members?: ProjectMember[];
+  archived?: boolean;
+  archivedAt?: string | null;
   preferences?: {
     showCompleted?: boolean;
     activeFilters?: string[];
@@ -245,7 +247,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences'>>,
+  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {

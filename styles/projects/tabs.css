@@ -1497,6 +1497,34 @@ html[data-theme="dark"] .inline-editor {
   box-sizing: border-box;
 }
 
+/* Active/Archived project tabs */
+.project-archive-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.project-archive-tab {
+  border: none;
+  background: var(--surface-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.project-archive-tab:hover {
+  background: var(--surface-hover, #e4e4e4);
+}
+
+.project-archive-tab--active {
+  background: var(--accent-primary, #1a73e8);
+  color: #fff;
+}
+
 /* Tile wrapper: intercepts click, passes through pointer for menus */
 .dashboard-tile-wrapper {
   cursor: pointer;
