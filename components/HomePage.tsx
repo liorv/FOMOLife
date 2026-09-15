@@ -154,12 +154,25 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
     return allTasks.filter(t => !t.done && t.favorite);
   }, [allTasks]);
 
+  // "Coming Due" should only surface tasks due in the near future, not ones
+  // that happen to be the earliest incomplete task but are a year+ away.
+  // User can widen/narrow this window via the panel's filter control.
+  const [dueWindow, setDueWindow] = useState<'30' | '90' | 'all'>('90');
+
   const comingDue = useMemo(() => {
-    const now = new Date().toISOString();
+    // Compare as Date objects (not raw strings) so date-only values like
+    // "2026-09-15" sort/filter correctly against the current instant, and
+    // so the year always takes precedence over month/day.
+    const now = Date.now();
+    const windowEndTime = dueWindow === 'all' ? Infinity : now + Number(dueWindow) * 24 * 60 * 60 * 1000;
     return allTasks
-      .filter(t => !t.done && t.dueDate && t.dueDate >= now)
-      .sort((a, b) => (a.dueDate! > b.dueDate! ? 1 : -1));
-  }, [allTasks]);
+      .filter(t => {
+        if (t.done || !t.dueDate) return false;
+        const time = new Date(t.dueDate).getTime();
+        return !Number.isNaN(time) && time >= now && time <= windowEndTime;
+      })
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+  }, [allTasks, dueWindow]);
 
   const recentlyCompleted = useMemo(() => {
     // We don't have completedAt, so we just take some done tasks
@@ -282,7 +295,15 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '';
     try {
-      return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(dateStr));
+      const date = new Date(dateStr);
+      // Always include the year so far-future/past dates aren't confused with
+      // this year's dates that happen to share the same month/day.
+      const includeYear = date.getFullYear() !== new Date().getFullYear();
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        ...(includeYear ? { year: 'numeric' } : {}),
+      }).format(date);
     } catch {
       return dateStr;
     }
@@ -340,6 +361,17 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
           <div className={styles.cardHeader}>
             <span className={`material-icons ${styles.cardIcon}`}>schedule</span>
             <h2 className={styles.cardTitle}>Coming Due</h2>
+            <div className={styles.dueFilterOptions} role="group" aria-label="Coming due time range">
+              {(['30', '90', 'all'] as const).map(opt => (
+                <span
+                  key={opt}
+                  className={`${styles.dueFilterOption} ${dueWindow === opt ? styles.dueFilterOptionActive : ''}`}
+                  onClick={() => setDueWindow(opt)}
+                >
+                  {opt === 'all' ? 'All' : `${opt}d`}
+                </span>
+              ))}
+            </div>
           </div>
           <ul className={styles.list}>
             {comingDue.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No upcoming tasks due shortly.</p></div></li>}
