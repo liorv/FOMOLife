@@ -3,3 +3,4 @@
  */
 
 export { useAsyncState, type UseAsyncStateReturn } from './useAsyncState';
+export { withKeyedLock } from './keyedMutex';

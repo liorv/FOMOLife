@@ -19,7 +19,7 @@ interface FeedbackNotification {
 
 interface ProjectNotification {
   id: string;
-  type: 'project_comment' | 'task_completed';
+  type: 'project_comment' | 'task_completed' | 'task_assigned';
   threadId: string;
   projectId: string;
   taskId?: string;
@@ -163,12 +163,20 @@ export function NotificationDropdown({
     const remaining = feedbackNotifs.filter((n) => n.id !== notif.id);
     onFeedbackNotifsUpdate?.(remaining.filter((n) => !n.read).length);
     window.dispatchEvent(new Event('feedback-notifs-updated'));
-    // Dismiss on server (fire-and-forget)
-    fetch('/api/feedback/notifications', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ids: [notif.id], action: 'dismiss' }),
-    }).catch(() => {});
+    // Dismiss on server; if it fails, reload so the notification isn't lost
+    // client-side while still un-dismissed on the server (which would make it
+    // reappear unexpectedly on the next load).
+    try {
+      const res = await fetch('/api/feedback/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [notif.id], action: 'dismiss' }),
+      });
+      if (!res.ok) throw new Error(`Dismiss failed: ${res.status}`);
+    } catch (error) {
+      console.error('Failed to dismiss feedback notification:', error);
+      await loadFeedbackNotifs();
+    }
     // Navigate
     window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'feedback' } }));
     setTimeout(() => {
@@ -188,12 +196,19 @@ export function NotificationDropdown({
     const remaining = projectNotifs.filter((n) => n.id !== notif.id);
     onProjectNotifsUpdate?.(remaining.filter((n) => !n.read).length);
     window.dispatchEvent(new Event('project-notifs-updated'));
-    // Dismiss on server (fire-and-forget)
-    fetch('/api/projects/notifications', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ids: [notif.id], action: 'dismiss' }),
-    }).catch(() => {});
+    // Dismiss on server; if it fails, reload so the notification isn't lost
+    // client-side while still un-dismissed on the server.
+    try {
+      const res = await fetch('/api/projects/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [notif.id], action: 'dismiss' }),
+      });
+      if (!res.ok) throw new Error(`Dismiss failed: ${res.status}`);
+    } catch (error) {
+      console.error('Failed to dismiss project notification:', error);
+      await loadProjectNotifs();
+    }
     // Navigate
     window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'projects' } }));
     setTimeout(() => {
@@ -365,18 +380,20 @@ export function NotificationDropdown({
               >
                 <div className="notif-type-row">
                   <span className="notif-type-badge notif-type-project">
-                    {notif.type === 'task_completed' ? 'Task completed' : 'Project'}
+                    {notif.type === 'task_completed' ? 'Task completed' : notif.type === 'task_assigned' ? 'Task assigned' : 'Project'}
                   </span>
                   <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                 </div>
                 <div className="feedback-notif-body">
                   <span className="feedback-notif-icon material-icons">
-                    {notif.type === 'task_completed' ? 'check_circle' : 'chat_bubble_outline'}
+                    {notif.type === 'task_completed' ? 'check_circle' : notif.type === 'task_assigned' ? 'person_add' : 'chat_bubble_outline'}
                   </span>
                   <div className="feedback-notif-text">
                     <span className="feedback-notif-author">{notif.commentAuthorName}</span>
                     {notif.type === 'task_completed'
                       ? <>{' completed '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span></>
+                      : notif.type === 'task_assigned'
+                      ? <>{' '}{notif.commentText}</>
                       : <>{' commented on '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span><p className="feedback-notif-preview">{notif.commentText}</p></>}
                   </div>
                 </div>

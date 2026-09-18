@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import type { Contact } from '@myorg/types';
 import { ContactTile, ModalOverlay } from '@myorg/ui';
 import { createContactsApiClient } from '@myorg/api-client';
-import { getCachedContacts, getCachedContactsSync, getContactsCacheAge } from '@/lib/client/contactsCache';
+import { getCachedContacts, getCachedContactsSync } from '@/lib/client/contactsCache';
 
 import styles from '../../styles/contacts/layout.module.css';
 import ContentHeader from '../ContentHeader';
@@ -32,14 +32,44 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const onReadyCalledRef = useRef(false);
+  const contactsRef = useRef<Contact[]>([]);
+  const hasContactsBaselineRef = useRef(false);
+  const updateMessageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useLayoutEffect(() => {
     const cached = getCachedContactsSync<Contact>();
     if (cached !== null) {
+      contactsRef.current = cached;
+      hasContactsBaselineRef.current = true;
       setContacts(cached);
       setLoading(false);
     }
+  }, []);
+
+  const applyFreshContacts = useCallback((updated: Contact[], announce: boolean) => {
+    const previous = contactsRef.current;
+    const changed = JSON.stringify(previous) !== JSON.stringify(updated);
+    const shouldAnnounce = announce && hasContactsBaselineRef.current && changed;
+
+    contactsRef.current = updated;
+    hasContactsBaselineRef.current = true;
+    setContacts(updated);
+
+    if (shouldAnnounce) {
+      const previousIds = new Set(previous.map((contact) => contact.id));
+      const addedCount = updated.filter((contact) => !previousIds.has(contact.id)).length;
+      setUpdateMessage(addedCount > 0
+        ? `${addedCount} new ${addedCount === 1 ? 'contact' : 'contacts'} added.`
+        : 'Contacts updated to the latest version.');
+      if (updateMessageTimerRef.current) clearTimeout(updateMessageTimerRef.current);
+      updateMessageTimerRef.current = setTimeout(() => setUpdateMessage(null), 5000);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (updateMessageTimerRef.current) clearTimeout(updateMessageTimerRef.current);
   }, []);
 
   // Notify parent when initial data is available (cached or freshly loaded)
@@ -192,9 +222,10 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     let active = true;
     const loadContacts = async () => {
       try {
-        const loaded = await getCachedContacts(() => apiClient.listContacts());
+        const hadCachedContacts = getCachedContactsSync<Contact>() !== null;
+        const loaded = await getCachedContacts(() => apiClient.listContacts(), hadCachedContacts);
         if (active) {
-          setContacts(loaded);
+          applyFreshContacts(loaded, hadCachedContacts);
           setErrorMessage(null);
         }
       } catch (error) {
@@ -213,7 +244,7 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     return () => {
       active = false;
     };
-  }, [apiClient]);
+  }, [apiClient, applyFreshContacts]);
 
   // read query params to show an accepted-invite banner
   useEffect(() => {
@@ -237,9 +268,9 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     const doRefresh = async () => {
       try {
         console.log('[ContactsPage] Refetching contacts...');
-        const updated = await apiClient.listContacts();
+        const updated = await getCachedContacts(() => apiClient.listContacts(), true);
         console.log('[ContactsPage] Fetched contacts successfully. Count:', updated.length);
-        setContacts(updated);
+        applyFreshContacts(updated, true);
       } catch (err) {
         // ignore; existing errorMessage state covers it when mounted
         console.warn('[Contacts] refresh failed', err);
@@ -275,19 +306,16 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
       window.removeEventListener('storage', onStorage);
       if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     };
-  }, [apiClient, canManage]);
+  }, [apiClient, applyFreshContacts, canManage]);
 
-  // Stale-while-revalidate: silently refresh when the user switches to this tab
-  // and the contacts cache is older than 60 seconds, picking up other users' edits.
+  // Check the server every time this tab becomes active. The list stays visible
+  // while the request runs, then changed data is applied without a page reload.
   useEffect(() => {
     if (!isActive) return;
-    const age = getContactsCacheAge();
-    if (age !== null && age < 60_000) return; // still fresh
     getCachedContacts(() => apiClient.listContacts(), true)
-      .then(updated => setContacts(updated))
+      .then(updated => applyFreshContacts(updated, true))
       .catch(() => {}); // silent failure
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
+  }, [apiClient, applyFreshContacts, isActive]);
 
   
 
@@ -353,6 +381,13 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
           {loading && <div className={styles.notice}>Loading contacts…</div>}
 
           {errorMessage && <div className={styles.error}>{errorMessage}</div>}
+
+          {updateMessage && (
+            <div className={styles.banner} role="status">
+              <span className={`material-icons ${styles.bannerIcon}`} aria-hidden="true">update</span>
+              {updateMessage}
+            </div>
+          )}
 
           {acceptedBanner && (
             <div className={styles.banner}>

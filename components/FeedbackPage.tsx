@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import styles from './FeedbackPage.module.css';
 import ContentHeader from './ContentHeader';
 import { ModalOverlay } from '@myorg/ui';
-import { getFeedbackCacheSync, isFeedbackStale, setFeedbackCache } from '@/lib/client/feedbackCache';
+import { getFeedbackCacheSync, setFeedbackCache } from '@/lib/client/feedbackCache';
 import FeedbackThread from './FeedbackThread';
 
 type FeedbackType = 'feature' | 'bug';
@@ -68,15 +68,30 @@ export default function FeedbackPage({ userId, userName, userAvatarUrl, style, o
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [highlightedItemIds, setHighlightedItemIds] = useState<Set<string>>(new Set());
   const onReadyCalledRef = useRef(false);
+  const itemsRef = useRef<FeedbackItem[]>([]);
+  const hasFeedbackBaselineRef = useRef(false);
+  const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync from cache immediately after mount, before first paint.
   useLayoutEffect(() => {
     const cached = getFeedbackCacheSync<FeedbackItem>();
     if (cached !== null) {
+      itemsRef.current = cached;
+      hasFeedbackBaselineRef.current = true;
       setItems(cached);
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => () => {
+    if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
   }, []);
 
   // Notify parent when initial data is available
@@ -101,14 +116,33 @@ export default function FeedbackPage({ userId, userName, userAvatarUrl, style, o
   const [threadItem, setThreadItem] = useState<FeedbackItem | null>(null);
 
   // Core fetch — `silent` skips the loading spinner (used for background refresh).
-  const fetchItems = async (silent = false) => {
+  const fetchItems = async (silent = false, announce = false) => {
     if (!silent) setLoading(true);
     try {
       const res = await fetch('/api/feedback');
       if (!res.ok) throw new Error('Failed to load');
       const data = await res.json();
       const feedback: FeedbackItem[] = data.feedback ?? [];
+      const previous = itemsRef.current;
+      const changed = JSON.stringify(previous) !== JSON.stringify(feedback);
+      const previousIds = new Set(previous.map((item) => item.id));
+      const addedIds = feedback
+        .filter((item) => !previousIds.has(item.id))
+        .map((item) => item.id);
       setFeedbackCache(feedback);
+      itemsRef.current = feedback;
+      if (announce && hasFeedbackBaselineRef.current && changed) {
+        setHighlightedItemIds(new Set(addedIds));
+        setUpdateMessage(addedIds.length > 0
+          ? `${addedIds.length} new feedback ${addedIds.length === 1 ? 'item' : 'items'} added.`
+          : 'Feedback updated to the latest version.');
+        if (updateTimerRef.current) clearTimeout(updateTimerRef.current);
+        updateTimerRef.current = setTimeout(() => {
+          setUpdateMessage(null);
+          setHighlightedItemIds(new Set());
+        }, 5000);
+      }
+      hasFeedbackBaselineRef.current = true;
       setItems(feedback);
     } catch {
       if (!silent) setError('Failed to load feedback. Please try again.');
@@ -119,22 +153,20 @@ export default function FeedbackPage({ userId, userName, userAvatarUrl, style, o
 
   // Initial fetch (skipped if cache already has data).
   useEffect(() => {
-    if (getFeedbackCacheSync() === null) {
+    const hasCachedFeedback = getFeedbackCacheSync() !== null;
+    if (!hasCachedFeedback) {
       fetchItems();
     } else {
-      // Already have data from cache; still do a silent refresh to get latest.
-      fetchItems(true);
+      fetchItems(true, true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Stale-while-revalidate: silently refresh when the user switches back to this tab
-  // and the cache is older than 60 seconds, ensuring multi-user edits are picked up.
+  // Revalidate on every activation so multi-user changes are never hidden by a
+  // recently populated session cache.
   useEffect(() => {
     if (!isActive) return;
-    if (isFeedbackStale()) {
-      fetchItems(true);
-    }
+    fetchItems(true, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
@@ -286,6 +318,13 @@ export default function FeedbackPage({ userId, userName, userAvatarUrl, style, o
     <div className={styles.page} style={style}>
       <ContentHeader title="Feedback" />
       <div className={styles.contentContainer}>
+        {updateMessage && (
+          <div className={styles.updateBanner} role="status">
+            <span className="material-icons" aria-hidden="true">update</span>
+            {updateMessage}
+          </div>
+        )}
+
         {/* ── Filter chips ── */}
         <div className={styles.filterRow}>
           {(['all', 'feature', 'bug'] as FilterType[]).map((f) => (
@@ -329,7 +368,7 @@ export default function FeedbackPage({ userId, userName, userAvatarUrl, style, o
               const myVote = item.votes[userId];
               const isOwn = item.authorId === userId;
               return (
-                <li key={item.id} className={styles.card}>
+                <li key={item.id} className={`${styles.card} ${highlightedItemIds.has(item.id) ? styles.cardUpdated : ''}`}>
                   {/* Vote */}
                   <div className={styles.voteCol}>
                     <button

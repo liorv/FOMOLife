@@ -16,6 +16,7 @@ import jwt from 'jsonwebtoken';
 import { createStorageProvider, getSupabaseAdminClient } from '@myorg/storage';
 import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
+import { sendPushToUser } from '../../server/webPush';
 
 const storage = createStorageProvider();
 
@@ -811,6 +812,15 @@ export async function requestLinkage(userId: string, token: string): Promise<{ r
     await saveSystemData();
     await broadcastToUser(inviterId, 'contacts-updated');
     await addTrace('requestLinkage_success', { inviterId, requestId });
+
+    const invitee = await getInviteDetailsForUser(userId);
+    await sendPushToUser(inviterId, {
+      title: 'New connection request',
+      body: `${invitee.fullName} wants to connect with you`,
+      url: '/dashboard?tab=contacts',
+      tag: `contact-request-${requestId}`,
+    }).catch(() => { /* push failures are non-critical */ });
+
     return { requestId };
   } catch (err: any) {
     await addTrace('requestLinkage_error', { reason: err.message, stack: err.stack });
@@ -885,6 +895,14 @@ export async function approveRequest(userId: string, requestId: string): Promise
     broadcastToUser(request.inviterId, 'contacts-updated'),
     broadcastToUser(request.invitedId, 'contacts-updated')
   ]);
+
+  const inviter = await getInviteDetailsForUser(request.inviterId);
+  await sendPushToUser(request.invitedId, {
+    title: 'Connection accepted',
+    body: `${inviter.fullName} accepted your connection request`,
+    url: '/dashboard?tab=contacts',
+    tag: `contact-approved-${requestId}`,
+  }).catch(() => { /* push failures are non-critical */ });
 }
 
 export async function rejectRequest(userId: string, requestId: string): Promise<void> {

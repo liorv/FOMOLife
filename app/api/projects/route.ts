@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { unauthorizedResponse } from '@/lib/server/apiUtils';
 import { createProject, deleteProject, listProjects, updateProject, resolveProjectOwner, removeSharedProjectRef } from '@/lib/projects/server/projectsStore';
-import { notifyTaskCompleted } from '@/lib/projects/server/projectCommentsStore';
+import { notifyTaskCompleted, notifyTaskAssigned } from '@/lib/projects/server/projectCommentsStore';
 import type { ProjectItem } from '@myorg/types';
 
 export async function GET(request: Request) {
@@ -76,25 +76,36 @@ export async function PATCH(request: Request) {
 
   const ownerUserId = await resolveProjectOwner(body.id, session.userId);
 
-  // Before saving, detect tasks that are newly completed so we can notify members
+  // Before saving, detect tasks that are newly completed or newly assigned so we can notify members
   let newlyCompletedTasks: Array<{ id: string; text: string }> = [];
+  let newlyAssignedTasks: Array<{ id: string; text: string; newAssigneeNames: string[] }> = [];
   if (Array.isArray(body.patch.subprojects)) {
     try {
       const existing = await listProjects(ownerUserId);
       const currentProject = existing.find((p) => p.id === body.id);
       if (currentProject) {
-        // Build a map of taskId → done from the CURRENT persisted state
+        // Build maps of taskId → done / assignee names from the CURRENT persisted state
         const currentDoneMap = new Map<string, boolean>();
+        const currentPeopleMap = new Map<string, string[]>();
         for (const sub of currentProject.subprojects ?? []) {
           for (const task of sub.tasks ?? []) {
             currentDoneMap.set(task.id, task.done);
+            currentPeopleMap.set(task.id, (task.people ?? []).map((p) => p.name));
           }
         }
-        // Find any task in the incoming patch that is now done but wasn't before
+        // Find any task in the incoming patch that is now done but wasn't before,
+        // or that has newly-added assignees compared to the current state
         for (const sub of body.patch.subprojects) {
           for (const task of sub.tasks ?? []) {
             if (task.done && currentDoneMap.get(task.id) === false) {
               newlyCompletedTasks.push({ id: task.id, text: task.text });
+            }
+            const prevNames = new Set((currentPeopleMap.get(task.id) ?? []).map((n) => n.toLowerCase()));
+            const newAssigneeNames = ((task.people ?? []) as { name: string }[])
+              .map((p) => p.name)
+              .filter((name) => !prevNames.has(name.toLowerCase()));
+            if (newAssigneeNames.length > 0) {
+              newlyAssignedTasks.push({ id: task.id, text: task.text, newAssigneeNames });
             }
           }
         }
@@ -124,6 +135,31 @@ export async function PATCH(request: Request) {
           memberIds,
         }),
       ),
+    );
+  }
+
+  // Fire task-assignment notifications (non-blocking)
+  if (newlyAssignedTasks.length > 0) {
+    const members = updated.members ?? [];
+    const projectTitle = updated.text;
+    const assignedByName = session.userName ?? session.userEmail ?? session.userId;
+    void Promise.allSettled(
+      newlyAssignedTasks.map((task) => {
+        const nameSet = new Set(task.newAssigneeNames.map((n) => n.toLowerCase()));
+        const assigneeIds = members
+          .filter((m) => m.userId && nameSet.has(m.name.toLowerCase()))
+          .map((m) => m.userId);
+        if (assigneeIds.length === 0) return Promise.resolve();
+        return notifyTaskAssigned({
+          projectId: body.id!,
+          projectTitle,
+          taskId: task.id,
+          taskTitle: task.text,
+          assignedByUserId: session.userId,
+          assignedByName,
+          assigneeIds,
+        });
+      }),
     );
   }
 

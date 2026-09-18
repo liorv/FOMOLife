@@ -19,3 +19,5 @@ export {
 } from "./invite";
 
 export { preloadImages } from './client';
+
+export { withKeyedLock } from './async/keyedMutex';

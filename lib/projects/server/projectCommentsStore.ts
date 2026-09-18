@@ -1,9 +1,10 @@
 import 'server-only';
 
 import { createStorageProvider } from '@myorg/storage';
-import { generateId } from '@myorg/utils';
+import { generateId, withKeyedLock } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 import { getDisplayNameFromUserId } from '../../server/frameworkAuth';
+import { sendPushToUser } from '../../server/webPush';
 
 const storage = createStorageProvider();
 
@@ -24,7 +25,7 @@ export interface ProjectThreadComment {
 
 export interface ProjectNotification {
   id: string;
-  type: 'project_comment' | 'task_completed';
+  type: 'project_comment' | 'task_completed' | 'task_assigned';
   /** e.g. "proj:abc" or "task:abc:xyz" */
   threadId: string;
   /** The project to open for navigation */
@@ -168,10 +169,26 @@ async function saveNotifications(userId: string, notifs: ProjectNotification[]):
   await storage.save(`${NOTIF_KEY_PREFIX}${userId}`, data);
 }
 
+function notifLockKey(userId: string) {
+  return `project-notifs:${userId}`;
+}
+
 async function appendNotification(userId: string, notif: ProjectNotification): Promise<void> {
-  const notifs = await loadNotifications(userId);
-  const trimmed = [notif, ...notifs].slice(0, 100);
-  await saveNotifications(userId, trimmed);
+  await withKeyedLock(notifLockKey(userId), async () => {
+    const notifs = await loadNotifications(userId);
+    const trimmed = [notif, ...notifs].slice(0, 100);
+    await saveNotifications(userId, trimmed);
+  });
+
+  const body = notif.type === 'task_completed' || notif.type === 'task_assigned'
+    ? `${notif.commentAuthorName} ${notif.commentText}`
+    : `${notif.commentAuthorName}: ${notif.commentText}`;
+  await sendPushToUser(userId, {
+    title: notif.threadTitle,
+    body,
+    url: '/dashboard?tab=projects',
+    tag: `project-${notif.threadId}`,
+  }).catch(() => { /* push failures are non-critical */ });
 }
 
 export async function listProjectNotifications(userId: string): Promise<ProjectNotification[]> {
@@ -185,19 +202,23 @@ export async function getProjectNotifUnreadCount(userId: string): Promise<number
 }
 
 export async function markProjectNotificationsRead(userId: string, ids: string[]): Promise<void> {
-  const notifs = await loadNotifications(userId);
-  const markAll = ids.length === 0;
-  const updated = notifs.map((n) => (markAll || ids.includes(n.id) ? { ...n, read: true } : n));
-  await saveNotifications(userId, updated);
+  await withKeyedLock(notifLockKey(userId), async () => {
+    const notifs = await loadNotifications(userId);
+    const markAll = ids.length === 0;
+    const updated = notifs.map((n) => (markAll || ids.includes(n.id) ? { ...n, read: true } : n));
+    await saveNotifications(userId, updated);
+  });
 }
 
 export async function dismissProjectNotifications(userId: string, ids: string[]): Promise<void> {
-  const notifs = await loadNotifications(userId);
-  const dismissAll = ids.length === 0;
-  const updated = notifs.map((n) =>
-    dismissAll || ids.includes(n.id) ? { ...n, read: true, dismissed: true } : n,
-  );
-  await saveNotifications(userId, updated);
+  await withKeyedLock(notifLockKey(userId), async () => {
+    const notifs = await loadNotifications(userId);
+    const dismissAll = ids.length === 0;
+    const updated = notifs.map((n) =>
+      dismissAll || ids.includes(n.id) ? { ...n, read: true, dismissed: true } : n,
+    );
+    await saveNotifications(userId, updated);
+  });
 }
 
 /**
@@ -228,6 +249,41 @@ export async function notifyTaskCompleted(opts: {
       commentAuthorId: completedByUserId,
       commentAuthorName: completedByName,
       commentText: `completed in “${projectTitle}”`,
+      createdAt: now,
+      read: false,
+    }),
+  );
+  await Promise.allSettled(notifPromises);
+}
+
+/**
+ * Notify newly-assigned people that they were assigned to a task.
+ */
+export async function notifyTaskAssigned(opts: {
+  projectId: string;
+  projectTitle: string;
+  taskId: string;
+  taskTitle: string;
+  assignedByUserId: string;
+  assignedByName: string;
+  /** userIds of newly assigned people (the assigner is excluded automatically) */
+  assigneeIds: string[];
+}): Promise<void> {
+  const { projectId, projectTitle, taskId, taskTitle, assignedByUserId, assignedByName, assigneeIds } = opts;
+  const now = new Date().toISOString();
+  const threadId = `task:${projectId}:${taskId}`;
+  const toNotify = assigneeIds.filter((id) => id !== assignedByUserId);
+  const notifPromises = toNotify.map((recipientId) =>
+    appendNotification(recipientId, {
+      id: generateId(),
+      type: 'task_assigned',
+      threadId,
+      projectId,
+      taskId,
+      threadTitle: taskTitle,
+      commentAuthorId: assignedByUserId,
+      commentAuthorName: assignedByName,
+      commentText: `assigned you to “${taskTitle}” in “${projectTitle}”`,
       createdAt: now,
       read: false,
     }),

@@ -1,9 +1,10 @@
 import 'server-only';
 
 import { createStorageProvider } from '@myorg/storage';
-import { generateId } from '@myorg/utils';
+import { generateId, withKeyedLock } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 import { getDisplayNameFromUserId } from '../../server/frameworkAuth';
+import { sendPushToUser } from '../../server/webPush';
 
 // Feedback is global/shared across all users, stored under this special key
 const FEEDBACK_STORAGE_KEY = '__feedback__';
@@ -333,12 +334,28 @@ async function saveNotifications(userId: string, notifs: FeedbackNotification[])
   await storage.save(`${NOTIF_STORAGE_KEY}${userId}`, data);
 }
 
+function notifLockKey(userId: string) {
+  return `feedback-notifs:${userId}`;
+}
+
 async function appendNotification(userId: string, notif: FeedbackNotification): Promise<void> {
-  const notifs = await loadNotifications(userId);
-  // Keep most recent 100 notifications to avoid unbounded growth
-  const trimmed = notifs.slice(-99);
-  trimmed.push(notif);
-  await saveNotifications(userId, trimmed);
+  await withKeyedLock(notifLockKey(userId), async () => {
+    const notifs = await loadNotifications(userId);
+    // Keep most recent 100 notifications to avoid unbounded growth
+    const trimmed = notifs.slice(-99);
+    trimmed.push(notif);
+    await saveNotifications(userId, trimmed);
+  });
+
+  const body = notif.type === 'feedback_status'
+    ? notif.commentText
+    : `${notif.commentAuthorName}: ${notif.commentText}`;
+  await sendPushToUser(userId, {
+    title: notif.feedbackTitle,
+    body,
+    url: '/dashboard?tab=feedback',
+    tag: `feedback-${notif.feedbackId}`,
+  }).catch(() => { /* push failures are non-critical */ });
 }
 
 /** Returns all notifications for a user, newest first. */
@@ -354,12 +371,14 @@ export async function markNotificationsRead(
   userId: string,
   ids: string[],
 ): Promise<void> {
-  const notifs = await loadNotifications(userId);
-  const markAll = ids.length === 0;
-  for (const n of notifs) {
-    if (markAll || ids.includes(n.id)) n.read = true;
-  }
-  await saveNotifications(userId, notifs);
+  await withKeyedLock(notifLockKey(userId), async () => {
+    const notifs = await loadNotifications(userId);
+    const markAll = ids.length === 0;
+    for (const n of notifs) {
+      if (markAll || ids.includes(n.id)) n.read = true;
+    }
+    await saveNotifications(userId, notifs);
+  });
 }
 
 /** Dismisses (archives) specific notification IDs. Pass empty array to dismiss all. */
@@ -367,13 +386,15 @@ export async function dismissNotifications(
   userId: string,
   ids: string[],
 ): Promise<void> {
-  const notifs = await loadNotifications(userId);
-  const dismissAll = ids.length === 0;
-  for (const n of notifs) {
-    if (dismissAll || ids.includes(n.id)) {
-      n.read = true;
-      n.dismissed = true;
+  await withKeyedLock(notifLockKey(userId), async () => {
+    const notifs = await loadNotifications(userId);
+    const dismissAll = ids.length === 0;
+    for (const n of notifs) {
+      if (dismissAll || ids.includes(n.id)) {
+        n.read = true;
+        n.dismissed = true;
+      }
     }
-  }
-  await saveNotifications(userId, notifs);
+    await saveNotifications(userId, notifs);
+  });
 }

@@ -5,6 +5,7 @@ import { createContactsApiClient } from '@myorg/api-client';
 import { NotificationDropdown } from './NotificationDropdown';
 import { getSupabaseBrowserClient } from '@/lib/client/supabaseBrowser';
 import { invalidateContactsCache } from '@/lib/client/contactsCache';
+import { ensurePushSubscription } from '@/lib/client/pushNotifications';
 
 import type { ContactsApiClient } from '@myorg/api-client';
 import './NotificationBell.css';
@@ -49,6 +50,11 @@ export function NotificationBell({ userId }: { userId?: string }) {
       }
     } catch { /* silent */ }
   };
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    ensurePushSubscription();
+  }, [currentUserId]);
 
   useEffect(() => {
     fetchFeedbackNotifs();
