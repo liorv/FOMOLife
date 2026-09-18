@@ -36,3 +36,12 @@ export type { ProjectTaskPerson, ProjectTask, ProjectSubproject, ProjectItem, Pr
 
 // Task types
 export type { TaskItem, TaskFilter, TaskCreateInput, TaskUpdateInput } from './task';
+
+// Notification types
+export type {
+	TaskNotifyBefore,
+	TaskReminderStage,
+	TaskNotificationCategorySettings,
+	TaskNotificationSettings,
+	TaskDueNotification,
+} from './notifications';

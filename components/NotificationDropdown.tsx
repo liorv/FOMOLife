@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ContactsApiClient } from '@myorg/api-client';
-import type { PendingRequest, PendingRequestsResponse } from '@myorg/types';
+import type { PendingRequest, PendingRequestsResponse, TaskDueNotification } from '@myorg/types';
 
 interface FeedbackNotification {
   id: string;
@@ -39,12 +39,14 @@ type NotificationDropdownProps = {
   userId?: string | undefined;
   onFeedbackNotifsUpdate?: (count: number) => void;
   onProjectNotifsUpdate?: (count: number) => void;
+  onTaskNotifsUpdate?: (count: number) => void;
 };
 
 type AnyItem =
   | { kind: 'contact'; date: string; data: PendingRequest }
   | { kind: 'feedback'; date: string; data: FeedbackNotification }
-  | { kind: 'project'; date: string; data: ProjectNotification };
+  | { kind: 'project'; date: string; data: ProjectNotification }
+  | { kind: 'task_due'; date: string; data: TaskDueNotification };
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -65,6 +67,7 @@ export function NotificationDropdown({
   onContactsUpdate,
   onFeedbackNotifsUpdate,
   onProjectNotifsUpdate,
+  onTaskNotifsUpdate,
 }: NotificationDropdownProps) {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,12 +76,15 @@ export function NotificationDropdown({
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [projectNotifs, setProjectNotifs] = useState<ProjectNotification[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [taskNotifs, setTaskNotifs] = useState<TaskDueNotification[]>([]);
+  const [taskNotifsLoading, setTaskNotifsLoading] = useState(true);
   const [clearingAll, setClearingAll] = useState(false);
 
   useEffect(() => {
     loadPendingRequests();
     loadFeedbackNotifs();
     loadProjectNotifs();
+    loadTaskNotifs();
 
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === 'contacts-updated') {
@@ -128,6 +134,20 @@ export function NotificationDropdown({
       }
     } catch { /* silent */ } finally {
       setProjectsLoading(false);
+    }
+  };
+
+  const loadTaskNotifs = async (showHistory = false) => {
+    try {
+      const url = showHistory ? '/api/tasks/notifications?dismissed=1' : '/api/tasks/notifications';
+      const res = await fetch(url);
+      if (res.ok) {
+        const d = await res.json();
+        setTaskNotifs(d.notifications ?? []);
+        if (!showHistory) onTaskNotifsUpdate?.(d.unreadCount ?? 0);
+      }
+    } catch { /* silent */ } finally {
+      setTaskNotifsLoading(false);
     }
   };
 
@@ -230,10 +250,13 @@ export function NotificationDropdown({
     setClearingAll(true);
     setFeedbackNotifs([]);
     setProjectNotifs([]);
+    setTaskNotifs([]);
     onFeedbackNotifsUpdate?.(0);
     onProjectNotifsUpdate?.(0);
+    onTaskNotifsUpdate?.(0);
     window.dispatchEvent(new Event('feedback-notifs-updated'));
     window.dispatchEvent(new Event('project-notifs-updated'));
+    window.dispatchEvent(new Event('task-notifs-updated'));
 
     try {
       await Promise.all([
@@ -247,12 +270,55 @@ export function NotificationDropdown({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ ids: [], action: 'dismiss' }),
         }),
+        fetch('/api/tasks/notifications', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ids: [], action: 'dismiss' }),
+        }),
       ]);
     } catch (error) {
       console.error('Failed to clear notifications:', error);
-      await Promise.all([loadFeedbackNotifs(), loadProjectNotifs()]);
+      await Promise.all([loadFeedbackNotifs(), loadProjectNotifs(), loadTaskNotifs()]);
     } finally {
       setClearingAll(false);
+    }
+  };
+
+  // Dismiss a task due-date reminder
+  const handleDismissTaskNotif = async (notif: TaskDueNotification) => {
+    setTaskNotifs((prev) => prev.filter((n) => n.id !== notif.id));
+    const remaining = taskNotifs.filter((n) => n.id !== notif.id);
+    onTaskNotifsUpdate?.(remaining.filter((n) => !n.read).length);
+    window.dispatchEvent(new Event('task-notifs-updated'));
+    try {
+      const res = await fetch('/api/tasks/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [notif.id], action: 'dismiss' }),
+      });
+      if (!res.ok) throw new Error(`Dismiss failed: ${res.status}`);
+    } catch (error) {
+      console.error('Failed to dismiss task notification:', error);
+      await loadTaskNotifs();
+    }
+  };
+
+  // Reschedule a task due-date reminder to fire a week or a day before the due date
+  const handleRemindTaskNotif = async (notif: TaskDueNotification, remindStage: 'week' | 'day') => {
+    setTaskNotifs((prev) => prev.filter((n) => n.id !== notif.id));
+    const remaining = taskNotifs.filter((n) => n.id !== notif.id);
+    onTaskNotifsUpdate?.(remaining.filter((n) => !n.read).length);
+    window.dispatchEvent(new Event('task-notifs-updated'));
+    try {
+      const res = await fetch('/api/tasks/notifications', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: notif.id, action: remindStage === 'week' ? 'remind_week' : 'remind_day' }),
+      });
+      if (!res.ok) throw new Error(`Reschedule failed: ${res.status}`);
+    } catch (error) {
+      console.error('Failed to reschedule task notification:', error);
+      await loadTaskNotifs();
     }
   };
 
@@ -261,16 +327,17 @@ export function NotificationDropdown({
     ...pendingRequests.map((r): AnyItem => ({ kind: 'contact', date: r.requestedAt, data: r })),
     ...feedbackNotifs.map((n): AnyItem => ({ kind: 'feedback', date: n.createdAt, data: n })),
     ...projectNotifs.map((n): AnyItem => ({ kind: 'project', date: n.createdAt, data: n })),
+    ...taskNotifs.map((n): AnyItem => ({ kind: 'task_due', date: n.createdAt, data: n })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const isLoading = loading && feedbackLoading && projectsLoading;
+  const isLoading = loading && feedbackLoading && projectsLoading && taskNotifsLoading;
 
   return (
     <div className="notification-dropdown">
       <div className="notification-header">
         <h3>Notifications</h3>
         <div className="notification-header-actions">
-          {(feedbackNotifs.length > 0 || projectNotifs.length > 0) && (
+          {(feedbackNotifs.length > 0 || projectNotifs.length > 0 || taskNotifs.length > 0) && (
             <button
               onClick={handleClearAll}
               className="notification-clear-all"
@@ -367,35 +434,71 @@ export function NotificationDropdown({
               );
             }
 
-            // project
+            if (item.kind === 'project') {
+              const notif = item.data;
+              return (
+                <div
+                  key={notif.id}
+                  className={`notification-item notif-clickable ${!notif.read ? 'feedback-notif-unread' : ''}`}
+                  onClick={() => handleClickProject(notif)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleClickProject(notif)}
+                >
+                  <div className="notif-type-row">
+                    <span className="notif-type-badge notif-type-project">
+                      {notif.type === 'task_completed' ? 'Task completed' : notif.type === 'task_assigned' ? 'Task assigned' : 'Project'}
+                    </span>
+                    <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
+                  </div>
+                  <div className="feedback-notif-body">
+                    <span className="feedback-notif-icon material-icons">
+                      {notif.type === 'task_completed' ? 'check_circle' : notif.type === 'task_assigned' ? 'person_add' : 'chat_bubble_outline'}
+                    </span>
+                    <div className="feedback-notif-text">
+                      <span className="feedback-notif-author">{notif.commentAuthorName}</span>
+                      {notif.type === 'task_completed'
+                        ? <>{' completed '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span></>
+                        : notif.type === 'task_assigned'
+                        ? <>{' '}{notif.commentText}</>
+                        : <>{' commented on '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span><p className="feedback-notif-preview">{notif.commentText}</p></>}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // task due-date reminder
             const notif = item.data;
+            const stageLabel = notif.stage === 'week' ? 'in a week' : notif.stage === 'day' ? 'tomorrow' : 'today';
             return (
               <div
                 key={notif.id}
-                className={`notification-item notif-clickable ${!notif.read ? 'feedback-notif-unread' : ''}`}
-                onClick={() => handleClickProject(notif)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && handleClickProject(notif)}
+                className={`notification-item ${!notif.read ? 'feedback-notif-unread' : ''}`}
               >
                 <div className="notif-type-row">
-                  <span className="notif-type-badge notif-type-project">
-                    {notif.type === 'task_completed' ? 'Task completed' : notif.type === 'task_assigned' ? 'Task assigned' : 'Project'}
-                  </span>
+                  <span className="notif-type-badge notif-type-project">Task due {stageLabel}</span>
                   <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                 </div>
                 <div className="feedback-notif-body">
-                  <span className="feedback-notif-icon material-icons">
-                    {notif.type === 'task_completed' ? 'check_circle' : notif.type === 'task_assigned' ? 'person_add' : 'chat_bubble_outline'}
-                  </span>
+                  <span className="feedback-notif-icon material-icons">event</span>
                   <div className="feedback-notif-text">
-                    <span className="feedback-notif-author">{notif.commentAuthorName}</span>
-                    {notif.type === 'task_completed'
-                      ? <>{' completed '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span></>
-                      : notif.type === 'task_assigned'
-                      ? <>{' '}{notif.commentText}</>
-                      : <>{' commented on '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span><p className="feedback-notif-preview">{notif.commentText}</p></>}
+                    <span className="feedback-notif-title">&ldquo;{notif.taskTitle}&rdquo;</span>
+                    {' is due '}
+                    {new Date(notif.dueDate).toLocaleDateString()}
+                    {notif.projectTitle ? <> {'in '}<span className="feedback-notif-author">{notif.projectTitle}</span></> : null}
                   </div>
+                </div>
+                <div className="notification-actions">
+                  <button onClick={() => handleDismissTaskNotif(notif)} className="btn-reject">
+                    Dismiss
+                  </button>
+                  <button onClick={() => handleRemindTaskNotif(notif, 'day')} className="btn-approve">
+                    Remind me 1 day before
+                  </button>
+                  <button onClick={() => handleRemindTaskNotif(notif, 'week')} className="btn-approve">
+                    Remind me 1 week before
+                  </button>
                 </div>
               </div>
             );

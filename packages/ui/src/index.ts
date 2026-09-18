@@ -32,6 +32,8 @@ export type { ThumbButtonProps } from './ThumbButton';
 export { useUserPreferences } from './useUserPreferences';
 export type { UserPreferences } from './useUserPreferences';
 
+export { NotificationSettingsModal } from './NotificationSettingsModal';
+
 export { default as ProjectTile, PROJECT_COLORS } from './ProjectTile';
 export type { ProjectTileProps } from './ProjectTile';
 

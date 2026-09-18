@@ -7,6 +7,10 @@
     {
       "path": "/api/admin/cron",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/tasks/cron",
+      "schedule": "0 13 * * *"
     }
   ]
 }

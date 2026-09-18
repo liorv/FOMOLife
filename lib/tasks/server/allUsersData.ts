@@ -1,0 +1,52 @@
+import 'server-only';
+
+import fs from 'fs';
+import path from 'path';
+import { getSupabaseAdminClient } from '@myorg/storage';
+import type { PersistedUserData } from '@myorg/storage';
+
+export interface UserDataEntry {
+  userId: string;
+  data: PersistedUserData;
+}
+
+/**
+ * Loads persisted data for every real user account, excluding internal
+ * system rows/files (those with keys prefixed with "__").
+ */
+export async function listAllUsersData(): Promise<UserDataEntry[]> {
+  const supabase = getSupabaseAdminClient();
+
+  if (supabase) {
+    const { data, error } = await supabase.from('user_data').select('user_id, data');
+    if (error || !data) return [];
+    return data
+      .map((row: Record<string, unknown>) => ({
+        userId: row.user_id as string,
+        data: (row.data ?? {}) as PersistedUserData,
+      }))
+      .filter(({ userId, data: d }: UserDataEntry) => {
+        if (userId.startsWith('__')) return false;
+        return 'projects' in d || 'tasks' in d || 'people' in d;
+      });
+  }
+
+  const userDataDir = path.resolve(process.cwd(), 'data', 'user_data');
+  const entries: UserDataEntry[] = [];
+  try {
+    const files = fs.readdirSync(userDataDir).filter((f) => f.endsWith('.json'));
+    for (const file of files) {
+      const userId = decodeURIComponent(file.replace('.json', ''));
+      if (userId.startsWith('__')) continue;
+      try {
+        const raw = fs.readFileSync(path.join(userDataDir, file), 'utf8');
+        entries.push({ userId, data: JSON.parse(raw) as PersistedUserData });
+      } catch {
+        // skip malformed file
+      }
+    }
+  } catch {
+    // directory may not exist yet
+  }
+  return entries;
+}
