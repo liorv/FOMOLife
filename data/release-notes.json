@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "September 2026 Update",
+      "date": "September 18, 2026",
+      "changes": [
+        "Polished the mobile experience with cleaner spacing, faster tab transitions, and more consistent touch targets across project and task views.",
+        "Improved the invite and collaboration flow so contact requests and project sharing are easier to follow and less error-prone.",
+        "Refined search and notification cues to make it clearer when updates are waiting and easier to jump back into active conversations.",
+        "Fixed a number of small UI and interaction bugs to keep project, task, and chat workflows feeling more reliable overall."
+      ]
+    },
+    {
       "version": "May 2026 Update",
       "date": "May 29, 2026",
       "changes": [
