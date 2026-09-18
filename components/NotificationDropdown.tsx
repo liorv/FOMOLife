@@ -489,15 +489,15 @@ export function NotificationDropdown({
                     {notif.projectTitle ? <> {'in '}<span className="feedback-notif-author">{notif.projectTitle}</span></> : null}
                   </div>
                 </div>
-                <div className="notification-actions">
-                  <button onClick={() => handleDismissTaskNotif(notif)} className="btn-reject">
+                <div className="task-notif-actions">
+                  <button onClick={() => handleRemindTaskNotif(notif, 'day')} className="btn-remind">
+                    Remind 1 day before
+                  </button>
+                  <button onClick={() => handleRemindTaskNotif(notif, 'week')} className="btn-remind">
+                    Remind 1 week before
+                  </button>
+                  <button onClick={() => handleDismissTaskNotif(notif)} className="btn-dismiss-text">
                     Dismiss
-                  </button>
-                  <button onClick={() => handleRemindTaskNotif(notif, 'day')} className="btn-approve">
-                    Remind me 1 day before
-                  </button>
-                  <button onClick={() => handleRemindTaskNotif(notif, 'week')} className="btn-approve">
-                    Remind me 1 week before
                   </button>
                 </div>
               </div>

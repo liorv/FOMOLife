@@ -225,6 +225,46 @@
   cursor: not-allowed;
 }
 
+.task-notif-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-remind {
+  flex: 1 1 auto;
+  padding: 5px 8px;
+  background: white;
+  color: var(--ui-primary, #1976d2);
+  border: 1px solid var(--ui-primary, #1976d2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-remind:hover {
+  background: var(--ui-primary-bg-subtle, #eef5fd);
+}
+
+.btn-dismiss-text {
+  padding: 5px 8px;
+  background: none;
+  border: none;
+  color: var(--ui-text-muted, #666);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  margin-left: auto;
+}
+
+.btn-dismiss-text:hover {
+  color: var(--ui-danger, #dc3545);
+}
+
 /* ── Notification type badges ── */
 .notif-type-row {
   display: flex;
