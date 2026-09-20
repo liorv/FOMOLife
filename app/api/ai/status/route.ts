@@ -22,7 +22,7 @@ export async function GET() {
     );
   }
 
-  const model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+  const model = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
   const modelLabel = model.replace(/-instant$/, '').replace(/-/g, ' ');
   return NextResponse.json(
     { available: true, provider: `Groq · ${modelLabel}`, message: '' },

@@ -4,3 +4,7 @@ node_modules
 **/.next
 .env*
 *.log
+coverage
+**/coverage
+data/user_data
+.git

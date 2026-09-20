@@ -72,7 +72,7 @@ When editing an existing task, YOU MUST provide its exact existing \`taskId\` fr
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        model: process.env.GROQ_MODEL || 'qwen/qwen3.8-27b',
         messages: [
           { role: 'system', content: activeSystemPrompt },
           ...historyMessages,
