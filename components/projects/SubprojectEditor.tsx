@@ -21,6 +21,7 @@ interface SubprojectEditorProps {
   onUpdateColor: (color: string) => void;
   onToggleCollapse: () => void;
   onAddTask: (text: string, favorite?: boolean) => void;
+  onImportTasks?: () => void;
   handleTaskToggle: (taskId: string) => void;
   handleTaskStar: (taskId: string) => void;
   handleTaskDelete: (taskId: string) => void;
@@ -61,6 +62,7 @@ export default function SubprojectEditor({
   onUpdateColor,
   onToggleCollapse,
   onAddTask,
+  onImportTasks,
   handleTaskToggle,
   handleTaskStar,
   handleTaskDelete,
@@ -215,6 +217,7 @@ export default function SubprojectEditor({
         onNameChange={(newName: string) => onUpdateText(newName)}
         onColorChange={(_id: string, color: string) => onUpdateColor(color)}
         onDelete={onDelete}
+        {...(onImportTasks ? { onImportTasks: () => onImportTasks() } : {})}
         onDragOverSubprojectTile={onDragOverSubprojectTile}
         onDragLeaveSubprojectTile={onDragLeaveSubprojectTile}
         onDropOnSubprojectTile={onDropOnSubprojectTile}

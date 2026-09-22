@@ -217,6 +217,11 @@ export default function ProjectEditor({
   // Invite modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
 
+  // Import Tasks modal state
+  const [importSubId, setImportSubId] = useState<string | null>(null);
+  const [importText, setImportText] = useState("");
+  const [importPreview, setImportPreview] = useState<{ id: string; text: string }[]>([]);
+
   // small helper to set local UI state and optionally persist via callback
   const setLocalAndApply = (updated: LocalProject, persist = true) => {
     setLocal(updated);
@@ -656,6 +661,70 @@ export default function ProjectEditor({
     }
   };
 
+  // Splits pasted text into individual task titles: newline-separated, or
+  // comma-separated (CSV) when pasted as a single line/row.
+  const parseImportText = (raw: string): string[] => {
+    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== "");
+    if (lines.length === 0) return [];
+    const firstLine = lines[0];
+    if (lines.length === 1 && firstLine && firstLine.includes(",")) {
+      return firstLine
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t !== "");
+    }
+    return lines;
+  };
+
+  const openImportModal = (subId: string) => {
+    setImportSubId(subId);
+    setImportText("");
+    setImportPreview([]);
+  };
+
+  const closeImportModal = () => {
+    setImportSubId(null);
+    setImportText("");
+    setImportPreview([]);
+  };
+
+  const handleImportTextChange = (text: string) => {
+    setImportText(text);
+    setImportPreview(parseImportText(text).map((t) => ({ id: generateId(), text: t })));
+  };
+
+  const removeImportPreviewItem = (id: string) => {
+    setImportPreview((items) => items.filter((i) => i.id !== id));
+  };
+
+  const confirmImportTasks = () => {
+    if (!importSubId || importPreview.length === 0) {
+      closeImportModal();
+      return;
+    }
+    const newTasks: ProjectTask[] = importPreview.map((item) => ({
+      id: generateId(),
+      text: item.text,
+      done: false,
+      dueDate: null,
+      favorite: false,
+      people: [],
+    }));
+    const updated = {
+      ...local,
+      subprojects: (local.subprojects || []).map((s) => {
+        if (s.id !== importSubId) return s;
+        return {
+          ...s,
+          tasks: [...(s.tasks || []), ...newTasks],
+        };
+      }),
+    };
+    setLocal(updated);
+    safeOnApplyChange(updated);
+    closeImportModal();
+  };
+
   const handleTaskToggle = (subId: string, taskId: string) => {
     const updated = {
       ...local,
@@ -1051,6 +1120,105 @@ export default function ProjectEditor({
         </div>
 
       </div>
+
+      {/* Import Tasks Modal */}
+      {importSubId && (
+        <div className="project-overview-modal-overlay" onClick={closeImportModal}>
+          <div className="project-overview-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="project-overview-modal-header">
+              <h2>Import Tasks</h2>
+              <button className="project-overview-modal-close" onClick={closeImportModal} title="Close">
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="project-overview-modal-content">
+              <p style={{ marginTop: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+                Paste a list of tasks, one per line, or a comma-separated list.
+              </p>
+              <textarea
+                value={importText}
+                onChange={(e) => handleImportTextChange(e.target.value)}
+                placeholder={"Buy groceries\nCall the plumber\nFinish report"}
+                rows={6}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border-color, #d0d5dd)',
+                  fontSize: 14,
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                }}
+                autoFocus
+              />
+              {importPreview.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                    {importPreview.length} task{importPreview.length === 1 ? '' : 's'} to import
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 240, overflowY: 'auto' }}>
+                    {importPreview.map((item) => (
+                      <li
+                        key={item.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '6px 4px',
+                          borderBottom: '1px solid var(--border-color, #eee)',
+                        }}
+                      >
+                        <span style={{ flex: 1, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.text}
+                        </span>
+                        <button
+                          onClick={() => removeImportPreviewItem(item.id)}
+                          title="Remove"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}
+                        >
+                          <span className="material-icons" style={{ fontSize: 18 }}>close</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+                <button
+                  onClick={closeImportModal}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border-color, #d0d5dd)',
+                    background: 'white',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmImportTasks}
+                  disabled={importPreview.length === 0}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: importPreview.length === 0 ? '#a5b4fc' : 'var(--accent-primary, #4f46e5)',
+                    color: 'white',
+                    cursor: importPreview.length === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  Import {importPreview.length > 0 ? importPreview.length : ''} task{importPreview.length === 1 ? '' : 's'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invite Member Modal */}
       {showInviteModal && (
@@ -1485,6 +1653,7 @@ export default function ProjectEditor({
           onUpdateColor={(color) => updateSubColor(sub.id, color)}
           onToggleCollapse={() => toggleSubCollapse(sub.id)}
           onAddTask={(text, allowBlank) => addTask(sub.id, text, allowBlank)}
+          onImportTasks={() => openImportModal(sub.id)}
           handleTaskToggle={(taskId) => handleTaskToggle(sub.id, taskId)}
           handleTaskStar={(taskId) => handleTaskStar(sub.id, taskId)}
           handleTaskDelete={(taskId) => handleTaskDelete(sub.id, taskId)}
