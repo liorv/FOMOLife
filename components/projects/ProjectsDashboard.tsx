@@ -16,6 +16,7 @@ import { ProjectTile, EmptyState } from "@myorg/ui";
 import ProjectEditor from "./ProjectEditor";
 import ProjectAssistant from "./ProjectAssistant";
 import DismissibleHint from "../DismissibleHint";
+import { validateProjectImportJson, type ValidatedImportProject } from "@/lib/projects/importProject";
 
 // Helper function to convert hex color to RGB string
 function hexToRgb(hex: string | undefined): string {
@@ -100,6 +101,7 @@ interface ProjectsDashboardProps {
   pendingDeleteProjectId?: string | null;
   onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
+  onImportProject?: (data: ValidatedImportProject) => void;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
   onTitleChange?: (projectId: string, title: string) => void;
@@ -132,6 +134,7 @@ export default function ProjectsDashboard({
   pendingDeleteProjectId,
   onConfirmDeleteProject,
   onAddProject,
+  onImportProject,
   onOpenPeople,
   onCreatePerson,
   onTitleChange,
@@ -302,6 +305,47 @@ export default function ProjectsDashboard({
   const [renameValue, setRenameValue] = useState("");
   const [leaveArmed, setLeaveArmed] = useState(false);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Import Project modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importJsonText, setImportJsonText] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importPreview, setImportPreview] = useState<{ data: ValidatedImportProject; stats: { subprojectCount: number; taskCount: number } } | null>(null);
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportJsonText("");
+    setImportError(null);
+    setImportPreview(null);
+  };
+
+  const handleImportFileSelected = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      setImportJsonText(text);
+      setImportError(null);
+      setImportPreview(null);
+    };
+    reader.readAsText(file);
+  };
+
+  const handlePreviewImport = () => {
+    const result = validateProjectImportJson(importJsonText);
+    if (!result.ok || !result.data || !result.stats) {
+      setImportError(result.error ?? "Invalid project JSON.");
+      setImportPreview(null);
+      return;
+    }
+    setImportError(null);
+    setImportPreview({ data: result.data, stats: result.stats });
+  };
+
+  const handleConfirmImport = () => {
+    if (!importPreview) return;
+    onImportProject?.(importPreview.data);
+    closeImportModal();
+  };
 
   // ── Metrics: scoped to selected project when one is selected ──────────────
 
@@ -526,6 +570,14 @@ export default function ProjectsDashboard({
                       >
                         <span className="material-icons">download</span>
                         <span>Export</span>
+                      </button>
+                      <button
+                        className="project-action-btn"
+                        title="Import project JSON"
+                        onClick={() => setShowImportModal(true)}
+                      >
+                        <span className="material-icons">upload</span>
+                        <span>Import</span>
                       </button>
                       {(()  => {
                         const members = selectedProject.members ?? [];
@@ -871,6 +923,129 @@ export default function ProjectsDashboard({
           onAddSubproject={(title: string) => onAddSubproject?.(selectedProject.id, title)}
           providerLabel={llmProvider}
         />
+      )}
+
+      {showImportModal && (
+        <div className="project-overview-modal-overlay" onClick={closeImportModal}>
+          <div className="project-overview-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="project-overview-modal-header">
+              <h2>Import Project</h2>
+              <button className="project-overview-modal-close" onClick={closeImportModal} title="Close">
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="project-overview-modal-content">
+              {!importPreview ? (
+                <>
+                  <p style={{ marginTop: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+                    Select or paste a project JSON file matching the format produced by "Export".
+                  </p>
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImportFileSelected(file);
+                      e.target.value = "";
+                    }}
+                    style={{ marginBottom: 12 }}
+                  />
+                  <textarea
+                    value={importJsonText}
+                    onChange={(e) => {
+                      setImportJsonText(e.target.value);
+                      setImportError(null);
+                    }}
+                    placeholder='{"name": "My project", "sub_projects": [...]}'
+                    rows={10}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--border-color, #d0d5dd)',
+                      fontSize: 13,
+                      fontFamily: 'monospace',
+                      resize: 'vertical',
+                    }}
+                  />
+                  {importError && (
+                    <p style={{ color: '#d33b27', fontSize: 13, marginTop: 8 }}>{importError}</p>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                    <button
+                      onClick={closeImportModal}
+                      style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color, #d0d5dd)', background: 'white', cursor: 'pointer', fontSize: 14 }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handlePreviewImport}
+                      disabled={!importJsonText.trim()}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: !importJsonText.trim() ? '#a5b4fc' : 'var(--accent-primary, #4f46e5)',
+                        color: 'white',
+                        cursor: !importJsonText.trim() ? 'not-allowed' : 'pointer',
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    {importPreview.data.color && (
+                      <span style={{ width: 16, height: 16, borderRadius: '50%', background: importPreview.data.color, flexShrink: 0 }} />
+                    )}
+                    <div style={{ fontWeight: 600, fontSize: 16 }}>{importPreview.data.text}</div>
+                  </div>
+                  {importPreview.data.description && (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{importPreview.data.description}</p>
+                  )}
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                    {importPreview.stats.subprojectCount} sub-project{importPreview.stats.subprojectCount === 1 ? '' : 's'}, {importPreview.stats.taskCount} task{importPreview.stats.taskCount === 1 ? '' : 's'}
+                  </div>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 320, overflowY: 'auto' }}>
+                    {importPreview.data.subprojects.map((sub) => (
+                      <li key={sub.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color, #eee)' }}>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{sub.text}</div>
+                        {sub.tasks.length > 0 && (
+                          <ul style={{ listStyle: 'none', padding: 0, margin: '4px 0 0 12px' }}>
+                            {sub.tasks.map((t) => (
+                              <li key={t.id} style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '2px 0' }}>
+                                • {t.text}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                    <button
+                      onClick={() => setImportPreview(null)}
+                      style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color, #d0d5dd)', background: 'white', cursor: 'pointer', fontSize: 14 }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleConfirmImport}
+                      style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--accent-primary, #4f46e5)', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                    >
+                      Confirm Import
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
