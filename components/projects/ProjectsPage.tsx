@@ -9,7 +9,6 @@ import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
 import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjectsCacheAge, invalidateProjectsCache } from '@/lib/client/projectsCache';
 import ProjectsDashboard from "./ProjectsDashboard";
-import type { ValidatedImportProject } from "@/lib/projects/importProject";
 import ConversationThread from "../ConversationThread";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -455,46 +454,12 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
   };
 
-  const handleImportProject = async (data: ValidatedImportProject) => {
+  const handleImportProject = async (projectId: string, subprojects: ProjectSubproject[]) => {
     if (!canManage) return;
-
-    const len = projects.length;
-    const idx = len % PROJECT_COLORS.length;
-    const fallbackColor = PROJECT_COLORS[idx];
-    const avatarUrl = randomIconUrl();
-    const tempId = generateId();
-    const optimisticProject: ProjectItem = {
-      id: tempId,
-      text: data.text,
-      color: data.color ?? fallbackColor ?? "",
-      avatarUrl,
-      subprojects: data.subprojects,
-      ...(data.goal ? { goal: data.goal } : {}),
-      ...(data.description ? { description: data.description } : {}),
-      ...(data.dueDate !== undefined ? { dueDate: data.dueDate } : {}),
-      ...(data.aiInstructions ? { aiInstructions: data.aiInstructions } : {}),
-    };
-    setProjects((prev) => [...prev, optimisticProject]);
-    try {
-      const created = await apiClient.createProject({
-        text: data.text,
-        avatarUrl,
-        subprojects: data.subprojects,
-        color: data.color ?? fallbackColor ?? "",
-        ...(data.goal ? { goal: data.goal } : {}),
-        ...(data.description ? { description: data.description } : {}),
-        ...(data.dueDate !== undefined ? { dueDate: data.dueDate } : {}),
-        ...(data.aiInstructions ? { aiInstructions: data.aiInstructions } : {}),
-      });
-      setProjects((prev) =>
-        prev.map((item) => (item.id === tempId ? created : item)),
-      );
-    } catch (err) {
-      setProjects((prev) => prev.filter((item) => item.id !== tempId));
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to import project",
-      );
-    }
+    const target = projects.find((p) => p.id === projectId);
+    if (!target) return;
+    const merged = [...(target.subprojects || []), ...subprojects];
+    await handleProjectApplyChange(projectId, { subprojects: merged });
   };
 
   // Always persist project changes (including task edits) to backend

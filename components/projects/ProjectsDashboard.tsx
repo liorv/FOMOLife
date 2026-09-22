@@ -101,7 +101,7 @@ interface ProjectsDashboardProps {
   pendingDeleteProjectId?: string | null;
   onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
-  onImportProject?: (data: ValidatedImportProject) => void;
+  onImportProject?: (projectId: string, subprojects: ProjectSubproject[]) => void;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
   onTitleChange?: (projectId: string, title: string) => void;
@@ -342,8 +342,8 @@ export default function ProjectsDashboard({
   };
 
   const handleConfirmImport = () => {
-    if (!importPreview) return;
-    onImportProject?.(importPreview.data);
+    if (!importPreview || !selectedProject) return;
+    onImportProject?.(selectedProject.id, importPreview.data.subprojects);
     closeImportModal();
   };
 
@@ -573,7 +573,7 @@ export default function ProjectsDashboard({
                       </button>
                       <button
                         className="project-action-btn"
-                        title="Import project JSON"
+                        title="Import sub-projects from JSON into this project"
                         onClick={() => setShowImportModal(true)}
                       >
                         <span className="material-icons">upload</span>
@@ -929,7 +929,7 @@ export default function ProjectsDashboard({
         <div className="project-overview-modal-overlay" onClick={closeImportModal}>
           <div className="project-overview-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <div className="project-overview-modal-header">
-              <h2>Import Project</h2>
+              <h2>Import into {selectedProject?.text}</h2>
               <button className="project-overview-modal-close" onClick={closeImportModal} title="Close">
                 <span className="material-icons">close</span>
               </button>
@@ -939,6 +939,7 @@ export default function ProjectsDashboard({
                 <>
                   <p style={{ marginTop: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
                     Select or paste a project JSON file matching the format produced by "Export".
+                    Its sub-projects and tasks will be added into <strong>{selectedProject?.text}</strong>.
                   </p>
                   <input
                     type="file"
@@ -999,15 +1000,9 @@ export default function ProjectsDashboard({
                 </>
               ) : (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                    {importPreview.data.color && (
-                      <span style={{ width: 16, height: 16, borderRadius: '50%', background: importPreview.data.color, flexShrink: 0 }} />
-                    )}
-                    <div style={{ fontWeight: 600, fontSize: 16 }}>{importPreview.data.text}</div>
-                  </div>
-                  {importPreview.data.description && (
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{importPreview.data.description}</p>
-                  )}
+                  <p style={{ marginTop: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+                    Adding into <strong>{selectedProject?.text}</strong>:
+                  </p>
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
                     {importPreview.stats.subprojectCount} sub-project{importPreview.stats.subprojectCount === 1 ? '' : 's'}, {importPreview.stats.taskCount} task{importPreview.stats.taskCount === 1 ? '' : 's'}
                   </div>
