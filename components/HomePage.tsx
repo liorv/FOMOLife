@@ -35,6 +35,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const [loading, setLoading] = useState(true);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [showMoreFavorites, setShowMoreFavorites] = useState(false);
+  const [showMoreOverdue, setShowMoreOverdue] = useState(false);
   const [showMoreDue, setShowMoreDue] = useState(false);
   const [showMoreFeed, setShowMoreFeed] = useState(false);
   const onReadyCalledRef = useRef(false);
@@ -153,6 +154,17 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
 
   const favoriteTasks = useMemo(() => {
     return allTasks.filter(t => !t.done && t.favorite);
+  }, [allTasks]);
+
+  const overdueTasks = useMemo(() => {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return allTasks
+      .filter(t => {
+        if (t.done || !t.dueDate || Number.isNaN(new Date(t.dueDate).getTime())) return false;
+        return t.dueDate.slice(0, 10) < today;
+      })
+      .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!));
   }, [allTasks]);
 
   // "Coming Due" should only surface tasks due in the near future, not ones
@@ -296,7 +308,10 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '';
     try {
-      const date = new Date(dateStr);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+        ? new Date(`${dateStr}T00:00:00`)
+        : new Date(dateStr);
+      if (Number.isNaN(date.getTime())) return dateStr;
       // Always include the year so far-future/past dates aren't confused with
       // this year's dates that happen to share the same month/day.
       const includeYear = date.getFullYear() !== new Date().getFullYear();
@@ -331,8 +346,9 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
         />
       ) : (
       <div className={styles.dashboardGrid}>
-        {/* Favorite Tasks */}
-        <div className={styles.card}>
+        <div className={styles.dashboardColumn}>
+          {/* Favorite Tasks */}
+          <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span className={`material-icons ${styles.cardIcon}`}>star</span>
             <h2 className={styles.cardTitle}>Favorites</h2>
@@ -355,10 +371,111 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
               </li>
             )}
           </ul>
+          </div>
+
+          {/* Activity Feed */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={`material-icons ${styles.cardIcon}`}>receipt_long</span>
+              <h2 className={styles.cardTitle}>Recent Activity</h2>
+              <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', alignItems: 'center' }}>
+                <button
+                  onClick={() => toggleFilter('task')}
+                  style={{ background: activeFilters.includes('task') ? 'var(--color-bg)' : 'transparent', border: '1px solid ' + (activeFilters.includes('task') ? 'var(--color-border)' : 'transparent'), borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: activeFilters.includes('task') ? 1 : 0.6 }}
+                  title="Tasks"
+                >
+                  <span className="material-icons" style={{ fontSize: '18px', color: 'var(--color-text-muted)' }}>check_circle</span>
+                </button>
+                <button
+                  onClick={() => toggleFilter('partner')}
+                  style={{ background: activeFilters.includes('partner') ? 'var(--color-bg)' : 'transparent', border: '1px solid ' + (activeFilters.includes('partner') ? 'var(--color-border)' : 'transparent'), borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: activeFilters.includes('partner') ? 1 : 0.6 }}
+                  title="Partner Activity & Connections"
+                >
+                  <span className="material-icons" style={{ fontSize: '18px', color: 'var(--color-text-muted)' }}>contacts</span>
+                </button>
+                <button
+                  onClick={() => toggleFilter('project')}
+                  style={{ background: activeFilters.includes('project') ? 'var(--color-bg)' : 'transparent', border: '1px solid ' + (activeFilters.includes('project') ? 'var(--color-border)' : 'transparent'), borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: activeFilters.includes('project') ? 1 : 0.6 }}
+                  title="New Projects"
+                >
+                  <span className="material-icons" style={{ fontSize: '18px', color: 'var(--color-text-muted)' }}>folder</span>
+                </button>
+              </div>
+            </div>
+            <ul className={styles.list}>
+              {filteredFeed.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No activity in the last 7 days.</p></div></li>}
+              {(showMoreFeed ? filteredFeed : filteredFeed.slice(0, 5)).map(item => (
+                <li key={item.id} className={styles.listItem} onClick={item.onClick}>
+                  {item.isImageIcon ? (
+                    <EntityIcon size={20} src={item.icon} initial={item.projectInitial} iconColor={item.iconColor} />
+                  ) : item.type === 'project' && item.projectInitial ? (
+                    <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: item.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0, marginTop: '2px' }}>
+                      {item.projectInitial}
+                    </div>
+                  ) : (
+                    <span className={`material-icons ${styles.itemIcon}`} style={{ color: item.iconColor }}>{item.icon}</span>
+                  )}
+                  <div className={styles.itemContent}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 className={styles.itemTitle}>{item.title}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {item.projectIcon ? (
+                          <EntityIcon size={16} src={item.projectIcon} initial={item.projectInitial} title={item.meta || 'Project'} />
+                        ) : item.projectInitial && item.type !== 'project' ? (
+                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'var(--color-warning, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff', flexShrink: 0 }} title={item.meta || 'Project'}>
+                            {item.projectInitial}
+                          </div>
+                        ) : null}
+                        {item.time && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{formatDate(item.time)}</span>}
+                      </div>
+                    </div>
+                    {item.meta && <p className={styles.itemMeta}>{item.meta}</p>}
+                  </div>
+                </li>
+              ))}
+              {filteredFeed.length > 5 && (
+                <li className={styles.showMoreItem} onClick={() => setShowMoreFeed(v => !v)}>
+                  <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreFeed ? 'expand_less' : 'expand_more'}</span>
+                  {showMoreFeed ? 'Show less' : `Show ${filteredFeed.length - 5} more`}
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
 
+        {overdueTasks.length > 0 && (
+        <div className={styles.dashboardColumn}>
+          {/* Overdue Tasks */}
+          <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <span className={`material-icons ${styles.overdueIcon}`}>warning</span>
+            <h2 className={styles.cardTitle}>Overdue</h2>
+          </div>
+          <ul className={styles.list}>
+            {overdueTasks.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No overdue tasks.</p></div></li>}
+            {(showMoreOverdue ? overdueTasks : overdueTasks.slice(0, 5)).map(t => (
+              <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
+                <span className={`material-icons ${styles.itemIcon} ${styles.overdueIcon}`}>error_outline</span>
+                <div className={styles.itemContent}>
+                  <h3 className={styles.itemTitle}>{t.text}</h3>
+                  <p className={`${styles.itemMeta} ${styles.overdueText}`}>Overdue: {formatDate(t.dueDate)}</p>
+                </div>
+              </li>
+            ))}
+            {overdueTasks.length > 5 && (
+              <li className={styles.showMoreItem} onClick={() => setShowMoreOverdue(v => !v)}>
+                <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreOverdue ? 'expand_less' : 'expand_more'}</span>
+                {showMoreOverdue ? 'Show less' : `Show ${overdueTasks.length - 5} more`}
+              </li>
+            )}
+          </ul>
+          </div>
+        </div>
+        )}
+
         {/* Coming Due */}
-        <div className={styles.card}>
+        <div className={styles.dashboardColumn}>
+          <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span className={`material-icons ${styles.cardIcon}`}>schedule</span>
             <h2 className={styles.cardTitle}>Coming Due</h2>
@@ -393,74 +510,6 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
             )}
           </ul>
         </div>
-
-        {/* Activity Feed */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={`material-icons ${styles.cardIcon}`}>receipt_long</span>
-            <h2 className={styles.cardTitle}>Recent Activity</h2>
-            <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', alignItems: 'center' }}>
-              <button 
-                onClick={() => toggleFilter('task')}
-                style={{ background: activeFilters.includes('task') ? 'var(--color-bg)' : 'transparent', border: '1px solid ' + (activeFilters.includes('task') ? 'var(--color-border)' : 'transparent'), borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: activeFilters.includes('task') ? 1 : 0.6 }}
-                title="Tasks"
-              >
-                <span className="material-icons" style={{ fontSize: '18px', color: 'var(--color-text-muted)' }}>check_circle</span>
-              </button>
-              <button 
-                onClick={() => toggleFilter('partner')}
-                style={{ background: activeFilters.includes('partner') ? 'var(--color-bg)' : 'transparent', border: '1px solid ' + (activeFilters.includes('partner') ? 'var(--color-border)' : 'transparent'), borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: activeFilters.includes('partner') ? 1 : 0.6 }}
-                title="Partner Activity & Connections"
-              >
-                <span className="material-icons" style={{ fontSize: '18px', color: 'var(--color-text-muted)' }}>contacts</span>
-              </button>
-              <button 
-                onClick={() => toggleFilter('project')}
-                style={{ background: activeFilters.includes('project') ? 'var(--color-bg)' : 'transparent', border: '1px solid ' + (activeFilters.includes('project') ? 'var(--color-border)' : 'transparent'), borderRadius: '4px', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: activeFilters.includes('project') ? 1 : 0.6 }}
-                title="New Projects"
-              >
-                <span className="material-icons" style={{ fontSize: '18px', color: 'var(--color-text-muted)' }}>folder</span>
-              </button>
-            </div>
-          </div>
-          <ul className={styles.list}>
-            {filteredFeed.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No activity in the last 7 days.</p></div></li>}
-            {(showMoreFeed ? filteredFeed : filteredFeed.slice(0, 5)).map(item => (
-              <li key={item.id} className={styles.listItem} onClick={item.onClick}>
-                {item.isImageIcon ? (
-                  <EntityIcon size={20} src={item.icon} initial={item.projectInitial} iconColor={item.iconColor} />
-                ) : item.type === 'project' && item.projectInitial ? (
-                  <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: item.iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', flexShrink: 0, marginTop: '2px' }}>
-                    {item.projectInitial}
-                  </div>
-                ) : (
-                  <span className={`material-icons ${styles.itemIcon}`} style={{ color: item.iconColor }}>{item.icon}</span>
-                )}
-                <div className={styles.itemContent}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 className={styles.itemTitle}>{item.title}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {item.projectIcon ? (
-                        <EntityIcon size={16} src={item.projectIcon} initial={item.projectInitial} title={item.meta || 'Project'} />
-                      ) : item.projectInitial && item.type !== 'project' ? (
-                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'var(--color-warning, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff', flexShrink: 0 }} title={item.meta || 'Project'}>
-                          {item.projectInitial}
-                        </div>
-                      ) : null}
-                      {item.time && <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{formatDate(item.time)}</span>}
-                    </div>
-                  </div>
-                  {item.meta && <p className={styles.itemMeta}>{item.meta}</p>}
-                </div>
-              </li>
-            ))}
-            {filteredFeed.length > 5 && (
-              <li className={styles.showMoreItem} onClick={() => setShowMoreFeed(v => !v)}>
-                <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreFeed ? 'expand_less' : 'expand_more'}</span>
-                {showMoreFeed ? 'Show less' : `Show ${filteredFeed.length - 5} more`}
-              </li>
-            )}
-          </ul>
         </div>
       </div>
       )}
