@@ -22,6 +22,7 @@ interface ProjectEditorProps {
   newlyAddedSubprojectId?: string | null;
   onClearNewSubproject?: () => void;
   onSubprojectDeleted?: (payload: { projectId: string; subproject: ProjectSubproject; index: number }) => void;
+  onConvertSubprojectToProject?: (subprojectId: string) => void;
   taskFilters?: string[];
   searchQuery?: string;
   canManage?: boolean;
@@ -112,6 +113,7 @@ export default function ProjectEditor({
   newlyAddedSubprojectId,
   onClearNewSubproject,
   onSubprojectDeleted,
+  onConvertSubprojectToProject,
   taskFilters = [], // array of active filters
   searchQuery = "",
   canManage = true,
@@ -1649,6 +1651,9 @@ export default function ProjectEditor({
           editorTaskId={editorTaskId}
           setEditorTaskId={handleSetEditorId}
           onDelete={() => deleteSubproject(sub.id)}
+          {...(onConvertSubprojectToProject && !sub.isProjectLevel
+            ? { onConvertToProject: () => onConvertSubprojectToProject(sub.id) }
+            : {})}
           onUpdateText={(text) => updateSubText(sub.id, text)}
           onUpdateColor={(color) => updateSubColor(sub.id, color)}
           onToggleCollapse={() => toggleSubCollapse(sub.id)}
@@ -1691,4 +1696,3 @@ export default function ProjectEditor({
     </div>
   );
 }
-

@@ -462,6 +462,22 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     await handleProjectApplyChange(projectId, { subprojects: merged });
   };
 
+  const handleConvertSubprojectToProject = async (projectId: string, subprojectId: string) => {
+    if (!canManage) return;
+    try {
+      const result = await apiClient.promoteSubproject(projectId, subprojectId);
+      setProjects((prev) => [
+        ...prev.map((item) => (item.id === projectId ? result.sourceProject : item)),
+        result.project,
+      ]);
+      invalidateProjectsCache();
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to convert subproject",
+      );
+    }
+  };
+
   // Always persist project changes (including task edits) to backend
   const handleProjectApplyChange = async (
     projectId: string,
@@ -816,6 +832,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               newlyAddedSubprojectId={newlyAddedSubprojectId}
               onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}
               onSubprojectDeleted={handleSubprojectDeleted}
+              onConvertSubprojectToProject={handleConvertSubprojectToProject}
               onColorChange={handleProjectColorChange}
               onReorder={handleReorderProjects}
               onDeleteProject={handleDeleteProject}

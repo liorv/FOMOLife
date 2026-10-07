@@ -24,3 +24,19 @@ it('renders subproject row and handles click', () => {
   fireEvent.click(screen.getByText('Sub'));
   expect(handleEdit).toHaveBeenCalledWith('s1');
 });
+
+it('converts a subproject to a project from the menu', () => {
+  const handleConvert = jest.fn();
+  render(
+    <SubprojectRow
+      sub={sub}
+      onEdit={() => {}}
+      onConvertToProject={handleConvert}
+    />,
+  );
+
+  fireEvent.click(screen.getByTitle('More options'));
+  fireEvent.click(screen.getByText('Convert to Project'));
+
+  expect(handleConvert).toHaveBeenCalledWith('s1');
+});

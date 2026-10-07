@@ -10,6 +10,7 @@ export interface SubprojectRowProps {
   onEdit: (subprojectId: string) => void;
   onNameChange?: (newName: string) => void;
   onDelete?: (subprojectId: string) => void;
+  onConvertToProject?: (subprojectId: string) => void;
   onColorChange?: (subprojectId: string, color: string) => void;
   onImportTasks?: (subprojectId: string) => void;
   onDragOverSubprojectTile?: () => void;
@@ -31,6 +32,7 @@ export default function SubprojectRow({
   onEdit, 
   onNameChange, 
   onDelete,
+  onConvertToProject,
   onColorChange,
   onImportTasks,
   onDragOverSubprojectTile,
@@ -416,6 +418,19 @@ export default function SubprojectRow({
                 >
                   <span className="material-icons">playlist_add</span>
                   <span>Import Tasks</span>
+                </button>
+              )}
+              {onConvertToProject && !sub.isProjectLevel && (
+                <button
+                  className={`${styles.menuItem} menu-item convert-to-project-menu-item`}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onConvertToProject(sub.id);
+                  }}
+                  title="Convert to project"
+                >
+                  <span className="material-icons">upgrade</span>
+                  <span>Convert to Project</span>
                 </button>
               )}
               {onDelete && !sub.isProjectLevel && (

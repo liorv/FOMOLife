@@ -262,6 +262,55 @@ export async function updateProject(
   return updated;
 }
 
+export async function promoteSubproject(
+  userId: string,
+  projectId: string,
+  subprojectId: string,
+): Promise<{ sourceProject: ProjectItem; project: ProjectItem } | null> {
+  const current = await getOrInitUserProjects(userId);
+  const sourceIndex = current.findIndex((item) => item.id === projectId);
+  if (sourceIndex === -1) return null;
+
+  const source = current[sourceIndex]!;
+  const subproject = source.subprojects?.find((item) => item.id === subprojectId);
+  if (!subproject || subproject.isProjectLevel) return null;
+
+  const newProjectId = generateId();
+  const color = subproject.color ?? source.color;
+  const projectLevelSubproject: ProjectSubproject = {
+    ...subproject,
+    text: `${subproject.text} Tasks`,
+    color,
+    isProjectLevel: true,
+  };
+  const promotedProject = ensureProjectLevelTasks({
+    id: newProjectId,
+    text: subproject.text,
+    color,
+    subprojects: [projectLevelSubproject],
+    order: current.length,
+    ...(subproject.description ? { description: subproject.description } : {}),
+    ...(source.creatorId ? { creatorId: source.creatorId } : { creatorId: userId }),
+    ...(source.members ? { members: source.members } : {}),
+  });
+  const sourceProject = ensureProjectLevelTasks({
+    ...source,
+    subprojects: source.subprojects.filter((item) => item.id !== subprojectId),
+  });
+  const next = [...current];
+  next[sourceIndex] = sourceProject;
+  next.push(promotedProject);
+
+  const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
+  await storage.save(userId, {
+    ...persisted,
+    projects: next.map((item) => ensureProjectLevelTasks(item)),
+  });
+  projectsByUser.set(userId, next);
+
+  return { sourceProject, project: promotedProject };
+}
+
 export async function deleteProject(userId: string, id: string): Promise<boolean> {
   const current = await getOrInitUserProjects(userId);
   const next = current.filter((item) => item.id !== id);

@@ -94,6 +94,7 @@ interface ProjectsDashboardProps {
   newlyAddedSubprojectId?: string | null;
   onClearNewSubproject?: () => void;
   onSubprojectDeleted?: (payload: { projectId: string; subproject: any; index: number }) => void;
+  onConvertSubprojectToProject?: (projectId: string, subprojectId: string) => void;
   onColorChange?: (projectId: string, color: string) => void;
   onOpenColorPicker?: (projectId: string, targetEl: HTMLElement) => void;
   onReorder?: (draggedId: string, targetId: string) => void;
@@ -127,6 +128,7 @@ export default function ProjectsDashboard({
   newlyAddedSubprojectId,
   onClearNewSubproject,
   onSubprojectDeleted,
+  onConvertSubprojectToProject,
   onColorChange,
   onOpenColorPicker,
   onReorder,
@@ -632,6 +634,9 @@ export default function ProjectsDashboard({
               onOpenPeople={onOpenPeople ?? (() => { })}
               onCreatePerson={onCreatePerson ?? (() => { })}
               onSubprojectDeleted={onSubprojectDeleted ?? (() => { })}
+              onConvertSubprojectToProject={(subprojectId) =>
+                onConvertSubprojectToProject?.(selectedProject.id, subprojectId)
+              }
               taskFilters={filters}
               searchQuery={projectSearch}
               currentUserId={currentUserId}

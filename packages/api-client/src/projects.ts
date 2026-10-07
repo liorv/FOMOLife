@@ -4,6 +4,7 @@ export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
   createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }) => Promise<ProjectItem>;
   updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>) => Promise<ProjectItem>;
+  promoteSubproject: (projectId: string, subprojectId: string) => Promise<{ sourceProject: ProjectItem; project: ProjectItem }>;
   deleteProject: (id: string) => Promise<void>;
 }
 
@@ -52,6 +53,14 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
         body: JSON.stringify({ id, patch }),
       });
       return parseResponse<ProjectItem>(response);
+    },
+
+    async promoteSubproject(projectId: string, subprojectId: string): Promise<{ sourceProject: ProjectItem; project: ProjectItem }> {
+      const response = await fetch(
+        `${baseUrl}/api/projects/${encodeURIComponent(projectId)}/subprojects/${encodeURIComponent(subprojectId)}/promote`,
+        { method: 'POST' },
+      );
+      return parseResponse<{ sourceProject: ProjectItem; project: ProjectItem }>(response);
     },
 
     async deleteProject(id: string): Promise<void> {
