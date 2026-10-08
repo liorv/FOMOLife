@@ -36,17 +36,13 @@ const DEFAULT_STATE: TaskNotifState = { sent: [], overrides: {} };
 // ── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getTaskNotificationSettings(userId: string): Promise<TaskNotificationSettings> {
-  try {
-    const persisted = await storage.load(`${SETTINGS_KEY_PREFIX}${userId}`);
-    const settings = persisted?.settings as TaskNotificationSettings | undefined;
-    if (!settings) return DEFAULT_TASK_NOTIFICATION_SETTINGS;
-    return {
-      createdByMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.createdByMe, ...settings.createdByMe },
-      assignedToMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.assignedToMe, ...settings.assignedToMe },
-    };
-  } catch {
-    return DEFAULT_TASK_NOTIFICATION_SETTINGS;
-  }
+  const persisted = await storage.load(`${SETTINGS_KEY_PREFIX}${userId}`);
+  const settings = persisted?.settings as TaskNotificationSettings | undefined;
+  if (!settings) return DEFAULT_TASK_NOTIFICATION_SETTINGS;
+  return {
+    createdByMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.createdByMe, ...settings.createdByMe },
+    assignedToMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.assignedToMe, ...settings.assignedToMe },
+  };
 }
 
 export async function saveTaskNotificationSettings(
@@ -60,12 +56,8 @@ export async function saveTaskNotificationSettings(
 // ── Notifications ────────────────────────────────────────────────────────────
 
 async function loadNotifications(userId: string): Promise<TaskDueNotification[]> {
-  try {
-    const persisted = await storage.load(`${NOTIF_KEY_PREFIX}${userId}`);
-    return (Array.isArray(persisted?.notifications) ? persisted.notifications : []) as TaskDueNotification[];
-  } catch {
-    return [];
-  }
+  const persisted = await storage.load(`${NOTIF_KEY_PREFIX}${userId}`);
+  return (Array.isArray(persisted?.notifications) ? persisted.notifications : []) as TaskDueNotification[];
 }
 
 async function saveNotifications(userId: string, notifs: TaskDueNotification[]): Promise<void> {
@@ -90,7 +82,9 @@ async function appendNotification(userId: string, notif: TaskDueNotification): P
     body: notif.taskTitle,
     url: notif.projectId ? '/dashboard?tab=projects' : '/dashboard?tab=tasks',
     tag: `task-due-${notif.taskId}`,
-  }).catch(() => { /* push failures are non-critical */ });
+  }).catch((error) => {
+    console.error('Failed to send task reminder push:', error);
+  });
 }
 
 export async function listTaskDueNotifications(userId: string): Promise<TaskDueNotification[]> {
@@ -159,14 +153,10 @@ function stateLockKey(userId: string) {
 }
 
 async function loadState(userId: string): Promise<TaskNotifState> {
-  try {
-    const persisted = await storage.load(`${STATE_KEY_PREFIX}${userId}`);
-    const state = persisted?.state as TaskNotifState | undefined;
-    if (!state) return { ...DEFAULT_STATE, overrides: {} };
-    return { sent: state.sent ?? [], overrides: state.overrides ?? {} };
-  } catch {
-    return { ...DEFAULT_STATE, overrides: {} };
-  }
+  const persisted = await storage.load(`${STATE_KEY_PREFIX}${userId}`);
+  const state = persisted?.state as TaskNotifState | undefined;
+  if (!state) return { ...DEFAULT_STATE, overrides: {} };
+  return { sent: state.sent ?? [], overrides: state.overrides ?? {} };
 }
 
 async function saveState(userId: string, state: TaskNotifState): Promise<void> {
@@ -228,6 +218,7 @@ function collectCandidatesForUser(userId: string, data: PersistedUserData): DueC
 
   const projects = Array.isArray(data.projects) ? (data.projects as Array<Record<string, unknown>>) : [];
   for (const project of projects) {
+    if (project.archived) continue;
     const isCreator = project.creatorId === userId;
     const members = Array.isArray(project.members) ? (project.members as Array<Record<string, unknown>>) : [];
     const myMember = members.find((m) => m.userId === userId);
@@ -265,69 +256,81 @@ function collectCandidatesForUser(userId: string, data: PersistedUserData): DueC
  */
 export async function runTaskDueNotificationsJob(): Promise<{ usersScanned: number; notified: number }> {
   const allUsers = await listAllUsersData();
+  const usersById = new Map(allUsers.map((entry) => [entry.userId, entry.data]));
   let notified = 0;
 
   for (const { userId, data } of allUsers) {
-    const candidates = collectCandidatesForUser(userId, data);
+    const ownProjects = Array.isArray(data.projects) ? data.projects as Array<Record<string, unknown>> : [];
+    const projects: Array<Record<string, unknown>> = ownProjects.map((project) => ({
+      ...project, creatorId: project.creatorId || userId,
+    }));
+    const refs = Array.isArray(data.sharedProjectRefs) ? data.sharedProjectRefs as Array<Record<string, unknown>> : [];
+    for (const ref of refs) {
+      if (typeof ref.ownerUserId !== 'string') continue;
+      const ownerData = usersById.get(ref.ownerUserId);
+      const ownerProjects = Array.isArray(ownerData?.projects) ? ownerData.projects as Array<Record<string, unknown>> : [];
+      const shared = ownerProjects.find((project) => project.id === ref.projectId);
+      if (shared && !projects.some((project) => project.id === shared.id)) {
+        projects.push({ ...shared, creatorId: shared.creatorId || ref.ownerUserId });
+      }
+    }
+    const candidates = collectCandidatesForUser(userId, { ...data, projects });
     if (candidates.length === 0) continue;
 
     const settings = await getTaskNotificationSettings(userId);
-    const state = await loadState(userId);
-    const sentSet = new Set(state.sent);
-    let stateChanged = false;
+    await withStateLock(userId, async (state) => {
+      const sentSet = new Set(state.sent);
+      for (const candidate of candidates) {
+        const remaining = daysUntil(candidate.dueDate);
+        if (!Number.isFinite(remaining)) {
+          console.error('Invalid task due date in reminder scan:', candidate.taskId, candidate.dueDate);
+          continue;
+        }
+        if (remaining < 0) continue;
 
-    for (const candidate of candidates) {
-      const remaining = daysUntil(candidate.dueDate);
-      if (remaining < 0) continue;
+        const override = state.overrides[candidate.taskId];
+        let stage: TaskReminderStage | null = null;
 
-      const override = state.overrides[candidate.taskId];
-      let stage: TaskReminderStage | null = null;
-
-      if (override && new Date(override.remindAt).getTime() <= Date.now()) {
-        stage = override.stage;
-      } else if (!override) {
-        const categorySettings = candidate.source === 'assigned' ? settings.assignedToMe : settings.createdByMe;
-        if (categorySettings.enabled) {
-          const targetStage = stageForNotifyBefore(categorySettings.notifyBefore);
-          const targetDays = targetStage === 'week' ? 7 : targetStage === 'day' ? 1 : targetStage === 'due' ? 0 : null;
-          if (targetStage && targetDays !== null && remaining <= targetDays) {
-            stage = targetStage;
+        if (override && new Date(override.remindAt).getTime() <= Date.now()) {
+          stage = override.stage;
+        } else if (!override) {
+          const categorySettings = candidate.source === 'assigned' ? settings.assignedToMe : settings.createdByMe;
+          if (categorySettings.enabled) {
+            const targetStage = stageForNotifyBefore(categorySettings.notifyBefore);
+            const targetDays = targetStage === 'week' ? 7 : targetStage === 'day' ? 1 : targetStage === 'due' ? 0 : null;
+            if (targetStage && targetDays !== null && remaining <= targetDays) {
+              stage = targetStage;
+            }
           }
         }
+
+        if (!stage) continue;
+
+        const sentKey = `${candidate.projectId || 'standalone'}:${candidate.taskId}:${candidate.dueDate}:${stage}`;
+        if (!override && sentSet.has(sentKey)) continue;
+
+        await appendNotification(userId, {
+          id: generateId(),
+          type: 'task_due',
+          taskId: candidate.taskId,
+          taskTitle: candidate.taskTitle,
+          dueDate: candidate.dueDate,
+          ...(candidate.projectId ? { projectId: candidate.projectId } : {}),
+          ...(candidate.projectTitle ? { projectTitle: candidate.projectTitle } : {}),
+          source: candidate.source,
+          stage,
+          createdAt: new Date().toISOString(),
+          read: false,
+        });
+
+        sentSet.add(sentKey);
+        notified += 1;
+
+        if (override) delete state.overrides[candidate.taskId];
       }
-
-      if (!stage) continue;
-
-      const sentKey = `${candidate.taskId}:${stage}`;
-      if (sentSet.has(sentKey)) continue;
-
-      await appendNotification(userId, {
-        id: generateId(),
-        type: 'task_due',
-        taskId: candidate.taskId,
-        taskTitle: candidate.taskTitle,
-        dueDate: candidate.dueDate,
-        ...(candidate.projectId ? { projectId: candidate.projectId } : {}),
-        ...(candidate.projectTitle ? { projectTitle: candidate.projectTitle } : {}),
-        source: candidate.source,
-        stage,
-        createdAt: new Date().toISOString(),
-        read: false,
-      });
-
-      sentSet.add(sentKey);
-      stateChanged = true;
-      notified += 1;
-
-      if (override) {
-        delete state.overrides[candidate.taskId];
-      }
-    }
-
-    if (stateChanged) {
       state.sent = Array.from(sentSet).slice(-500);
-      await saveState(userId, state);
-    }
+      return state;
+    });
   }
 
   return { usersScanned: allUsers.length, notified };

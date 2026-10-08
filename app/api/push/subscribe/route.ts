@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
-import { addPushSubscription, removePushSubscription } from '@/lib/server/webPush';
+import { addPushSubscription, removePushSubscription, getPushPublicKey } from '@/lib/server/webPush';
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+export async function GET() {
+  const session = await getFrameworkSession();
+  if (!session.isAuthenticated) return unauthorized();
+  const publicKey = getPushPublicKey();
+  if (!publicKey) {
+    return NextResponse.json({ error: 'Web push is not configured' }, { status: 503 });
+  }
+  return NextResponse.json({ publicKey });
 }
 
 export async function POST(request: Request) {

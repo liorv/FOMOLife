@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <InstallPrompt />
           {/* Footer removed manually since it breaks the app feeling and pushes bottom nav up if visible */}
         </div>
-        <Script id="sw-register" strategy="afterInteractive">{`if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js'); }); }`}</Script>
+        <Script id="sw-register" strategy="afterInteractive">{`if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(function(error) { console.error('Service worker registration failed:', error); }); }`}</Script>
       </body>
     </html>
   );

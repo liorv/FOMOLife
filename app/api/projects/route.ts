@@ -110,7 +110,10 @@ export async function PATCH(request: Request) {
           }
         }
       }
-    } catch { /* non-critical */ }
+    } catch (error) {
+      console.error('Failed to detect task notification changes:', error);
+      throw error;
+    }
   }
 
   const updated = await updateProject(ownerUserId, body.id, body.patch);
@@ -118,12 +121,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
-  // Fire task-completion notifications (non-blocking)
+  // Await delivery before responding so serverless runtimes cannot cut it off.
   if (newlyCompletedTasks.length > 0) {
     const memberIds = (updated.members ?? []).map((m) => m.userId).filter(Boolean);
     const projectTitle = updated.text;
     const completedByName = session.userName ?? session.userEmail ?? session.userId;
-    void Promise.allSettled(
+    const results = await Promise.allSettled(
       newlyCompletedTasks.map((task) =>
         notifyTaskCompleted({
           projectId: body.id!,
@@ -136,14 +139,17 @@ export async function PATCH(request: Request) {
         }),
       ),
     );
+    for (const result of results) {
+      if (result.status === 'rejected') console.error('Task completion notification failed:', result.reason);
+    }
   }
 
-  // Fire task-assignment notifications (non-blocking)
+  // Task assignments use the same request-lifetime guarantee.
   if (newlyAssignedTasks.length > 0) {
     const members = updated.members ?? [];
     const projectTitle = updated.text;
     const assignedByName = session.userName ?? session.userEmail ?? session.userId;
-    void Promise.allSettled(
+    const results = await Promise.allSettled(
       newlyAssignedTasks.map((task) => {
         const nameSet = new Set(task.newAssigneeNames.map((n) => n.toLowerCase()));
         const assigneeIds = members
@@ -161,6 +167,9 @@ export async function PATCH(request: Request) {
         });
       }),
     );
+    for (const result of results) {
+      if (result.status === 'rejected') console.error('Task assignment notification failed:', result.reason);
+    }
   }
 
   return NextResponse.json(updated);

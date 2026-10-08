@@ -188,7 +188,9 @@ async function appendNotification(userId: string, notif: ProjectNotification): P
     body,
     url: '/dashboard?tab=projects',
     tag: `project-${notif.threadId}`,
-  }).catch(() => { /* push failures are non-critical */ });
+  }).catch((error) => {
+    console.error('Failed to send project notification push:', error);
+  });
 }
 
 export async function listProjectNotifications(userId: string): Promise<ProjectNotification[]> {
@@ -222,7 +224,7 @@ export async function dismissProjectNotifications(userId: string, ids: string[])
 }
 
 /**
- * Fan-out a "task completed" notification to all project members except the completer.
+ * Fan-out a "task completed" notification to all project members and the completer's devices.
  */
 export async function notifyTaskCompleted(opts: {
   projectId: string;
@@ -237,7 +239,7 @@ export async function notifyTaskCompleted(opts: {
   const { projectId, projectTitle, taskId, taskTitle, completedByUserId, completedByName, memberIds } = opts;
   const now = new Date().toISOString();
   const threadId = `task:${projectId}:${taskId}`;
-  const toNotify = memberIds.filter((id) => id !== completedByUserId);
+  const toNotify = [...new Set([...memberIds, completedByUserId])].filter(Boolean);
   const notifPromises = toNotify.map((recipientId) =>
     appendNotification(recipientId, {
       id: generateId(),
@@ -253,7 +255,10 @@ export async function notifyTaskCompleted(opts: {
       read: false,
     }),
   );
-  await Promise.allSettled(notifPromises);
+  const results = await Promise.allSettled(notifPromises);
+  for (const result of results) {
+    if (result.status === 'rejected') console.error('Failed to save task completion notification:', result.reason);
+  }
 }
 
 /**

@@ -88,6 +88,31 @@ Notes:
 
 ## Environment variable management
 
+### Browser and installed mobile notifications
+
+- Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` on the deployed
+  framework app. Generate a pair with `pnpm exec web-push generate-vapid-keys`.
+  Keep the private key secret and the key pair stable across deployments. The
+  browser retrieves the public key at runtime; a separate build-time public key
+  is not required.
+- Open the profile menu's **Notification settings**, select **Enable on this
+  device**, and allow notifications. Repeat in each desktop browser and installed
+  mobile app. **Send test notification** checks delivery to registered devices.
+- On iPhone/iPad, use iOS/iPadOS 16.4 or later, add the app to the Home Screen,
+  then open that installed app and enable notifications from there.
+- Push delivery does not depend on an open FOMO Life tab. Browser/OS notification
+  permissions, background delivery settings, connectivity, and Focus modes still
+  apply; installation alone does not grant permission.
+- The existing daily `/api/tasks/cron` schedule runs at **13:00 UTC**. It scans
+  standalone and shared-project tasks using each recipient's reminder preferences.
+  Reminder choices are calendar-day milestones, not exact due-time alarms.
+  Configure `CRON_SECRET` for the scheduler's `Authorization: Bearer ...` header.
+  Inspect cron responses (`usersScanned`, `notified`) and server logs if reminders
+  are absent. `notified` counts stored reminders, not confirmed device deliveries.
+- Completion notifications are sent when a task changes from incomplete to
+  complete (not by the daily cron), including to the completer's registered devices.
+  Shared project completions also notify the project's other members.
+
 Cross-app URL vars (set where relevant):
 - `NEXT_PUBLIC_CONTACTS_APP_URL`
 - `NEXT_PUBLIC_PROJECTS_APP_URL`

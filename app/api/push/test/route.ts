@@ -9,12 +9,20 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await sendPushToUser(session.userId, {
-    title: 'FOMO Life',
-    body: 'Test push notification 🎉',
-    url: '/dashboard',
-    tag: 'push-test',
-  });
+  try {
+    const result = await sendPushToUser(session.userId, {
+      title: 'FOMO Life',
+      body: 'Test push notification 🎉',
+      url: '/dashboard',
+      tag: 'push-test',
+    });
 
-  return NextResponse.json({ ok: true });
+    if (result.sent === 0) {
+      return NextResponse.json({ error: 'No push could be sent. Enable notifications on this device and try again.' }, { status: 409 });
+    }
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('[push/test] error:', error);
+    return NextResponse.json({ error: 'Could not send the test notification. Check the server push configuration.' }, { status: 503 });
+  }
 }

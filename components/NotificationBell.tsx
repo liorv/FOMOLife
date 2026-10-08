@@ -66,7 +66,9 @@ export function NotificationBell({ userId }: { userId?: string }) {
 
   useEffect(() => {
     if (!currentUserId) return;
-    ensurePushSubscription();
+    void ensurePushSubscription().catch((error) => {
+      console.warn('Push subscription failed:', error);
+    });
   }, [currentUserId]);
 
   useEffect(() => {

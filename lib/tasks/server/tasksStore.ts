@@ -4,6 +4,7 @@ import { createStorageProvider } from '@myorg/storage';
 import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 import type { TaskItem } from '@myorg/types';
+import { sendPushToUser } from '../../server/webPush';
 
 const storage = createStorageProvider();
 
@@ -17,6 +18,7 @@ async function savePersisted(userId: string): Promise<void> {
     console.log('tasksStore: persisted data');
   } catch (err) {
     console.error('tasksStore: failed to persist', err);
+    throw err;
   }
 }
 
@@ -72,6 +74,7 @@ export async function updateTask(
 ): Promise<TaskItem | null> {
   console.log("tasksStore: updateTask", userId, id, patch);
   const current = await getOrInitUserTasks(userId);
+  const wasDone = current.find((item) => item.id === id)?.done;
   const next = current.map((item) => {
     if (item.id !== id) return item;
     const merged = { ...item, ...patch, id };
@@ -84,6 +87,16 @@ export async function updateTask(
   const updated = next.find((item) => item.id === id) ?? null;
   tasksByUser.set(userId, next);
   await savePersisted(userId);
+  if (updated?.done && wasDone === false) {
+    await sendPushToUser(userId, {
+      title: 'Task completed',
+      body: updated.text,
+      url: '/dashboard?tab=tasks',
+      tag: `task-completed-${id}`,
+    }).catch((error) => {
+      console.error('Failed to send task completion push:', error);
+    });
+  }
   return updated;
 }
 

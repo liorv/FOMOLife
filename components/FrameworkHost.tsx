@@ -6,6 +6,7 @@ import { LogoBar, TabNav } from '@myorg/ui';
 import { getFrameworkTabLinks, normalizeTab, TAB_ORDER, type FrameworkTab } from '../lib/frameworkConfig';
 import FrameworkColorPickerOverlay from './ColorPickerOverlay';
 import { NotificationBell } from './NotificationBell';
+import { PushNotificationSettings } from './PushNotificationSettings';
 import HomePage from './HomePage';
 import ProjectsPage from './projects/ProjectsPage';
 import ContactsPage from './contacts/ContactsPage';
@@ -408,6 +409,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   return (
     <main className="main-layout" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <LogoBar
+        notificationDeviceControls={<PushNotificationSettings />}
         showSearch={showHeaderSearch}
         searchValue={searchDraft}
         searchPlaceholder={effectiveSearchPlaceholder}

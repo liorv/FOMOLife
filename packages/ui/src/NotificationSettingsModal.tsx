@@ -5,6 +5,7 @@ import type { TaskNotificationSettings, TaskNotifyBefore } from '@myorg/types';
 
 interface NotificationSettingsModalProps {
   onClose: () => void;
+  deviceControls?: React.ReactNode;
 }
 
 const DEFAULT_SETTINGS: TaskNotificationSettings = {
@@ -18,21 +19,28 @@ const NOTIFY_BEFORE_OPTIONS: { label: string; value: TaskNotifyBefore }[] = [
   { label: '1 week before', value: '7d' },
 ];
 
-export function NotificationSettingsModal({ onClose }: NotificationSettingsModalProps) {
+export function NotificationSettingsModal({ onClose, deviceControls }: NotificationSettingsModalProps) {
   const [settings, setSettings] = useState<TaskNotificationSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         const res = await fetch('/api/tasks/notification-settings');
-        if (res.ok) {
-          const d = await res.json();
-          if (active && d.settings) setSettings(d.settings);
+        if (!res.ok) throw new Error('Could not load notification settings. Close this panel and try again.');
+        const d = await res.json();
+        if (!d.settings) throw new Error('The server returned invalid notification settings.');
+        if (active) setSettings(d.settings);
+      } catch (reason) {
+        if (active) {
+          setLoadFailed(true);
+          setError(reason instanceof Error ? reason.message : 'Could not load notification settings.');
         }
-      } catch { /* fall back to defaults */ } finally {
+      } finally {
         if (active) setLoading(false);
       }
     })();
@@ -40,15 +48,21 @@ export function NotificationSettingsModal({ onClose }: NotificationSettingsModal
   }, []);
 
   const persist = async (next: TaskNotificationSettings) => {
+    const previous = settings;
     setSettings(next);
     setSaving(true);
+    setError('');
     try {
-      await fetch('/api/tasks/notification-settings', {
+      const res = await fetch('/api/tasks/notification-settings', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(next),
       });
-    } catch { /* non-critical */ } finally {
+      if (!res.ok) throw new Error('Could not save notification settings. Please try again.');
+    } catch (reason) {
+      setSettings(previous);
+      setError(reason instanceof Error ? reason.message : 'Could not save notification settings.');
+    } finally {
       setSaving(false);
     }
   };
@@ -78,6 +92,7 @@ export function NotificationSettingsModal({ onClose }: NotificationSettingsModal
             role="switch"
             aria-checked={cat.enabled}
             aria-label={`Toggle ${title.toLowerCase()} reminders`}
+            disabled={saving || loadFailed}
             onClick={() => updateCategory(category, { enabled: !cat.enabled })}
             style={{
               width: '44px',
@@ -114,6 +129,7 @@ export function NotificationSettingsModal({ onClose }: NotificationSettingsModal
                 <button
                   key={opt.value}
                   type="button"
+                  disabled={saving || loadFailed}
                   onClick={() => updateCategory(category, { notifyBefore: opt.value })}
                   style={{
                     flex: 1,
@@ -162,6 +178,8 @@ export function NotificationSettingsModal({ onClose }: NotificationSettingsModal
           display: 'flex',
           flexDirection: 'column',
           gap: '20px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -190,6 +208,9 @@ export function NotificationSettingsModal({ onClose }: NotificationSettingsModal
             <span className="material-icons" style={{ fontSize: '20px' }}>close</span>
           </button>
         </div>
+
+        {deviceControls}
+        {error && <div role="alert">{error}</div>}
 
         {loading ? (
           <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted, #5f6368)' }}>Loading…</div>

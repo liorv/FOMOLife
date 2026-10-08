@@ -22,6 +22,12 @@ export interface PushPayload {
 
 let configured = false;
 
+export function getPushPublicKey(): string | null {
+  return process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
+    ? process.env.VAPID_PUBLIC_KEY
+    : null;
+}
+
 function ensureConfigured(): boolean {
   if (configured) return true;
   const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -42,12 +48,8 @@ function lockKey(userId: string): string {
 }
 
 async function loadSubscriptions(userId: string): Promise<PushSubscriptionRecord[]> {
-  try {
-    const persisted = await storage.load(subsKey(userId));
-    return (Array.isArray(persisted?.subscriptions) ? persisted.subscriptions : []) as PushSubscriptionRecord[];
-  } catch {
-    return [];
-  }
+  const persisted = await storage.load(subsKey(userId));
+  return (Array.isArray(persisted?.subscriptions) ? persisted.subscriptions : []) as PushSubscriptionRecord[];
 }
 
 async function saveSubscriptions(userId: string, subs: PushSubscriptionRecord[]): Promise<void> {
@@ -72,21 +74,26 @@ export async function removePushSubscription(userId: string, endpoint: string): 
 }
 
 /** Sends a web push notification to every device the user has subscribed on, pruning dead subscriptions. */
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
-  if (!ensureConfigured()) return;
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
+  if (!ensureConfigured()) throw new Error('Web push is not configured: VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required.');
   const subs = await loadSubscriptions(userId);
-  if (subs.length === 0) return;
+  if (subs.length === 0) return { sent: 0, failed: 0 };
 
   const staleEndpoints: string[] = [];
-  await Promise.allSettled(
+  let sent = 0;
+  let failed = 0;
+  await Promise.all(
     subs.map(async (sub) => {
       try {
         await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify(payload));
-      } catch (err: any) {
-        if (err?.statusCode === 404 || err?.statusCode === 410) {
+        sent += 1;
+      } catch (err: unknown) {
+        failed += 1;
+        const statusCode = typeof err === 'object' && err !== null && 'statusCode' in err ? err.statusCode : undefined;
+        if (statusCode === 404 || statusCode === 410) {
           staleEndpoints.push(sub.endpoint);
         } else {
-          console.error('Failed to send push notification:', err?.message ?? err);
+          console.error('Failed to send push notification:', err instanceof Error ? err.message : err);
         }
       }
     }),
@@ -98,4 +105,5 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
       await saveSubscriptions(userId, current.filter((s) => !staleEndpoints.includes(s.endpoint)));
     });
   }
+  return { sent, failed };
 }

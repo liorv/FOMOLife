@@ -31,6 +31,7 @@ export interface LogoBarProps {
   className?: string;
   rightContent?: React.ReactNode;
   onInstall?: () => void;
+  notificationDeviceControls?: React.ReactNode;
 }
 
 export default function LogoBar({
@@ -55,6 +56,7 @@ export default function LogoBar({
   className,
   rightContent,
   onInstall,
+  notificationDeviceControls,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -312,7 +314,7 @@ export default function LogoBar({
         />
       ) : null}
       {notificationSettingsOpen ? (
-        <NotificationSettingsModal onClose={() => setNotificationSettingsOpen(false)} />
+        <NotificationSettingsModal onClose={() => setNotificationSettingsOpen(false)} deviceControls={notificationDeviceControls} />
       ) : null}
       {aboutOpen && aboutInfo ? (
         <div
