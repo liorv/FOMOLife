@@ -8,7 +8,6 @@ Apps:
 - `root` — framework host app (logo bar, navbar, content menu, hosted tabs)
 - `apps/contacts` — contacts management app
 - `apps/projects` — projects app
-- `apps/tasks` — tasks app
 
 Shared packages:
 - `packages/types` — shared domain contracts
@@ -26,13 +25,19 @@ Canonical app URLs:
 - Framework host: https://fomo-life.vercel.app
 - Contacts: https://fomo-life-contacts.vercel.app
 - Projects: https://fomo-life-projects.vercel.app
-- Tasks: https://fomo-life-tasks.vercel.app
 
 Legacy compatibility redirects (handled by framework host shell):
 - `https://fomo-life.vercel.app/?tab=people` → contacts app
 - `https://fomo-life.vercel.app/?tab=projects` → projects app
-- `https://fomo-life.vercel.app/?tab=tasks` → tasks app
-- `https://fomo-life.vercel.app/?tab=dreams` → tasks app (legacy alias)
+
+## Task editing
+
+Tasks are managed inside the project editor, in the project-level tasks panel
+or a subproject. There is no standalone Tasks tab.
+
+Checkboxes update immediately. Project saves are queued per project in click
+order, and earlier save responses cannot replace newer pending edits. Save
+failures are displayed in the projects page rather than silently ignored.
 
 ## Local development runbook
 
@@ -50,7 +55,6 @@ Run a single app:
 - `pnpm --filter framework dev`
 - `pnpm --filter contacts dev`
 - `pnpm --filter projects dev`
-- `pnpm --filter tasks dev`
 
 ## Git safety guardrails (large/generated files)
 
@@ -65,8 +69,8 @@ Checks:
 - CI also runs `npm run check:large-files` on every push/PR.
 
 Validation gates:
-- `pnpm turbo lint --filter=framework --filter=contacts --filter=projects --filter=tasks`
-- `pnpm turbo build --filter=framework --filter=contacts --filter=projects --filter=tasks`
+- `pnpm turbo lint --filter=framework --filter=contacts --filter=projects`
+- `pnpm turbo build --filter=framework --filter=contacts --filter=projects`
 
 ## Deployment runbook (preview + production)
 
@@ -79,7 +83,6 @@ Recommended release flow:
   - `vercel link --project fomo-life --yes; vercel --prod --yes`
    - `vercel link --project fomo-life-contacts --yes && vercel --prod --yes`
    - `vercel link --project fomo-life-projects --yes && vercel --prod --yes`
-   - `vercel link --project fomo-life-tasks --yes && vercel --prod --yes`
 4. Verify aliases are live and healthy.
 
 Notes:

@@ -135,7 +135,7 @@ export default function ProjectEditor({
   const [local, setLocal] = useState<LocalProject>(() => initLocalProject(project));
   // Ref always holds the latest pending local state so toggleSubCollapse
   // never reads a stale closure value during rapid successive clicks.
-  const localRef = useRef<LocalProject>(null as unknown as LocalProject);
+  const localRef = useRef<LocalProject>(local);
   localRef.current = local;
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timeline' | 'risk'>('tasks');
   const [showOverviewEditor, setShowOverviewEditor] = useState(false);
@@ -226,6 +226,7 @@ export default function ProjectEditor({
 
   // small helper to set local UI state and optionally persist via callback
   const setLocalAndApply = (updated: LocalProject, persist = true) => {
+    localRef.current = updated;
     setLocal(updated);
     if (persist) safeOnApplyChange(updated);
   };
@@ -728,9 +729,11 @@ export default function ProjectEditor({
   };
 
   const handleTaskToggle = (subId: string, taskId: string) => {
+    if (!canManage) return;
+    const current = localRef.current;
     const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) => {
+      ...current,
+      subprojects: (current.subprojects || []).map((s) => {
         if (s.id !== subId) return s;
         return {
           ...s,
@@ -740,8 +743,7 @@ export default function ProjectEditor({
         };
       }),
     };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    setLocalAndApply(updated);
   };
 
   const handleTaskDelete = (subId: string, taskId: string) => {

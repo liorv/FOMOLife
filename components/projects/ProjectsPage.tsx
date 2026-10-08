@@ -52,14 +52,28 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   // Contacts are served from the same origin in the monolith.
   const contactsClient = useMemo(() => createContactsApiClient(""), []);
   const tasksClient = useMemo(() => createTasksApiClient(""), []);
+  const projectSavesRef = useRef(new Map<string, Promise<ProjectItem>>());
 
   // --- API helper wrappers to centralize optimistic updates and error handling
   const apiUpdateProject = async (projectId: string, updated: Partial<ProjectItem>) => {
+    const previous = projectSavesRef.current.get(projectId);
+    const save = () => apiClient.updateProject(projectId, updated);
+    // Project patches can contain the entire task list, so writes must finish in order.
+    const request = previous
+      ? previous.then(save, save)
+      : Promise.resolve().then(save);
+    projectSavesRef.current.set(projectId, request);
     try {
-      const next = await apiClient.updateProject(projectId, updated);
-      setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
+      const next = await request;
+      if (projectSavesRef.current.get(projectId) === request) {
+        projectSavesRef.current.delete(projectId);
+        setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
+      }
       return next;
     } catch (err) {
+      if (projectSavesRef.current.get(projectId) === request) {
+        projectSavesRef.current.delete(projectId);
+      }
       setErrorMessage(err instanceof Error ? err.message : 'Failed to update project');
       throw err;
     }

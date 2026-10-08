@@ -109,7 +109,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
-  // Listen for immediate task updates dispatched by other tabs (e.g. TasksPage)
+  // Listen for immediate task updates dispatched by task mutations.
   // so the Coming Due panel reflects due date changes without waiting for a re-fetch.
   useEffect(() => {
     const handleTaskUpdated = (e: Event) => {
