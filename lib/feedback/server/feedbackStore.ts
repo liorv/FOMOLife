@@ -300,7 +300,7 @@ export async function addComment(
       commentId: comment.id,
       commentAuthorId: authorId,
       commentAuthorName: comment.authorName,
-      commentText: text.length > 120 ? text.slice(0, 117) + '…' : text,
+      commentText: comment.text,
       createdAt: comment.createdAt,
       read: false,
     }),

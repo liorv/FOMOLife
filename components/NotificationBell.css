@@ -355,9 +355,8 @@
   margin: 4px 0 2px;
   color: var(--ui-text-muted, #666);
   font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   max-width: 100%;
 }
 
@@ -365,4 +364,3 @@
   font-size: 10px;
   color: var(--ui-text-muted, #999);
 }
-

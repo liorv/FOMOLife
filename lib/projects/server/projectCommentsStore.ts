@@ -36,7 +36,7 @@ export interface ProjectNotification {
   threadTitle: string;
   commentAuthorId: string;
   commentAuthorName: string;
-  /** Short preview (≤ 120 chars) */
+  /** Full comment text shown in the notification. */
   commentText: string;
   createdAt: string;
   read: boolean;
@@ -124,7 +124,6 @@ export async function addThreadComment(opts: {
     if (c.id !== comment.id && c.authorId !== authorId) toNotify.add(c.authorId);
   }
 
-  const preview = text.length > 120 ? text.slice(0, 117) + '…' : text;
   const now = comment.createdAt;
 
   const notifPromises = Array.from(toNotify).map((recipientId) =>
@@ -137,7 +136,7 @@ export async function addThreadComment(opts: {
       threadTitle,
       commentAuthorId: authorId,
       commentAuthorName: displayName,
-      commentText: preview,
+      commentText: comment.text,
       createdAt: now,
       read: false,
     }),
