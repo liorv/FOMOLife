@@ -182,7 +182,6 @@ export function NotificationDropdown({
     setFeedbackNotifs((prev) => prev.filter((n) => n.id !== notif.id));
     const remaining = feedbackNotifs.filter((n) => n.id !== notif.id);
     onFeedbackNotifsUpdate?.(remaining.filter((n) => !n.read).length);
-    window.dispatchEvent(new Event('feedback-notifs-updated'));
     // Dismiss on server; if it fails, reload so the notification isn't lost
     // client-side while still un-dismissed on the server (which would make it
     // reappear unexpectedly on the next load).
@@ -196,6 +195,8 @@ export function NotificationDropdown({
     } catch (error) {
       console.error('Failed to dismiss feedback notification:', error);
       await loadFeedbackNotifs();
+    } finally {
+      window.dispatchEvent(new Event('feedback-notifs-updated'));
     }
     // Navigate
     window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'feedback' } }));
@@ -215,7 +216,6 @@ export function NotificationDropdown({
     setProjectNotifs((prev) => prev.filter((n) => n.id !== notif.id));
     const remaining = projectNotifs.filter((n) => n.id !== notif.id);
     onProjectNotifsUpdate?.(remaining.filter((n) => !n.read).length);
-    window.dispatchEvent(new Event('project-notifs-updated'));
     // Dismiss on server; if it fails, reload so the notification isn't lost
     // client-side while still un-dismissed on the server.
     try {
@@ -228,6 +228,8 @@ export function NotificationDropdown({
     } catch (error) {
       console.error('Failed to dismiss project notification:', error);
       await loadProjectNotifs();
+    } finally {
+      window.dispatchEvent(new Event('project-notifs-updated'));
     }
     // Navigate
     window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'projects' } }));
@@ -254,32 +256,24 @@ export function NotificationDropdown({
     onFeedbackNotifsUpdate?.(0);
     onProjectNotifsUpdate?.(0);
     onTaskNotifsUpdate?.(0);
-    window.dispatchEvent(new Event('feedback-notifs-updated'));
-    window.dispatchEvent(new Event('project-notifs-updated'));
-    window.dispatchEvent(new Event('task-notifs-updated'));
-
     try {
-      await Promise.all([
-        fetch('/api/feedback/notifications', {
+      const results = await Promise.allSettled(['feedback', 'projects', 'tasks'].map(async (source) => {
+        const res = await fetch(`/api/${source}/notifications`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ ids: [], action: 'dismiss' }),
-        }),
-        fetch('/api/projects/notifications', {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ ids: [], action: 'dismiss' }),
-        }),
-        fetch('/api/tasks/notifications', {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ ids: [], action: 'dismiss' }),
-        }),
-      ]);
+        });
+        if (!res.ok) throw new Error(`Failed to clear ${source} notifications: ${res.status}`);
+      }));
+      const failure = results.find(result => result.status === 'rejected');
+      if (failure?.status === 'rejected') throw failure.reason;
     } catch (error) {
       console.error('Failed to clear notifications:', error);
       await Promise.all([loadFeedbackNotifs(), loadProjectNotifs(), loadTaskNotifs()]);
     } finally {
+      window.dispatchEvent(new Event('feedback-notifs-updated'));
+      window.dispatchEvent(new Event('project-notifs-updated'));
+      window.dispatchEvent(new Event('task-notifs-updated'));
       setClearingAll(false);
     }
   };
@@ -289,7 +283,6 @@ export function NotificationDropdown({
     setTaskNotifs((prev) => prev.filter((n) => n.id !== notif.id));
     const remaining = taskNotifs.filter((n) => n.id !== notif.id);
     onTaskNotifsUpdate?.(remaining.filter((n) => !n.read).length);
-    window.dispatchEvent(new Event('task-notifs-updated'));
     try {
       const res = await fetch('/api/tasks/notifications', {
         method: 'PATCH',
@@ -300,6 +293,8 @@ export function NotificationDropdown({
     } catch (error) {
       console.error('Failed to dismiss task notification:', error);
       await loadTaskNotifs();
+    } finally {
+      window.dispatchEvent(new Event('task-notifs-updated'));
     }
   };
 
@@ -308,7 +303,6 @@ export function NotificationDropdown({
     setTaskNotifs((prev) => prev.filter((n) => n.id !== notif.id));
     const remaining = taskNotifs.filter((n) => n.id !== notif.id);
     onTaskNotifsUpdate?.(remaining.filter((n) => !n.read).length);
-    window.dispatchEvent(new Event('task-notifs-updated'));
     try {
       const res = await fetch('/api/tasks/notifications', {
         method: 'PATCH',
@@ -319,6 +313,8 @@ export function NotificationDropdown({
     } catch (error) {
       console.error('Failed to reschedule task notification:', error);
       await loadTaskNotifs();
+    } finally {
+      window.dispatchEvent(new Event('task-notifs-updated'));
     }
   };
 

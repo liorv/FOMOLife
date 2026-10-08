@@ -444,33 +444,32 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
         </div>
 
         {overdueTasks.length > 0 && (
-        <div className={styles.dashboardColumn}>
-          {/* Overdue Tasks */}
-          <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={`material-icons ${styles.overdueIcon}`}>warning</span>
-            <h2 className={styles.cardTitle}>Overdue</h2>
+          <div className={styles.dashboardColumn}>
+            {/* Overdue Tasks */}
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <span className={`material-icons ${styles.overdueIcon}`}>warning</span>
+                <h2 className={styles.cardTitle}>Overdue</h2>
+              </div>
+              <ul className={styles.list}>
+                {(showMoreOverdue ? overdueTasks : overdueTasks.slice(0, 5)).map(t => (
+                  <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
+                    <span className={`material-icons ${styles.itemIcon} ${styles.overdueIcon}`}>error_outline</span>
+                    <div className={styles.itemContent}>
+                      <h3 className={styles.itemTitle}>{t.text}</h3>
+                      <p className={`${styles.itemMeta} ${styles.overdueText}`}>Overdue: {formatDate(t.dueDate)}</p>
+                    </div>
+                  </li>
+                ))}
+                {overdueTasks.length > 5 && (
+                  <li className={styles.showMoreItem} onClick={() => setShowMoreOverdue(v => !v)}>
+                    <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreOverdue ? 'expand_less' : 'expand_more'}</span>
+                    {showMoreOverdue ? 'Show less' : `Show ${overdueTasks.length - 5} more`}
+                  </li>
+                )}
+              </ul>
+            </div>
           </div>
-          <ul className={styles.list}>
-            {overdueTasks.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No overdue tasks.</p></div></li>}
-            {(showMoreOverdue ? overdueTasks : overdueTasks.slice(0, 5)).map(t => (
-              <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
-                <span className={`material-icons ${styles.itemIcon} ${styles.overdueIcon}`}>error_outline</span>
-                <div className={styles.itemContent}>
-                  <h3 className={styles.itemTitle}>{t.text}</h3>
-                  <p className={`${styles.itemMeta} ${styles.overdueText}`}>Overdue: {formatDate(t.dueDate)}</p>
-                </div>
-              </li>
-            ))}
-            {overdueTasks.length > 5 && (
-              <li className={styles.showMoreItem} onClick={() => setShowMoreOverdue(v => !v)}>
-                <span className="material-icons" style={{ fontSize: '16px' }}>{showMoreOverdue ? 'expand_less' : 'expand_more'}</span>
-                {showMoreOverdue ? 'Show less' : `Show ${overdueTasks.length - 5} more`}
-              </li>
-            )}
-          </ul>
-          </div>
-        </div>
         )}
 
         {/* Coming Due */}

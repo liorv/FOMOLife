@@ -27,15 +27,17 @@ export function NotificationBell({ userId }: { userId?: string }) {
 
   const currentUserId = userId;
   const fetchInFlight = useRef(false);
+  const countVersions = useRef({ feedback: 0, project: 0, task: 0 });
 
   // Fetch feedback notification count
   const fetchFeedbackNotifs = async () => {
     if (!currentUserId) return;
+    const version = ++countVersions.current.feedback;
     try {
       const res = await fetch('/api/feedback/notifications');
       if (res.ok) {
         const d = await res.json();
-        setFeedbackNotifCount(d.unreadCount ?? 0);
+        if (version === countVersions.current.feedback) setFeedbackNotifCount(d.unreadCount ?? 0);
       }
     } catch { /* silent */ }
   };
@@ -43,11 +45,12 @@ export function NotificationBell({ userId }: { userId?: string }) {
   // Fetch project notification count
   const fetchProjectNotifs = async () => {
     if (!currentUserId) return;
+    const version = ++countVersions.current.project;
     try {
       const res = await fetch('/api/projects/notifications');
       if (res.ok) {
         const d = await res.json();
-        setProjectNotifCount(d.unreadCount ?? 0);
+        if (version === countVersions.current.project) setProjectNotifCount(d.unreadCount ?? 0);
       }
     } catch { /* silent */ }
   };
@@ -55,11 +58,12 @@ export function NotificationBell({ userId }: { userId?: string }) {
   // Fetch task due-date notification count
   const fetchTaskNotifs = async () => {
     if (!currentUserId) return;
+    const version = ++countVersions.current.task;
     try {
       const res = await fetch('/api/tasks/notifications');
       if (res.ok) {
         const d = await res.json();
-        setTaskNotifCount(d.unreadCount ?? 0);
+        if (version === countVersions.current.task) setTaskNotifCount(d.unreadCount ?? 0);
       }
     } catch { /* silent */ }
   };
@@ -186,9 +190,18 @@ export function NotificationBell({ userId }: { userId?: string }) {
                 window.postMessage({ type: 'contacts-updated' }, window.location.origin);
               }}
             userId={currentUserId}
-            onFeedbackNotifsUpdate={(count) => setFeedbackNotifCount(count)}
-            onProjectNotifsUpdate={(count) => setProjectNotifCount(count)}
-            onTaskNotifsUpdate={(count) => setTaskNotifCount(count)}
+            onFeedbackNotifsUpdate={(count) => {
+              ++countVersions.current.feedback;
+              setFeedbackNotifCount(count);
+            }}
+            onProjectNotifsUpdate={(count) => {
+              ++countVersions.current.project;
+              setProjectNotifCount(count);
+            }}
+            onTaskNotifsUpdate={(count) => {
+              ++countVersions.current.task;
+              setTaskNotifCount(count);
+            }}
           />
         </div>
       )}
