@@ -5,6 +5,7 @@ import { generateId, withKeyedLock } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 import { getDisplayNameFromUserId } from '../../server/frameworkAuth';
 import { sendPushToUser } from '../../server/webPush';
+import { getNotificationUrl } from '../../notificationNavigation';
 
 const storage = createStorageProvider();
 
@@ -185,7 +186,7 @@ async function appendNotification(userId: string, notif: ProjectNotification): P
   await sendPushToUser(userId, {
     title: notif.threadTitle,
     body,
-    url: '/dashboard?tab=projects',
+    url: getNotificationUrl(notif),
     tag: `project-${notif.threadId}`,
   }).catch((error) => {
     console.error('Failed to send project notification push:', error);

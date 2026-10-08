@@ -39,6 +39,20 @@ Checkboxes update immediately. Project saves are queued per project in click
 order, and earlier save responses cannot replace newer pending edits. Save
 failures are displayed in the projects page rather than silently ignored.
 
+Notification links open the framework host at `/`, not the analytics dashboard.
+Chat notifications include a `threadId` (or `feedbackId`) and open that conversation
+after its data loads. Task completion, assignment, and due-date notifications
+include a `taskId` and open the task editor; project tasks also include `projectId`.
+The bell dropdown and device push notifications use the same destination links.
+Test notifications and notifications without a destination open Home (`/`).
+The service worker redirects old analytics notification links to the framework
+host while preserving any tab, conversation, or task context in their query.
+
+New chat messages notify the creator and all previous commenters in that
+conversation, excluding the sender and deduplicating recipients. Task chats
+also notify assigned project members, even before they have commented.
+Project tasks use the project's creator (or legacy owner) as their creator.
+
 ## Local development runbook
 
 Prerequisites:

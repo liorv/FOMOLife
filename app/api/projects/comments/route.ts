@@ -37,33 +37,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'threadId, threadTitle, projectId, text are required' }, { status: 400 });
   }
 
-  // Task threads notify the project creator and task assignees. Project threads
-  // notify all project members.
+  // Older chat clients identify tasks only through the thread ID.
+  const taskThreadPrefix = `task:${projectId}:`;
+  const taskId = body.taskId || (threadId.startsWith(taskThreadPrefix)
+    ? threadId.slice(taskThreadPrefix.length)
+    : undefined);
+  // The store also adds prior commenters and excludes the message author.
   let memberIds: string[] = [];
   const projects = await listProjects(session.userId);
   const project = projects.find((p) => p.id === projectId);
   const allMembers = (project?.members ?? []).filter((m) => m.userId);
+  const creatorId = project
+    ? project.creatorId ?? await resolveProjectOwner(projectId, session.userId)
+    : undefined;
 
-  if (body.taskId) {
+  if (taskId) {
     const allTasks = (project?.subprojects ?? []).flatMap((sp) => sp.tasks ?? []);
-    const task = allTasks.find((t) => t.id === body.taskId);
+    const task = allTasks.find((t) => t.id === taskId);
     const assigneeNames = new Set((task?.people ?? []).map((p) => p.name.toLowerCase()));
     const assigneeIds = allMembers
       .filter((m) => assigneeNames.has(m.name.toLowerCase()))
       .map((m) => m.userId);
-    const creatorId = project
-      ? project.creatorId ?? await resolveProjectOwner(projectId, session.userId)
-      : undefined;
     memberIds = [...new Set([...(creatorId ? [creatorId] : []), ...assigneeIds])];
   } else {
-    memberIds = allMembers.map((m) => m.userId);
+    memberIds = [...new Set([...(creatorId ? [creatorId] : []), ...allMembers.map((m) => m.userId)])];
   }
 
   const comment = await addThreadComment({
     threadId,
     threadTitle,
     projectId,
-    ...(body.taskId ? { taskId: body.taskId } : {}),
+    ...(taskId ? { taskId } : {}),
     memberIds,
     authorId: session.userId,
     authorName: session.userName ?? session.userEmail ?? session.userId,

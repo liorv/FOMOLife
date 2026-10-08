@@ -11,7 +11,7 @@ import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjects
 import ProjectsDashboard from "./ProjectsDashboard";
 import ConversationThread from "../ConversationThread";
 import layoutStyles from "../../styles/projects/layout.module.css";
-import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
+import { PROJECT_COLORS, ColorPickerOverlay, TaskModal, ModalOverlay } from "@myorg/ui";
 import GlobalSearchResults, { type FeedbackItem } from "../GlobalSearchResults";
 import ContentHeader from "../ContentHeader";
 
@@ -100,6 +100,8 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   };
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [people, setPeople] = useState<Contact[]>([]);
   const [globalTasks, setGlobalTasks] = useState<TaskItem[]>([]);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
@@ -132,6 +134,62 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   // ── Conversation thread state ───────────────────────────────────────────
   type ActiveThread = { threadId: string; threadTitle: string; projectId: string; taskId?: string };
   const [activeThread, setActiveThread] = useState<ActiveThread | null>(null);
+  const [notificationTaskId, setNotificationTaskId] = useState<string | null>(null);
+  const openedNotificationTarget = useRef<string | null>(null);
+  const targetThreadId = searchParams.get('threadId');
+  const targetTaskId = searchParams.get('taskId');
+  const targetTab = searchParams.get('tab');
+
+  useEffect(() => {
+    if (targetTab !== 'projects' || !initialProjectId || (!targetThreadId && !targetTaskId)) {
+      openedNotificationTarget.current = null;
+      return;
+    }
+    const targetKey = JSON.stringify([initialProjectId, targetThreadId, targetTaskId]);
+    if (openedNotificationTarget.current === targetKey) return;
+    const project = projects.find(project => project.id === initialProjectId);
+    if (!project) {
+      if (!loading) {
+        setErrorMessage('The project for this notification is no longer available.');
+      }
+      return;
+    }
+    const task = project.subprojects.flatMap(subproject => subproject.tasks ?? [])
+      .find(task => task.id === (targetTaskId || targetThreadId?.split(':').slice(2).join(':')));
+    setEditingProjectId(project.id);
+    if (targetThreadId) {
+      openedNotificationTarget.current = targetKey;
+      setErrorMessage(null);
+      setNotificationTaskId(null);
+      setActiveThread({
+        threadId: targetThreadId,
+        projectId: project.id,
+        threadTitle: task?.text || project.text,
+        ...(task ? { taskId: task.id } : {}),
+      });
+    } else if (task) {
+      openedNotificationTarget.current = targetKey;
+      setErrorMessage(null);
+      setActiveThread(null);
+      setNotificationTaskId(task.id);
+    } else {
+      setErrorMessage('The task for this notification is no longer available.');
+    }
+  }, [initialProjectId, targetThreadId, targetTaskId, targetTab, projects, loading]);
+
+  const notificationProject = projects.find(project => project.id === editingProjectId);
+  const notificationTask = notificationProject?.subprojects.flatMap(subproject => subproject.tasks ?? [])
+    .find(task => task.id === notificationTaskId);
+
+  const updateNotificationTask = (updatedTask: ProjectTask) => {
+    if (!notificationProject) return;
+    void handleProjectApplyChange(notificationProject.id, {
+      subprojects: notificationProject.subprojects.map(subproject => ({
+        ...subproject,
+        tasks: (subproject.tasks ?? []).map(task => task.id === updatedTask.id ? updatedTask : task),
+      })),
+    });
+  };
 
   // Listen for navigation events from notifications
   useEffect(() => {
@@ -178,8 +236,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   >(null);
   const [filters, setFilters] = useState<string[]>(['hide_completed']);
   const projectSearch = searchParams.get('q') || '';
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const onReadyCalledRef = useRef(false);
 
   // Sync from cache immediately after mount, before first paint (avoids hydration mismatch).
@@ -872,6 +928,20 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
             )}
 
           {/* Conversation thread overlay */}
+          {notificationTask && (
+            <ModalOverlay open onClose={() => setNotificationTaskId(null)}>
+              <h2>{notificationTask.text}</h2>
+              <TaskModal
+                key={notificationTask.id}
+                inline
+                task={notificationTask}
+                allPeople={people}
+                onUpdateTask={updateNotificationTask}
+                onSave={() => setNotificationTaskId(null)}
+                onClose={() => setNotificationTaskId(null)}
+              />
+            </ModalOverlay>
+          )}
           {activeThread && (
             <ConversationThread
               threadId={activeThread.threadId}

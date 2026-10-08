@@ -57,6 +57,24 @@ describe('push delivery and diagnostics', () => {
     expect(await sendPushToUser('owner', { title: 'Due tomorrow', body: 'Task' })).toEqual({ sent: 2, failed: 0 });
     expect(webpush.sendNotification).toHaveBeenCalledTimes(2);
     expect(jest.mocked(webpush.sendNotification).mock.calls.map(([sub]) => sub.endpoint)).toEqual(devices.map((sub) => sub.endpoint));
+    for (const [, payload] of jest.mocked(webpush.sendNotification).mock.calls) {
+      expect(JSON.parse(String(payload))).toEqual({ title: 'Due tomorrow', body: 'Task', url: '/' });
+    }
+  });
+
+  it('links a test notification to Home, never the analytics dashboard', async () => {
+    expect((await POST()).status).toBe(200);
+    for (const [, payload] of jest.mocked(webpush.sendNotification).mock.calls) {
+      expect(JSON.parse(String(payload))).toEqual(expect.objectContaining({ url: '/', tag: 'push-test' }));
+    }
+  });
+
+  it('preserves the exact destination of a contextual notification', async () => {
+    const url = '/?tab=projects&projectId=project&threadId=task%3Aproject%3Atask';
+    await sendPushToUser('owner', { title: 'Reply', body: 'Message', url });
+    for (const [, payload] of jest.mocked(webpush.sendNotification).mock.calls) {
+      expect(JSON.parse(String(payload)).url).toBe(url);
+    }
   });
 
   it('prunes expired subscriptions while still delivering to healthy devices', async () => {

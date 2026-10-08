@@ -817,7 +817,7 @@ export async function requestLinkage(userId: string, token: string): Promise<{ r
     await sendPushToUser(inviterId, {
       title: 'New connection request',
       body: `${invitee.fullName} wants to connect with you`,
-      url: '/dashboard?tab=contacts',
+      url: '/?tab=people',
       tag: `contact-request-${requestId}`,
     }).catch(() => { /* push failures are non-critical */ });
 
@@ -900,7 +900,7 @@ export async function approveRequest(userId: string, requestId: string): Promise
   await sendPushToUser(request.invitedId, {
     title: 'Connection accepted',
     body: `${inviter.fullName} accepted your connection request`,
-    url: '/dashboard?tab=contacts',
+    url: '/?tab=people',
     tag: `contact-approved-${requestId}`,
   }).catch(() => { /* push failures are non-critical */ });
 }

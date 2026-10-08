@@ -34,7 +34,9 @@ describe('daily task reminders', () => {
 
   it('sends the day-before reminder via push and does not repeat it on another run', async () => {
     expect(await runTaskDueNotificationsJob()).toEqual({ usersScanned: 1, notified: 1 });
-    expect(sendPushToUser).toHaveBeenCalledWith('owner', expect.objectContaining({ title: 'Task due tomorrow', body: task.text }));
+    expect(sendPushToUser).toHaveBeenCalledWith('owner', expect.objectContaining({
+      title: 'Task due tomorrow', body: task.text, url: '/?tab=tasks&taskId=task',
+    }));
     expect(await runTaskDueNotificationsJob()).toEqual({ usersScanned: 1, notified: 0 });
   });
 
@@ -114,7 +116,7 @@ describe('standalone completions', () => {
     const created = await createTask('completion-owner', { text: 'Finish' });
     await updateTask('completion-owner', created.id, { done: true });
     expect(sendPushToUser).toHaveBeenCalledWith('completion-owner', expect.objectContaining({
-      title: 'Task completed', body: 'Finish',
+      title: 'Task completed', body: 'Finish', url: `/?tab=tasks&taskId=${encodeURIComponent(created.id)}`,
     }));
     await updateTask('completion-owner', created.id, { text: 'Renamed' });
     await updateTask('completion-owner', created.id, { done: true });

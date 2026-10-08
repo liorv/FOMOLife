@@ -226,6 +226,7 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     // Also update the URL (for deep-linking and browser back/forward).
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('tab', tab);
+    for (const key of ['projectId', 'taskId', 'threadId', 'feedbackId']) nextParams.delete(key);
     if (tab === 'projects') {
       nextParams.delete('q');
     }

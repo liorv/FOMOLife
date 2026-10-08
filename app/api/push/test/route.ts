@@ -13,7 +13,7 @@ export async function POST() {
     const result = await sendPushToUser(session.userId, {
       title: 'FOMO Life',
       body: 'Test push notification 🎉',
-      url: '/dashboard',
+      url: '/',
       tag: 'push-test',
     });
 

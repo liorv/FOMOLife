@@ -10,6 +10,7 @@ import type {
   TaskReminderStage,
 } from '@myorg/types';
 import { sendPushToUser } from '../../server/webPush';
+import { getNotificationUrl } from '../../notificationNavigation';
 import { listAllUsersData } from './allUsersData';
 
 const storage = createStorageProvider();
@@ -80,7 +81,7 @@ async function appendNotification(userId: string, notif: TaskDueNotification): P
   await sendPushToUser(userId, {
     title: `Task due ${daysLabel}`,
     body: notif.taskTitle,
-    url: notif.projectId ? '/dashboard?tab=projects' : '/dashboard?tab=tasks',
+    url: getNotificationUrl(notif),
     tag: `task-due-${notif.taskId}`,
   }).catch((error) => {
     console.error('Failed to send task reminder push:', error);

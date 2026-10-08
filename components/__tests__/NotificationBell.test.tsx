@@ -2,6 +2,10 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NotificationBell } from '../NotificationBell';
 
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 jest.mock('@myorg/api-client', () => ({
   createContactsApiClient: () => ({
     getPendingRequests: async () => ({ requests: [] }),
@@ -48,8 +52,34 @@ describe('notification badge synchronization', () => {
   const originalFetch = global.fetch;
 
   afterEach(() => {
+    mockPush.mockClear();
     global.fetch = originalFetch;
     jest.restoreAllMocks();
+  });
+
+  it.each([
+    ['project_comment', 'projects', '/?tab=projects&projectId=project&threadId=task%3Aproject%3Atask'],
+    ['task_completed', 'projects', '/?tab=projects&projectId=project&taskId=task'],
+    ['task_assigned', 'projects', '/?tab=projects&projectId=project&taskId=task'],
+    ['feedback_comment', 'feedback', '/?tab=feedback&feedbackId=feedback'],
+    ['task_due', 'tasks', '/?tab=projects&projectId=project&taskId=task'],
+  ])('opens the specific context for a %s notification', async (type, source, url) => {
+    const notification = {
+      id: 'notification', type, projectId: 'project', taskId: 'task', feedbackId: 'feedback',
+      threadId: 'task:project:task', threadTitle: 'Notification context',
+      feedbackTitle: 'Notification context', taskTitle: 'Notification context',
+      commentAuthorName: 'Person', commentText: 'Notification message',
+      createdAt: new Date().toISOString(), dueDate: '2026-10-08', stage: 'day', read: false,
+    };
+    global.fetch = jest.fn(async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      if (init?.method === 'PATCH' || !String(input).includes(`/${source}/`)) return response(0);
+      return { ok: true, json: async () => ({ notifications: [notification], unreadCount: 1 }) } as Response;
+    });
+    render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    fireEvent.click(await screen.findByText(type === 'task_assigned' ? 'Notification message' : /Notification context/));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith(url));
+    expect(screen.queryByRole('button', { name: 'Close notifications' })).not.toBeInTheDocument();
   });
 
   it('clears the badge immediately and refreshes only after all dismiss requests finish', async () => {
@@ -71,6 +101,13 @@ describe('notification badge synchronization', () => {
 
     const getsBeforeSave = mockFetch.mock.calls.filter(([, init]) => !init).length;
     expect(container.querySelector('.framework-bell-badge')).toBeNull();
+    await act(async () => {
+      window.dispatchEvent(new Event('feedback-notifs-updated'));
+      window.dispatchEvent(new Event('project-notifs-updated'));
+      window.dispatchEvent(new Event('task-notifs-updated'));
+    });
+    expect(container.querySelector('.framework-bell-badge')).toBeNull();
+    expect(mockFetch.mock.calls.filter(([, init]) => !init)).toHaveLength(getsBeforeSave);
     await act(async () => {
       patches[0]!.resolve(response(0));
       patches[1]!.resolve(response(0));
@@ -114,6 +151,40 @@ describe('notification badge synchronization', () => {
     await act(async () => { stale.resolve(response(1)); });
     expect(container.querySelector('.framework-bell-badge')).toBeNull();
   });
+
+  it.each(['feedback', 'projects', 'tasks'])(
+    'ignores a stale %s dropdown response after clear all without reopening the bell',
+    async (source) => {
+      const stale = deferred<Response>();
+      const availableSource = source === 'projects' ? 'feedback' : 'projects';
+      let sourceGets = 0;
+      let cleared = false;
+      global.fetch = jest.fn((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+        const url = String(input);
+        if (init?.method === 'PATCH') {
+          cleared = true;
+          return Promise.resolve(response(0));
+        }
+        if (url.includes(`/${source}/`)) {
+          sourceGets += 1;
+          if (sourceGets === 2) return stale.promise;
+        }
+        return Promise.resolve(response(url.includes(`/${availableSource}/`) && !cleared ? 1 : 0));
+      });
+      const { container } = render(<NotificationBell userId="user" />);
+      await waitFor(() => expect(container.querySelector('.framework-bell-badge')).toHaveTextContent('1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Clear all' }));
+      await waitFor(() => expect(sourceGets).toBe(3));
+      expect(container.querySelector('.framework-bell-badge')).toBeNull();
+
+      await act(async () => { stale.resolve(response(1)); });
+
+      expect(container.querySelector('.framework-bell-badge')).toBeNull();
+      expect(screen.getByText(/all caught up/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Clear all' })).not.toBeInTheDocument();
+    },
+  );
 
   it('restores the list and badge when a dismiss request returns an HTTP error', async () => {
     const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});

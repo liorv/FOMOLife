@@ -85,7 +85,10 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   await Promise.all(
     subs.map(async (sub) => {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify(payload));
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({
+          ...payload,
+          url: payload.url || '/',
+        }));
         sent += 1;
       } catch (err: unknown) {
         failed += 1;

@@ -4,6 +4,12 @@ import type { ProjectItem, ProjectTask } from '@myorg/types';
 import ProjectsPage from '../ProjectsPage';
 import ProjectEditor from '../ProjectEditor';
 
+let mockSearchParams = new URLSearchParams();
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => mockSearchParams,
+  useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
+  usePathname: () => '/',
+}));
 jest.mock('@myorg/api-client', () => ({
   createProjectsApiClient: () => mockProjectsApi,
   createContactsApiClient: () => mockContactsApi,
@@ -20,7 +26,12 @@ jest.mock('@/lib/client/projectsCache', () => ({
   getProjectsCacheAge: () => 0,
   invalidateProjectsCache: jest.fn(),
 }));
-jest.mock('../../ConversationThread', () => ({ __esModule: true, default: () => null }));
+jest.mock('../../ConversationThread', () => ({
+  __esModule: true,
+  default: ({ threadId, taskId }: { threadId: string; taskId?: string }) => (
+    <div data-testid="notification-conversation">{threadId} {taskId}</div>
+  ),
+}));
 jest.mock('../ProjectsDashboard', () => ({
   __esModule: true,
   default: ({ projects, onApplyChange }: {
@@ -82,8 +93,28 @@ function savedRequest(index: number): ProjectItem {
 describe('rapid project task completion', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
     localStorage.clear();
     mockProjectsApi.listProjects.mockResolvedValue([project()]);
+    mockProjectsApi.updateProject.mockResolvedValue(project());
+  });
+
+  it('opens the notification conversation after a delayed project load', async () => {
+    mockSearchParams = new URLSearchParams('tab=projects&projectId=project&threadId=task%3Aproject%3Afirst');
+    const pending = deferred<ProjectItem[]>();
+    mockProjectsApi.listProjects.mockReturnValue(pending.promise);
+    render(<ProjectsPage canManage />);
+    expect(screen.queryByTestId('notification-conversation')).not.toBeInTheDocument();
+    await act(async () => { pending.resolve([project()]); });
+    expect(screen.getByTestId('notification-conversation')).toHaveTextContent('task:project:first first');
+  });
+
+  it('opens the exact task editor rather than a conversation for task notifications', async () => {
+    mockSearchParams = new URLSearchParams('tab=projects&projectId=project&taskId=second');
+    render(<ProjectsPage canManage />);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Task second' })).toBeInTheDocument();
+    expect(screen.queryByTestId('notification-conversation')).not.toBeInTheDocument();
   });
 
   it.each(['', 'Task'])('keeps every batched toggle in the editor with search %j', (searchQuery) => {

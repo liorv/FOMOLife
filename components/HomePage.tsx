@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { TaskModal, ModalOverlay } from '@myorg/ui';
 import styles from './HomePage.module.css';
 import { createTasksApiClient, createProjectsApiClient, createContactsApiClient } from '@myorg/api-client';
 import { preloadImages } from '@myorg/utils';
@@ -25,6 +26,7 @@ type Props = {
 
 export default function HomePage({ style, searchQuery = '', onReady, isActive }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   // Always start with empty/loading state so SSR and client initial render match.
   // We sync from the module-level cache in useLayoutEffect (runs before paint on client
   // only, so there's no visual flash and no hydration mismatch).
@@ -33,6 +35,14 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationTaskId, setNotificationTaskId] = useState<string | null>(null);
+  const [notificationTaskError, setNotificationTaskError] = useState<string | null>(null);
+  const targetTaskId = searchParams.get('tab') === 'tasks' ? searchParams.get('taskId') : null;
+  useEffect(() => {
+    setNotificationTaskId(targetTaskId);
+    setNotificationTaskError(null);
+  }, [targetTaskId]);
+  const notificationTask = tasks.find(task => task.id === notificationTaskId);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [showMoreFavorites, setShowMoreFavorites] = useState(false);
   const [showMoreOverdue, setShowMoreOverdue] = useState(false);
@@ -66,6 +76,16 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const tasksApi = useMemo(() => createTasksApiClient(''), []);
   const projectsApi = useMemo(() => createProjectsApiClient(''), []);
   const contactsApi = useMemo(() => createContactsApiClient(''), []);
+
+  const updateNotificationTask = (task: ProjectTask) => {
+    void tasksApi.updateTask(task.id, task).then(updated => {
+      setTasks(previous => previous.map(item => item.id === updated.id ? updated : item));
+      window.dispatchEvent(new CustomEvent('fomo:taskUpdated', { detail: updated }));
+    }).catch(error => {
+      console.error('Failed to update notification task:', error);
+      setNotificationTaskError('Failed to update task. Please try again.');
+    });
+  };
 
   // Fetches all home data. `silent` = true skips the loading spinner (background refresh).
   const fetchAllData = React.useCallback(async (silent = false) => {
@@ -331,6 +351,24 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   return (
     <div style={style}>
       <ContentHeader title="Home" />
+      {notificationTaskError && <p role="alert">{notificationTaskError}</p>}
+      {!loading && notificationTaskId && !notificationTask && (
+        <p role="alert">The task for this notification is no longer available.</p>
+      )}
+      {notificationTask && (
+        <ModalOverlay open onClose={() => setNotificationTaskId(null)}>
+          <h2>{notificationTask.text}</h2>
+          <TaskModal
+            key={notificationTask.id}
+            inline
+            task={{ ...notificationTask, people: notificationTask.people ?? [] }}
+            allPeople={contacts}
+            onUpdateTask={updateNotificationTask}
+            onSave={() => setNotificationTaskId(null)}
+            onClose={() => setNotificationTaskId(null)}
+          />
+        </ModalOverlay>
+      )}
       <div className={styles.container}>
 
       {loading ? (

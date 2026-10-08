@@ -28,10 +28,11 @@ export function NotificationBell({ userId }: { userId?: string }) {
   const currentUserId = userId;
   const fetchInFlight = useRef(false);
   const countVersions = useRef({ feedback: 0, project: 0, task: 0 });
+  const clearAllPending = useRef(false);
 
   // Fetch feedback notification count
   const fetchFeedbackNotifs = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || clearAllPending.current) return;
     const version = ++countVersions.current.feedback;
     try {
       const res = await fetch('/api/feedback/notifications');
@@ -44,7 +45,7 @@ export function NotificationBell({ userId }: { userId?: string }) {
 
   // Fetch project notification count
   const fetchProjectNotifs = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || clearAllPending.current) return;
     const version = ++countVersions.current.project;
     try {
       const res = await fetch('/api/projects/notifications');
@@ -57,7 +58,7 @@ export function NotificationBell({ userId }: { userId?: string }) {
 
   // Fetch task due-date notification count
   const fetchTaskNotifs = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || clearAllPending.current) return;
     const version = ++countVersions.current.task;
     try {
       const res = await fetch('/api/tasks/notifications');
@@ -190,6 +191,9 @@ export function NotificationBell({ userId }: { userId?: string }) {
                 window.postMessage({ type: 'contacts-updated' }, window.location.origin);
               }}
             userId={currentUserId}
+            onClearAllPendingChange={(pending) => {
+              clearAllPending.current = pending;
+            }}
             onFeedbackNotifsUpdate={(count) => {
               ++countVersions.current.feedback;
               setFeedbackNotifCount(count);

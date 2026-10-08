@@ -5,6 +5,7 @@ import { generateId, withKeyedLock } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 import { getDisplayNameFromUserId } from '../../server/frameworkAuth';
 import { sendPushToUser } from '../../server/webPush';
+import { getNotificationUrl } from '../../notificationNavigation';
 
 // Feedback is global/shared across all users, stored under this special key
 const FEEDBACK_STORAGE_KEY = '__feedback__';
@@ -353,7 +354,7 @@ async function appendNotification(userId: string, notif: FeedbackNotification): 
   await sendPushToUser(userId, {
     title: notif.feedbackTitle,
     body,
-    url: '/dashboard?tab=feedback',
+    url: getNotificationUrl(notif),
     tag: `feedback-${notif.feedbackId}`,
   }).catch(() => { /* push failures are non-critical */ });
 }

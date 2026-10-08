@@ -91,7 +91,7 @@ export async function updateTask(
     await sendPushToUser(userId, {
       title: 'Task completed',
       body: updated.text,
-      url: '/dashboard?tab=tasks',
+      url: `/?tab=tasks&taskId=${encodeURIComponent(id)}`,
       tag: `task-completed-${id}`,
     }).catch((error) => {
       console.error('Failed to send task completion push:', error);

@@ -5,6 +5,7 @@ import HomePage from '../HomePage';
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
+  useSearchParams: () => mockSearchParams,
 }));
 jest.mock('@myorg/api-client', () => ({
   createTasksApiClient: () => mockTasksApi,
@@ -29,9 +30,10 @@ jest.mock('../ContentHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('../GlobalSearchResults', () => ({ __esModule: true, default: () => null }));
 jest.mock('../EntityIcon', () => ({ __esModule: true, default: () => null }));
 
-const mockTasksApi = { listTasks: jest.fn() };
+const mockTasksApi = { listTasks: jest.fn(), updateTask: jest.fn() };
 const mockProjectsApi = { listProjects: jest.fn() };
 const mockContactsApi = { listContacts: jest.fn() };
+let mockSearchParams = new URLSearchParams();
 
 function task(dueDate: string | null, done = false): TaskItem {
   return { id: 'task', text: 'Test task', done, dueDate, favorite: false, description: '' };
@@ -63,13 +65,24 @@ describe('home overdue panel', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-10-07T12:00:00'));
     jest.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
     mockTasksApi.listTasks.mockResolvedValue([]);
+    mockTasksApi.updateTask.mockResolvedValue(task('2026-10-14'));
     mockProjectsApi.listProjects.mockResolvedValue([]);
     mockContactsApi.listContacts.mockResolvedValue([]);
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ feedback: [] }),
     });
+  });
+
+  it('opens a standalone task from a notification after tasks finish loading', async () => {
+    mockSearchParams = new URLSearchParams('tab=tasks&taskId=task');
+    mockTasksApi.listTasks.mockResolvedValue([task('2026-10-14')]);
+    render(<HomePage />);
+    await loaded();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Test task', level: 2 })).toBeInTheDocument();
   });
 
   afterEach(() => {

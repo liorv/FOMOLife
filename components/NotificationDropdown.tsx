@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getNotificationUrl } from '@/lib/notificationNavigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import type { PendingRequest, PendingRequestsResponse, TaskDueNotification } from '@myorg/types';
 
@@ -40,6 +42,7 @@ type NotificationDropdownProps = {
   onFeedbackNotifsUpdate?: (count: number) => void;
   onProjectNotifsUpdate?: (count: number) => void;
   onTaskNotifsUpdate?: (count: number) => void;
+  onClearAllPendingChange?: (pending: boolean) => void;
 };
 
 type AnyItem =
@@ -68,7 +71,9 @@ export function NotificationDropdown({
   onFeedbackNotifsUpdate,
   onProjectNotifsUpdate,
   onTaskNotifsUpdate,
+  onClearAllPendingChange,
 }: NotificationDropdownProps) {
+  const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -79,6 +84,7 @@ export function NotificationDropdown({
   const [taskNotifs, setTaskNotifs] = useState<TaskDueNotification[]>([]);
   const [taskNotifsLoading, setTaskNotifsLoading] = useState(true);
   const [clearingAll, setClearingAll] = useState(false);
+  const loadVersions = useRef({ feedback: 0, project: 0, task: 0 });
 
   useEffect(() => {
     loadPendingRequests();
@@ -110,11 +116,13 @@ export function NotificationDropdown({
   };
 
   const loadFeedbackNotifs = async (showHistory = false) => {
+    const version = ++loadVersions.current.feedback;
     try {
       const url = showHistory ? '/api/feedback/notifications?dismissed=1' : '/api/feedback/notifications';
       const res = await fetch(url);
       if (res.ok) {
         const d = await res.json();
+        if (version !== loadVersions.current.feedback) return;
         setFeedbackNotifs(d.notifications ?? []);
         if (!showHistory) onFeedbackNotifsUpdate?.(d.unreadCount ?? 0);
       }
@@ -124,11 +132,13 @@ export function NotificationDropdown({
   };
 
   const loadProjectNotifs = async (showHistory = false) => {
+    const version = ++loadVersions.current.project;
     try {
       const url = showHistory ? '/api/projects/notifications?dismissed=1' : '/api/projects/notifications';
       const res = await fetch(url);
       if (res.ok) {
         const d = await res.json();
+        if (version !== loadVersions.current.project) return;
         setProjectNotifs(d.notifications ?? []);
         if (!showHistory) onProjectNotifsUpdate?.(d.unreadCount ?? 0);
       }
@@ -138,11 +148,13 @@ export function NotificationDropdown({
   };
 
   const loadTaskNotifs = async (showHistory = false) => {
+    const version = ++loadVersions.current.task;
     try {
       const url = showHistory ? '/api/tasks/notifications?dismissed=1' : '/api/tasks/notifications';
       const res = await fetch(url);
       if (res.ok) {
         const d = await res.json();
+        if (version !== loadVersions.current.task) return;
         setTaskNotifs(d.notifications ?? []);
         if (!showHistory) onTaskNotifsUpdate?.(d.unreadCount ?? 0);
       }
@@ -199,14 +211,7 @@ export function NotificationDropdown({
       window.dispatchEvent(new Event('feedback-notifs-updated'));
     }
     // Navigate
-    window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'feedback' } }));
-    setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent('framework-open-feedback-thread', {
-          detail: { feedbackId: notif.feedbackId },
-        }),
-      );
-    }, 120);
+    router.push(getNotificationUrl(notif));
     onClose();
   };
 
@@ -232,24 +237,17 @@ export function NotificationDropdown({
       window.dispatchEvent(new Event('project-notifs-updated'));
     }
     // Navigate
-    window.dispatchEvent(new CustomEvent('framework-navigate-tab', { detail: { tab: 'projects' } }));
-    setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent('framework-open-project-thread', {
-          detail: {
-            threadId: notif.threadId,
-            projectId: notif.projectId,
-            threadTitle: notif.threadTitle,
-            ...(notif.taskId ? { taskId: notif.taskId } : {}),
-          },
-        }),
-      );
-    }, 120);
+    router.push(getNotificationUrl(notif));
     onClose();
   };
 
   const handleClearAll = async () => {
     setClearingAll(true);
+    onClearAllPendingChange?.(true);
+    // Ignore loads started before clearing so they cannot restore dismissed items or badge counts.
+    ++loadVersions.current.feedback;
+    ++loadVersions.current.project;
+    ++loadVersions.current.task;
     setFeedbackNotifs([]);
     setProjectNotifs([]);
     setTaskNotifs([]);
@@ -271,6 +269,7 @@ export function NotificationDropdown({
       console.error('Failed to clear notifications:', error);
       await Promise.all([loadFeedbackNotifs(), loadProjectNotifs(), loadTaskNotifs()]);
     } finally {
+      onClearAllPendingChange?.(false);
       window.dispatchEvent(new Event('feedback-notifs-updated'));
       window.dispatchEvent(new Event('project-notifs-updated'));
       window.dispatchEvent(new Event('task-notifs-updated'));
@@ -476,7 +475,21 @@ export function NotificationDropdown({
                   <span className="notif-type-badge notif-type-project">Task due {stageLabel}</span>
                   <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                 </div>
-                <div className="feedback-notif-body">
+                <div className="feedback-notif-body notif-clickable"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    void handleDismissTaskNotif(notif);
+                    router.push(getNotificationUrl(notif));
+                    onClose();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.currentTarget.click();
+                    }
+                  }}
+                >
                   <span className="feedback-notif-icon material-icons">event</span>
                   <div className="feedback-notif-text">
                     <span className="feedback-notif-title">&ldquo;{notif.taskTitle}&rdquo;</span>

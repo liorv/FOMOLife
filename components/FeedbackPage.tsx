@@ -114,6 +114,24 @@ export default function FeedbackPage({ userId, userName, userAvatarUrl, style, o
 
   // Thread state
   const [threadItem, setThreadItem] = useState<FeedbackItem | null>(null);
+  const notificationFeedbackId = searchParams.get('tab') === 'feedback' ? searchParams.get('feedbackId') : null;
+  const openedFeedbackId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!notificationFeedbackId) {
+      openedFeedbackId.current = null;
+      return;
+    }
+    if (openedFeedbackId.current === notificationFeedbackId) return;
+    const item = items.find(item => item.id === notificationFeedbackId);
+    if (item) {
+      openedFeedbackId.current = notificationFeedbackId;
+      setError(null);
+      setThreadItem(item);
+    } else if (!loading) {
+      setError('The feedback for this notification is no longer available.');
+    }
+  }, [notificationFeedbackId, items, loading]);
 
   // Core fetch — `silent` skips the loading spinner (used for background refresh).
   const fetchItems = async (silent = false, announce = false) => {
