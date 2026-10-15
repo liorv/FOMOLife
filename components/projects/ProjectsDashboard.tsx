@@ -88,6 +88,7 @@ interface ProjectsDashboardProps {
   projects?: ProjectItem[];
   people?: any[];
   selectedProjectId?: string | null;
+  selectedTaskId?: string | null;
   onSelectProject?: (id: string | null) => void;
   onApplyChange?: (projectId: string, updated: Partial<ProjectItem>) => void;
   onAddSubproject?: (projectId: string, name: string) => void;
@@ -122,6 +123,7 @@ export default function ProjectsDashboard({
   projects = [] as ProjectItem[],
   people = [] as any[],
   selectedProjectId,
+  selectedTaskId,
   onSelectProject,
   onApplyChange,
   onAddSubproject,
@@ -423,6 +425,7 @@ export default function ProjectsDashboard({
           <div className="dashboard-content">
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
+              targetTaskId={selectedTaskId ?? null}
               dashboardProjectHeaderTop={
                 <div 
                   className="dashboard-project-header-modern"

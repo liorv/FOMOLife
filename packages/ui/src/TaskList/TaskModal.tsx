@@ -127,8 +127,9 @@ export default function TaskEditor({
   const containerClass = inline ? "inline-editor" : "side-editor";
 
   // unique ids for inputs (avoid duplicates when multiple editors are mounted)
-  const dateId = `task-date-${task.id || 'editor'}`;
-  const effortId = `task-effort-${task.id || 'editor'}`;
+  const editorId = React.useId();
+  const dateId = `task-date-${task.id || 'editor'}-${editorId}`;
+  const effortId = `task-effort-${task.id || 'editor'}-${editorId}`;
 
   return (
     <div className={containerClass}>

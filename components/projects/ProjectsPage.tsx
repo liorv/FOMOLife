@@ -11,7 +11,7 @@ import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjects
 import ProjectsDashboard from "./ProjectsDashboard";
 import ConversationThread from "../ConversationThread";
 import layoutStyles from "../../styles/projects/layout.module.css";
-import { PROJECT_COLORS, ColorPickerOverlay, TaskModal, ModalOverlay } from "@myorg/ui";
+import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
 import GlobalSearchResults, { type FeedbackItem } from "../GlobalSearchResults";
 import ContentHeader from "../ContentHeader";
 
@@ -143,6 +143,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   useEffect(() => {
     if (targetTab !== 'projects' || !initialProjectId || (!targetThreadId && !targetTaskId)) {
       openedNotificationTarget.current = null;
+      setNotificationTaskId(null);
       return;
     }
     const targetKey = JSON.stringify([initialProjectId, targetThreadId, targetTaskId]);
@@ -176,20 +177,6 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
       setErrorMessage('The task for this notification is no longer available.');
     }
   }, [initialProjectId, targetThreadId, targetTaskId, targetTab, projects, loading]);
-
-  const notificationProject = projects.find(project => project.id === editingProjectId);
-  const notificationTask = notificationProject?.subprojects.flatMap(subproject => subproject.tasks ?? [])
-    .find(task => task.id === notificationTaskId);
-
-  const updateNotificationTask = (updatedTask: ProjectTask) => {
-    if (!notificationProject) return;
-    void handleProjectApplyChange(notificationProject.id, {
-      subprojects: notificationProject.subprojects.map(subproject => ({
-        ...subproject,
-        tasks: (subproject.tasks ?? []).map(task => task.id === updatedTask.id ? updatedTask : task),
-      })),
-    });
-  };
 
   // Listen for navigation events from notifications
   useEffect(() => {
@@ -773,6 +760,10 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     setFilters(savedFilters !== undefined ? savedFilters : ['hide_completed']);
   }, [editingProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (notificationTaskId) setFilters([]);
+  }, [notificationTaskId]);
+
   const handleToggleFilter = (filterType: string | null) => {
     setFilters((prev) => {
       const next =
@@ -888,12 +879,15 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               projects={projects}
               people={people}
               selectedProjectId={editingProjectId}
+              selectedTaskId={notificationTaskId}
               onSelectProject={(id: string | null) => {
                 setEditingProjectId(id);
                 if (id === null) {
+                  setNotificationTaskId(null);
                   const nextParams = new URLSearchParams(searchParams.toString());
                   nextParams.delete('q');
                   nextParams.delete('projectId');
+                  nextParams.delete('taskId');
                   router.replace(`${pathname}?${nextParams.toString()}`);
                 }
               }}
@@ -928,20 +922,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
             )}
 
           {/* Conversation thread overlay */}
-          {notificationTask && (
-            <ModalOverlay open onClose={() => setNotificationTaskId(null)}>
-              <h2>{notificationTask.text}</h2>
-              <TaskModal
-                key={notificationTask.id}
-                inline
-                task={notificationTask}
-                allPeople={people}
-                onUpdateTask={updateNotificationTask}
-                onSave={() => setNotificationTaskId(null)}
-                onClose={() => setNotificationTaskId(null)}
-              />
-            </ModalOverlay>
-          )}
           {activeThread && (
             <ConversationThread
               threadId={activeThread.threadId}

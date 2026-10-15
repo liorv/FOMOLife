@@ -2,7 +2,7 @@
 
 import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { TaskModal, ModalOverlay } from '@myorg/ui';
+import { TaskModal } from '@myorg/ui';
 import styles from './HomePage.module.css';
 import { createTasksApiClient, createProjectsApiClient, createContactsApiClient } from '@myorg/api-client';
 import { preloadImages } from '@myorg/utils';
@@ -13,6 +13,7 @@ import EntityIcon from './EntityIcon';
 import { getCachedProjectsSync, setCachedProjects, areProjectsStale } from '@/lib/client/projectsCache';
 import { getCachedTasksSync, setCachedTasks, areTasksStale } from '@/lib/client/tasksCache';
 import { getCachedContactsSync } from '@/lib/client/contactsCache';
+import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 
 // Module-level snapshot for feedback (survives React remounts)
 let _feedbackSnap: FeedbackItem[] | null = null;
@@ -23,6 +24,239 @@ type Props = {
   onReady?: () => void;
   isActive?: boolean;
 };
+
+type DashboardTask = TaskItem & {
+  projectId?: string;
+  projectName?: string;
+  projectIcon?: string;
+  subprojectId?: string;
+  source: 'global' | 'project';
+};
+
+/** Width of the revealed action tray (three full-height tiles). */
+const ACTIONS_WIDTH = 198;
+/** Drag distance past which releasing opens the action tray (swipe left). */
+const OPEN_THRESHOLD = 44;
+/** Drag distance past which releasing completes the task (swipe right). */
+const DONE_THRESHOLD = 88;
+/** How far right the row can be dragged before it stops following the finger. */
+const DONE_MAX = 132;
+/** Movement needed before a gesture is locked to the horizontal or vertical axis. */
+const AXIS_LOCK = 8;
+
+/**
+ * Dashboard task row, modelled on iOS Mail rows.
+ * - Click/tap the row: default action, navigates to the task.
+ * - Desktop hover (or keyboard focus): full-height action tiles slide in from the right.
+ * - Touch swipe left: reveals the same action tray, which stays open until used or dismissed.
+ * - Touch swipe right past the threshold: marks the task as done.
+ */
+function DashboardTaskItem({
+  task,
+  icon,
+  iconClassName,
+  meta,
+  metaClassName,
+  onOpen,
+  onMarkDone,
+  onUpdate,
+  allPeople,
+}: {
+  task: DashboardTask;
+  icon: string;
+  iconClassName?: string | undefined;
+  meta: React.ReactNode;
+  metaClassName?: string | undefined;
+  onOpen: (task: DashboardTask) => void;
+  onMarkDone: (task: DashboardTask) => void;
+  onUpdate: (task: DashboardTask, updated: ProjectTask) => void;
+  allPeople: Contact[];
+}) {
+  const [editing, setEditing] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const gesture = useRef<{ x: number; y: number; base: number; axis: 'none' | 'x' | 'y' } | null>(null);
+  const offsetRef = useRef(0);
+  const swipedRef = useRef(false);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  const moveTo = (next: number) => {
+    offsetRef.current = next;
+    setOffset(next);
+  };
+
+  const close = React.useCallback(() => {
+    setActionsOpen(false);
+    moveTo(0);
+  }, []);
+
+  // An open tray behaves like iOS: tapping anywhere else dismisses it.
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const handlePointerDown = (e: Event) => {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) close();
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [actionsOpen, close]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0]!;
+    gesture.current = { x: touch.clientX, y: touch.clientY, base: actionsOpen ? -ACTIONS_WIDTH : 0, axis: 'none' };
+    swipedRef.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const g = gesture.current;
+    if (!g) return;
+    const touch = e.touches[0]!;
+    const dx = touch.clientX - g.x;
+    const dy = touch.clientY - g.y;
+    if (g.axis === 'none') {
+      if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
+      g.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (g.axis === 'x') setDragging(true);
+    }
+    if (g.axis !== 'x') return;
+    swipedRef.current = true;
+    moveTo(Math.max(-ACTIONS_WIDTH, Math.min(DONE_MAX, g.base + dx)));
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const g = gesture.current;
+    gesture.current = null;
+    setDragging(false);
+    if (!g || g.axis !== 'x') return;
+    // The row owns horizontal gestures, so the app-level swipe-to-change-tab
+    // handler on the page container must not also act on this swipe.
+    e.stopPropagation();
+    const current = offsetRef.current;
+    if (current >= DONE_THRESHOLD) {
+      close();
+      onMarkDone(task);
+    } else if (current <= -OPEN_THRESHOLD) {
+      setActionsOpen(true);
+      moveTo(-ACTIONS_WIDTH);
+    } else {
+      close();
+    }
+  };
+
+  const activate = (action: (task: DashboardTask) => void) => {
+    close();
+    action(task);
+  };
+
+  const handleRowClick = () => {
+    // Swallow the click that ends a swipe, and let a tap dismiss an open tray.
+    if (swipedRef.current) {
+      swipedRef.current = false;
+      return;
+    }
+    if (actionsOpen) {
+      close();
+      return;
+    }
+    setEditing(value => !value);
+  };
+
+  return (
+    <li>
+    <div
+      ref={rowRef}
+      className={`${styles.swipeItem} ${actionsOpen ? styles.swipeItemOpen : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <div
+        className={styles.swipeDoneHint}
+        style={{ width: `${Math.max(0, offset)}px`, opacity: offset > 0 ? 1 : 0 }}
+        aria-hidden="true"
+      >
+        <span className="material-icons" style={{ fontSize: '20px' }}>check</span>
+      </div>
+      <div className={styles.rowActions}>
+        <button
+          type="button"
+          className={`${styles.rowActionButton} ${styles.rowActionEdit}`}
+          title="Edit task"
+          aria-label={`Edit "${task.text}"`}
+          onClick={e => { e.stopPropagation(); close(); setEditing(value => !value); }}
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>edit</span>
+          <span className={styles.rowActionLabel}>Edit</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.rowActionButton} ${styles.rowActionDone}`}
+          title="Mark as done"
+          aria-label={`Mark "${task.text}" as done`}
+          onClick={e => { e.stopPropagation(); activate(onMarkDone); }}
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>check_circle</span>
+          <span className={styles.rowActionLabel}>Done</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.rowActionButton} ${styles.rowActionOpen}`}
+          title="Open task"
+          aria-label={`Open "${task.text}"`}
+          onClick={e => { e.stopPropagation(); activate(onOpen); }}
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>arrow_forward</span>
+          <span className={styles.rowActionLabel}>Open</span>
+        </button>
+      </div>
+      <div
+        className={`${styles.rowSurface} ${dragging ? styles.rowSurfaceDragging : ''}`}
+        style={{ transform: `translate3d(${offset}px, 0, 0)` }}
+        role="button"
+        tabIndex={0}
+        onClick={handleRowClick}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleRowClick();
+          } else if (e.key === 'Escape' && actionsOpen) {
+            close();
+          }
+        }}
+      >
+        <span className={`material-icons ${styles.itemIcon} ${iconClassName ?? ''}`}>{icon}</span>
+        <div className={styles.itemContent}>
+          <h3 className={styles.itemTitle}>{task.text}</h3>
+          <p className={`${styles.itemMeta} ${metaClassName ?? ''}`}>{meta}</p>
+        </div>
+      </div>
+    </div>
+    {editing && (
+      <div className={styles.taskEditor}>
+        <TaskModal
+          inline
+          task={{
+            id: task.id,
+            text: task.text,
+            done: task.done,
+            favorite: task.favorite,
+            dueDate: task.dueDate,
+            description: task.description ?? '',
+            people: task.people ?? [],
+            ...(task.effort !== undefined ? { effort: task.effort } : {}),
+          }}
+          allPeople={allPeople}
+          onUpdateTask={updated => onUpdate(task, updated)}
+          onSave={() => setEditing(false)}
+          onClose={() => setEditing(false)}
+        />
+      </div>
+    )}
+    </li>
+  );
+}
 
 export default function HomePage({ style, searchQuery = '', onReady, isActive }: Props) {
   const router = useRouter();
@@ -76,10 +310,17 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const tasksApi = useMemo(() => createTasksApiClient(''), []);
   const projectsApi = useMemo(() => createProjectsApiClient(''), []);
   const contactsApi = useMemo(() => createContactsApiClient(''), []);
+  const projectPeople = useMemo(() => new Map(
+    projects.map(project => [project.id, getProjectMemberContacts(project.members ?? [])])
+  ), [projects]);
 
   const updateNotificationTask = (task: ProjectTask) => {
     void tasksApi.updateTask(task.id, task).then(updated => {
-      setTasks(previous => previous.map(item => item.id === updated.id ? updated : item));
+      setTasks(previous => {
+        const next = previous.map(item => item.id === updated.id ? updated : item);
+        setCachedTasks(next);
+        return next;
+      });
       window.dispatchEvent(new CustomEvent('fomo:taskUpdated', { detail: updated }));
     }).catch(error => {
       console.error('Failed to update notification task:', error);
@@ -142,7 +383,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
 
   // Consolidate all tasks from global tasks and project tasks
   const allTasks = useMemo(() => {
-    const list: Array<TaskItem & { projectId?: string, projectName?: string, projectIcon?: string, source: 'global' | 'project' }> = tasks.map(t => ({
+    const list: Array<TaskItem & { projectId?: string, projectName?: string, projectIcon?: string, subprojectId?: string, source: 'global' | 'project' }> = tasks.map(t => ({
       ...t,
       source: 'global'
     }));
@@ -152,6 +393,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
       p.subprojects.forEach(sp => {
         sp.tasks.forEach(t => {
           list.push({
+            ...t,
             id: t.id,
             text: t.text,
             done: t.done,
@@ -163,6 +405,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
             projectId: p.id,
             projectName: p.text,
             projectIcon: (p as any).avatarUrl || null,
+            subprojectId: sp.id,
             source: 'project'
           });
         });
@@ -227,6 +470,68 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
     }
     router.push(`/?${params.toString()}`);
   }, [router]);
+
+  const openTask = React.useCallback((task: DashboardTask) => {
+    const params = new URLSearchParams({ tab: task.source === 'project' ? 'projects' : 'tasks', taskId: task.id });
+    if (task.projectId) params.set('projectId', task.projectId);
+    router.push(`/?${params.toString()}`);
+  }, [router]);
+
+  const updateDashboardTask = (task: DashboardTask, updated: ProjectTask) => {
+    if (task.source === 'global') {
+      updateNotificationTask(updated);
+      return;
+    }
+    const project = projects.find(item => item.id === task.projectId);
+    if (!project) {
+      setNotificationTaskError('The project for this task is no longer available.');
+      return;
+    }
+    void projectsApi.updateProject(project.id, {
+      subprojects: project.subprojects.map(subproject => ({
+        ...subproject,
+        tasks: subproject.tasks.map(item => item.id === task.id ? { ...item, ...updated } : item),
+      })),
+    }).then(saved => {
+      setProjects(previous => {
+        const next = previous.map(item => item.id === saved.id ? saved : item);
+        setCachedProjects(next);
+        return next;
+      });
+    }).catch(error => {
+      console.error('Failed to update project task:', error);
+      setNotificationTaskError('Failed to update task. Please try again.');
+    });
+  };
+
+  const markTaskDone = React.useCallback((task: DashboardTask) => {
+    if (task.source === 'project') {
+      const project = projects.find(p => p.id === task.projectId);
+      if (!project) return;
+      const updatedSubprojects = (project.subprojects || []).map(sp =>
+        sp.id === task.subprojectId
+          ? { ...sp, tasks: (sp.tasks || []).map(t => t.id === task.id ? { ...t, done: true } : t) }
+          : sp
+      );
+      // Optimistically update so the task disappears from the panel immediately
+      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, subprojects: updatedSubprojects } : p));
+      void projectsApi.updateProject(project.id, { subprojects: updatedSubprojects }).catch(error => {
+        console.error('Failed to mark project task as done:', error);
+        setProjects(prev => prev.map(p => p.id === project.id ? project : p));
+      });
+      return;
+    }
+
+    const previous = tasks.find(t => t.id === task.id);
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: true } : t));
+    void tasksApi.updateTask(task.id, { done: true }).then(updated => {
+      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+      window.dispatchEvent(new CustomEvent('fomo:taskUpdated', { detail: updated }));
+    }).catch(error => {
+      console.error('Failed to mark task as done:', error);
+      if (previous) setTasks(prev => prev.map(t => t.id === previous.id ? previous : t));
+    });
+  }, [projects, projectsApi, tasks, tasksApi]);
 
   const activityFeed = useMemo(() => {
     const feed: any[] = [];
@@ -356,7 +661,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
         <p role="alert">The task for this notification is no longer available.</p>
       )}
       {notificationTask && (
-        <ModalOverlay open onClose={() => setNotificationTaskId(null)}>
+        <section className={`${styles.card} ${styles.openTask}`}>
           <h2>{notificationTask.text}</h2>
           <TaskModal
             key={notificationTask.id}
@@ -367,7 +672,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
             onSave={() => setNotificationTaskId(null)}
             onClose={() => setNotificationTaskId(null)}
           />
-        </ModalOverlay>
+        </section>
       )}
       <div className={styles.container}>
 
@@ -394,13 +699,16 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
           <ul className={styles.list}>
             {favoriteTasks.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No favorite tasks.</p></div></li>}
             {(showMoreFavorites ? favoriteTasks : favoriteTasks.slice(0, 5)).map(t => (
-              <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
-                <span className={`material-icons ${styles.itemIcon}`}>star</span>
-                <div className={styles.itemContent}>
-                  <h3 className={styles.itemTitle}>{t.text}</h3>
-                  <p className={styles.itemMeta}>{t.projectName || 'Global Task'}</p>
-                </div>
-              </li>
+              <DashboardTaskItem
+                key={t.id}
+                task={t}
+                icon="star"
+                meta={t.projectName || 'Global Task'}
+                onOpen={openTask}
+                onMarkDone={markTaskDone}
+                onUpdate={updateDashboardTask}
+                allPeople={t.projectId ? projectPeople.get(t.projectId) ?? [] : contacts}
+              />
             ))}
             {favoriteTasks.length > 5 && (
               <li className={styles.showMoreItem} onClick={() => setShowMoreFavorites(v => !v)}>
@@ -491,13 +799,18 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
               </div>
               <ul className={styles.list}>
                 {(showMoreOverdue ? overdueTasks : overdueTasks.slice(0, 5)).map(t => (
-                  <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
-                    <span className={`material-icons ${styles.itemIcon} ${styles.overdueIcon}`}>error_outline</span>
-                    <div className={styles.itemContent}>
-                      <h3 className={styles.itemTitle}>{t.text}</h3>
-                      <p className={`${styles.itemMeta} ${styles.overdueText}`}>Overdue: {formatDate(t.dueDate)}</p>
-                    </div>
-                  </li>
+                  <DashboardTaskItem
+                    key={t.id}
+                    task={t}
+                    icon="error_outline"
+                    iconClassName={styles.overdueIcon}
+                    meta={`Overdue: ${formatDate(t.dueDate)}`}
+                    metaClassName={styles.overdueText}
+                    onOpen={openTask}
+                    onMarkDone={markTaskDone}
+                    onUpdate={updateDashboardTask}
+                    allPeople={t.projectId ? projectPeople.get(t.projectId) ?? [] : contacts}
+                  />
                 ))}
                 {overdueTasks.length > 5 && (
                   <li className={styles.showMoreItem} onClick={() => setShowMoreOverdue(v => !v)}>
@@ -531,13 +844,16 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
           <ul className={styles.list}>
             {comingDue.length === 0 && <li className={styles.listItem}><div className={styles.itemContent}><p className={styles.itemMeta}>No upcoming tasks due shortly.</p></div></li>}
             {(showMoreDue ? comingDue : comingDue.slice(0, 5)).map(t => (
-              <li key={t.id} className={styles.listItem} onClick={() => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)}>
-                <span className={`material-icons ${styles.itemIcon}`}>event</span>
-                <div className={styles.itemContent}>
-                  <h3 className={styles.itemTitle}>{t.text}</h3>
-                  <p className={styles.itemMeta}>Due: {formatDate(t.dueDate)}</p>
-                </div>
-              </li>
+              <DashboardTaskItem
+                key={t.id}
+                task={t}
+                icon="event"
+                meta={`Due: ${formatDate(t.dueDate)}`}
+                onOpen={openTask}
+                onMarkDone={markTaskDone}
+                onUpdate={updateDashboardTask}
+                allPeople={t.projectId ? projectPeople.get(t.projectId) ?? [] : contacts}
+              />
             ))}
             {comingDue.length > 5 && (
               <li className={styles.showMoreItem} onClick={() => setShowMoreDue(v => !v)}>

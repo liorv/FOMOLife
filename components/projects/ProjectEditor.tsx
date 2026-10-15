@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { ProjectItem, ProjectSubproject, ProjectTask, Contact, ProjectMember } from "@myorg/types";
 import type { TaskFilter, TaskItem } from "@myorg/types";
+import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 
 // Subprojects used within the editor always have a defined `collapsed` boolean
 interface EditorSubproject extends ProjectSubproject {
@@ -14,6 +15,7 @@ interface LocalProject extends ProjectItem {
 
 interface ProjectEditorProps {
   project: ProjectItem;
+  targetTaskId?: string | null;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
   allPeople?: Contact[];
   onCreatePerson?: (name: string) => void;
@@ -105,6 +107,7 @@ function initLocalProject(project: ProjectItem): LocalProject {
 
 export default function ProjectEditor({
   project,
+  targetTaskId,
   onApplyChange,
   allPeople,
   onCreatePerson,
@@ -236,13 +239,7 @@ export default function ProjectEditor({
   const memberUserIds = new Set(members.map((m) => m.userId));
   
   // Create an assignable people list directly from project members so everyone (including the current user) can be assigned
-  const peopleList: Contact[] = members.map((m) => ({
-    id: m.userId,
-    name: m.name,
-    status: 'linked' as const,
-    linkedUserId: m.userId,
-    ...(m.avatarUrl ? { avatarUrl: m.avatarUrl } : {}),
-  }));
+  const peopleList = getProjectMemberContacts(members);
 
   // Contacts eligible to be invited: linked, not already a member
   const invitableContacts = allPeopleList.filter(
@@ -442,6 +439,20 @@ export default function ProjectEditor({
         : [],
     } as LocalProject));
   }, [project]);
+
+  useEffect(() => {
+    if (!targetTaskId) return;
+    setActiveTab('tasks');
+    setEditorTaskId(targetTaskId);
+    setLocal(previous => ({
+      ...previous,
+      subprojects: previous.subprojects.map(subproject =>
+        subproject.tasks.some(task => task.id === targetTaskId)
+          ? { ...subproject, collapsed: false }
+          : subproject
+      ),
+    }));
+  }, [targetTaskId, project.id]);
 
   // Scroll expanded task into view
   useEffect(() => {

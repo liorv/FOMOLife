@@ -203,6 +203,148 @@
   gap: 8px;
 }
 
+/* ── iOS Mail-style swipeable task row ─────────────────────────────── */
+
+.swipeItem {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  /* Let vertical scrolling through the row stay native while we own horizontal drags. */
+  touch-action: pan-y;
+  isolation: isolate;
+}
+
+.rowSurface {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px;
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1), background 0.2s;
+  will-change: transform;
+}
+
+.rowSurfaceDragging {
+  transition: background 0.2s;
+}
+
+.rowSurface:hover {
+  background: var(--color-bg);
+}
+
+.rowSurface:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* Full-height action tray flush with the row edges, like iOS Mail. */
+.rowActions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  z-index: 2;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  pointer-events: none;
+}
+
+.swipeItem:hover .rowActions,
+.swipeItem:focus-within .rowActions,
+.swipeItemOpen .rowActions {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.rowActionButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 66px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.rowActionButton:hover {
+  filter: brightness(1.08);
+}
+
+.rowActionButton:active {
+  filter: brightness(0.92);
+}
+
+.rowActionButton:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -3px;
+}
+
+.rowActionLabel {
+  line-height: 1;
+}
+
+.rowActionDone {
+  background: #34c759;
+}
+
+.rowActionOpen {
+  background: #0a84ff;
+}
+
+.rowActionEdit {
+  background: #5856d6;
+}
+
+.taskEditor {
+  min-width: 0;
+  background: var(--color-bg);
+  border-radius: 0 0 8px 8px;
+}
+
+.taskEditor :global(.inline-editor) {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.openTask {
+  margin: 0 32px 16px;
+}
+
+/* Revealed under the row while swiping right to complete. */
+.swipeDoneHint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 16px;
+  background: #34c759;
+  color: #fff;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowSurface,
+  .rowActions {
+    transition: none;
+  }
+}
+
 .priorityHigh {
   color: #dc2626;
   background: #fee2e2;
