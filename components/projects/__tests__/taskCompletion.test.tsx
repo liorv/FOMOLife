@@ -34,8 +34,10 @@ jest.mock('../../ConversationThread', () => ({
 }));
 jest.mock('../ProjectsDashboard', () => ({
   __esModule: true,
-  default: ({ projects, onApplyChange }: {
+  default: ({ projects, selectedProjectId, selectedTaskId, onApplyChange }: {
     projects: ProjectItem[];
+    selectedProjectId?: string | null;
+    selectedTaskId?: string | null;
     onApplyChange: (id: string, patch: Partial<ProjectItem>) => void;
   }) => {
     const Editor = jest.requireActual('../ProjectEditor').default;
@@ -43,6 +45,7 @@ jest.mock('../ProjectsDashboard', () => ({
       <Editor
         key={project.id}
         project={project}
+        targetTaskId={project.id === selectedProjectId ? selectedTaskId : null}
         onApplyChange={(patch: Partial<ProjectItem>) => onApplyChange(project.id, patch)}
       />
     ));
@@ -112,8 +115,9 @@ describe('rapid project task completion', () => {
   it('opens the exact task editor rather than a conversation for task notifications', async () => {
     mockSearchParams = new URLSearchParams('tab=projects&projectId=project&taskId=second');
     render(<ProjectsPage canManage />);
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Task second' })).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-task-id="second"]')).toHaveClass('is-editing'));
+    const dueDateInput = await screen.findByLabelText(/Due date/);
+    expect(dueDateInput.id).toMatch(/^task-date-second-/);
     expect(screen.queryByTestId('notification-conversation')).not.toBeInTheDocument();
   });
 
