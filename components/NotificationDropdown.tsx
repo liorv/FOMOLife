@@ -39,6 +39,7 @@ type NotificationDropdownProps = {
   onRequestsUpdate: (count: number) => void;
   onContactsUpdate: () => void;
   userId?: string | undefined;
+  isOpen?: boolean;
   onFeedbackNotifsUpdate?: (count: number) => void;
   onProjectNotifsUpdate?: (count: number) => void;
   onTaskNotifsUpdate?: (count: number) => void;
@@ -72,6 +73,7 @@ export function NotificationDropdown({
   onProjectNotifsUpdate,
   onTaskNotifsUpdate,
   onClearAllPendingChange,
+  isOpen = true,
 }: NotificationDropdownProps) {
   const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
@@ -84,9 +86,17 @@ export function NotificationDropdown({
   const [taskNotifs, setTaskNotifs] = useState<TaskDueNotification[]>([]);
   const [taskNotifsLoading, setTaskNotifsLoading] = useState(true);
   const [clearingAll, setClearingAll] = useState(false);
-  const loadVersions = useRef({ feedback: 0, project: 0, task: 0 });
+  const loadVersions = useRef({ contacts: 0, feedback: 0, project: 0, task: 0 });
+  const clearAllPending = useRef(false);
+  const mounted = useRef(false);
+  const [loadErrors, setLoadErrors] = useState<Record<string, boolean>>({});
+
+  const setLoadError = (source: string, failed: boolean) => {
+    setLoadErrors(previous => ({ ...previous, [source]: failed }));
+  };
 
   useEffect(() => {
+    mounted.current = true;
     loadPendingRequests();
     loadFeedbackNotifs();
     loadProjectNotifs();
@@ -97,69 +107,135 @@ export function NotificationDropdown({
         loadPendingRequests();
       }
     };
-
+    const refreshFeedback = () => { if (!clearAllPending.current) void loadFeedbackNotifs(); };
+    const refreshProjects = () => { if (!clearAllPending.current) void loadProjectNotifs(); };
+    const refreshTasks = () => { if (!clearAllPending.current) void loadTaskNotifs(); };
+    const refresh = () => {
+      void loadPendingRequests();
+      refreshFeedback();
+      refreshProjects();
+      refreshTasks();
+    };
+    const handleVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener('feedback-notifs-updated', refreshFeedback);
+    window.addEventListener('project-notifs-updated', refreshProjects);
+    window.addEventListener('task-notifs-updated', refreshTasks);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      mounted.current = false;
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('feedback-notifs-updated', refreshFeedback);
+      window.removeEventListener('project-notifs-updated', refreshProjects);
+      window.removeEventListener('task-notifs-updated', refreshTasks);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      ++loadVersions.current.contacts;
+      ++loadVersions.current.feedback;
+      ++loadVersions.current.project;
+      ++loadVersions.current.task;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!isOpen || loading || feedbackLoading || projectsLoading || taskNotifsLoading || clearAllPending.current) return;
+    void loadPendingRequests();
+    void loadFeedbackNotifs();
+    void loadProjectNotifs();
+    void loadTaskNotifs();
+  // Refresh on opening, not on completion of the refresh.
+  }, [isOpen]);
+
   const loadPendingRequests = async () => {
+    if (!mounted.current) return;
+    const version = ++loadVersions.current.contacts;
+    setLoading(true);
     try {
       const response: PendingRequestsResponse = await apiClient.getPendingRequests();
+      if (version !== loadVersions.current.contacts) return;
       setPendingRequests(response.requests);
       onRequestsUpdate(response.requests.length);
+      setLoadError('contacts', false);
     } catch (error) {
+      if (version !== loadVersions.current.contacts) return;
       console.error('Failed to load pending requests:', error);
+      setLoadError('contacts', true);
     } finally {
-      setLoading(false);
+      if (version === loadVersions.current.contacts) setLoading(false);
     }
   };
 
   const loadFeedbackNotifs = async (showHistory = false) => {
+    if (!mounted.current) return;
     const version = ++loadVersions.current.feedback;
+    setFeedbackLoading(true);
     try {
       const url = showHistory ? '/api/feedback/notifications?dismissed=1' : '/api/feedback/notifications';
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to load feedback notifications: ${res.status}`);
       if (res.ok) {
         const d = await res.json();
         if (version !== loadVersions.current.feedback) return;
         setFeedbackNotifs(d.notifications ?? []);
+        setLoadError('feedback', false);
         if (!showHistory) onFeedbackNotifsUpdate?.(d.unreadCount ?? 0);
       }
-    } catch { /* silent */ } finally {
-      setFeedbackLoading(false);
+    } catch (error) {
+      if (version !== loadVersions.current.feedback) return;
+      console.error('Failed to load feedback notifications:', error);
+      setLoadError('feedback', true);
+    } finally {
+      if (version === loadVersions.current.feedback) setFeedbackLoading(false);
     }
   };
 
   const loadProjectNotifs = async (showHistory = false) => {
+    if (!mounted.current) return;
     const version = ++loadVersions.current.project;
+    setProjectsLoading(true);
     try {
       const url = showHistory ? '/api/projects/notifications?dismissed=1' : '/api/projects/notifications';
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to load project notifications: ${res.status}`);
       if (res.ok) {
         const d = await res.json();
         if (version !== loadVersions.current.project) return;
         setProjectNotifs(d.notifications ?? []);
+        setLoadError('project', false);
         if (!showHistory) onProjectNotifsUpdate?.(d.unreadCount ?? 0);
       }
-    } catch { /* silent */ } finally {
-      setProjectsLoading(false);
+    } catch (error) {
+      if (version !== loadVersions.current.project) return;
+      console.error('Failed to load project notifications:', error);
+      setLoadError('project', true);
+    } finally {
+      if (version === loadVersions.current.project) setProjectsLoading(false);
     }
   };
 
   const loadTaskNotifs = async (showHistory = false) => {
+    if (!mounted.current) return;
     const version = ++loadVersions.current.task;
+    setTaskNotifsLoading(true);
     try {
       const url = showHistory ? '/api/tasks/notifications?dismissed=1' : '/api/tasks/notifications';
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to load task notifications: ${res.status}`);
       if (res.ok) {
         const d = await res.json();
         if (version !== loadVersions.current.task) return;
         setTaskNotifs(d.notifications ?? []);
+        setLoadError('task', false);
         if (!showHistory) onTaskNotifsUpdate?.(d.unreadCount ?? 0);
       }
-    } catch { /* silent */ } finally {
-      setTaskNotifsLoading(false);
+    } catch (error) {
+      if (version !== loadVersions.current.task) return;
+      console.error('Failed to load task notifications:', error);
+      setLoadError('task', true);
+    } finally {
+      if (version === loadVersions.current.task) setTaskNotifsLoading(false);
     }
   };
 
@@ -243,11 +319,15 @@ export function NotificationDropdown({
 
   const handleClearAll = async () => {
     setClearingAll(true);
+    clearAllPending.current = true;
     onClearAllPendingChange?.(true);
     // Ignore loads started before clearing so they cannot restore dismissed items or badge counts.
     ++loadVersions.current.feedback;
     ++loadVersions.current.project;
     ++loadVersions.current.task;
+    setFeedbackLoading(false);
+    setProjectsLoading(false);
+    setTaskNotifsLoading(false);
     setFeedbackNotifs([]);
     setProjectNotifs([]);
     setTaskNotifs([]);
@@ -269,6 +349,7 @@ export function NotificationDropdown({
       console.error('Failed to clear notifications:', error);
       await Promise.all([loadFeedbackNotifs(), loadProjectNotifs(), loadTaskNotifs()]);
     } finally {
+      clearAllPending.current = false;
       onClearAllPendingChange?.(false);
       window.dispatchEvent(new Event('feedback-notifs-updated'));
       window.dispatchEvent(new Event('project-notifs-updated'));
@@ -325,7 +406,8 @@ export function NotificationDropdown({
     ...taskNotifs.map((n): AnyItem => ({ kind: 'task_due', date: n.createdAt, data: n })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const isLoading = loading && feedbackLoading && projectsLoading && taskNotifsLoading;
+  const isLoading = loading || feedbackLoading || projectsLoading || taskNotifsLoading;
+  const hasLoadError = Object.values(loadErrors).some(Boolean);
 
   return (
     <div className="notification-dropdown">
@@ -346,10 +428,14 @@ export function NotificationDropdown({
       </div>
 
       <div className="notification-content">
-        {isLoading ? (
-          <div className="notification-loading">Loading...</div>
-        ) : allItems.length === 0 ? (
-          <p className="notification-empty">You&rsquo;re all caught up</p>
+        {hasLoadError && (
+          <p className="notification-empty" role="alert">
+            Could not load all notifications. Close and reopen to retry.
+          </p>
+        )}
+        {isLoading && <div className="notification-loading" role="status">Loading...</div>}
+        {allItems.length === 0 ? (
+          !isLoading && !hasLoadError && <p className="notification-empty">You&rsquo;re all caught up</p>
         ) : (
           allItems.map((item) => {
             if (item.kind === 'contact') {

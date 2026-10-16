@@ -315,6 +315,8 @@ export async function createContact(
   
   const contact: Contact = {
     id: generateId(),
+    createdAt: new Date().toISOString(),
+    linkedAt: input.status === 'linked' ? new Date().toISOString() : null,
     name: input.name,
     login: input.login ?? '',
     status: input.status ?? 'not_linked',
@@ -349,7 +351,22 @@ export async function updateContact(
     }
   }
   
-  const next = current.map((item) => (item.id === id ? { ...item, ...patch } : item));
+  const next = current.map((item) => {
+    if (item.id !== id) return item;
+    const updated = { ...item, ...patch };
+    if (item.createdAt !== undefined) updated.createdAt = item.createdAt;
+    else delete updated.createdAt;
+    if (updated.status !== 'linked') {
+      updated.linkedAt = null;
+    } else if (item.status !== 'linked' || updated.linkedUserId !== item.linkedUserId) {
+      updated.linkedAt = new Date().toISOString();
+    } else if (item.linkedAt !== undefined) {
+      updated.linkedAt = item.linkedAt;
+    } else {
+      delete updated.linkedAt;
+    }
+    return updated;
+  });
   const updated = next.find((item) => item.id === id) ?? null;
   contactsByUser.set(userId, next);
   await savePersisted(userId);
@@ -366,6 +383,7 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
   
   // Change this contact's status to 'not_linked'
   contact.status = 'not_linked';
+  contact.linkedAt = null;
   contact.inviteToken = null;
   const linkedId = contact.linkedUserId;
   delete contact.linkedUserId;
@@ -376,7 +394,7 @@ export async function unlinkContact(userId: string, contactId: string): Promise<
     const reciprocalContacts = await getOrInitUserContacts(linkedId);
     // update all reciprocal contacts that point back to this user
     const updatedRecips = reciprocalContacts.map((c) =>
-      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, inviteToken: null, linkedUserId: undefined } : c
+      c.linkedUserId === userId ? { ...c, status: 'not_linked' as const, linkedAt: null, inviteToken: null, linkedUserId: undefined } : c
     );
     contactsByUser.set(linkedId, updatedRecips as Contact[]);
 

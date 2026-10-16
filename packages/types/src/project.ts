@@ -34,6 +34,10 @@ export interface ProjectTask {
   /** People assigned to this task */
   people: ProjectTaskPerson[];
   effort?: number | null;
+  /** ISO 8601 timestamp of task creation; absent on legacy tasks */
+  createdAt?: string;
+  /** ISO 8601 timestamp of the latest completion, or null when reopened */
+  completedAt?: string | null;
 }
 
 /**
@@ -80,6 +84,8 @@ export interface ProjectMember {
 export interface ProjectItem {
   /** Unique identifier for the project */
   id: string;
+  /** Recorded creation time; absent for legacy projects */
+  createdAt?: string;
   /** Project title */
   text: string;
   /** Color for the project (hex code) */

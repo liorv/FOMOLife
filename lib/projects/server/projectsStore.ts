@@ -24,6 +24,8 @@ export interface ProjectTask {
   favorite: boolean;
   description?: string;
   people: ProjectTaskPerson[];
+  createdAt?: string;
+  completedAt?: string | null;
 }
 
 export interface ProjectSubproject {
@@ -40,6 +42,7 @@ export interface ProjectSubproject {
 
 export interface ProjectItem {
   id: string;
+  createdAt?: string;
   text: string;
   color: string;
   subprojects: ProjectSubproject[];
@@ -136,6 +139,30 @@ function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
 
 
 
+function timestampTasks(subprojects: ProjectSubproject[], previous: ProjectSubproject[] = []): ProjectSubproject[] {
+  const previousTasks = new Map(previous.flatMap(subproject => subproject.tasks).map(task => [task.id, task]));
+  const now = new Date().toISOString();
+  return subprojects.map(subproject => ({
+    ...subproject,
+    tasks: subproject.tasks.map(task => {
+      const existing = previousTasks.get(task.id);
+      const createdAt = existing ? existing.createdAt : task.createdAt ?? now;
+      let completedAt = existing?.completedAt;
+      if (!existing) {
+        completedAt = task.done ? task.completedAt ?? now : null;
+      } else if (task.done !== existing.done) {
+        completedAt = task.done ? now : null;
+      }
+      const updated = { ...task };
+      if (createdAt !== undefined) updated.createdAt = createdAt;
+      else delete updated.createdAt;
+      if (completedAt !== undefined) updated.completedAt = completedAt;
+      else delete updated.completedAt;
+      return updated;
+    }),
+  }));
+}
+
 export async function getOrInitUserProjects(userId: string): Promise<ProjectItem[]> {
   if (process.env.NODE_ENV !== 'production') {
     const existing = projectsByUser.get(userId);
@@ -223,9 +250,10 @@ export async function createProject(
   const nextColor = pickColor(current.length);
   const project: ProjectItem = {
     id: generateId(),
+    createdAt: new Date().toISOString(),
     text: input.text,
     color: input.color ?? nextColor,
-    subprojects: input.subprojects ?? [],
+    subprojects: timestampTasks(input.subprojects ?? []),
     creatorId: userId,
     members: input.members ?? [],
     ...(typeof input.progress === 'number' ? { progress: input.progress } : {}),
@@ -253,6 +281,9 @@ export async function updateProject(
   const next = current.map((item) => {
     if (item.id !== id) return item;
     const updated = { ...item, ...patch };
+    if (patch.subprojects) {
+      updated.subprojects = timestampTasks(patch.subprojects, item.subprojects);
+    }
     return ensureProjectLevelTasks(updated);
   });
   const updated = next.find((item) => item.id === id) ?? null;
@@ -285,6 +316,7 @@ export async function promoteSubproject(
   };
   const promotedProject = ensureProjectLevelTasks({
     id: newProjectId,
+    createdAt: new Date().toISOString(),
     text: subproject.text,
     color,
     subprojects: [projectLevelSubproject],
@@ -364,6 +396,7 @@ export async function initFromJSON(userId: string, exported: any): Promise<Proje
 
   const project: ProjectItem = {
     id: projectId,
+    createdAt: new Date().toISOString(),
     text: projectName,
     color: projectColor,
     subprojects: subprojects,

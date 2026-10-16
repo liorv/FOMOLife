@@ -32,6 +32,10 @@ export interface Contact {
   login?: string;
   /** Current status of the contact relationship */
   status: ContactStatus;
+  /** Recorded creation time; absent for legacy contacts */
+  createdAt?: string;
+  /** Recorded time the current connection was established */
+  linkedAt?: string | null;
   /** Token for invitation flow, null if not invited */
   inviteToken?: InviteToken | null;
   /** ID of the user this contact represents (for linked contacts) */

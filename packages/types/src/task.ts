@@ -23,6 +23,8 @@ export interface TaskItem {
   effort?: number | null;
   /** ISO 8601 timestamp of when the task was marked done, or null if not yet completed */
   completedAt?: string | null;
+  /** ISO 8601 timestamp of task creation; absent on legacy tasks */
+  createdAt?: string;
 }
 
 /**

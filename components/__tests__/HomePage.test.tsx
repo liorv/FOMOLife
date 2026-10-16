@@ -142,6 +142,130 @@ describe('home overdue panel', () => {
   });
 });
 
+describe('home recent activity', () => {
+  const originalFetch = global.fetch;
+  const now = new Date('2026-10-07T12:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(now);
+    jest.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
+    mockTasksApi.listTasks.mockResolvedValue([]);
+    mockProjectsApi.listProjects.mockResolvedValue([]);
+    mockContactsApi.listContacts.mockResolvedValue([]);
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ feedback: [] }) });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    global.fetch = originalFetch;
+  });
+
+  function activity() {
+    return within(screen.getByRole('heading', { name: 'Recent Activity' }).parentElement!.parentElement!);
+  }
+
+  it('orders creation and completion events by their own timestamps, regardless of due dates', async () => {
+    mockTasksApi.listTasks.mockResolvedValue([
+      { ...task('2027-01-01', true), id: 'old', text: 'Old completion', completedAt: '2026-09-01T12:00:00Z' },
+      { ...task('2025-01-01', true), id: 'today', text: 'Completed today', completedAt: '2026-10-07T11:00:00Z' },
+      { ...task(null), id: 'created', text: 'Created today', createdAt: '2026-10-07T10:00:00Z' },
+      { ...task('2027-01-01', true), id: 'yesterday', text: 'Completed yesterday', completedAt: '2026-10-06T12:00:00Z' },
+      { ...task('2026-10-07', true), id: 'legacy', text: 'Unknown completion', people: [{ name: 'Partner' }] },
+    ]);
+    render(<HomePage />);
+    await loaded();
+
+    expect(activity().getAllByRole('heading', { level: 3 }).map(item => item.textContent)).toEqual([
+      'Completed today', 'Created today', 'Completed yesterday',
+    ]);
+    expect(activity().getByText('Created · Global Task')).toBeInTheDocument();
+    expect(activity().queryByText('Old completion')).not.toBeInTheDocument();
+    expect(activity().queryByText('Unknown completion')).not.toBeInTheDocument();
+  });
+
+  it('shows project creation and completion as separate dated events and preserves task filtering', async () => {
+    const item = project('2027-01-01');
+    item.subprojects[0]!.tasks = [{
+      ...task('2027-01-01', true), people: [{ name: 'Partner' }],
+      createdAt: '2026-10-05T12:00:00Z', completedAt: '2026-10-07T11:00:00Z',
+    }];
+    mockProjectsApi.listProjects.mockResolvedValue([item]);
+    render(<HomePage />);
+    await loaded();
+    fireEvent.click(activity().getByTitle('Tasks'));
+
+    expect(activity().getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual([
+      'Test task', 'Test task',
+    ]);
+    expect(activity().getByText('Completed')).toBeInTheDocument();
+    expect(activity().getByText('Created')).toBeInTheDocument();
+    expect(activity().queryByText('Completed by Partner')).not.toBeInTheDocument();
+  });
+
+  it('enforces the seven-day window and excludes invalid and future timestamps', async () => {
+    mockTasksApi.listTasks.mockResolvedValue([
+      { ...task(null, true), id: 'boundary', text: 'At cutoff', completedAt: '2026-09-30T12:00:00Z' },
+      { ...task(null, true), id: 'old', text: 'Before cutoff', completedAt: '2026-09-30T11:59:59Z' },
+      { ...task(null, true), id: 'invalid', text: 'Invalid date', completedAt: 'invalid' },
+      { ...task(null, true), id: 'latest', text: 'Latest completion', completedAt: '2026-10-07T11:00:00Z' },
+      { ...task(null, true), id: 'future', text: 'Future date', completedAt: '2026-10-08T12:00:00Z' },
+      { ...task(null), id: 'reopened', text: 'Reopened task', completedAt: '2026-10-07T11:00:00Z' },
+    ]);
+    await act(async () => { render(<HomePage />); });
+    await loaded();
+    expect(activity().getAllByRole('heading', { level: 3 }).map(item => item.textContent)).toEqual([
+      'Latest completion', 'At cutoff',
+    ]);
+  });
+
+  it('uses real connection and project dates and stays stable when refreshed data changes order', async () => {
+    const contacts = [
+      { id: 'old', name: 'Old connection', status: 'linked', linkedAt: '2025-01-01T12:00:00Z', createdAt: '2026-10-07T11:00:00Z' },
+      { id: 'legacy', name: 'Unknown connection', status: 'linked', createdAt: '2026-10-07T11:00:00Z' },
+      { id: 'linked', name: 'Recent connection', status: 'linked', linkedAt: '2026-10-07T10:00:00Z', createdAt: '2025-01-01T12:00:00Z' },
+      { id: 'created', name: 'Recent contact', status: 'not_linked', createdAt: '2026-10-07T10:00:00Z' },
+      { id: 'unknown', name: 'Unknown contact', status: 'not_linked' },
+    ];
+    const projects = [
+      { ...project('2027-01-01'), id: 'old', text: 'Old project', createdAt: '2025-01-01T12:00:00Z', subprojects: [] },
+      { ...project('2027-01-01'), id: 'legacy', text: 'Unknown project', subprojects: [] },
+      { ...project('2027-01-01'), id: 'new', text: 'Recent project', createdAt: '2026-10-07T09:00:00Z', subprojects: [] },
+    ];
+    mockContactsApi.listContacts.mockResolvedValue(contacts);
+    mockProjectsApi.listProjects.mockResolvedValue(projects);
+    const { rerender } = render(<HomePage isActive={false} />);
+    await loaded();
+    expect(activity().getAllByRole('heading', { level: 3 }).map(item => item.textContent)).toEqual([
+      'Recent contact', 'Recent connection', 'Recent project',
+    ]);
+    const before = activity().getByRole('list').textContent;
+    jest.setSystemTime(new Date('2026-10-07T13:00:00Z'));
+    mockContactsApi.listContacts.mockResolvedValue([...contacts].reverse());
+    mockProjectsApi.listProjects.mockResolvedValue([...projects].reverse());
+    await act(async () => { rerender(<HomePage isActive />); });
+    expect(mockContactsApi.listContacts).toHaveBeenCalledTimes(2);
+    expect(activity().getByRole('list').textContent).toBe(before);
+  });
+
+  it('shows a newly completed project task using the timestamp returned by the save', async () => {
+    const item = project('2026-10-08');
+    mockProjectsApi.listProjects.mockResolvedValue([item]);
+    mockProjectsApi.updateProject.mockImplementation(async (_id: string, patch: Partial<ProjectItem>) => ({
+      ...item,
+      subprojects: patch.subprojects!.map(sub => ({
+        ...sub, tasks: sub.tasks.map(task => ({ ...task, completedAt: now.toISOString() })),
+      })),
+    }));
+    render(<HomePage />);
+    await loaded();
+    fireEvent.click(screen.getByLabelText('Mark "Test task" as done'));
+    await waitFor(() => expect(activity().getByRole('heading', { level: 3, name: 'Test task' })).toBeInTheDocument());
+    expect(activity().getByText('Completed')).toBeInTheDocument();
+  });
+});
+
 describe('home task row actions', () => {
   const originalFetch = global.fetch;
 

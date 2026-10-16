@@ -450,11 +450,6 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
   }, [allTasks, dueWindow]);
 
-  const recentlyCompleted = useMemo(() => {
-    // We don't have completedAt, so we just take some done tasks
-    return allTasks.filter(t => t.done);
-  }, [allTasks]);
-
   const partnerActivity = useMemo(() => {
     return allTasks.filter(t => t.done && t.people && t.people.length > 0);
   }, [allTasks]);
@@ -515,7 +510,13 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
       );
       // Optimistically update so the task disappears from the panel immediately
       setProjects(prev => prev.map(p => p.id === project.id ? { ...p, subprojects: updatedSubprojects } : p));
-      void projectsApi.updateProject(project.id, { subprojects: updatedSubprojects }).catch(error => {
+      void projectsApi.updateProject(project.id, { subprojects: updatedSubprojects }).then(saved => {
+        setProjects(prev => {
+          const next = prev.map(p => p.id === saved.id ? saved : p);
+          setCachedProjects(next);
+          return next;
+        });
+      }).catch(error => {
         console.error('Failed to mark project task as done:', error);
         setProjects(prev => prev.map(p => p.id === project.id ? project : p));
       });
@@ -536,30 +537,32 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const activityFeed = useMemo(() => {
     const feed: any[] = [];
     
-    // Add realistic timestamps since we don't have them in data
-    // We mock sortable timestamps by using dueDate or current time
     const now = new Date();
 
-    recentlyCompleted.forEach(t => {
-      // Use the real completedAt timestamp; fall back to dueDate if not yet populated
-      const timeStr = (t as any).completedAt || t.dueDate;
-      if (!timeStr) return; // skip if no timestamp at all — won't pass the 7-day cutoff anyway
-      feed.push({
-        id: `task-${t.id}`,
-        type: 'task',
-        title: t.text,
-        meta: t.projectName ? '' : 'Global Task',
-        projectIcon: t.projectIcon,
-        projectInitial: t.projectName ? t.projectName.charAt(0).toUpperCase() : undefined,
-        icon: 'check_circle',
-        iconColor: '#10b981',
-        time: timeStr,
-        onClick: () => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)
+    allTasks.forEach(t => {
+      const events = [
+        { action: 'created', time: t.createdAt, icon: 'add_circle', label: 'Created' },
+        { action: 'completed', time: t.done ? t.completedAt : null, icon: 'check_circle', label: 'Completed' },
+      ];
+      events.forEach(event => {
+        if (!event.time) return;
+        feed.push({
+          id: `task-${t.source}-${t.projectId ?? ''}-${t.id}-${event.action}`,
+          type: 'task',
+          title: t.text,
+          meta: `${event.label}${t.projectName ? '' : ' · Global Task'}`,
+          projectIcon: t.projectIcon,
+          projectInitial: t.projectName ? t.projectName.charAt(0).toUpperCase() : undefined,
+          icon: event.icon,
+          iconColor: '#10b981',
+          time: event.time,
+          onClick: () => handleNavigate(t.projectName ? 'projects' : 'tasks', t.text, t.projectId)
+        });
       });
     });
 
     partnerActivity.forEach(t => {
-      const timeStr = (t as any).completedAt || t.dueDate;
+      const timeStr = t.completedAt;
       if (!timeStr) return;
       feed.push({
         id: `partner-${t.id}`,
@@ -578,7 +581,8 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
 
     // New Connections
     contacts.forEach(c => {
-      const timeStr = new Date(now.getTime() - Math.random() * 86400000 * 5).toISOString();
+      const timeStr = c.status === 'linked' ? c.linkedAt : c.createdAt;
+      if (!timeStr) return;
       feed.push({
         id: `contact-${c.id}`,
         type: 'partner',
@@ -594,7 +598,8 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
 
     // New Projects
     projects.forEach(p => {
-       const timeStr = new Date(now.getTime() - Math.random() * 86400000 * 3).toISOString();
+       const timeStr = p.createdAt;
+       if (!timeStr) return;
        feed.push({
         id: `project-${p.id}`,
         type: 'project',
@@ -609,14 +614,14 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
        });
     });
 
-    // Sort showing more recent on top
-    feed.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-
     // Only show activity from the last 7 days
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const cutoff = now.getTime() - ONE_WEEK_MS;
-    return feed.filter(item => new Date(item.time).getTime() >= cutoff);
-  }, [recentlyCompleted, partnerActivity, contacts, projects, handleNavigate]);
+    return feed.filter(item => {
+      const time = new Date(item.time).getTime();
+      return time >= cutoff && time <= now.getTime();
+    }).sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime() || a.id.localeCompare(b.id));
+  }, [allTasks, partnerActivity, contacts, projects, handleNavigate]);
 
   const filteredFeed = useMemo(() => {
     if (activeFilters.length === 0) return activityFeed;

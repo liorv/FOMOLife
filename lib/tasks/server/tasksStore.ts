@@ -54,6 +54,7 @@ export async function createTask(
     id: generateId(),
     text: input.text,
     done: false,
+    createdAt: new Date().toISOString(),
     dueDate: input.dueDate ?? null,
     favorite: Boolean(input.favorite),
     description: input.description ?? '',
@@ -79,7 +80,7 @@ export async function updateTask(
     if (item.id !== id) return item;
     const merged = { ...item, ...patch, id };
     // Auto-manage completedAt when done toggles, unless the caller explicitly set it
-    if ('done' in patch && !('completedAt' in patch)) {
+    if ('done' in patch && patch.done !== item.done && !('completedAt' in patch)) {
       merged.completedAt = patch.done ? new Date().toISOString() : null;
     }
     return merged;

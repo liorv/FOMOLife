@@ -32,6 +32,9 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ## Task editing
 
+Manually switching tabs (including mobile swipes) clears the global search input
+and its URL query. Direct links can still open a tab with a search query.
+
 Tasks are managed inside the project editor, in the project-level tasks panel
 or a subproject. There is no standalone Tasks tab.
 
@@ -39,11 +42,25 @@ Checkboxes update immediately. Project saves are queued per project in click
 order, and earlier save responses cannot replace newer pending edits. Save
 failures are displayed in the projects page rather than silently ignored.
 
+Home's Recent Activity lists task creation and completion events by their recorded
+timestamps, newest first, within the last seven days. Due dates never determine
+task activity order or inclusion. Task timestamps are saved for both standalone
+and project tasks; reopening a task clears its completion timestamp. Legacy tasks
+without a recorded timestamp do not receive a guessed activity date.
+Contact creation, established connections, and new projects also use persisted
+timestamps, never generated dates. Linking records the connection date; unlinking
+clears it. Existing contacts, connections, and projects with unknown dates are
+omitted, and equally dated activity has a stable order across refreshes.
+
 Notification links open the framework host at `/`, not the analytics dashboard.
 Chat notifications include a `threadId` (or `feedbackId`) and open that conversation
 after its data loads. Task completion, assignment, and due-date notifications
 include a `taskId` and open the task editor; project tasks also include `projectId`.
 The bell dropdown and device push notifications use the same destination links.
+The bell count and dropdown share a prefetched notification list that stays loaded
+across app tab switches and dropdown openings. Opening the bell or returning to
+the browser tab refreshes it without hiding existing items. The empty state appears
+only after every notification source finishes loading; failed loads show an error.
 Test notifications and notifications without a destination open Home (`/`).
 The service worker redirects old analytics notification links to the framework
 host while preserving any tab, conversation, or task context in their query.

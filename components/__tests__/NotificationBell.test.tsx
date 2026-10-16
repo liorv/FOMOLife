@@ -1,14 +1,16 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NotificationBell } from '../NotificationBell';
+import type { PendingRequestsResponse } from '@myorg/types';
 
 const mockPush = jest.fn();
+const mockGetPendingRequests = jest.fn(async (): Promise<PendingRequestsResponse> => ({ requests: [] }));
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 jest.mock('@myorg/api-client', () => ({
   createContactsApiClient: () => ({
-    getPendingRequests: async () => ({ requests: [] }),
+    getPendingRequests: () => mockGetPendingRequests(),
   }),
 }));
 jest.mock('@/lib/client/pushNotifications', () => ({
@@ -53,8 +55,117 @@ describe('notification badge synchronization', () => {
 
   afterEach(() => {
     mockPush.mockClear();
+    mockGetPendingRequests.mockReset().mockResolvedValue({ requests: [] });
     global.fetch = originalFetch;
     jest.restoreAllMocks();
+  });
+
+  it.each(['feedback', 'projects', 'tasks'])(
+    'does not show caught up while the %s source is still loading',
+    async (source) => {
+      const slow = deferred<Response>();
+      global.fetch = jest.fn((input: RequestInfo | URL) =>
+        String(input).includes(`/${source}/`) ? slow.promise : Promise.resolve(response(0)));
+      render(<NotificationBell userId="user" />);
+      fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+
+      await waitFor(() => expect(mockGetPendingRequests).toHaveBeenCalledTimes(1));
+      expect(screen.getByRole('status')).toHaveTextContent('Loading...');
+      expect(screen.queryByText(/all caught up/)).not.toBeInTheDocument();
+
+      await act(async () => { slow.resolve(response(0)); });
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByText(/all caught up/)).toBeInTheDocument();
+    },
+  );
+
+  it('waits for contact requests before showing the empty state', async () => {
+    const contacts = deferred<PendingRequestsResponse>();
+    mockGetPendingRequests.mockReturnValue(contacts.promise);
+    global.fetch = jest.fn(async () => response(0));
+    render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await act(async () => {});
+    expect(screen.getByRole('status')).toHaveTextContent('Loading...');
+    expect(screen.queryByText(/all caught up/)).not.toBeInTheDocument();
+    await act(async () => { contacts.resolve({ requests: [] }); });
+    expect(screen.getByText(/all caught up/)).toBeInTheDocument();
+  });
+
+  it('does not apply the previous user notification response after the user changes', async () => {
+    const previousUser = deferred<Response>();
+    let projectGets = 0;
+    global.fetch = jest.fn((input: RequestInfo | URL) => {
+      if (String(input).includes('/projects/') && ++projectGets === 1) return previousUser.promise;
+      return Promise.resolve(response(0));
+    });
+    const { container, rerender } = render(<NotificationBell userId="first" />);
+    rerender(<NotificationBell userId="second" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await screen.findByText(/all caught up/);
+    await act(async () => { previousUser.resolve(response(1)); });
+    expect(container.querySelector('.framework-bell-badge')).toBeNull();
+    expect(screen.queryByText('Message')).not.toBeInTheDocument();
+  });
+
+  it('shows prefetched items immediately and keeps them visible while reopening refreshes', async () => {
+    const refresh = deferred<Response>();
+    let projectGets = 0;
+    global.fetch = jest.fn((input: RequestInfo | URL) => {
+      if (!String(input).includes('/projects/')) return Promise.resolve(response(0));
+      projectGets += 1;
+      return projectGets === 1 ? Promise.resolve(response(1)) : refresh.promise;
+    });
+    const { container } = render(<NotificationBell userId="user" />);
+    await waitFor(() => expect(container.querySelector('.framework-bell-badge')).toHaveTextContent('1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    expect(screen.getByText('Message')).toBeVisible();
+    expect(screen.queryByText(/all caught up/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close notifications' }));
+    expect(screen.getByText('Message')).not.toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    expect(screen.getByText('Message')).toBeVisible();
+    await act(async () => { refresh.resolve(response(0)); });
+    expect(container.querySelector('.framework-bell-badge')).toBeNull();
+    expect(screen.getByText(/all caught up/)).toBeInTheDocument();
+  });
+
+  it('refreshes the shared list and badge on events and when returning to the browser tab', async () => {
+    let count = 0;
+    global.fetch = jest.fn((input: RequestInfo | URL) =>
+      Promise.resolve(response(String(input).includes('/projects/') ? count : 0)));
+    const { container } = render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await screen.findByText(/all caught up/);
+    count = 1;
+    await act(async () => { window.dispatchEvent(new Event('project-notifs-updated')); });
+    expect(screen.getByText('Message')).toBeVisible();
+    expect(container.querySelector('.framework-bell-badge')).toHaveTextContent('1');
+    count = 0;
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(screen.queryByText('Message')).not.toBeInTheDocument();
+    expect(container.querySelector('.framework-bell-badge')).toBeNull();
+    count = 1;
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(screen.getByText('Message')).toBeVisible();
+    expect(container.querySelector('.framework-bell-badge')).toHaveTextContent('1');
+  });
+
+  it('reports failed loads instead of claiming the user is caught up and retries on reopening', async () => {
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+    let failed = true;
+    global.fetch = jest.fn((input: RequestInfo | URL) =>
+      Promise.resolve(response(0, !failed || !String(input).includes('/projects/'))));
+    render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load all notifications');
+    expect(screen.queryByText(/all caught up/)).not.toBeInTheDocument();
+    expect(errorLog).toHaveBeenCalled();
+    failed = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Close notifications' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await screen.findByText(/all caught up/);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it.each([
