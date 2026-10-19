@@ -11,7 +11,7 @@ import type {
   ProjectSubproject,
   ProjectTask,
 } from "@myorg/types";
-import { ProjectTile, EmptyState } from "@myorg/ui";
+import { ProjectTile, ProjectLink, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
 import ProjectEditor from "./ProjectEditor";
 import ProjectAssistant from "./ProjectAssistant";
@@ -447,7 +447,7 @@ export default function ProjectsDashboard({
                       className="dashboard-project-dot-lg"
                     />
                     <h2
-                      className="dashboard-project-title"
+                      className={`dashboard-project-title${selectedProject.externalUrl ? ' dashboard-project-title--linked' : ''}`}
                       contentEditable
                       suppressContentEditableWarning
                       onFocus={(e) => {
@@ -473,6 +473,7 @@ export default function ProjectsDashboard({
                     >
                       {selectedProject.text}
                     </h2>
+                    <ProjectLink url={selectedProject.externalUrl} projectName={selectedProject.text} />
                   </div>
                   {showFilters ? (
                     <div className="project-actions-bar project-filter-bar">

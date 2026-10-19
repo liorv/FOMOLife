@@ -1613,6 +1613,10 @@ html[data-theme="dark"] .inline-editor {
   letter-spacing: -0.02em;
 }
 
+.dashboard-project-title--linked {
+  flex: 0 1 auto;
+}
+
 .dashboard-project-title:focus {
   border-color: var(--color-primary);
   white-space: normal;

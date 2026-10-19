@@ -466,27 +466,143 @@ describe('home task row actions', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('marks the task as done when the row is swiped right past the threshold', async () => {
+  it.each(['Favorites', 'Overdue', 'Coming Due'])('requires inline confirmation after swiping right in %s', async panel => {
+    const item = {
+      ...task(panel === 'Overdue' ? '2026-10-01' : '2026-10-14'),
+      favorite: panel === 'Favorites',
+      createdAt: '2026-10-07T11:00:00',
+    };
+    mockTasksApi.listTasks.mockResolvedValue([item]);
+    mockTasksApi.updateTask.mockResolvedValue({ ...item, done: true });
+    render(<HomePage />);
+    await loaded();
+    const card = screen.getByRole('heading', { name: panel }).parentElement!.parentElement!;
+    const row = card.querySelector('.swipeItem') as HTMLElement;
+
+    swipe(row, 88);
+
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+    expect(within(row).getByText('Mark as done?')).toBeInTheDocument();
+    expect(row.querySelector('.rowSurface')).toHaveStyle({ transform: 'translate3d(0px, 0, 0)' });
+    expect(within(row).queryByRole('button', { name: 'Mark "Test task" as done' })).not.toBeInTheDocument();
+    // A synthetic click after the swipe must not dismiss the confirmation or edit.
+    fireEvent.click(row.querySelector('.rowSurface')!);
+    expect(within(row).getByText('Mark as done?')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Due date/)).not.toBeInTheDocument();
+
+    fireEvent.click(within(row).getByRole('button', { name: 'Confirm completing "Test task"' }));
+
+    expect(mockTasksApi.updateTask).toHaveBeenCalledTimes(1);
+    expect(mockTasksApi.updateTask).toHaveBeenCalledWith('task', { done: true });
+    await waitFor(() => expect(within(row).queryByText('Mark as done?')).not.toBeInTheDocument());
+  });
+
+  it.each([44, 120, 400])('only closes an open tray on a %spx right swipe, then asks to complete on the next swipe', async dx => {
     mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
-    mockTasksApi.updateTask.mockResolvedValue({ ...task('2026-10-01', true) });
     const { container } = render(<HomePage />);
     await loaded();
+    const row = container.querySelector('.swipeItem') as HTMLElement;
 
+    swipe(row, -120);
+    swipe(row, dx);
+
+    expect(row).not.toHaveClass('swipeItemOpen');
+    expect(row.querySelector('.rowSurface')).toHaveStyle({ transform: 'translate3d(0px, 0, 0)' });
+    expect(screen.queryByText('Mark as done?')).not.toBeInTheDocument();
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+
+    swipe(row, 110);
+    expect(within(row).getByText('Mark as done?')).toBeInTheDocument();
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('retains the open tray when its closing swipe is below the threshold', async () => {
+    mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
+    const { container } = render(<HomePage />);
+    await loaded();
+    const row = container.querySelector('.swipeItem') as HTMLElement;
+    swipe(row, -120);
+    swipe(row, 43);
+    expect(row).toHaveClass('swipeItemOpen');
+    expect(row.querySelector('.rowSurface')).toHaveStyle({ transform: 'translate3d(-198px, 0, 0)' });
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+  });
+
+  it.each(['Cancel', 'Escape', 'outside', 'row'])('dismisses the confirmation with %s without completing', async dismissal => {
+    mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
+    const { container } = render(<HomePage />);
+    await loaded();
+    const row = container.querySelector('.swipeItem') as HTMLElement;
+    swipe(row, 110);
+    const cancel = within(row).getByRole('button', { name: 'Cancel' });
+    if (dismissal === 'Cancel') fireEvent.click(cancel);
+    if (dismissal === 'Escape') fireEvent.keyDown(cancel, { key: 'Escape' });
+    if (dismissal === 'outside') fireEvent.pointerDown(document.body);
+    if (dismissal === 'row') {
+      fireEvent.touchStart(row, { touches: [{ clientX: 150, clientY: 100 }] });
+      fireEvent.touchEnd(row);
+      fireEvent.click(row.querySelector('.rowSurface')!);
+    }
+    expect(screen.queryByText('Mark as done?')).not.toBeInTheDocument();
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/Due date/)).not.toBeInTheDocument();
+  });
+
+  it('does not complete from repeated swipes while confirmation is pending', async () => {
+    mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
+    const { container } = render(<HomePage />);
+    await loaded();
+    const row = container.querySelector('.swipeItem') as HTMLElement;
+    swipe(row, 110);
+    swipe(row, 110);
+    swipe(row, -120);
+    expect(within(row).getByText('Mark as done?')).toBeInTheDocument();
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('persists a confirmed project task completion through the project API', async () => {
+    mockProjectsApi.listProjects.mockResolvedValue([project('2026-10-01')]);
+    const { container } = render(<HomePage />);
+    await loaded();
     swipe(container.querySelector('.swipeItem') as HTMLElement, 110);
-
-    expect(mockTasksApi.updateTask).toHaveBeenCalledWith('task', { done: true });
+    expect(mockProjectsApi.updateProject).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm completing "Test task"' }));
+    expect(mockProjectsApi.updateProject).toHaveBeenCalledWith('project', {
+      subprojects: [expect.objectContaining({
+        tasks: [expect.objectContaining({ id: 'task', done: true })],
+      })],
+    });
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
     await waitFor(() => expectNoOverduePanel(container));
   });
 
-  it('ignores a short swipe that does not reach either threshold', async () => {
+  it.each([false, true])('restores the row after a cancelled gesture (tray open: %s)', async open => {
+    mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
+    const { container } = render(<HomePage />);
+    await loaded();
+    const row = container.querySelector('.swipeItem') as HTMLElement;
+    if (open) swipe(row, -120);
+    fireEvent.touchStart(row, { touches: [{ clientX: 150, clientY: 100 }] });
+    fireEvent.touchMove(row, { touches: [{ clientX: 550, clientY: 100 }] });
+    fireEvent.touchCancel(row);
+    expect(row.querySelector('.rowSurface')).toHaveStyle({
+      transform: `translate3d(${open ? -198 : 0}px, 0, 0)`,
+    });
+    expect(row.classList.contains('swipeItemOpen')).toBe(open);
+    expect(screen.queryByText('Mark as done?')).not.toBeInTheDocument();
+    expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
+  });
+
+  it.each([30, 87])('ignores a %spx right swipe below the completion threshold', async dx => {
     mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
     const { container } = render(<HomePage />);
     await loaded();
 
     const row = container.querySelector('.swipeItem') as HTMLElement;
-    swipe(row, 30);
+    swipe(row, dx);
 
     expect(row).not.toHaveClass('swipeItemOpen');
+    expect(screen.queryByText('Mark as done?')).not.toBeInTheDocument();
     expect(mockTasksApi.updateTask).not.toHaveBeenCalled();
   });
 

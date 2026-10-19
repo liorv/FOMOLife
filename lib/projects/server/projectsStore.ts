@@ -51,6 +51,7 @@ export interface ProjectItem {
   goal?: string;
   description?: string;
   dueDate?: string | null;
+  externalUrl?: string;
   aiInstructions?: string;
   avatarUrl?: string;
   creatorId?: string;
@@ -244,7 +245,7 @@ export async function listProjects(userId: string): Promise<ProjectItem[]> {
 
 export async function createProject(
   userId: string,
-  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
+  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
 ): Promise<ProjectItem> {
   const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
@@ -260,6 +261,7 @@ export async function createProject(
     ...(typeof input.order === 'number' ? { order: input.order } : {}),
     ...(input.goal ? { goal: input.goal } : {}),
     ...(input.description ? { description: input.description } : {}),
+    ...(input.externalUrl ? { externalUrl: input.externalUrl } : {}),
     ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
     ...(input.aiInstructions ? { aiInstructions: input.aiInstructions } : {}),
     ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
@@ -275,7 +277,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
+  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {

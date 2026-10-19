@@ -312,6 +312,40 @@
   border-radius: 0 0 8px 8px;
 }
 
+.doneConfirmation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--color-bg);
+  font-size: 0.85rem;
+}
+
+.doneConfirmation > span {
+  flex: 1 1 auto;
+}
+
+.doneConfirmButton,
+.doneCancelButton {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.doneConfirmButton {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.doneCancelButton {
+  background: var(--color-surface, #fff);
+  color: var(--color-text);
+}
+
 .taskEditor :global(.inline-editor) {
   box-sizing: border-box;
   width: 100%;

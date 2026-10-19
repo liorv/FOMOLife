@@ -89,7 +89,7 @@ function DashboardTile({ icon, label, value, accent, active, clickable, onClick 
 
 import SubprojectEditor from "./SubprojectEditor";
 import { TaskList } from "@myorg/ui";
-import { generateId, applyFilters } from '@myorg/utils';
+import { generateId, applyFilters, isValidExternalUrl } from '@myorg/utils';
 import DismissibleHint from "../DismissibleHint";
 
 // Initialize local project state with collapsed defaults for subprojects
@@ -142,6 +142,12 @@ export default function ProjectEditor({
   localRef.current = local;
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timeline' | 'risk'>('tasks');
   const [showOverviewEditor, setShowOverviewEditor] = useState(false);
+  const [externalUrlDraft, setExternalUrlDraft] = useState(project.externalUrl ?? '');
+  const [externalUrlError, setExternalUrlError] = useState('');
+  useEffect(() => {
+    setExternalUrlDraft(project.externalUrl ?? '');
+    setExternalUrlError('');
+  }, [project.id, project.externalUrl]);
   const [iconSearchQuery, setIconSearchQuery] = useState('');
   const [iconSearchResults, setIconSearchResults] = useState<any[]>([]);
   const iconDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1524,6 +1530,48 @@ export default function ProjectEditor({
             {/* END Toggle Section */}
               </div>
             </div>
+              <div className="project-editor-field">
+                <label className="project-editor-field-label" htmlFor={`project-external-url-${project.id}`}>
+                  <span className="material-icons field-icon" aria-hidden="true">link</span>
+                  External Link
+                </label>
+                <input
+                  id={`project-external-url-${project.id}`}
+                  type="url"
+                  className="project-editor-link-input"
+                  value={externalUrlDraft}
+                  onChange={(e) => {
+                    setExternalUrlDraft(e.target.value);
+                    setExternalUrlError('');
+                  }}
+                  onBlur={() => {
+                    if (!canManage) return;
+                    const value = externalUrlDraft.trim();
+                    if (value && !isValidExternalUrl(value)) {
+                      setExternalUrlError('Enter a valid link starting with https:// or http://.');
+                      return;
+                    }
+                    setExternalUrlDraft(value);
+                    setExternalUrlError('');
+                    if (value !== (localRef.current.externalUrl ?? '')) {
+                      updateProjectField('externalUrl', value);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="https://example.com"
+                  disabled={!canManage}
+                  aria-invalid={Boolean(externalUrlError)}
+                  aria-describedby={externalUrlError ? `project-external-url-error-${project.id}` : undefined}
+                />
+                {externalUrlError && (
+                  <p id={`project-external-url-error-${project.id}`} role="alert">{externalUrlError}</p>
+                )}
+              </div>
               <div className="project-editor-field">
                 <label className="project-editor-field-label">
                   <span className="material-icons field-icon">flag</span>

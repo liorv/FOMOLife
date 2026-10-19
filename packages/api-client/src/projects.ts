@@ -2,8 +2,8 @@ import type { ProjectItem } from '@myorg/types';
 
 export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
-  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }) => Promise<ProjectItem>;
-  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>) => Promise<ProjectItem>;
+  createProject: (input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; externalUrl?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }) => Promise<ProjectItem>;
+  updateProject: (id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>) => Promise<ProjectItem>;
   promoteSubproject: (projectId: string, subprojectId: string) => Promise<{ sourceProject: ProjectItem; project: ProjectItem }>;
   deleteProject: (id: string) => Promise<void>;
 }
@@ -37,7 +37,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
       return payload.projects;
     },
 
-    async createProject(input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }): Promise<ProjectItem> {
+    async createProject(input: { text: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; externalUrl?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string }): Promise<ProjectItem> {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -46,7 +46,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
       return parseResponse<ProjectItem>(response);
     },
 
-    async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>): Promise<ProjectItem> {
+    async updateProject(id: string, patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>): Promise<ProjectItem> {
       const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },

@@ -37,7 +37,7 @@ type DashboardTask = TaskItem & {
 const ACTIONS_WIDTH = 198;
 /** Drag distance past which releasing opens the action tray (swipe left). */
 const OPEN_THRESHOLD = 44;
-/** Drag distance past which releasing completes the task (swipe right). */
+/** Drag distance past which releasing asks to complete the task (swipe right). */
 const DONE_THRESHOLD = 88;
 /** How far right the row can be dragged before it stops following the finger. */
 const DONE_MAX = 132;
@@ -49,7 +49,7 @@ const AXIS_LOCK = 8;
  * - Click/tap the row: default action, navigates to the task.
  * - Desktop hover (or keyboard focus): full-height action tiles slide in from the right.
  * - Touch swipe left: reveals the same action tray, which stays open until used or dismissed.
- * - Touch swipe right past the threshold: marks the task as done.
+ * - Touch swipe right: dismisses an open tray, otherwise asks to mark the task as done.
  */
 function DashboardTaskItem({
   task,
@@ -76,6 +76,7 @@ function DashboardTaskItem({
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [confirmingDone, setConfirmingDone] = useState(false);
   const gesture = useRef<{ x: number; y: number; base: number; axis: 'none' | 'x' | 'y' } | null>(null);
   const offsetRef = useRef(0);
   const swipedRef = useRef(false);
@@ -88,24 +89,26 @@ function DashboardTaskItem({
 
   const close = React.useCallback(() => {
     setActionsOpen(false);
+    setConfirmingDone(false);
     moveTo(0);
   }, []);
 
   // An open tray behaves like iOS: tapping anywhere else dismisses it.
   useEffect(() => {
-    if (!actionsOpen) return;
+    if (!actionsOpen && !confirmingDone) return;
     const handlePointerDown = (e: Event) => {
       if (rowRef.current && !rowRef.current.contains(e.target as Node)) close();
     };
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [actionsOpen, close]);
+  }, [actionsOpen, confirmingDone, close]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    swipedRef.current = false;
+    if (confirmingDone) return;
     if (e.touches.length !== 1) return;
     const touch = e.touches[0]!;
     gesture.current = { x: touch.clientX, y: touch.clientY, base: actionsOpen ? -ACTIONS_WIDTH : 0, axis: 'none' };
-    swipedRef.current = false;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -121,7 +124,7 @@ function DashboardTaskItem({
     }
     if (g.axis !== 'x') return;
     swipedRef.current = true;
-    moveTo(Math.max(-ACTIONS_WIDTH, Math.min(DONE_MAX, g.base + dx)));
+    moveTo(Math.max(-ACTIONS_WIDTH, Math.min(g.base < 0 ? 0 : DONE_MAX, g.base + dx)));
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -133,15 +136,32 @@ function DashboardTaskItem({
     // handler on the page container must not also act on this swipe.
     e.stopPropagation();
     const current = offsetRef.current;
-    if (current >= DONE_THRESHOLD) {
+    if (g.base < 0) {
+      // A gesture that starts with the tray open can only dismiss or retain it.
+      if (current - g.base >= OPEN_THRESHOLD) {
+        close();
+      } else {
+        setActionsOpen(true);
+        moveTo(-ACTIONS_WIDTH);
+      }
+    } else if (current >= DONE_THRESHOLD) {
       close();
-      onMarkDone(task);
+      setConfirmingDone(true);
     } else if (current <= -OPEN_THRESHOLD) {
       setActionsOpen(true);
       moveTo(-ACTIONS_WIDTH);
     } else {
       close();
     }
+  };
+
+  const handleTouchCancel = (e: React.TouchEvent) => {
+    const g = gesture.current;
+    gesture.current = null;
+    setDragging(false);
+    if (!g || g.axis !== 'x') return;
+    e.stopPropagation();
+    moveTo(g.base);
   };
 
   const activate = (action: (task: DashboardTask) => void) => {
@@ -155,7 +175,7 @@ function DashboardTaskItem({
       swipedRef.current = false;
       return;
     }
-    if (actionsOpen) {
+    if (actionsOpen || confirmingDone) {
       close();
       return;
     }
@@ -170,7 +190,13 @@ function DashboardTaskItem({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+      onKeyDown={e => {
+        if (e.key === 'Escape' && (actionsOpen || confirmingDone)) {
+          e.stopPropagation();
+          close();
+        }
+      }}
     >
       <div
         className={styles.swipeDoneHint}
@@ -179,7 +205,7 @@ function DashboardTaskItem({
       >
         <span className="material-icons" style={{ fontSize: '20px' }}>check</span>
       </div>
-      <div className={styles.rowActions}>
+      {!confirmingDone && <div className={styles.rowActions}>
         <button
           type="button"
           className={`${styles.rowActionButton} ${styles.rowActionEdit}`}
@@ -210,7 +236,7 @@ function DashboardTaskItem({
           <span className="material-icons" style={{ fontSize: '20px' }}>arrow_forward</span>
           <span className={styles.rowActionLabel}>Open</span>
         </button>
-      </div>
+      </div>}
       <div
         className={`${styles.rowSurface} ${dragging ? styles.rowSurfaceDragging : ''}`}
         style={{ transform: `translate3d(${offset}px, 0, 0)` }}
@@ -221,8 +247,6 @@ function DashboardTaskItem({
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             handleRowClick();
-          } else if (e.key === 'Escape' && actionsOpen) {
-            close();
           }
         }}
       >
@@ -232,6 +256,22 @@ function DashboardTaskItem({
           <p className={`${styles.itemMeta} ${metaClassName ?? ''}`}>{meta}</p>
         </div>
       </div>
+      {confirmingDone && (
+        <div className={styles.doneConfirmation} role="group" aria-label={`Complete "${task.text}"`}>
+          <span role="status">Mark as done?</span>
+          <button
+            type="button"
+            className={styles.doneConfirmButton}
+            aria-label={`Confirm completing "${task.text}"`}
+            onClick={() => activate(onMarkDone)}
+          >
+            Confirm
+          </button>
+          <button type="button" className={styles.doneCancelButton} onClick={close}>
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
     {editing && (
       <div className={styles.taskEditor}>

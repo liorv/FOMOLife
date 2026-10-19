@@ -36,6 +36,7 @@ export { NotificationSettingsModal } from './NotificationSettingsModal';
 
 export { default as ProjectTile, PROJECT_COLORS } from './ProjectTile';
 export type { ProjectTileProps } from './ProjectTile';
+export { ProjectLink } from './ProjectLink';
 
 export { default as SubprojectRow } from './SubprojectRow';
 export type { SubprojectRowProps } from './SubprojectRow';

@@ -10,6 +10,7 @@ import ReactDOM from "react-dom";
 import styles from "./ProjectTile.module.css";
 import ModalOverlay from "./ModalOverlay";
 import { UiButton } from "./ui-button";
+import { ProjectLink } from "./ProjectLink";
 
 import type { ProjectItem } from "@myorg/types";
 
@@ -417,6 +418,7 @@ export default function ProjectTile({
                   <div className={`${styles.name} project-name`}>
                     {project.text}
                   </div>
+                  <ProjectLink url={project.externalUrl} projectName={project.text} />
                   <button
                     className={`${styles.nameEditBtn} project-name-edit-btn`}
                     title="Rename project"
@@ -429,6 +431,7 @@ export default function ProjectTile({
                   </button>
                 </>
               )}
+              {editingName && <ProjectLink url={project.externalUrl} projectName={project.text} />}
             </div>
             <div className={`${styles.nameAccent} project-name-accent`} />
           </div>

@@ -100,6 +100,8 @@ export interface ProjectItem {
   goal?: string;
   /** Project description */
   description?: string;
+  /** External HTTP/HTTPS link attached to the project */
+  externalUrl?: string;
   /** Due date/deadline for the entire project */
   dueDate?: string | null;
   /** Special instructions for AI when reviewing the project */
@@ -131,6 +133,7 @@ export interface ProjectCreateInput {
   color?: string;
   goal?: string;
   description?: string;
+  externalUrl?: string;
   dueDate?: string | null;
   aiInstructions?: string;
   avatarUrl?: string;
@@ -152,6 +155,7 @@ export interface ProjectUpdateInput {
   order?: number;
   goal?: string;
   description?: string;
+  externalUrl?: string;
   dueDate?: string | null;
   aiInstructions?: string;
   avatarUrl?: string;

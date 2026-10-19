@@ -38,6 +38,11 @@ and its URL query. Direct links can still open a tab with a search query.
 Tasks are managed inside the project editor, in the project-level tasks panel
 or a subproject. There is no standalone Tasks tab.
 
+In Edit Project Overview, attach an optional HTTP/HTTPS URL using External Link.
+It saves when the field loses focus (or you press Enter). A small link icon beside
+the project name on its tile and in the editor opens the URL in a new tab.
+Clear the field to remove the link. Project exports include the saved link.
+
 Checkboxes update immediately. Project saves are queued per project in click
 order, and earlier save responses cannot replace newer pending edits. Save
 failures are displayed in the projects page rather than silently ignored.
@@ -51,6 +56,13 @@ Contact creation, established connections, and new projects also use persisted
 timestamps, never generated dates. Linking records the connection date; unlinking
 clears it. Existing contacts, connections, and projects with unknown dates are
 omitted, and equally dated activity has a stable order across refreshes.
+
+Home task rows in Favorites, Overdue, and Coming Due reveal
+actions when swiped left. Swiping right with the actions open only closes them.
+A fresh right swipe asks "Mark as done?" on the row; choose Confirm to complete
+the task or Cancel to leave it unchanged. Tapping the row or outside it, or
+pressing Escape, also dismisses the confirmation. The Done action button still
+completes the task directly.
 
 Notification links open the framework host at `/`, not the analytics dashboard.
 Chat notifications include a `threadId` (or `feedbackId`) and open that conversation

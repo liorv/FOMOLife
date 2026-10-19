@@ -5,6 +5,7 @@ import { unauthorizedResponse } from '@/lib/server/apiUtils';
 import { createProject, deleteProject, listProjects, updateProject, resolveProjectOwner, removeSharedProjectRef } from '@/lib/projects/server/projectsStore';
 import { notifyTaskCompleted, notifyTaskAssigned } from '@/lib/projects/server/projectCommentsStore';
 import type { ProjectItem } from '@myorg/types';
+import { isValidExternalUrl } from '@myorg/utils';
 
 export async function GET(request: Request) {
   const session = await getFrameworkSession();
@@ -37,9 +38,15 @@ export async function POST(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string };
+  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; externalUrl?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string };
   if (!body?.text || !body.text.trim()) {
     return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
+  }
+  if (body.externalUrl !== undefined) {
+    if (typeof body.externalUrl !== 'string' || (body.externalUrl.trim() && !isValidExternalUrl(body.externalUrl))) {
+      return NextResponse.json({ error: 'External link must be a valid HTTP/HTTPS URL' }, { status: 400 });
+    }
+    body.externalUrl = body.externalUrl.trim();
   }
 
   // Seed the creator as the first member so membership is always explicit
@@ -58,6 +65,7 @@ export async function POST(request: Request) {
     ...(Array.isArray(body.subprojects) ? { subprojects: body.subprojects } : {}),
     ...(body.goal ? { goal: body.goal } : {}),
     ...(body.description ? { description: body.description } : {}),
+    ...(body.externalUrl ? { externalUrl: body.externalUrl } : {}),
     ...(body.dueDate !== undefined ? { dueDate: body.dueDate } : {}),
     ...(body.aiInstructions ? { aiInstructions: body.aiInstructions } : {}),
     ...(body.avatarUrl ? { avatarUrl: body.avatarUrl } : {}),
@@ -69,9 +77,15 @@ export async function PATCH(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>> };
+  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>> };
   if (!body?.id || !body.patch) {
     return NextResponse.json({ error: 'id and patch are required' }, { status: 400 });
+  }
+  if (body.patch.externalUrl !== undefined) {
+    if (typeof body.patch.externalUrl !== 'string' || (body.patch.externalUrl.trim() && !isValidExternalUrl(body.patch.externalUrl))) {
+      return NextResponse.json({ error: 'External link must be a valid HTTP/HTTPS URL' }, { status: 400 });
+    }
+    body.patch.externalUrl = body.patch.externalUrl.trim();
   }
 
   const ownerUserId = await resolveProjectOwner(body.id, session.userId);

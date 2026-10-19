@@ -4,6 +4,16 @@ export function invariant(condition: unknown, message: string): asserts conditio
   }
 }
 
+export function isValidExternalUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^https?:\/\//i.test(value.trim())) return false;
+  try {
+    const url = new URL(value.trim());
+    return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 
 // filters
 export { applyFilters } from './taskFilters';
