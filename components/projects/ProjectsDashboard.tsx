@@ -900,6 +900,9 @@ export default function ProjectsDashboard({
                         project={p}
                         onEdit={handleSelectProject}
                         onTitleChange={onTitleChange}
+                        {...(onApplyChange ? {
+                          onExternalUrlChange: (id: string, externalUrl: string) => onApplyChange(id, { externalUrl }),
+                        } : {})}
                         onDelete={onDeleteProject}
                         onConfirmDelete={onConfirmDeleteProject}
                         isPendingDelete={pendingDeleteProjectId === p.id}

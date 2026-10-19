@@ -95,3 +95,101 @@ it.each([undefined, '', 'javascript:alert(1)'])('does not display a tile link fo
   render(<ProjectTile project={{ ...project, ...(externalUrl !== undefined ? { externalUrl } : {}) }} />);
   expect(screen.queryByRole('link', { name: linkName })).not.toBeInTheDocument();
 });
+
+it('adds a link from the tile and exposes the same saved value in the overview', async () => {
+  const onSelectProject = jest.fn();
+  const onApplyChange = jest.fn();
+  function Projects() {
+    const [savedProject, setSavedProject] = React.useState(project);
+    const [selectedProjectId, setSelectedProjectId] = React.useState<string | null>(null);
+    return (
+      <ProjectsDashboard
+        projects={[savedProject]}
+        selectedProjectId={selectedProjectId}
+        onSelectProject={(id) => {
+          onSelectProject(id);
+          setSelectedProjectId(id);
+        }}
+        onApplyChange={(id, patch) => {
+          onApplyChange(id, patch);
+          setSavedProject((current) => ({ ...current, ...patch }));
+        }}
+      />
+    );
+  }
+  render(<Projects />);
+  await act(async () => {});
+  const addButton = screen.getByRole('button', { name: `Add link to ${project.text}` });
+  expect(screen.getByText(project.text).nextElementSibling).toBe(addButton);
+  fireEvent.click(addButton);
+  const input = screen.getByRole('textbox', { name: 'External Link' });
+  expect(input).toHaveFocus();
+  expect(screen.getByRole('dialog', { name: 'Add project link' })).toHaveAttribute('aria-modal', 'true');
+  expect(screen.getByTestId('project-tile')).toHaveAttribute('draggable', 'false');
+  fireEvent.change(input, { target: { value: `  ${url}  ` } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(onSelectProject).not.toHaveBeenCalled();
+  fireEvent.submit(input.closest('form')!);
+  expect(onApplyChange).toHaveBeenCalledWith(project.id, { externalUrl: url });
+  expect(screen.getByRole('link', { name: linkName })).toHaveAttribute('href', url);
+  expect(screen.queryByRole('button', { name: `Add link to ${project.text}` })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByText(project.text));
+  await act(async () => {});
+  expect(onSelectProject).toHaveBeenCalledWith(project.id);
+  expect(openOverview()).toHaveValue(url);
+});
+
+it('validates a pasted tile link and lets the user cancel without saving or opening the project', () => {
+  const onExternalUrlChange = jest.fn();
+  const onClick = jest.fn();
+  render(
+    <div onClick={onClick}>
+      <ProjectTile project={project} onExternalUrlChange={onExternalUrlChange} />
+    </div>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: `Add link to ${project.text}` }));
+  const input = screen.getByRole('textbox', { name: 'External Link' });
+  fireEvent.change(input, { target: { value: 'javascript:alert(1)' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid link');
+  expect(onExternalUrlChange).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByRole('textbox', { name: 'External Link' })).not.toBeInTheDocument();
+  expect(onClick).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole('button', { name: `Add link to ${project.text}` }));
+  fireEvent.keyDown(screen.getByRole('textbox', { name: 'External Link' }), { key: 'Escape' });
+  expect(screen.queryByRole('textbox', { name: 'External Link' })).not.toBeInTheDocument();
+  expect(onExternalUrlChange).not.toHaveBeenCalled();
+});
+
+it('does not offer adding a tile link without a save handler', () => {
+  render(<ProjectTile project={project} />);
+  expect(screen.queryByRole('button', { name: `Add link to ${project.text}` })).not.toBeInTheDocument();
+});
+
+it('keeps keyboard focus inside the link dialog and restores it when dismissed', () => {
+  const onClick = jest.fn();
+  const onExternalUrlChange = jest.fn();
+  render(
+    <div onClick={onClick}>
+      <ProjectTile project={project} onExternalUrlChange={onExternalUrlChange} />
+    </div>,
+  );
+  const trigger = screen.getByRole('button', { name: `Add link to ${project.text}` });
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole('dialog', { name: 'Add project link' });
+  const input = screen.getByRole('textbox', { name: 'External Link' });
+  const save = screen.getByRole('button', { name: 'Save link' });
+  expect(screen.getByTestId('project-tile')).not.toContainElement(dialog);
+  fireEvent.keyDown(input, { key: 'Tab', shiftKey: true });
+  expect(save).toHaveFocus();
+  fireEvent.keyDown(save, { key: 'Tab' });
+  expect(input).toHaveFocus();
+  fireEvent.click(dialog.parentElement!);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  expect(onClick).not.toHaveBeenCalled();
+  expect(onExternalUrlChange).not.toHaveBeenCalled();
+});

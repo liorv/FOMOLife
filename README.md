@@ -42,6 +42,10 @@ In Edit Project Overview, attach an optional HTTP/HTTPS URL using External Link.
 It saves when the field loses focus (or you press Enter). A small link icon beside
 the project name on its tile and in the editor opens the URL in a new tab.
 Clear the field to remove the link. Project exports include the saved link.
+For a project without a link, hover over its tile (or focus it with the keyboard)
+and click Add project link beside the name. In the dialog, paste the URL and choose Save link
+to attach it directly without opening the overview.
+Cancel, Escape, or clicking outside the dialog closes it without saving.
 
 Checkboxes update immediately. Project saves are queued per project in click
 order, and earlier save responses cannot replace newer pending edits. Save

@@ -11,6 +11,7 @@ import styles from "./ProjectTile.module.css";
 import ModalOverlay from "./ModalOverlay";
 import { UiButton } from "./ui-button";
 import { ProjectLink } from "./ProjectLink";
+import { isValidExternalUrl } from "@myorg/utils";
 
 import type { ProjectItem } from "@myorg/types";
 
@@ -21,6 +22,7 @@ export interface ProjectTileProps {
   height?: number | string;
   onEdit?: ((id: string) => void) | undefined;
   onTitleChange?: ((id: string, title: string) => void) | undefined;
+  onExternalUrlChange?: (id: string, url: string) => void;
   onDelete?: ((id: string) => void) | undefined;
   onConfirmDelete?: ((id: string) => void) | undefined;
   isPendingDelete?: boolean;
@@ -73,6 +75,7 @@ export default function ProjectTile({
   height,
   onEdit = () => {},
   onTitleChange = () => {},
+  onExternalUrlChange,
   onDelete = () => {},
   onConfirmDelete = () => {},
   isPendingDelete = false,
@@ -99,11 +102,23 @@ export default function ProjectTile({
   const [dropdownStyle, setDropdownStyle] = useState({});
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(project.text || "");
+  const [editingLink, setEditingLink] = useState(false);
+  const [draftLink, setDraftLink] = useState("");
+  const [linkError, setLinkError] = useState("");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const addLinkButtonRef = useRef<HTMLButtonElement | null>(null);
+  const linkInputRef = useRef<HTMLInputElement | null>(null);
+  const saveLinkButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!editingLink) return;
+    linkInputRef.current?.focus();
+    return () => addLinkButtonRef.current?.focus();
+  }, [editingLink]);
 
   const color = useMemo(() => {
     const computedColor =
@@ -364,7 +379,7 @@ export default function ProjectTile({
       }
       data-testid="project-tile"
       ref={dragRef}
-      draggable
+      draggable={!editingLink}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
@@ -419,6 +434,27 @@ export default function ProjectTile({
                     {project.text}
                   </div>
                   <ProjectLink url={project.externalUrl} projectName={project.text} />
+                  {!isValidExternalUrl(project.externalUrl) && onExternalUrlChange && (
+                    <button
+                      type="button"
+                      ref={addLinkButtonRef}
+                      className={styles.addLinkButton}
+                      title="Add project link"
+                      aria-label={`Add link to ${project.text}`}
+                      aria-expanded={editingLink}
+                      aria-haspopup="dialog"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDraftLink("");
+                        setLinkError("");
+                        setEditingLink(true);
+                      }}
+                    >
+                      <span className="material-icons" aria-hidden="true">add_link</span>
+                    </button>
+                  )}
                   <button
                     className={`${styles.nameEditBtn} project-name-edit-btn`}
                     title="Rename project"
@@ -433,6 +469,91 @@ export default function ProjectTile({
               )}
               {editingName && <ProjectLink url={project.externalUrl} projectName={project.text} />}
             </div>
+            {editingLink && ReactDOM.createPortal(
+              <div
+                className={styles.linkDialogOverlay}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (e.target === e.currentTarget) setEditingLink(false);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+              <form
+                className={styles.linkEditor}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={`project-tile-link-title-${project.id}`}
+                aria-describedby={`project-tile-link-description-${project.id}`}
+                noValidate
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditingLink(false);
+                  }
+                  if (e.key === "Tab") {
+                    if (e.shiftKey && e.target === linkInputRef.current) {
+                      e.preventDefault();
+                      saveLinkButtonRef.current?.focus();
+                    } else if (!e.shiftKey && e.target === saveLinkButtonRef.current) {
+                      e.preventDefault();
+                      linkInputRef.current?.focus();
+                    }
+                  }
+                }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const url = draftLink.trim();
+                  if (!isValidExternalUrl(url)) {
+                    setLinkError("Enter a valid link starting with https:// or http://.");
+                    return;
+                  }
+                  onExternalUrlChange?.(project.id, url);
+                  setEditingLink(false);
+                }}
+              >
+                <div className={styles.linkDialogIcon} aria-hidden="true">
+                  <span className="material-icons">add_link</span>
+                </div>
+                <h2 id={`project-tile-link-title-${project.id}`}>Add project link</h2>
+                <p id={`project-tile-link-description-${project.id}`} className={styles.linkDescription}>
+                  Keep a useful resource one click away from <strong>{project.text}</strong>.
+                </p>
+                <div className={styles.linkField}>
+                <label htmlFor={`project-tile-link-${project.id}`}>External Link</label>
+                <span className={`material-icons ${styles.linkFieldIcon}`} aria-hidden="true">link</span>
+                <input
+                  ref={linkInputRef}
+                  id={`project-tile-link-${project.id}`}
+                  type="url"
+                  placeholder="https://example.com"
+                  value={draftLink}
+                  onChange={(e) => {
+                    setDraftLink(e.target.value);
+                    setLinkError("");
+                  }}
+                  aria-invalid={Boolean(linkError)}
+                  aria-describedby={`project-tile-link-help-${project.id}`}
+                  autoFocus
+                />
+                </div>
+                <p
+                  id={`project-tile-link-help-${project.id}`}
+                  className={linkError ? styles.linkError : styles.linkHelper}
+                  role={linkError ? "alert" : undefined}
+                >
+                  {linkError || "Use an https:// or http:// URL. You can edit it later in the overview."}
+                </p>
+                <div className={styles.linkEditorActions}>
+                  <button className={styles.linkCancelButton} type="button" onClick={() => setEditingLink(false)}>Cancel</button>
+                  <button ref={saveLinkButtonRef} className={styles.linkSaveButton} type="submit">Save link</button>
+                </div>
+              </form>
+              </div>,
+              document.body,
+            )}
             <div className={`${styles.nameAccent} project-name-accent`} />
           </div>
 
