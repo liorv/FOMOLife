@@ -53,6 +53,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   const contactsClient = useMemo(() => createContactsApiClient(""), []);
   const tasksClient = useMemo(() => createTasksApiClient(""), []);
   const projectSavesRef = useRef(new Map<string, Promise<ProjectItem>>());
+  const reorderSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   // --- API helper wrappers to centralize optimistic updates and error handling
   const apiUpdateProject = async (projectId: string, updated: Partial<ProjectItem>) => {
@@ -620,19 +621,30 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     const targetIndex = projects.findIndex(
       (project) => project.id === targetProjectId,
     );
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return;
 
     const reordered = [...projects];
     const [removed] = reordered.splice(draggedIndex, 1);
     if (!removed) return;
     reordered.splice(targetIndex, 0, removed);
-    setProjects(reordered);
+    const orderedProjects = reordered.map((project, order) => ({ ...project, order }));
+    setProjects(orderedProjects);
+    setCachedProjects(orderedProjects);
 
-    await Promise.all(
-      reordered.map((project, index) =>
-        apiUpdateProject(project.id, { order: index }),
-      ),
-    );
+    const save = reorderSaveRef.current.then(async () => {
+      try {
+        // Each patch writes the owner's entire project list; avoid overlapping writes.
+        for (const project of orderedProjects) {
+          await apiUpdateProject(project.id, { order: project.order });
+        }
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : "Failed to save project order");
+      } finally {
+        invalidateProjectsCache();
+      }
+    });
+    reorderSaveRef.current = save;
+    await save;
   };
 
   

@@ -240,7 +240,7 @@ export async function listProjects(userId: string): Promise<ProjectItem[]> {
     index === self.findIndex((p) => p.id === project.id)
   );
 
-  return uniqueProjects;
+  return uniqueProjects.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 }
 
 export async function createProject(

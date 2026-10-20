@@ -51,6 +51,10 @@ Checkboxes update immediately. Project saves are queued per project in click
 order, and earlier save responses cannot replace newer pending edits. Save
 failures are displayed in the projects page rather than silently ignored.
 
+Dragging projects into a new order saves that order and restores it after a
+reload or returning to the Projects tab. Projects without a saved position appear
+after ordered projects, preserving their existing relative order.
+
 Home's Recent Activity lists task creation and completion events by their recorded
 timestamps, newest first, within the last seven days. Due dates never determine
 task activity order or inclusion. Task timestamps are saved for both standalone
