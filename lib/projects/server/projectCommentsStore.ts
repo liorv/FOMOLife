@@ -6,6 +6,8 @@ import type { PersistedUserData } from '@myorg/storage';
 import { getDisplayNameFromUserId } from '../../server/frameworkAuth';
 import { sendPushToUser } from '../../server/webPush';
 import { getNotificationUrl } from '../../notificationNavigation';
+import type { NotificationEventSettings } from '@myorg/types';
+import { getTaskNotificationSettings, isNotificationEnabled } from '../../server/notificationSettings';
 
 const storage = createStorageProvider();
 
@@ -142,7 +144,10 @@ export async function addThreadComment(opts: {
       read: false,
     }),
   );
-  await Promise.allSettled(notifPromises);
+  const results = await Promise.allSettled(notifPromises);
+  for (const result of results) {
+    if (result.status === 'rejected') console.error('Failed to send project comment notification:', result.reason);
+  }
 
   return comment;
 }
@@ -174,6 +179,7 @@ function notifLockKey(userId: string) {
 }
 
 async function appendNotification(userId: string, notif: ProjectNotification): Promise<void> {
+  if (!await isNotificationEnabled(userId, notificationEvent(userId, notif))) return;
   await withKeyedLock(notifLockKey(userId), async () => {
     const notifs = await loadNotifications(userId);
     const trimmed = [notif, ...notifs].slice(0, 100);
@@ -193,14 +199,24 @@ async function appendNotification(userId: string, notif: ProjectNotification): P
   });
 }
 
+function notificationEvent(userId: string, notif: ProjectNotification): keyof NotificationEventSettings {
+  if (notif.type === 'task_completed') {
+    return notif.commentAuthorId === userId ? 'ownTaskCompletions' : 'othersTaskCompletions';
+  }
+  if (notif.type === 'task_assigned') return 'taskAssignments';
+  return notif.taskId || notif.threadId.startsWith('task:') ? 'taskComments' : 'projectComments';
+}
+
 export async function listProjectNotifications(userId: string): Promise<ProjectNotification[]> {
   const notifs = await loadNotifications(userId);
-  return notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const { events } = await getTaskNotificationSettings(userId);
+  return notifs.filter((n) => events[notificationEvent(userId, n)])
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getProjectNotifUnreadCount(userId: string): Promise<number> {
-  const notifs = await loadNotifications(userId);
-  return notifs.filter((n) => !n.read).length;
+  const notifs = await listProjectNotifications(userId);
+  return notifs.filter((n) => !n.read && !n.dismissed).length;
 }
 
 export async function markProjectNotificationsRead(userId: string, ids: string[]): Promise<void> {
@@ -293,5 +309,8 @@ export async function notifyTaskAssigned(opts: {
       read: false,
     }),
   );
-  await Promise.allSettled(notifPromises);
+  const results = await Promise.allSettled(notifPromises);
+  for (const result of results) {
+    if (result.status === 'rejected') console.error('Failed to send task assignment notification:', result.reason);
+  }
 }

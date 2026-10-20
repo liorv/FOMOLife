@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useUserPreferences } from './useUserPreferences';
 import { SettingsModal } from './SettingsModal';
-import { NotificationSettingsModal } from './NotificationSettingsModal';
 
 export interface LogoBarProps {
   logoUrl?: string;
@@ -31,7 +30,6 @@ export interface LogoBarProps {
   className?: string;
   rightContent?: React.ReactNode;
   onInstall?: () => void;
-  notificationDeviceControls?: React.ReactNode;
 }
 
 export default function LogoBar({
@@ -56,12 +54,10 @@ export default function LogoBar({
   className,
   rightContent,
   onInstall,
-  notificationDeviceControls,
 }: LogoBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false);
   const [devSwitchId, setDevSwitchId] = useState(devCurrentUserId);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [prefs, setPrefs] = useUserPreferences();
@@ -194,20 +190,6 @@ export default function LogoBar({
                 </span>
                 Settings
               </button>
-              <button
-                type="button"
-                className="logobar-menu-item"
-                role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setNotificationSettingsOpen(true);
-                }}
-              >
-                <span className="material-icons logobar-menu-item-icon" aria-hidden="true">
-                  notifications
-                </span>
-                Notification settings
-              </button>
               {onInstall ? (
                 <button
                   type="button"
@@ -312,9 +294,6 @@ export default function LogoBar({
           onSave={setPrefs}
           onClose={() => setSettingsOpen(false)}
         />
-      ) : null}
-      {notificationSettingsOpen ? (
-        <NotificationSettingsModal onClose={() => setNotificationSettingsOpen(false)} deviceControls={notificationDeviceControls} />
       ) : null}
       {aboutOpen && aboutInfo ? (
         <div

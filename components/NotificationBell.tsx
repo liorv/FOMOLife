@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { NotificationSettingsModal } from '@myorg/ui';
+import { PushNotificationSettings } from './PushNotificationSettings';
 import { createContactsApiClient } from '@myorg/api-client';
 import { NotificationDropdown } from './NotificationDropdown';
 import { getSupabaseBrowserClient } from '@/lib/client/supabaseBrowser';
@@ -16,6 +19,8 @@ export function NotificationBell({ userId }: { userId?: string }) {
   const [projectNotifCount, setProjectNotifCount] = useState(0);
   const [taskNotifCount, setTaskNotifCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [settingsUserId, setSettingsUserId] = useState<string | null>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Initialize API client
@@ -40,6 +45,7 @@ export function NotificationBell({ userId }: { userId?: string }) {
     setProjectNotifCount(0);
     setTaskNotifCount(0);
     setShowDropdown(false);
+    setSettingsUserId(null);
   }, [currentUserId]);
 
   useEffect(() => {
@@ -87,6 +93,7 @@ export function NotificationBell({ userId }: { userId?: string }) {
   return (
     <div className="framework-notification-wrapper" ref={dropdownRef}>
       <button 
+        ref={bellRef}
         className="framework-bell-button" 
         onClick={toggleDropdown}
         aria-label="Notifications"
@@ -109,6 +116,11 @@ export function NotificationBell({ userId }: { userId?: string }) {
             isOpen={showDropdown}
             apiClient={apiClient} 
             onClose={closeDropdown} 
+            onOpenSettings={() => {
+              setShowDropdown(false);
+              bellRef.current?.focus();
+              setSettingsUserId(currentUserId);
+            }}
             onRequestsUpdate={(count) => setPendingRequestsCount(count)}
             onContactsUpdate={() => {
                 invalidateContactsCache();
@@ -126,6 +138,13 @@ export function NotificationBell({ userId }: { userId?: string }) {
             }}
           />
         </div>
+      )}
+      {currentUserId && settingsUserId === currentUserId && createPortal(
+        <NotificationSettingsModal
+          onClose={() => setSettingsUserId(null)}
+          deviceControls={<PushNotificationSettings />}
+        />,
+        document.body,
       )}
     </div>
   );

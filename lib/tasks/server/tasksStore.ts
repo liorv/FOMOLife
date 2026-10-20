@@ -5,6 +5,7 @@ import { generateId } from '@myorg/utils';
 import type { PersistedUserData } from '@myorg/storage';
 import type { TaskItem } from '@myorg/types';
 import { sendPushToUser } from '../../server/webPush';
+import { isNotificationEnabled } from '../../server/notificationSettings';
 
 const storage = createStorageProvider();
 
@@ -88,7 +89,7 @@ export async function updateTask(
   const updated = next.find((item) => item.id === id) ?? null;
   tasksByUser.set(userId, next);
   await savePersisted(userId);
-  if (updated?.done && wasDone === false) {
+  if (updated?.done && wasDone === false && await isNotificationEnabled(userId, 'ownTaskCompletions')) {
     await sendPushToUser(userId, {
       title: 'Task completed',
       body: updated.text,

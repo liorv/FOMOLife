@@ -80,6 +80,21 @@ describe('daily task reminders', () => {
     expect((await runTaskDueNotificationsJob()).notified).toBe(0);
   });
 
+  it('hides existing reminders and suppresses snoozed delivery after disabling a category', async () => {
+    await runTaskDueNotificationsJob();
+    const [notification] = await listTaskDueNotifications('owner');
+    if (!notification) throw new Error('Expected a reminder');
+    await rescheduleTaskNotification('owner', notification.id, 'day');
+    await saveTaskNotificationSettings('owner', {
+      createdByMe: { enabled: false, notifyBefore: '1d' },
+      assignedToMe: { enabled: true, notifyBefore: '1d' },
+    });
+    jest.advanceTimersByTime(60_001);
+    expect((await runTaskDueNotificationsJob()).notified).toBe(0);
+    expect(await listTaskDueNotifications('owner')).toEqual([]);
+    expect(sendPushToUser).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['7d', '0d'] as const)('honors the %s milestone', async (notifyBefore) => {
     await saveTaskNotificationSettings('owner', {
       createdByMe: { enabled: true, notifyBefore },

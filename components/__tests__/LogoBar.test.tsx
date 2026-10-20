@@ -19,6 +19,8 @@ describe('LogoBar', () => {
     const avatarBtn = screen.getByLabelText('Open account menu');
     fireEvent.click(avatarBtn);
     expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Notification settings' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Settings' })).toBeInTheDocument();
     fireEvent.click(screen.getByText('Logout'));
     expect(logout).toHaveBeenCalled();
   });

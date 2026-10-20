@@ -3,7 +3,8 @@ import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import {
   getTaskNotificationSettings,
   saveTaskNotificationSettings,
-} from '@/lib/tasks/server/taskNotificationsStore';
+  DEFAULT_NOTIFICATION_EVENTS,
+} from '@/lib/server/notificationSettings';
 import type { TaskNotificationSettings, TaskNotifyBefore } from '@myorg/types';
 
 function unauthorized() {
@@ -20,6 +21,12 @@ function isValidSettings(body: unknown): body is TaskNotificationSettings {
     if (!category || typeof category.enabled !== 'boolean') return false;
     if (!VALID_NOTIFY_BEFORE.includes(category.notifyBefore as TaskNotifyBefore)) return false;
   }
+  if (b.events !== undefined) {
+    if (!b.events || typeof b.events !== 'object' || Array.isArray(b.events)) return false;
+    for (const [key, value] of Object.entries(b.events)) {
+      if (!Object.hasOwn(DEFAULT_NOTIFICATION_EVENTS, key) || typeof value !== 'boolean') return false;
+    }
+  }
   return true;
 }
 
@@ -35,7 +42,12 @@ export async function PUT(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorized();
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+  }
   if (!isValidSettings(body)) {
     return NextResponse.json({ error: 'Invalid settings payload' }, { status: 400 });
   }

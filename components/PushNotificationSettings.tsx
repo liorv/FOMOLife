@@ -54,24 +54,21 @@ export function PushNotificationSettings() {
   };
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <strong>Browser &amp; mobile notifications</strong>
-      <div style={{ fontSize: '0.8rem' }}>
-        Enable on each browser or installed app to receive reminders and task completions even when FOMO Life is closed.
-        On iPhone/iPad, open the app from your Home Screen first (iOS 16.4 or later).
-      </div>
+    <section aria-label="Device notifications">
+      <p>Receive notifications even when FOMO Life is closed. Enable on each browser or installed app.</p>
       {status === 'unsupported' ? (
         <div role="status">Push is unavailable here. Use a supported browser over HTTPS, or the installed Home Screen app on iPhone/iPad.</div>
       ) : status === 'blocked' ? (
         <div role="status">Notifications are blocked. Allow them in your browser or device settings, then reopen this panel.</div>
       ) : (
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           <button type="button" disabled={busy} onClick={enable}>
-            {busy ? 'Please wait...' : status === 'enabled' && !error ? 'Refresh device registration' : 'Enable on this device'}
+            {busy ? 'Please wait...' : status === 'enabled' && !error ? 'Refresh registration' : 'Enable on this device'}
           </button>
           {status === 'enabled' && !error && (
-            <button type="button" disabled={busy} onClick={test}>Send test notification</button>
+            <button type="button" disabled={busy} onClick={test}>Send test</button>
           )}
+          <p>On iPhone/iPad, use the Home Screen app (iOS 16.4+).</p>
         </div>
       )}
       {message && <div role="status">{message}</div>}

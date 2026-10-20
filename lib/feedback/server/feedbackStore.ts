@@ -6,6 +6,7 @@ import type { PersistedUserData } from '@myorg/storage';
 import { getDisplayNameFromUserId } from '../../server/frameworkAuth';
 import { sendPushToUser } from '../../server/webPush';
 import { getNotificationUrl } from '../../notificationNavigation';
+import { getTaskNotificationSettings, isNotificationEnabled } from '../../server/notificationSettings';
 
 // Feedback is global/shared across all users, stored under this special key
 const FEEDBACK_STORAGE_KEY = '__feedback__';
@@ -207,7 +208,10 @@ export async function markFeedbackComplete(
           read: false,
         }),
       );
-      await Promise.allSettled(notifPromises);
+      const results = await Promise.allSettled(notifPromises);
+      for (const result of results) {
+        if (result.status === 'rejected') console.error('Failed to send feedback status notification:', result.reason);
+      }
     }
 
     return { item: null, archived: true };
@@ -306,7 +310,10 @@ export async function addComment(
       read: false,
     }),
   );
-  await Promise.allSettled(notifPromises);
+  const results = await Promise.allSettled(notifPromises);
+  for (const result of results) {
+    if (result.status === 'rejected') console.error('Failed to send feedback comment notification:', result.reason);
+  }
 
   return { comment, feedbackTitle: item.title };
 }
@@ -340,6 +347,8 @@ function notifLockKey(userId: string) {
 }
 
 async function appendNotification(userId: string, notif: FeedbackNotification): Promise<void> {
+  const event = notif.type === 'feedback_status' ? 'feedbackStatusChanges' : 'feedbackComments';
+  if (!await isNotificationEnabled(userId, event)) return;
   await withKeyedLock(notifLockKey(userId), async () => {
     const notifs = await loadNotifications(userId);
     // Keep most recent 100 notifications to avoid unbounded growth
@@ -362,7 +371,8 @@ async function appendNotification(userId: string, notif: FeedbackNotification): 
 /** Returns all notifications for a user, newest first. */
 export async function listNotifications(userId: string): Promise<FeedbackNotification[]> {
   const notifs = await loadNotifications(userId);
-  return [...notifs].sort(
+  const { events } = await getTaskNotificationSettings(userId);
+  return notifs.filter((n) => events[n.type === 'feedback_status' ? 'feedbackStatusChanges' : 'feedbackComments']).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }

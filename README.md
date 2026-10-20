@@ -149,9 +149,10 @@ Notes:
   Keep the private key secret and the key pair stable across deployments. The
   browser retrieves the public key at runtime; a separate build-time public key
   is not required.
-- Open the profile menu's **Notification settings**, select **Enable on this
-  device**, and allow notifications. Repeat in each desktop browser and installed
-  mobile app. **Send test notification** checks delivery to registered devices.
+- Open the notification bell, select the **Notification settings** gear in the
+  panel header, then expand **Browser & mobile**,
+  select **Enable on this device**, and allow notifications. Repeat in each desktop browser and installed
+  mobile app. **Send test** checks delivery to registered devices.
 - On iPhone/iPad, use iOS/iPadOS 16.4 or later, add the app to the Home Screen,
   then open that installed app and enable notifications from there.
 - Push delivery does not depend on an open FOMO Life tab. Browser/OS notification
@@ -166,6 +167,14 @@ Notes:
 - Completion notifications are sent when a task changes from incomplete to
   complete (not by the daily cron), including to the completer's registered devices.
   Shared project completions also notify the project's other members.
+- **Notification settings** has independent switches for tasks you complete,
+  tasks others complete, task assignments, project comments, task comments,
+  feedback comments, and feedback status changes, alongside due-date reminders.
+  Preferences save automatically per account and apply to both the bell and
+  device push. All categories remain enabled by default for existing users.
+  Disabled categories are hidden from the bell and its unread count immediately;
+  existing stored notifications reappear if re-enabled. Activity notifications
+  skipped while disabled are not backfilled. Contact requests are unaffected.
 
 Cross-app URL vars (set where relevant):
 - `NEXT_PUBLIC_CONTACTS_APP_URL`

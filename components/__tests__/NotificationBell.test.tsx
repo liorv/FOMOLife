@@ -14,7 +14,8 @@ jest.mock('@myorg/api-client', () => ({
   }),
 }));
 jest.mock('@/lib/client/pushNotifications', () => ({
-  ensurePushSubscription: async () => undefined,
+  ensurePushSubscription: async () => 'enabled',
+  getPushPermissionStatus: () => 'enabled',
 }));
 jest.mock('@/lib/client/contactsCache', () => ({
   invalidateContactsCache: jest.fn(),
@@ -58,6 +59,53 @@ describe('notification badge synchronization', () => {
     mockGetPendingRequests.mockReset().mockResolvedValue({ requests: [] });
     global.fetch = originalFetch;
     jest.restoreAllMocks();
+  });
+
+  it('opens settings from the panel gear, preserves device controls, and restores focus to the bell', async () => {
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => String(input).includes('notification-settings')
+      ? { ok: true, json: async () => ({ settings: {
+        createdByMe: { enabled: true, notifyBefore: '1d' },
+        assignedToMe: { enabled: true, notifyBefore: '1d' },
+      } }) } as Response
+      : response(0));
+    render(<NotificationBell userId="user" />);
+    const bell = screen.getByRole('button', { name: 'Notifications' });
+    expect(screen.queryByRole('button', { name: 'Notification settings' })).not.toBeInTheDocument();
+    fireEvent.click(bell);
+    fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
+    expect(bell).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('dialog', { name: 'Notification settings' })).toBeVisible();
+    await screen.findByRole('switch', { name: 'Tasks I complete' });
+    fireEvent.click(screen.getByText('Browser & mobile'));
+    expect(await screen.findByRole('button', { name: 'Refresh registration' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Send test' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(bell).toHaveFocus();
+  });
+
+  it('closes notification settings when the current user changes', async () => {
+    global.fetch = jest.fn(async () => response(0));
+    const { rerender } = render(<NotificationBell userId="first" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    rerender(<NotificationBell userId="second" />);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('refreshes the dropdown and badge immediately after notification preferences change', async () => {
+    let unread = 1;
+    global.fetch = jest.fn(async (input: RequestInfo | URL) =>
+      response(String(input).includes('/projects/') ? unread : 0));
+    const { container } = render(<NotificationBell userId="user" />);
+    await waitFor(() => expect(container.querySelector('.framework-bell-badge')).toHaveTextContent('1'));
+    unread = 0;
+    act(() => { window.dispatchEvent(new Event('notification-settings-updated')); });
+    await waitFor(() => expect(container.querySelector('.framework-bell-badge')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    expect(screen.queryByText('Message')).not.toBeInTheDocument();
+    await screen.findByText(/all caught up/);
   });
 
   it.each(['feedback', 'projects', 'tasks'])(

@@ -43,5 +43,6 @@ export type {
 	TaskReminderStage,
 	TaskNotificationCategorySettings,
 	TaskNotificationSettings,
+	NotificationEventSettings,
 	TaskDueNotification,
 } from './notifications';

@@ -121,6 +121,33 @@
   justify-content: center;
 }
 
+.notification-settings-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ui-text-muted, #666);
+  cursor: pointer;
+}
+
+.notification-settings-button .material-icons {
+  font-size: 20px;
+}
+
+.notification-settings-button:hover {
+  background: var(--ui-primary-bg-subtle, #eef5fd);
+  color: var(--ui-primary, #1976d2);
+}
+
+.notification-settings-button:focus-visible {
+  outline: 2px solid var(--ui-primary, #1976d2);
+  outline-offset: 2px;
+}
+
 .notification-content {
   max-height: 300px;
   overflow-y: auto;

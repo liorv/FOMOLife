@@ -1,5 +1,5 @@
 /**
- * Task due-date notification types.
+ * Activity notification preferences and task due-date notification types.
  *
  * Users can be notified when a task they created or are assigned to is
  * coming due. Reminder timing is configurable per category (tasks the user
@@ -18,12 +18,24 @@ export interface TaskNotificationCategorySettings {
   notifyBefore: TaskNotifyBefore;
 }
 
-/** Per-user notification preferences for task due-date reminders. */
+export interface NotificationEventSettings {
+  ownTaskCompletions: boolean;
+  othersTaskCompletions: boolean;
+  taskAssignments: boolean;
+  projectComments: boolean;
+  taskComments: boolean;
+  feedbackComments: boolean;
+  feedbackStatusChanges: boolean;
+}
+
+/** Per-user preferences shared by the notification bell and device push. */
 export interface TaskNotificationSettings {
   /** Settings for tasks the user created/owns. */
   createdByMe: TaskNotificationCategorySettings;
   /** Settings for tasks the user is assigned to (project tasks). */
   assignedToMe: TaskNotificationCategorySettings;
+  /** Missing preferences from older clients default to enabled. */
+  events?: Partial<NotificationEventSettings>;
 }
 
 export interface TaskDueNotification {

@@ -5,24 +5,23 @@ import type { PersistedUserData } from '@myorg/storage';
 import { generateId, withKeyedLock } from '@myorg/utils';
 import type {
   TaskDueNotification,
-  TaskNotificationSettings,
   TaskNotifyBefore,
   TaskReminderStage,
 } from '@myorg/types';
 import { sendPushToUser } from '../../server/webPush';
 import { getNotificationUrl } from '../../notificationNavigation';
 import { listAllUsersData } from './allUsersData';
+import { getTaskNotificationSettings } from '../../server/notificationSettings';
+export {
+  DEFAULT_TASK_NOTIFICATION_SETTINGS,
+  getTaskNotificationSettings,
+  saveTaskNotificationSettings,
+} from '../../server/notificationSettings';
 
 const storage = createStorageProvider();
 
 const NOTIF_KEY_PREFIX = '__task_notifs__';
-const SETTINGS_KEY_PREFIX = '__task_notif_settings__';
 const STATE_KEY_PREFIX = '__task_notif_state__';
-
-export const DEFAULT_TASK_NOTIFICATION_SETTINGS: TaskNotificationSettings = {
-  createdByMe: { enabled: true, notifyBefore: '1d' },
-  assignedToMe: { enabled: true, notifyBefore: '1d' },
-};
 
 /** Per-task snooze override: reminder should fire again at this timestamp. */
 interface TaskNotifState {
@@ -33,26 +32,6 @@ interface TaskNotifState {
 }
 
 const DEFAULT_STATE: TaskNotifState = { sent: [], overrides: {} };
-
-// ── Settings ─────────────────────────────────────────────────────────────────
-
-export async function getTaskNotificationSettings(userId: string): Promise<TaskNotificationSettings> {
-  const persisted = await storage.load(`${SETTINGS_KEY_PREFIX}${userId}`);
-  const settings = persisted?.settings as TaskNotificationSettings | undefined;
-  if (!settings) return DEFAULT_TASK_NOTIFICATION_SETTINGS;
-  return {
-    createdByMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.createdByMe, ...settings.createdByMe },
-    assignedToMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.assignedToMe, ...settings.assignedToMe },
-  };
-}
-
-export async function saveTaskNotificationSettings(
-  userId: string,
-  settings: TaskNotificationSettings,
-): Promise<void> {
-  const data: PersistedUserData = { settings };
-  await storage.save(`${SETTINGS_KEY_PREFIX}${userId}`, data);
-}
 
 // ── Notifications ────────────────────────────────────────────────────────────
 
@@ -90,11 +69,15 @@ async function appendNotification(userId: string, notif: TaskDueNotification): P
 
 export async function listTaskDueNotifications(userId: string): Promise<TaskDueNotification[]> {
   const notifs = await loadNotifications(userId);
-  return notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const settings = await getTaskNotificationSettings(userId);
+  return notifs.filter((n) => {
+    const category = n.source === 'created' ? settings.createdByMe : settings.assignedToMe;
+    return category.enabled && category.notifyBefore !== 'off';
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getTaskNotifUnreadCount(userId: string): Promise<number> {
-  const notifs = await loadNotifications(userId);
+  const notifs = await listTaskDueNotifications(userId);
   return notifs.filter((n) => !n.read && !n.dismissed).length;
 }
 
@@ -289,13 +272,15 @@ export async function runTaskDueNotificationsJob(): Promise<{ usersScanned: numb
         }
         if (remaining < 0) continue;
 
+        const categorySettings = candidate.source === 'assigned' ? settings.assignedToMe : settings.createdByMe;
+        if (!categorySettings.enabled || categorySettings.notifyBefore === 'off') continue;
+
         const override = state.overrides[candidate.taskId];
         let stage: TaskReminderStage | null = null;
 
         if (override && new Date(override.remindAt).getTime() <= Date.now()) {
           stage = override.stage;
         } else if (!override) {
-          const categorySettings = candidate.source === 'assigned' ? settings.assignedToMe : settings.createdByMe;
           if (categorySettings.enabled) {
             const targetStage = stageForNotifyBefore(categorySettings.notifyBefore);
             const targetDays = targetStage === 'week' ? 7 : targetStage === 'day' ? 1 : targetStage === 'due' ? 0 : null;

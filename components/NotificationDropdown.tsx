@@ -36,6 +36,7 @@ interface ProjectNotification {
 type NotificationDropdownProps = {
   apiClient: ContactsApiClient;
   onClose: () => void;
+  onOpenSettings?: () => void;
   onRequestsUpdate: (count: number) => void;
   onContactsUpdate: () => void;
   userId?: string | undefined;
@@ -67,6 +68,7 @@ function timeAgo(iso: string): string {
 export function NotificationDropdown({
   apiClient,
   onClose,
+  onOpenSettings,
   onRequestsUpdate,
   onContactsUpdate,
   onFeedbackNotifsUpdate,
@@ -121,6 +123,7 @@ export function NotificationDropdown({
     window.addEventListener('feedback-notifs-updated', refreshFeedback);
     window.addEventListener('project-notifs-updated', refreshProjects);
     window.addEventListener('task-notifs-updated', refreshTasks);
+    window.addEventListener('notification-settings-updated', refresh);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
@@ -129,6 +132,7 @@ export function NotificationDropdown({
       window.removeEventListener('feedback-notifs-updated', refreshFeedback);
       window.removeEventListener('project-notifs-updated', refreshProjects);
       window.removeEventListener('task-notifs-updated', refreshTasks);
+      window.removeEventListener('notification-settings-updated', refresh);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', handleVisibility);
       ++loadVersions.current.contacts;
@@ -421,6 +425,17 @@ export function NotificationDropdown({
               disabled={clearingAll}
             >
               {clearingAll ? 'Clearing...' : 'Clear all'}
+            </button>
+          )}
+          {onOpenSettings && (
+            <button
+              type="button"
+              className="notification-settings-button"
+              aria-label="Notification settings"
+              title="Notification settings"
+              onClick={onOpenSettings}
+            >
+              <span className="material-icons" aria-hidden="true">settings</span>
             </button>
           )}
           <button onClick={onClose} className="notification-close" aria-label="Close notifications">&times;</button>
