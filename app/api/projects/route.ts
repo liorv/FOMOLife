@@ -8,7 +8,7 @@ import type { ProjectCreateInput, ProjectUpdateInput } from '@myorg/types';
 import { isValidExternalUrl } from '@myorg/utils';
 import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 

@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useRef,
   KeyboardEvent,
-  MouseEvent,
   useEffect,
 } from "react";
 import type {
@@ -171,7 +170,6 @@ export default function ProjectsDashboard({
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
-  const isFilterActive = (filterType: string) => filters.includes(filterType);
   const taskFilterCount = filters.filter((filter) => filter !== 'hide_completed').length;
 
   const [showFilters, setShowFilters] = useState(false);
@@ -408,21 +406,7 @@ export default function ProjectsDashboard({
     return source.flatMap((p) => (p.subprojects || []).flatMap((s) => s.tasks || []));
   }, [visibleProjects, selectedProject]);
 
-  const scopedSubprojects = useMemo(() => {
-    const source = selectedProject ? [selectedProject] : visibleProjects;
-    return source.flatMap((p) =>
-      (p.subprojects || []).filter((s) => !s.isProjectLevel),
-    );
-  }, [projects, selectedProject]);
-
   const completedTasks = useMemo(() => scopedTasks.filter((t) => t.done).length, [scopedTasks]);
-  const completedSubprojects = useMemo(
-    () =>
-      scopedSubprojects.filter(
-        (s) => (s.tasks || []).length > 0 && (s.tasks || []).every((t) => t.done),
-      ).length,
-    [scopedSubprojects],
-  );
 
   const starredCount = useMemo(
     () => scopedTasks.filter((t) => (t as any).starred || t.favorite).length,

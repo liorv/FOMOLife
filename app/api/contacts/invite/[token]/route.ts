@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import type { InviterProfile } from '@myorg/types';
 import { getInviteDetails } from '@/lib/contacts/server/contactsStore';
 import { makeCorsResponse } from '@/lib/server/apiUtils';
 

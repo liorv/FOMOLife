@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { ContactsApiClient } from '@myorg/api-client';
 import type { Contact } from '@myorg/types';
-import { ContactTile, ModalOverlay } from '@myorg/ui';
+import { ContactTile } from '@myorg/ui';
 import { createContactsApiClient } from '@myorg/api-client';
 import { getCachedContacts, getCachedContactsSync } from '@/lib/client/contactsCache';
 
@@ -80,9 +80,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
-  // display ready state - only show content after framework acknowledges loading
-  // If not embedded, immediately show content for standalone usage and tests
-  const displayReady = true;
   // banner shown when an invite link is copied anywhere on the page
   const [linkCopied, setLinkCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string>('');
@@ -92,8 +89,6 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
   const [acceptedBanner, setAcceptedBanner] = useState(false);
   // search functionality
   const searchTerm = searchParams.get('q') || '';
-  // notification dropdown state
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // filter and sort contacts alphabetically
   const filteredContacts = useMemo(() => {

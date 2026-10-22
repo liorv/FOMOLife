@@ -153,9 +153,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
     setSearchDraft(headerSearchQuery);
   }, [headerSearchQuery]);
 
-// Pre-mount ALL tabs immediately so data fetches begin in the background.
-  const [loadedApps] = useState<Set<string>>(() => new Set(TAB_ORDER));
-
   // The tab that was active when the page first loaded.
   const initialTabRef = useRef<FrameworkTab>(normalizeTab(searchParams.get('tab') ?? undefined));
 
@@ -251,8 +248,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
 
   const isCurrentTabLoaded = true;
   const isSearchDisabled = !isCurrentTabLoaded;
-
-  const frameLabel = activeTabConfig?.label ?? 'App';
 
   const handleSignOut = async () => {
     try {

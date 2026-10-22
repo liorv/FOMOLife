@@ -62,7 +62,7 @@ export default function FrameworkColorPickerOverlay({ colors, open: controlledOp
       const { type } = event.data as any;
       // Only handle colorpicker control messages here — ignore other app messages
       if (type !== 'colorpicker-open' && type !== 'colorpicker-close') return;
-      const { _from, _itemId, _itemType, selectedColor } = event.data as any;
+      const { selectedColor } = event.data as any;
       // received colorpicker control message
       console.debug('[ColorPickerOverlay] message', { type, origin: event.origin, selectedColor });
 

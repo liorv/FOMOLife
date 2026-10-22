@@ -30,7 +30,7 @@ export interface ContactTileProps {
 // ContactTile component skeleton for contacts redesign
 
 
-export function ContactTile({ id, name, status, avatarUrl, oauthProvider, realName, realEmail, autoFocus, onNameChange, onUnlink, onInvite, onLink, onLinkSuccess, isSelf }: ContactTileProps) {
+export function ContactTile({ id, name, status, avatarUrl, autoFocus, onNameChange, onUnlink }: ContactTileProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(name);
   const inputRef = useRef<HTMLInputElement>(null);

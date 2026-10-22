@@ -19,11 +19,8 @@ interface PersonEntry {
 export default function TaskEditor({
   task,
   onSave,
-  onClose,
   onUpdateTask = () => {},
   allPeople = [],
-  onOpenPeople = () => {},
-  onCreatePerson = () => {},
   inline = false,
 }: TaskEditorProps) {
   // --- State ---------------------------------------------------------------
@@ -118,8 +115,6 @@ export default function TaskEditor({
     onUpdateTask(updated);
     if (closeAfter) onSave(updated);
   };
-
-  const handleSaveAndClose = () => saveToParent(true);
 
   // Keyboard shortcuts: Esc → close, Ctrl/Cmd+Enter → save & close
   useEffect(() => {

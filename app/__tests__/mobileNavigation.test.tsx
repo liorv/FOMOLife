@@ -16,4 +16,8 @@ describe('mobile system navigation', () => {
   it('uses a black system navigation theme when installed', () => {
     expect(manifest().theme_color).toBe('#000000');
   });
+
+  it('uses a black installed-app launch background', () => {
+    expect(manifest().background_color).toBe('#000000');
+  });
 });

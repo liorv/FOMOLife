@@ -32,6 +32,10 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ## Task editing
 
+The document canvas and PWA launch background are black; app content keeps its
+existing light/dark backgrounds. This is a best-effort backdrop for Android
+system navigation, whose final appearance is controlled by the browser and OS.
+
 Manually switching tabs (including mobile swipes) clears the global search input
 and its URL query. Direct links can still open a tab with a search query.
 

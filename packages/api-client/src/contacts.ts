@@ -201,7 +201,6 @@ export async function leaveGroup(groupId: string): Promise<{ ok: true }> {
 import type {
   Contact,
   InviteToken,
-  ContactGroup,
   ContactGroupInput,
   Group,
   InviteTokenResponse,

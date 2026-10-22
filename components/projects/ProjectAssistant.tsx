@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import type { ProjectTask } from "@myorg/types";
 
 // Visual preview component using actual UI components
 const ChangePreview = ({ modified, original }: { modified: any, original: any }) => {
@@ -639,12 +638,6 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
     const originalSubs: any[] = project?.subprojects || [];
     const modifiedSubs: any[] = modifiedProject?.sub_projects || modifiedProject?.subprojects || [];
 
-    const findOriginalSub = (mSub: any) => {
-      const title = (mSub.title || mSub.text || '').trim().toLowerCase();
-      return originalSubs.find((s: any) => s.id === mSub.id) ||
-        originalSubs.find((s: any) => (s.text || '').trim().toLowerCase() === title);
-    };
-
     const findOriginalTask = (mTask: any, origTasks: any[]) => {
       const title = (mTask.title || mTask.text || '').trim().toLowerCase();
       let origTask = mTask.id ? origTasks.find((t: any) => t.id === mTask.id) : undefined;
@@ -945,7 +938,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
 
   const copyConversation = async () => {
     try {
-      const text = messages.map((m, index) => {
+      const text = messages.map((m) => {
         let txt = `${m.role.toUpperCase()}: ${m.text}`;
         if (m.meta && Array.isArray(m.meta.actions) && m.meta.actions.length) {
           const labels = m.meta.actions.map((act: any) => (typeof act === 'string' ? act : (act.label || act.type || JSON.stringify(act))));

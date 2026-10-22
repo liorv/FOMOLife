@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import ReactDOM from "react-dom";
-import { PROJECT_COLORS } from './ProjectTile';
 import styles from './SubprojectRow.module.css';
 import type { ProjectSubproject, ProjectItem } from "@myorg/types";
 
@@ -92,7 +91,6 @@ export default function SubprojectRow({
   const tasks = sub.tasks || [];
   const count = tasks.length;
   const doneCount = tasks.filter((t) => t.done).length;
-  const percent = count ? Math.round((doneCount / count) * 100) : 0;
   const taskCountLabel = count === 0 ? "(EMPTY)" : doneCount === count ? "(DONE)" : `(${doneCount}/${count})`;
   const hasDescription = sub.description && sub.description.trim() !== "";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -261,12 +261,6 @@ function DashSection({
   );
 }
 
-function avgDelta(s: DailyActivitySnapshot[], k: keyof DailyActivitySnapshot): string {
-  if (s.length < 2) return 'N/A';
-  const total = s.slice(1).reduce((sum, x) => sum + ((x[k] as number) ?? 0), 0);
-  return (total / (s.length - 1)).toFixed(1);
-}
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 const pageStyle: React.CSSProperties = {
   minHeight: '100vh',

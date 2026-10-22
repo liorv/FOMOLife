@@ -7,7 +7,7 @@ import { createContactsApiClient } from "@myorg/api-client";
 import type { ProjectItem, ProjectSubproject, Contact, TaskItem, ProjectTask } from "@myorg/types";
 import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
-import { getCachedProjectsSync, setCachedProjects, areProjectsStale, getProjectsCacheAge, invalidateProjectsCache } from '@/lib/client/projectsCache';
+import { getCachedProjectsSync, setCachedProjects, areProjectsStale, invalidateProjectsCache } from '@/lib/client/projectsCache';
 import ProjectsDashboard from "./ProjectsDashboard";
 import ConversationThread from "../ConversationThread";
 import layoutStyles from "../../styles/projects/layout.module.css";
@@ -243,15 +243,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
-  // display ready state - only show content after framework acknowledges loading
-  // If not embedded, immediately show content for standalone usage and tests
-  
-  const displayReady = true;
-  const [undoSnackbar, setUndoSnackbar] = useState<{
-    message: string;
-    onUndo: () => void;
-    onConfirm?: () => void;
-  } | null>(null);
   const pendingBlankSubRef = useRef(false);
 
   useEffect(() => {
@@ -410,7 +401,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     };
   }, []);
 
-  const closeUndoSnackbar = () => setUndoSnackbar(null);
 
   const openContacts = () => {
     const params = new URLSearchParams(window.location.search);
@@ -460,21 +450,6 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
     router.push(`${pathname}?${nextParams.toString()}`);
   }, [router, pathname, searchParams]);
-
-  const showUndoSnackbar = (
-    message: string,
-    onUndo: () => void,
-    onConfirm?: () => void,
-  ) => {
-    setUndoSnackbar({ message, onUndo, ...(onConfirm && { onConfirm }) });
-    // If not dismissed within 5 seconds, treat as undo
-    setTimeout(() => {
-      if (undoSnackbar) {
-        undoSnackbar.onUndo();
-        setUndoSnackbar(null);
-      }
-    }, 5000);
-  };
 
   const handleAddProject = async (text = "New Project") => {
     if (!canManage) return;

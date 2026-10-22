@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import {
   listProjectNotifications,
-  getProjectNotifUnreadCount,
   markProjectNotificationsRead,
   dismissProjectNotifications,
 } from '@/lib/projects/server/projectCommentsStore';

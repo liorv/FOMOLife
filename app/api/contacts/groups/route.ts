@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
-import type { ContactGroup, ContactGroupInput } from '@myorg/types';
+import type { ContactGroupInput } from '@myorg/types';
 import { createGroup, deleteGroup, listGroups, updateGroup } from '@/lib/contacts/server/contactsStore';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { unauthorizedResponse, makeCorsResponse } from '@/lib/server/apiUtils';

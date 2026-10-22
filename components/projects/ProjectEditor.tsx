@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { ProjectItem, ProjectSubproject, ProjectTask, Contact, ProjectMember } from "@myorg/types";
-import type { TaskFilter, TaskItem } from "@myorg/types";
+import type { TaskItem } from "@myorg/types";
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { advanceRecurringTask } from '@/lib/tasks/recurrence';
 import ProjectActionMenu from './ProjectActionMenu';
@@ -117,7 +117,6 @@ export default function ProjectEditor({
   allPeople,
   onCreatePerson,
   onOpenPeople,
-  onAddSubproject,
   newlyAddedSubprojectId,
   onClearNewSubproject,
   onSubprojectDeleted,
@@ -126,7 +125,6 @@ export default function ProjectEditor({
   searchQuery = "",
   canManage = true,
   dashboardProjectHeaderTop,
-  dashboardSummary,
   taskToolbar,
   taskFilterPanel,
   projectActions,
@@ -134,7 +132,6 @@ export default function ProjectEditor({
   onExport,
   currentUserId = '',
   onInviteMember,
-  onRemoveMember,
   onArchiveToggle,
   collapseAllRef,
   expandAllRef,
@@ -148,7 +145,6 @@ export default function ProjectEditor({
   // never reads a stale closure value during rapid successive clicks.
   const localRef = useRef<LocalProject>(local);
   localRef.current = local;
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'timeline' | 'risk'>('tasks');
   const [showOverviewEditor, setShowOverviewEditor] = useState(false);
   const [externalUrlDraft, setExternalUrlDraft] = useState(project.externalUrl ?? '');
   const [externalUrlError, setExternalUrlError] = useState('');
@@ -215,7 +211,6 @@ export default function ProjectEditor({
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
-  const [draggedSubprojectId, setDraggedSubprojectId] = useState<string | null>(null);
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -224,11 +219,8 @@ export default function ProjectEditor({
   const safeOnApplyChange = onApplyChange ?? (() => {});
   const safeOnCreatePerson = onCreatePerson ?? (() => {});
   const safeOnOpenPeople = onOpenPeople ?? (() => {});
-  const safeOnAddSubproject = onAddSubproject ?? (() => {});
   const safeOnClearNewSubproject = onClearNewSubproject ?? (() => {});
   const safeOnSubprojectDeleted = onSubprojectDeleted ?? (() => {});
-  const safeOnToggleFilter = onToggleFilter ?? (() => {});
-  const safeOnExport = onExport ?? (() => {});
 
   // Members derived from project prop (always up-to-date from parent)
   const members: ProjectMember[] = project.members ?? [];
@@ -259,14 +251,6 @@ export default function ProjectEditor({
   const invitableContacts = allPeopleList.filter(
     (c) => c.linkedUserId && !memberUserIds.has(c.linkedUserId)
   );
-
-  // Which subproject, if any, is currently expanded?  We collapse all
-  // others whenever one is toggled, so there should be at most one.
-  const expandedSub = useMemo(() => {
-    return (local.subprojects || []).find(
-      (s) => !s.collapsed && !s.isProjectLevel,
-    );
-  }, [local.subprojects]);
 
   const projectTasks = useMemo(
     () => (local.subprojects || []).flatMap((s) => s.tasks || []),
@@ -301,44 +285,6 @@ export default function ProjectEditor({
       day: "numeric",
     });
   }, [tasksRemaining, earliestCompletionDate]);
-
-  const completedCount = useMemo(
-    () => projectTasks.filter((t) => t.done).length,
-    [projectTasks],
-  );
-
-  const starredCount = useMemo(
-    () =>
-      projectTasks.filter(
-        (t) =>
-          !t.done &&
-          ((t as any).starred || t.favorite),
-      ).length,
-    [projectTasks],
-  );
-
-  const overdueCount = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return projectTasks.filter(
-      (t) =>
-        !t.done &&
-        t.dueDate &&
-        new Date(t.dueDate) < today,
-    ).length;
-  }, [projectTasks]);
-
-  const upcomingCount = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const inSeven = new Date(today);
-    inSeven.setDate(today.getDate() + 7);
-    return projectTasks.filter((t) => {
-      if (t.done || !t.dueDate) return false;
-      const d = new Date(t.dueDate);
-      return d >= today && d <= inSeven;
-    }).length;
-  }, [projectTasks]);
 
   const handleSetEditorId = (id: string | null) =>
     setEditorTaskId((prev) => (prev === id ? null : id));
@@ -456,7 +402,6 @@ export default function ProjectEditor({
 
   useEffect(() => {
     if (!targetTaskId) return;
-    setActiveTab('tasks');
     setEditorTaskId(targetTaskId);
     setLocal(previous => ({
       ...previous,
@@ -1762,7 +1707,6 @@ export default function ProjectEditor({
           newlyAddedTaskId={newlyAddedTaskId}
           onClearNewTask={() => setNewlyAddedTaskId(null)}
           onReorder={handleReorderSubprojects}
-          isDragging={draggedSubprojectId === sub.id}
           taskFilters={taskFilters as any[]}
           currentUserName={members.find((m) => m.userId === currentUserId)?.name}
           onSortModeChange={(subId, mode) => updateSubSortMode(subId, mode)}

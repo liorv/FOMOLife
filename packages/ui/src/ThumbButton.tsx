@@ -30,8 +30,6 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
     };
   }, []);
 
-  const showAssistantIcon = assistantOpen;
-
   let iconName = 'add';
   if (activeTab === 'projects') {
     if (assistantOpen) {

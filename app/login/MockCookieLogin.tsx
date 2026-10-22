@@ -9,7 +9,6 @@ type MockCookieLoginProps = {
 export default function MockCookieLogin({ showMissingUserError }: MockCookieLoginProps) {
   const [userId, setUserId] = useState('');
   const [existingUsers, setExistingUsers] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
@@ -20,8 +19,6 @@ export default function MockCookieLogin({ showMissingUserError }: MockCookieLogi
         setExistingUsers(data.users || []);
       } catch (error) {
         console.error('Failed to fetch existing users:', error);
-      } finally {
-        setIsLoading(false);
       }
     }
 

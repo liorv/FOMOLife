@@ -68,9 +68,16 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
-  background: var(--color-bg);
   color: var(--color-text);
   
+}
+
+html {
+  background: #000;
+}
+
+body {
+  background: var(--color-bg);
 }
 
 .material-icons {

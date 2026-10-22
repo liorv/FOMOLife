@@ -6,7 +6,6 @@ import type {
   ContactGroup,
   ContactGroupInput,
   Connection,
-  ConnectionStatus,
   InvitationLink,
   InviterProfile,
   PendingRequest
@@ -121,7 +120,6 @@ const connections = cache.connections;
 const pendingRequests = cache.pendingRequests;
 
 const SYSTEM_ID = 'system_contacts';
-let systemLoaded = false;
 
 async function loadSystemData() {
   
@@ -542,7 +540,7 @@ export async function findUserById(userId: string): Promise<{ id: string; name?:
   try {
     const supabase = getSupabaseAdminClient();
     if (supabase) {
-      const { data, error } = await supabase.auth.admin.getUserById(userId);
+      const { data } = await supabase.auth.admin.getUserById(userId);
       if (data?.user) {
         const metadata = data.user.user_metadata || {};
         const identities = data.user.identities || [];

@@ -405,10 +405,6 @@ export default function ProjectTile({
     );
   };
 
-  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-    // Cleanup
-  };
-
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -445,7 +441,6 @@ export default function ProjectTile({
       ref={dragRef}
       draggable={!editingLink && !editingName}
       onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onPointerDown={handlePointerDown}

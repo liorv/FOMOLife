@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { InviteAcceptanceRequest, Group } from '@myorg/types';
+import type { InviteAcceptanceRequest } from '@myorg/types';
 import { acceptGroupInvite } from '@/lib/contacts/server/contactsStore';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { unauthorizedResponse, makeCorsResponse } from '@/lib/server/apiUtils';

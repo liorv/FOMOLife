@@ -7,7 +7,7 @@
  * tasks are excluded unless the "completed" filter is explicitly selected.
  */
 
-import type { TaskItem, TaskFilter } from '@myorg/types';
+import type { TaskItem } from '@myorg/types';
 
 /**
  * Apply filters to a list of tasks

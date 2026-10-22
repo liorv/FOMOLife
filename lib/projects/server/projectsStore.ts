@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { createStorageProvider } from '@myorg/storage';
-import type { PersistedUserData } from '@myorg/storage';
 
 const storage = createStorageProvider();
 
@@ -83,26 +82,6 @@ function generateId(): string {
     return crypto.randomUUID();
   }
   return Math.random().toString(36).slice(2);
-}
-
-function validateTaskOwners(project: ProjectItem): void {
-  const memberUserIds = new Set(project.members?.map(m => m.userId) ?? []);
-  
-  // Check all tasks in all subprojects
-  for (const subproject of project.subprojects ?? []) {
-    for (const task of subproject.tasks ?? []) {
-      for (const person of task.people ?? []) {
-        // For now, we can't validate by name since we don't have access to contacts here
-        // But we can at least ensure that if there are members, tasks don't have owners
-        // This is a basic validation - the frontend should prevent this
-        if (project.members && project.members.length > 0 && task.people && task.people.length > 0) {
-          // If the project has members defined, we expect the frontend to have filtered
-          // For backend validation, we'd need contact lookup which is complex
-          // For now, we'll rely on frontend validation
-        }
-      }
-    }
-  }
 }
 
 function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {

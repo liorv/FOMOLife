@@ -43,7 +43,6 @@ export default function LogoBar({
   userEmail = '',
   userInitials = 'U',
   userAvatarUrl = '',
-  canSignOut = false,
   onSoftLogout,
   onSwitchUsers,
   devMode = false,
