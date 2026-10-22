@@ -2,7 +2,6 @@ import React, {
   useState,
   useMemo,
   useRef,
-  KeyboardEvent,
   useEffect,
 } from "react";
 import type {
@@ -17,6 +16,8 @@ import ProjectAssistant from "./ProjectAssistant";
 import DismissibleHint from "../DismissibleHint";
 import { validateProjectImportJson, type ValidatedImportProject } from "@/lib/projects/importProject";
 import { advanceRecurringTask } from "@/lib/tasks/recurrence";
+import DashboardMetricCard from "./DashboardMetricCard";
+import { deleteProjectTask, updateProjectTask } from "@/lib/projects/taskUpdates";
 import { TemplateLibrary, TemplateDialog, type TemplateAction } from "./ProjectTemplates";
 import templateStyles from "./ProjectTemplates.module.css";
 
@@ -26,61 +27,6 @@ function hexToRgb(hex: string | undefined): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return "26, 115, 232"; // default blue
   return `${parseInt(result[1]!, 16)}, ${parseInt(result[2]!, 16)}, ${parseInt(result[3]!, 16)}`;
-}
-
-// ─── Summary metric card ─────────────────────────────────────────────────────
-
-type SummaryCardProps = {
-  icon: string;
-  label: string;
-  value: string | number;
-  accent?: string | undefined;
-  onClick?: () => void;
-  active?: boolean | undefined;
-  clickable?: boolean | undefined;
-};
-
-function SummaryCard({
-  icon,
-  label,
-  value,
-  accent,
-  onClick,
-  active,
-  clickable,
-}: SummaryCardProps) {
-  return (
-    <div
-      className={[
-        "dashboard-card",
-        accent ? `dashboard-card--${accent}` : "",
-        clickable ? "dashboard-card--clickable" : "",
-        active ? "dashboard-card--active" : "",
-        active && accent ? `dashboard-card--${accent}` : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      onClick={onClick}
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      onKeyDown={
-        clickable && onClick
-          ? (e: KeyboardEvent<HTMLDivElement>) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onClick();
-            }
-          }
-          : undefined
-      }
-    >
-      <span className="material-icons dashboard-card__icon">{icon}</span>
-      <div className="dashboard-card__content">
-        <span className="dashboard-card__value">{value}</span>
-        {label ? <span className="dashboard-card__label">{label}</span> : null}
-      </div>
-    </div>
-  );
 }
 
 // ─── Main dashboard component ─────────────────────────────────────────────────
@@ -314,26 +260,17 @@ export default function ProjectsDashboard({
     taskId: string,
     patch: Partial<ProjectTask>,
   ) => {
-    const currentTask = (project.subprojects || [])
-      .find((sub) => sub.id === subprojectId)?.tasks.find((task) => task.id === taskId);
-    const completesTask = patch.done === true && currentTask?.done === false;
     const completedAt = new Date();
-    const updatedSubs = (project.subprojects || []).map((sub) =>
-      sub.id === subprojectId
-        ? {
-            ...sub,
-            tasks: (sub.tasks || []).map((task) => {
-              if (task.id !== taskId) return task;
-              const updated = {
-                ...task,
-                ...patch,
-              };
-              if (!completesTask) return updated;
-              if (updated.recurrence) return advanceRecurringTask(updated, completedAt) ?? updated;
-              return { ...updated, completedAt: completedAt.toISOString() };
-            }),
-          }
-        : sub,
+    const updatedSubs = updateProjectTask(
+      project.subprojects || [],
+      subprojectId,
+      taskId,
+      (task) => {
+        const updated = { ...task, ...patch };
+        if (patch.done !== true || task.done !== false) return updated;
+        if (updated.recurrence) return advanceRecurringTask(updated, completedAt) ?? updated;
+        return { ...updated, completedAt: completedAt.toISOString() };
+      },
     );
     onApplyChange?.(project.id, { subprojects: updatedSubs });
   };
@@ -343,11 +280,7 @@ export default function ProjectsDashboard({
     subprojectId: string,
     taskId: string,
   ) => {
-    const updatedSubs = (project.subprojects || []).map((sub) =>
-      sub.id === subprojectId
-        ? { ...sub, tasks: (sub.tasks || []).filter((t) => t.id !== taskId) }
-        : sub,
-    );
+    const updatedSubs = deleteProjectTask(project.subprojects || [], subprojectId, taskId);
     onApplyChange?.(project.id, { subprojects: updatedSubs });
   };
 
@@ -527,7 +460,7 @@ export default function ProjectsDashboard({
                       >
                         <span className="material-icons">close</span>
                       </button>
-                      <SummaryCard
+                      <DashboardMetricCard
                         icon="person"
                         label="Assigned"
                         value={assignedToMeCount}
@@ -536,7 +469,7 @@ export default function ProjectsDashboard({
                         active={filters.includes('assigned_to_me')}
                         onClick={() => onToggleFilter?.('assigned_to_me')}
                       />
-                      <SummaryCard
+                      <DashboardMetricCard
                         icon="check_circle"
                         label="Completed"
                         value={completedTasks}
@@ -545,7 +478,7 @@ export default function ProjectsDashboard({
                         active={filters.includes('completed')}
                         onClick={() => onToggleFilter?.('completed')}
                       />
-                      <SummaryCard
+                      <DashboardMetricCard
                         icon="star"
                         label="Starred"
                         value={starredCount}
@@ -554,7 +487,7 @@ export default function ProjectsDashboard({
                         active={filters.includes('starred')}
                         onClick={() => onToggleFilter?.('starred')}
                       />
-                      <SummaryCard
+                      <DashboardMetricCard
                         icon="warning"
                         label="Overdue"
                         value={overdueCount}
@@ -563,7 +496,7 @@ export default function ProjectsDashboard({
                         active={filters.includes('overdue')}
                         onClick={() => onToggleFilter?.('overdue')}
                       />
-                      <SummaryCard
+                      <DashboardMetricCard
                         icon="upcoming"
                         label="Upcoming"
                         value={upcomingCount}

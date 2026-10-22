@@ -4,6 +4,8 @@ import type { TaskItem } from "@myorg/types";
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { advanceRecurringTask } from '@/lib/tasks/recurrence';
 import ProjectActionMenu from './ProjectActionMenu';
+import DashboardMetricCard from './DashboardMetricCard';
+import { deleteProjectTask, updateProjectTask } from '@/lib/projects/taskUpdates';
 
 // Subprojects used within the editor always have a defined `collapsed` boolean
 interface EditorSubproject extends ProjectSubproject {
@@ -45,51 +47,6 @@ interface ProjectEditorProps {
   expandAllRef?: React.MutableRefObject<(() => void) | null>;
   onTaskChatClick?: (task: ProjectTask) => void;
   taskCommentCounts?: Record<string, number>;
-}
-
-type DashboardTileProps = {
-  icon: string;
-  label: string;
-  value: string | number;
-  accent?: string;
-  active?: boolean;
-  clickable?: boolean;
-  onClick?: () => void;
-};
-
-function DashboardTile({ icon, label, value, accent, active, clickable, onClick }: DashboardTileProps) {
-  return (
-    <div
-      className={[
-        "dashboard-card",
-        accent ? `dashboard-card--${accent}` : "",
-        clickable ? "dashboard-card--clickable" : "",
-        active ? "dashboard-card--active" : "",
-        active && accent ? `dashboard-card--${accent}` : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      onClick={onClick}
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      onKeyDown={
-        clickable && onClick
-          ? (e: React.KeyboardEvent<HTMLDivElement>) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-    >
-      <span className="material-icons dashboard-card__icon">{icon}</span>
-      <div className="dashboard-card__content">
-        <span className="dashboard-card__value">{value}</span>
-        {label ? <span className="dashboard-card__label">{label}</span> : null}
-      </div>
-    </div>
-  );
 }
 
 import SubprojectEditor from "./SubprojectEditor";
@@ -704,22 +661,19 @@ export default function ProjectEditor({
     const completedAt = new Date();
     const updated = {
       ...current,
-      subprojects: (current.subprojects || []).map((s) => {
-        if (s.id !== subId) return s;
-        return {
-          ...s,
-          tasks: (s.tasks || []).map((t) => {
-            if (t.id !== taskId) return t;
-            const completed = { ...t, done: !t.done };
-            if (!completed.done) return { ...completed, completedAt: null };
-            if (completed.recurrence) {
-              return advanceRecurringTask(completed, completedAt) ?? completed;
-            }
-            completed.completedAt = completedAt.toISOString();
-            return completed;
-          }),
-        };
-      }),
+      subprojects: updateProjectTask(
+        current.subprojects || [],
+        subId,
+        taskId,
+        (task) => {
+          const completed = { ...task, done: !task.done };
+          if (!completed.done) return { ...completed, completedAt: null };
+          if (completed.recurrence) {
+            return advanceRecurringTask(completed, completedAt) ?? completed;
+          }
+          return { ...completed, completedAt: completedAt.toISOString() };
+        },
+      ),
     };
     setLocalAndApply(updated);
   };
@@ -729,13 +683,7 @@ export default function ProjectEditor({
     const current = localRef.current;
     const updated = {
       ...current,
-      subprojects: (current.subprojects || []).map((s) => {
-        if (s.id !== subId) return s;
-        return {
-          ...s,
-          tasks: (s.tasks || []).filter((t) => t.id !== taskId),
-        };
-      }),
+      subprojects: deleteProjectTask(current.subprojects || [], subId, taskId),
     };
     setLocalAndApply(updated);
     if (editorTaskId === taskId) setEditorTaskId(null);
@@ -744,15 +692,12 @@ export default function ProjectEditor({
   const handleTaskStar = (subId: string, taskId: string) => {
     const updated = {
       ...local,
-      subprojects: (local.subprojects || []).map((s) => {
-        if (s.id !== subId) return s;
-        return {
-          ...s,
-          tasks: (s.tasks || []).map((t) =>
-            t.id === taskId ? { ...t, favorite: !t.favorite } : t,
-          ),
-        };
-      }),
+      subprojects: updateProjectTask(
+        local.subprojects || [],
+        subId,
+        taskId,
+        (task) => ({ ...task, favorite: !task.favorite }),
+      ),
     };
     setLocal(updated);
     safeOnApplyChange(updated);
@@ -1284,19 +1229,19 @@ export default function ProjectEditor({
             </div>
             <div className="project-overview-modal-content">
               <div className="dashboard-summary project-overview-metrics">
-                <DashboardTile
+                <DashboardMetricCard
                   icon="task_alt"
                   label="Tasks remaining"
                   value={tasksRemaining}
                   accent="danger"
                 />
-                <DashboardTile
+                <DashboardMetricCard
                   icon="schedule"
                   label="Effort remaining"
                   value={`${Math.round(effortRemaining * 10) / 10}d`}
                   accent="info"
                 />
-                <DashboardTile
+                <DashboardMetricCard
                   icon="event_available"
                   label="Earliest completion"
                   value={earliestCompletionLabel}
