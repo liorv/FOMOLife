@@ -334,6 +334,12 @@
   line-height: 1;
 }
 
+.task-repeat-indicator {
+  color: var(--color-text-muted, #888);
+  font-size: 17px;
+  flex: none;
+}
+
 .task-date .short {
   display: none;
 }
@@ -499,6 +505,10 @@
 
 .task-editor-field--owners {
   flex: 1 1 180px;
+}
+
+.task-editor-field--title {
+  flex: 1 1 100%;
 }
 
 .task-editor-label {
@@ -1551,16 +1561,21 @@ html[data-theme="dark"] .inline-editor {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 16px;
+  gap: 12px;
+  box-sizing: border-box;
   padding: 20px 24px 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.9) 50%, rgba(var(--project-color-rgb, 26, 115, 232), 0.08) 100%);
+  background: var(--color-surface, #fff);
   position: sticky;
   top: 0;
   z-index: 11000;
   flex-shrink: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(10px);
+}
+
+.dashboard-project-title-row {
+  padding-right: 56px;
+  min-width: 0;
 }
 
 .dashboard-project-header-modern {
@@ -1598,7 +1613,7 @@ html[data-theme="dark"] .inline-editor {
 
 .dashboard-project-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
   flex: 1;
   outline: none;

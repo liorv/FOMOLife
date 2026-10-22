@@ -113,6 +113,19 @@ describe('daily task reminders', () => {
     expect((await runTaskDueNotificationsJob()).notified).toBe(0);
   });
 
+  it('does not send reminders for tasks in owned or shared templates', async () => {
+    jest.mocked(listAllUsersData).mockResolvedValue([
+      { userId: 'owner', data: { projects: [{
+        id: 'template', text: 'Workflow', isTemplate: true, creatorId: 'owner',
+        members: [{ userId: 'assignee', name: 'Member' }],
+        subprojects: [{ tasks: [{ ...task, people: [{ name: 'Member' }] }] }],
+      }] } },
+      { userId: 'assignee', data: { sharedProjectRefs: [{ ownerUserId: 'owner', projectId: 'template' }] } },
+    ]);
+    expect((await runTaskDueNotificationsJob()).notified).toBe(0);
+    expect(sendPushToUser).not.toHaveBeenCalled();
+  });
+
   it('surfaces storage failures rather than reporting an empty successful scan', async () => {
     mockLoad.mockRejectedValueOnce(new Error('Storage unavailable'));
     await expect(runTaskDueNotificationsJob()).rejects.toThrow('Storage unavailable');

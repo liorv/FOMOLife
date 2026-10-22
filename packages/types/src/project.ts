@@ -25,6 +25,10 @@ export interface ProjectTask {
   done: boolean;
   /** Due date in ISO 8601 format, or null if not set */
   dueDate: string | null;
+  /** Repeat cadence; completing the task creates its next occurrence */
+  recurrence?: import('./task').TaskRecurrence | null;
+  /** Original due date anchoring monthly and yearly recurrence schedules */
+  recurrenceAnchorDate?: string | null;
   /** Whether the task is marked as favorite/starred */
   favorite: boolean;
   /** Legacy alias used in some components */
@@ -116,6 +120,8 @@ export interface ProjectItem {
   archived?: boolean;
   /** Timestamp when the project was archived, if applicable */
   archivedAt?: string | null;
+  /** Reusable project definition, excluded from active work and reminders */
+  isTemplate?: boolean;
   /** Persisted UI preferences for this project */
   preferences?: {
     /** Whether to show completed tasks (default: false = hide them) */
@@ -130,7 +136,13 @@ export interface ProjectItem {
  */
 export interface ProjectCreateInput {
   text: string;
+  isTemplate?: boolean;
+  /** Accessible template to instantiate; its content is copied server-side */
+  templateId?: string;
   color?: string;
+  progress?: number;
+  order?: number;
+  subprojects?: ProjectSubproject[];
   goal?: string;
   description?: string;
   externalUrl?: string;
@@ -149,6 +161,7 @@ export interface ProjectCreateInput {
  */
 export interface ProjectUpdateInput {
   text?: string;
+  isTemplate?: boolean;
   color?: string;
   subprojects?: ProjectSubproject[];
   progress?: number;

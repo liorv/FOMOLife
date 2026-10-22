@@ -1,0 +1,119 @@
+.container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #dadce0);
+  border-radius: 22px;
+  background: transparent;
+  color: var(--color-text, #263238);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  background: var(--color-inline-editor-bg, #f0f4f9);
+}
+
+.trigger:focus-visible,
+.panel button:focus-visible,
+.panel input:focus-visible {
+  outline: 2px solid var(--accent-primary, #1a73e8);
+  outline-offset: 2px;
+}
+
+.trigger :global(.material-icons) {
+  font-size: 20px;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(272px, calc(100vw - 48px));
+  max-height: min(480px, var(--project-menu-available-height, 65dvh));
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--color-border, #e0e3e7);
+  border-radius: 16px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 6px 20px rgba(32, 33, 36, 0.16);
+}
+
+.panel button,
+.panel label {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text, #263238);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.panel button:hover,
+.panel label:hover {
+  background: var(--color-inline-editor-bg, #f0f4f9);
+}
+
+.panel button span {
+  display: inline;
+}
+
+.panel :global(.material-icons) {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--color-text-secondary, #5f6368);
+}
+
+.panel input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary, #1a73e8);
+}
+
+.panel :global(.project-action-btn--leave) {
+  color: var(--color-danger, #b3261e);
+}
+
+.panel hr {
+  margin: 8px 4px;
+  border: 0;
+  border-top: 1px solid var(--color-border, #e0e3e7);
+}
+
+@media (max-width: 600px) {
+  .container {
+    position: static;
+  }
+
+  .panel {
+    position: fixed;
+    top: auto;
+    bottom: calc(var(--nav-height, 70px) + 12px);
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-height: calc(100dvh - var(--nav-height, 70px) - 40px);
+  }
+}

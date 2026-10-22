@@ -96,6 +96,28 @@ describe('home overdue panel', () => {
     expect(screen.getByRole('heading', { name: 'Test task', level: 2 })).toBeInTheDocument();
   });
 
+  it('shows the recurring icon to the right of a Home task', async () => {
+    mockTasksApi.listTasks.mockResolvedValue([{ ...task('2026-10-14'), recurrence: 'weekly' }]);
+    render(<HomePage />);
+    await loaded();
+
+    const repeatIcon = screen.getByLabelText('Repeats weekly');
+    expect(repeatIcon).toHaveClass('material-icons');
+    expect(repeatIcon.textContent).toBe('repeat');
+  });
+
+  it('excludes templates and their tasks from home work and activity', async () => {
+    const template = { ...project('2026-10-01'), isTemplate: true, createdAt: '2026-10-07T10:00:00Z' };
+    template.subprojects[0]!.tasks[0]!.createdAt = '2026-10-07T11:00:00Z';
+    template.subprojects[0]!.tasks[0]!.favorite = true;
+    mockProjectsApi.listProjects.mockResolvedValue([template]);
+    const { container } = render(<HomePage />);
+    await loaded();
+    expectNoOverduePanel(container);
+    expect(screen.queryByText('Test task')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test project')).not.toBeInTheDocument();
+  });
+
   afterEach(() => {
     jest.useRealTimers();
     global.fetch = originalFetch;

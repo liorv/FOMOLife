@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { ProjectItem, ProjectSubproject, ProjectTask, Contact, ProjectMember } from "@myorg/types";
 import type { TaskFilter, TaskItem } from "@myorg/types";
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
+import { advanceRecurringTask } from '@/lib/tasks/recurrence';
+import ProjectActionMenu from './ProjectActionMenu';
 
 // Subprojects used within the editor always have a defined `collapsed` boolean
 interface EditorSubproject extends ProjectSubproject {
@@ -30,6 +32,9 @@ interface ProjectEditorProps {
   canManage?: boolean;
   dashboardProjectHeaderTop?: React.ReactNode;
   dashboardSummary?: React.ReactNode;
+  taskToolbar?: React.ReactNode;
+  taskFilterPanel?: React.ReactNode;
+  projectActions?: React.ReactNode;
   onToggleFilter?: (filter: string | null) => void;
   onExport?: () => void;
   currentUserId?: string;
@@ -122,6 +127,9 @@ export default function ProjectEditor({
   canManage = true,
   dashboardProjectHeaderTop,
   dashboardSummary,
+  taskToolbar,
+  taskFilterPanel,
+  projectActions,
   onToggleFilter,
   onExport,
   currentUserId = '',
@@ -748,15 +756,23 @@ export default function ProjectEditor({
   const handleTaskToggle = (subId: string, taskId: string) => {
     if (!canManage) return;
     const current = localRef.current;
+    const completedAt = new Date();
     const updated = {
       ...current,
       subprojects: (current.subprojects || []).map((s) => {
         if (s.id !== subId) return s;
         return {
           ...s,
-          tasks: (s.tasks || []).map((t) =>
-            t.id === taskId ? { ...t, done: !t.done } : t,
-          ),
+          tasks: (s.tasks || []).map((t) => {
+            if (t.id !== taskId) return t;
+            const completed = { ...t, done: !t.done };
+            if (!completed.done) return { ...completed, completedAt: null };
+            if (completed.recurrence) {
+              return advanceRecurringTask(completed, completedAt) ?? completed;
+            }
+            completed.completedAt = completedAt.toISOString();
+            return completed;
+          }),
         };
       }),
     };
@@ -1037,9 +1053,7 @@ export default function ProjectEditor({
           </div>
         )}
 
-        {/* Project header controls */}
         <div className="project-editor-header-controls">
-          {/* Member avatars + invite button, aligned to the left */}
           <div className="project-members-bar">
             {members.map((m) => (
               <div key={m.userId} className="project-member-avatar-wrap" title={m.name}>
@@ -1056,68 +1070,74 @@ export default function ProjectEditor({
             <button
               className="expand-collapse-btn invite-members-btn"
               title="Invite a connection to this project"
+              aria-label="Invite to project"
               onClick={() => setShowInviteModal(true)}
               style={local.color ? { background: `#${local.color.replace(/^#/, '')}`, color: '#fff' } : undefined}
             >
-              <span className="material-icons">person_add</span>
+              <span className="material-icons" aria-hidden="true">person_add</span>
               <span className="btn-label">Invite</span>
             </button>
 
-            {onArchiveToggle && (
-              <button
-                className="expand-collapse-btn"
-                title={local.archived ? "Restore project from archive" : "Mark project complete and archive it"}
-                onClick={() => onArchiveToggle(!local.archived)}
-              >
-                <span className="material-icons">{local.archived ? "unarchive" : "archive"}</span>
-                <span className="btn-label">{local.archived ? "Restore" : "Mark Complete"}</span>
-              </button>
-            )}
-            
-            {/* Toggle for hiding/showing completed tasks */}
-            {onToggleFilter && (
-              <div className="project-action-toggle project-action-toggle--inline">
-                <label className="toggle-label" title="Show completed tasks">
-                  <input
-                    type="checkbox"
-                    checked={!taskFilters?.includes('hide_completed')}
-                    onChange={(e) => onToggleFilter?.(e.target.checked ? null : 'hide_completed')}
-                  />
-                  <span className="toggle-slider"></span>
-                  <span className="toggle-text">Show Completed</span>
-                </label>
-              </div>
-            )}
           </div>
-          <div className="tab-controls">
-            {/* Expand/Collapse moved to dashboard actions bar when collapseAllRef/expandAllRef are provided */}
-            {!collapseAllRef && (
-              <>
-                <button onClick={expandAll} className="expand-collapse-btn" title="Expand All">
-                  <span className="material-icons">unfold_more</span>
-                  <span className="btn-label">Expand</span>
-                </button>
-                <button onClick={collapseAll} className="expand-collapse-btn" title="Collapse All">
-                  <span className="material-icons">unfold_less</span>
-                  <span className="btn-label">Collapse</span>
-                </button>
-              </>
-            )}
-            {typeof onExport === 'function' && (
-              <button onClick={onExport} className="expand-collapse-btn export-btn" title="Export JSON">
-                <span className="material-icons">download</span>
-                <span className="btn-label">Export</span>
+          <div className="project-editor-task-toolbar" role="group" aria-label="Project tools">
+            {taskToolbar}
+            <ProjectActionMenu label="View options" icon="tune">
+              {onToggleFilter && (
+                <>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!taskFilters.includes('hide_completed')}
+                      onChange={(e) => onToggleFilter(e.target.checked ? null : 'hide_completed')}
+                    />
+                    Show completed tasks
+                  </label>
+                  <hr />
+                </>
+              )}
+              <button type="button" onClick={expandAll}>
+                <span className="material-icons" aria-hidden="true">unfold_more</span>
+                Expand all sections
               </button>
-            )}
+              <button type="button" onClick={collapseAll}>
+                <span className="material-icons" aria-hidden="true">unfold_less</span>
+                Collapse all sections
+              </button>
+            </ProjectActionMenu>
+            <ProjectActionMenu label="More project actions" icon="more_horiz">
+              <button type="button" onClick={() => setShowOverviewEditor(true)}>
+                <span className="material-icons" aria-hidden="true">edit</span>
+                Edit project overview
+              </button>
+              {projectActions}
+              {onExport && (
+                <button type="button" onClick={onExport}>
+                  <span className="material-icons" aria-hidden="true">download</span>
+                  Export JSON
+                </button>
+              )}
+              {onArchiveToggle && (
+                <>
+                  <hr />
+                  <button type="button" onClick={() => onArchiveToggle(!local.archived)}>
+                    <span className="material-icons" aria-hidden="true">{local.archived ? 'unarchive' : 'archive'}</span>
+                    {local.archived ? 'Restore project' : 'Mark complete & archive'}
+                  </button>
+                </>
+              )}
+            </ProjectActionMenu>
           </div>
         </div>
+        {taskFilterPanel}
 
         {/* Project profile icon */}
         <div className="project-profile-icon-container">
-          <div
+          <button
+            type="button"
             className="project-profile-icon"
             onClick={() => setShowOverviewEditor(true)}
             title="Edit project overview"
+            aria-label="Edit project image and overview"
           >
             {local.avatarUrl ? (
               <img
@@ -1137,7 +1157,7 @@ export default function ProjectEditor({
             <div className="project-profile-hover-overlay">
               <span className="material-icons">edit</span>
             </div>
-          </div>
+          </button>
         </div>
 
       </div>

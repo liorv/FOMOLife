@@ -226,6 +226,15 @@ item,
 
       {/* Right group: date, avatars, star, delete */}
       <div className="right-group">
+        {type === "tasks" && item.recurrence && (
+          <span
+            className="material-icons task-repeat-indicator"
+            title={`Repeats ${item.recurrence}`}
+            aria-label={`Repeats ${item.recurrence}`}
+          >
+            repeat
+          </span>
+        )}
         {item.dueDate && (
           <div className="date-container">
             <span

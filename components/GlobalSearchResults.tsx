@@ -119,7 +119,7 @@ export default function GlobalSearchResults({
                     {p.text.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="search-result-badge">Project</span>
+                <span className="search-result-badge">{p.isTemplate ? 'Template' : 'Project'}</span>
                 <span className="material-icons search-result-chevron">chevron_right</span>
               </div>
             );

@@ -202,7 +202,7 @@ function collectCandidatesForUser(userId: string, data: PersistedUserData): DueC
 
   const projects = Array.isArray(data.projects) ? (data.projects as Array<Record<string, unknown>>) : [];
   for (const project of projects) {
-    if (project.archived) continue;
+    if (project.archived || project.isTemplate) continue;
     const isCreator = project.creatorId === userId;
     const members = Array.isArray(project.members) ? (project.members as Array<Record<string, unknown>>) : [];
     const myMember = members.find((m) => m.userId === userId);

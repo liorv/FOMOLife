@@ -55,6 +55,33 @@ Dragging projects into a new order saves that order and restores it after a
 reload or returning to the Projects tab. Projects without a saved position appear
 after ordered projects, preserving their existing relative order.
 
+### Project templates
+
+The project editor keeps collaboration and task filters in a compact toolbar.
+Use **View** to show completed tasks or expand/collapse all sections. **More**
+contains the project overview, import/export, template conversion, leaving, and
+completion/archive actions. Filter and Chat remain available while filtering.
+
+In Projects, switch to **Templates** to browse reusable workflows, or choose
+**New template** to build one from scratch using the regular project editor.
+Open any existing project and choose **Convert to template** to move it into the
+library. Conversion keeps its content and members, removes its archived status,
+and can be reversed with **Convert to project**.
+
+Choose **Use template**, enter a project name, and select **Create project**.
+The new project copies the template's subprojects, tasks, colors, notes, goal,
+external link, icon, and AI instructions. It gets fresh project/subproject/task
+IDs; tasks start incomplete, with fresh creation timestamps and no previous due
+dates, recurrence anchors, or assignments. Recurrence settings, favorites, and
+effort estimates are kept. Only the current user is added as a member.
+The template is unchanged, and later edits to either copy do not affect the other.
+
+Templates are excluded from Home task panels/activity and due-date reminders.
+Editing their tasks does not send completion or assignment notifications.
+Global project search labels templates separately and opens their editor.
+Creating from a template requires access to it; inaccessible and non-template
+source IDs are rejected by the API.
+
 Home's Recent Activity lists task creation and completion events by their recorded
 timestamps, newest first, within the last seven days. Due dates never determine
 task activity order or inclusion. Task timestamps are saved for both standalone

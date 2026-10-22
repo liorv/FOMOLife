@@ -17,6 +17,9 @@ import ProjectEditor from "./ProjectEditor";
 import ProjectAssistant from "./ProjectAssistant";
 import DismissibleHint from "../DismissibleHint";
 import { validateProjectImportJson, type ValidatedImportProject } from "@/lib/projects/importProject";
+import { advanceRecurringTask } from "@/lib/tasks/recurrence";
+import { TemplateLibrary, TemplateDialog, type TemplateAction } from "./ProjectTemplates";
+import templateStyles from "./ProjectTemplates.module.css";
 
 // Helper function to convert hex color to RGB string
 function hexToRgb(hex: string | undefined): string {
@@ -103,6 +106,9 @@ interface ProjectsDashboardProps {
   pendingDeleteProjectId?: string | null;
   onConfirmDeleteProject?: (id: string) => void;
   onAddProject?: () => void;
+  onCreateTemplate?: (name: string) => Promise<void>;
+  onUseTemplate?: (templateId: string, name: string) => Promise<void>;
+  onConvertTemplate?: (projectId: string, isTemplate: boolean) => Promise<void>;
   onImportProject?: (projectId: string, subprojects: ProjectSubproject[]) => void;
   onOpenPeople?: () => void;
   onCreatePerson?: (name: string) => void;
@@ -138,6 +144,9 @@ export default function ProjectsDashboard({
   pendingDeleteProjectId,
   onConfirmDeleteProject,
   onAddProject,
+  onCreateTemplate,
+  onUseTemplate,
+  onConvertTemplate,
   onImportProject,
   onOpenPeople,
   onCreatePerson,
@@ -156,14 +165,18 @@ export default function ProjectsDashboard({
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const isFilterActive = (filterType: string) => filters.includes(filterType);
+  const taskFilterCount = filters.filter((filter) => filter !== 'hide_completed').length;
 
   const [showFilters, setShowFilters] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateAction, setTemplateAction] = useState<TemplateAction | null>(null);
+  const templates = useMemo(() => projects.filter(project => project.isTemplate), [projects]);
   const visibleProjects = useMemo(
-    () => projects.filter((p) => (showArchived ? !!p.archived : !p.archived)),
+    () => projects.filter((p) => !p.isTemplate && (showArchived ? !!p.archived : !p.archived)),
     [projects, showArchived],
   );
-  const archivedCount = useMemo(() => projects.filter((p) => p.archived).length, [projects]);
+  const archivedCount = useMemo(() => projects.filter((p) => !p.isTemplate && p.archived).length, [projects]);
   // Switch back to the active view once the archived tab becomes empty (e.g. restoring the last archived project)
   useEffect(() => {
     if (showArchived && archivedCount === 0) {
@@ -217,12 +230,13 @@ export default function ProjectsDashboard({
       if (selectedProject) {
         onAddSubproject?.(selectedProject.id, '');
       } else {
-        onAddProject?.();
+        if (showTemplates && onCreateTemplate) setTemplateAction({ kind: 'create' });
+        else onAddProject?.();
       }
     };
     window.addEventListener('framework-action-add-project', handleAdd);
     return () => window.removeEventListener('framework-action-add-project', handleAdd);
-  }, [selectedProject, onAddSubproject, onAddProject]);
+  }, [selectedProject, onAddSubproject, onAddProject, showTemplates, onCreateTemplate]);
 
   // Notify thumb that project editor is open/closed so it can show the assistant glyph
   useEffect(() => {
@@ -282,9 +296,25 @@ export default function ProjectsDashboard({
     taskId: string,
     patch: Partial<ProjectTask>,
   ) => {
+    const currentTask = (project.subprojects || [])
+      .find((sub) => sub.id === subprojectId)?.tasks.find((task) => task.id === taskId);
+    const completesTask = patch.done === true && currentTask?.done === false;
+    const completedAt = new Date();
     const updatedSubs = (project.subprojects || []).map((sub) =>
       sub.id === subprojectId
-        ? { ...sub, tasks: (sub.tasks || []).map((t) => t.id === taskId ? { ...t, ...patch } : t) }
+        ? {
+            ...sub,
+            tasks: (sub.tasks || []).map((task) => {
+              if (task.id !== taskId) return task;
+              const updated = {
+                ...task,
+                ...patch,
+              };
+              if (!completesTask) return updated;
+              if (updated.recurrence) return advanceRecurringTask(updated, completedAt) ?? updated;
+              return { ...updated, completedAt: completedAt.toISOString() };
+            }),
+          }
         : sub,
     );
     onApplyChange?.(project.id, { subprojects: updatedSubs });
@@ -434,6 +464,13 @@ export default function ProjectsDashboard({
                     '--project-color-rgb': hexToRgb(selectedProject.color || "#1a73e8")
                   } as React.CSSProperties}
                 >
+                  {selectedProject.isTemplate && (
+                    <div className={templateStyles.banner}>
+                      <span className="material-icons" aria-hidden="true">dashboard_customize</span>
+                      <p><strong>Template</strong> &middot; Changes here apply to future projects, not existing copies.</p>
+                      {onUseTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'use', project: selectedProject })}>Use template</button>}
+                    </div>
+                  )}
                   <div className="dashboard-project-header-main">
                     <button
                       className="dashboard-back-btn"
@@ -475,7 +512,9 @@ export default function ProjectsDashboard({
                     </h2>
                     <ProjectLink url={selectedProject.externalUrl} projectName={selectedProject.text} />
                   </div>
-                  {showFilters ? (
+                </div>
+              }
+              taskFilterPanel={showFilters && (
                     <div className="project-actions-bar project-filter-bar">
                       <button
                         className="project-action-btn project-action-btn--close-filters"
@@ -530,43 +569,45 @@ export default function ProjectsDashboard({
                         onClick={() => onToggleFilter?.('upcoming')}
                       />
                     </div>
-                  ) : (
-                    <div className="project-actions-bar">
+              )}
+              taskToolbar={
+                <>
                       <button
-                        className={`project-action-btn${filters.length > 0 ? ' project-action-btn--active' : ''}`}
-                        onClick={() => setShowFilters(true)}
+                        className={`project-action-btn${taskFilterCount > 0 ? ' project-action-btn--active' : ''}`}
+                        onClick={() => setShowFilters(!showFilters)}
                         title="Filter tasks"
+                        aria-label={`Filter tasks${taskFilterCount > 0 ? ` (${taskFilterCount} active)` : ''}`}
+                        aria-expanded={showFilters}
                       >
-                        <span className="material-icons">filter_list</span>
-                        <span>Filter{filters.length > 0 ? ` (${filters.length})` : ''}</span>
+                        <span className="material-icons" aria-hidden="true">filter_list</span>
+                        <span>Filter{taskFilterCount > 0 ? ` (${taskFilterCount})` : ''}</span>
                       </button>
-
-                      <button
-                        className="project-action-btn project-action-btn--collapse"
-                        onClick={() => collapseAllRef.current?.()}
-                        title="Collapse all"
-                      >
-                        <span className="material-icons">unfold_less</span>
-                        <span>Collapse</span>
-                      </button>
-                      <button
-                        className="project-action-btn project-action-btn--expand"
-                        onClick={() => expandAllRef.current?.()}
-                        title="Expand all"
-                      >
-                        <span className="material-icons">unfold_more</span>
-                        <span>Expand</span>
-                      </button>
+                      {onOpenProjectThread && (
                       <button
                         className={`project-action-btn${(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? ' project-action-btn--has-messages' : ''}`}
                         title={`Project conversation${(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? ` (${threadCounts[`proj:${selectedProject.id}`]} messages)` : ''}`}
+                        aria-label="Project conversation"
                         onClick={() => onOpenProjectThread?.(selectedProject)}
                       >
-                        <span className="material-icons">{(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? 'forum' : 'chat_bubble_outline'}</span>
+                        <span className="material-icons" aria-hidden="true">{(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? 'forum' : 'chat_bubble_outline'}</span>
                         <span>Chat{(threadCounts[`proj:${selectedProject.id}`] ?? 0) > 0 ? ` (${threadCounts[`proj:${selectedProject.id}`]})` : ''}</span>
                       </button>
+                      )}
+                </>
+              }
+              projectActions={
+                <>
+                      <hr />
+                      {onConvertTemplate && (
+                        <button
+                          type="button"
+                          onClick={() => setTemplateAction({ kind: selectedProject.isTemplate ? 'restore' : 'convert', project: selectedProject })}
+                        >
+                          <span className="material-icons" aria-hidden="true">{selectedProject.isTemplate ? 'folder_open' : 'dashboard_customize'}</span>
+                          {selectedProject.isTemplate ? 'Convert to project' : 'Convert to template'}
+                        </button>
+                      )}
                       <button
-                        className="project-action-btn"
                         title="Export JSON"
                         onClick={() => {
                           const exportObj = buildProjectExport(selectedProject, people);
@@ -574,24 +615,24 @@ export default function ProjectsDashboard({
                           downloadJSON(exportObj, `${safeName}_export.json`);
                         }}
                       >
-                        <span className="material-icons">download</span>
+                        <span className="material-icons" aria-hidden="true">download</span>
                         <span>Export</span>
                       </button>
-                      <button
-                        className="project-action-btn"
+                      {onImportProject && <button
                         title="Import sub-projects from JSON into this project"
                         onClick={() => setShowImportModal(true)}
                       >
-                        <span className="material-icons">upload</span>
-                        <span>Import</span>
-                      </button>
+                        <span className="material-icons" aria-hidden="true">upload</span>
+                        <span>Import sub-projects</span>
+                      </button>}
                       {(()  => {
                         const members = selectedProject.members ?? [];
                         const isCurrentUserMember = currentUserId && members.some((m) => m.userId === currentUserId);
                         const canLeave = isCurrentUserMember && onRemoveMember;
                         return canLeave ? (
                           <button
-                            className={`project-action-btn project-action-btn--leave${leaveArmed ? " project-action-btn--leave-armed" : ""}`}
+                            data-keep-open={!leaveArmed ? '' : undefined}
+                            className={`project-action-btn--leave${leaveArmed ? " project-action-btn--leave-armed" : ""}`}
                             title={leaveArmed ? "Click again to confirm" : "Leave project"}
                             onClick={() => {
                               if (!leaveArmed) {
@@ -608,27 +649,20 @@ export default function ProjectsDashboard({
                               setLeaveArmed(false);
                             }}
                           >
-                            <span className="material-icons">{leaveArmed ? "warning" : "logout"}</span>
+                            <span className="material-icons" aria-hidden="true">{leaveArmed ? "warning" : "logout"}</span>
                             <span>{leaveArmed ? "Confirm Leave?" : "Leave"}</span>
                           </button>
                         ) : null;
                       })()}
-                    </div>
-                  )}
-                </div>
+                </>
               }
               onToggleFilter={onToggleFilter}
               key={selectedProject.id}
               project={selectedProject}
-              {...(collapseAllRef ? {} : { onExport: () => {
-                const exportObj = buildProjectExport(selectedProject, people);
-                const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
-                downloadJSON(exportObj, `${safeName}_export.json`);
-              } })}
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
-              {...(onArchiveProject ? {
+              {...(onArchiveProject && !selectedProject.isTemplate ? {
                 onArchiveToggle: (archived: boolean) => onArchiveProject(selectedProject.id, archived),
               } : {})}
               onAddSubproject={(name: string) => onAddSubproject?.(selectedProject.id, name)}
@@ -683,10 +717,28 @@ export default function ProjectsDashboard({
       ) : (
         /* ── Home: watermark + direct grid ── */
         <>
+          <div className={templateStyles.toolbar}>
+            <div className={templateStyles.tabs} aria-label="Project views">
+              <button type="button" className={templateStyles.tab} aria-pressed={!showTemplates} onClick={() => setShowTemplates(false)}>
+                <span className="material-icons" aria-hidden="true">folder_open</span>Projects
+              </button>
+              <button type="button" className={templateStyles.tab} aria-pressed={showTemplates} onClick={() => setShowTemplates(true)}>
+                <span className="material-icons" aria-hidden="true">dashboard_customize</span>Templates ({templates.length})
+              </button>
+            </div>
+            <div className={templateStyles.toolbarActions}>
+              {onAddProject && <button type="button" className={templateStyles.textButton} onClick={() => { setShowTemplates(false); onAddProject(); }}>New project</button>}
+              {onCreateTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'create' })}>
+                <span className="material-icons" aria-hidden="true">add</span>New template
+              </button>}
+            </div>
+          </div>
           {/* Home watermark removed */}
 
           {/* Combined search results (projects + tasks) */}
-          {searchResults !== null ? (
+          {showTemplates ? (
+            <TemplateLibrary templates={templates} onEdit={handleSelectProject} onUse={onUseTemplate ? project => setTemplateAction({ kind: 'use', project }) : undefined} />
+          ) : searchResults !== null ? (
             searchResults.length === 0 ? (
               <p className="sidebar-no-results">
                 No matches for &ldquo;{projectSearch}&rdquo;
@@ -881,7 +933,7 @@ export default function ProjectsDashboard({
                       description={
                         showArchived
                           ? "Projects you mark complete will show up here."
-                          : "All of your projects are archived. Switch to the Archived tab to restore one."
+                          : "Create a new project or use a template. Archived projects can be restored from the Archived tab."
                       }
                     />
                   </div>
@@ -921,6 +973,26 @@ export default function ProjectsDashboard({
             )
           )}
         </>
+      )}
+
+      {templateAction && (
+        <TemplateDialog
+          action={templateAction}
+          onClose={() => setTemplateAction(null)}
+          onConfirm={async name => {
+            if (templateAction.kind === 'create' && onCreateTemplate) {
+              await onCreateTemplate(name);
+            } else if (templateAction.kind === 'use' && onUseTemplate) {
+              await onUseTemplate(templateAction.project.id, name);
+              setShowTemplates(false);
+            } else if ((templateAction.kind === 'convert' || templateAction.kind === 'restore') && onConvertTemplate) {
+              await onConvertTemplate(templateAction.project.id, templateAction.kind === 'convert');
+              setShowTemplates(templateAction.kind === 'convert');
+            } else {
+              throw new Error('This template action is not available.');
+            }
+          }}
+        />
       )}
 
       {isAssistantOpen && selectedProject && (

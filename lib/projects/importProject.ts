@@ -15,7 +15,7 @@
  *   every subproject/task.
  */
 import { generateId } from "@myorg/utils";
-import type { ProjectSubproject, ProjectTask, ProjectTaskPerson } from "@myorg/types";
+import type { ProjectSubproject, ProjectTask, ProjectTaskPerson, TaskRecurrence } from "@myorg/types";
 
 export interface ValidatedImportProject {
   text: string;
@@ -76,6 +76,12 @@ function sanitizeBoolean(value: unknown): boolean {
   return value === true;
 }
 
+function sanitizeRecurrence(value: unknown): TaskRecurrence | undefined {
+  return value === "daily" || value === "weekly" || value === "monthly" || value === "yearly"
+    ? value
+    : undefined;
+}
+
 function sanitizeEffort(value: unknown): number | null {
   if (typeof value !== "number" || !isFinite(value)) return null;
   return Math.max(0, Math.min(1000, Math.round(value)));
@@ -99,11 +105,14 @@ function sanitizeTask(raw: unknown): ProjectTask | null {
   const obj = raw as Record<string, unknown>;
   const text = sanitizeText(obj.description ?? obj.text, MAX_TASK_TEXT_LENGTH);
   if (!text) return null;
+  const recurrence = sanitizeRecurrence(obj.recurrence);
   return {
     id: generateId(),
     text,
     done: sanitizeBoolean(obj.done),
     dueDate: sanitizeDate(obj.dueDate) ?? null,
+    ...(recurrence ? { recurrence } : {}),
+    ...(recurrence && sanitizeDate(obj.recurrenceAnchorDate) ? { recurrenceAnchorDate: sanitizeDate(obj.recurrenceAnchorDate) as string } : {}),
     favorite: sanitizeBoolean(obj.favorite),
     people: sanitizePeople(obj.people),
     effort: sanitizeEffort(obj.effort),

@@ -20,6 +20,8 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     text?: string;
     dueDate?: string | null;
+    recurrence?: import('@myorg/types').TaskRecurrence | null;
+    recurrenceAnchorDate?: string | null;
     description?: string;
     favorite?: boolean;
     people?: import('@myorg/types').ProjectTaskPerson[];
@@ -39,6 +41,8 @@ export async function POST(request: Request) {
   const created = await createTask(session.userId, {
     text: body.text.trim(),
     dueDate: body.dueDate ?? null,
+    ...(body.recurrence !== undefined ? { recurrence: body.recurrence } : {}),
+    ...(body.recurrenceAnchorDate !== undefined ? { recurrenceAnchorDate: body.recurrenceAnchorDate } : {}),
     description: body.description ?? '',
     favorite: Boolean(body.favorite),
     ...(body.people ? { people: body.people } : {}),
@@ -54,7 +58,7 @@ export async function PATCH(request: Request) {
 
   const body = (await request.json()) as {
     id?: string;
-    patch?: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'effort' | 'completedAt'>>;
+    patch?: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'recurrence' | 'recurrenceAnchorDate' | 'favorite' | 'description' | 'people' | 'effort' | 'completedAt'>>;
   };
 
   if (!body.id || !body.patch) {

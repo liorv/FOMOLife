@@ -422,6 +422,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
   const allTasksForSearch = useMemo(() => {
     const list: Array<TaskItem & { projectId?: string; projectName?: string; projectIcon?: string | null; source: 'global' | 'project' }> = globalTasks.map(t => ({ ...t, source: 'global' as const }));
     projects.forEach(p => {
+      if (p.isTemplate) return;
       p.subprojects.forEach(sp => {
         sp.tasks.forEach(t => {
           list.push({
@@ -518,6 +519,24 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     if (!target) return;
     const merged = [...(target.subprojects || []), ...subprojects];
     await handleProjectApplyChange(projectId, { subprojects: merged });
+  };
+
+  const handleCreateTemplateProject = async (name: string, templateId?: string) => {
+    if (!canManage) throw new Error('You do not have permission to create projects.');
+    if (templateId) await projectSavesRef.current.get(templateId);
+    const created = await apiClient.createProject({
+      text: name,
+      ...(templateId ? { templateId } : { isTemplate: true }),
+    });
+    setProjects(prev => [...prev, created]);
+    invalidateProjectsCache();
+    setEditingProjectId(created.id);
+  };
+
+  const handleConvertTemplate = async (projectId: string, isTemplate: boolean) => {
+    if (!canManage) throw new Error('You do not have permission to update projects.');
+    await apiUpdateProject(projectId, { isTemplate, archived: false, archivedAt: null });
+    invalidateProjectsCache();
   };
 
   const handleConvertSubprojectToProject = async (projectId: string, subprojectId: string) => {
@@ -915,6 +934,11 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               pendingDeleteProjectId={pendingDeleteProjectId}
               onConfirmDeleteProject={handleConfirmDeleteProject}
               onAddProject={handleAddProject}
+              {...(canManage ? {
+                onCreateTemplate: (name: string) => handleCreateTemplateProject(name),
+                onUseTemplate: (templateId: string, name: string) => handleCreateTemplateProject(name, templateId),
+                onConvertTemplate: handleConvertTemplate,
+              } : {})}
               onImportProject={handleImportProject}
               onOpenColorPicker={handleOpenColorPicker}
               onOpenPeople={openContacts}

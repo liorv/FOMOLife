@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import type { ProjectTask, ProjectTaskPerson, Contact } from "@myorg/types";
+import type { ProjectTask, ProjectTaskPerson, Contact, TaskRecurrence } from "@myorg/types";
 
 export interface TaskEditorProps {
   task: ProjectTask;
@@ -30,6 +30,8 @@ export default function TaskEditor({
 
   const [title, setTitle] = useState(task.text || "");
   const [dueDate, setDueDate] = useState(task.dueDate || "");
+  const [recurrence, setRecurrence] = useState<TaskRecurrence | "">(task.recurrence || "");
+  const [recurrenceAnchorDate, setRecurrenceAnchorDate] = useState(task.recurrenceAnchorDate || task.dueDate || "");
   const [effort, setEffort] = useState<number | null | undefined>(task.effort);
 
   // People assigned to this task – stored simply as [{name}].
@@ -39,15 +41,24 @@ export default function TaskEditor({
   const [people, setPeople] = useState<PersonEntry[]>(initialPeople);
 
   // Keep a ref to latest editable state so cleanup can persist on unmount
-  const latestRef = React.useRef({
+  const latestRef = React.useRef<{
+    title: string;
+    dueDate: string;
+    recurrence: TaskRecurrence | "";
+    recurrenceAnchorDate: string;
+    effort: number | null | undefined;
+    people: PersonEntry[];
+  }>({
     title: task.text || "",
     dueDate: task.dueDate || "",
+    recurrence: task.recurrence || "",
+    recurrenceAnchorDate: task.recurrenceAnchorDate || task.dueDate || "",
     effort: task.effort,
     people: initialPeople,
   });
   useEffect(() => {
-    latestRef.current = { title, dueDate, effort, people };
-  }, [title, dueDate, effort, people]);
+    latestRef.current = { title, dueDate, recurrence, recurrenceAnchorDate, effort, people };
+  }, [title, dueDate, recurrence, recurrenceAnchorDate, effort, people]);
 
   // persist latest edits when editor unmounts (e.g. user switches tasks)
   // Use a flag to ensure cleanup only runs once (handles Strict Mode double-mount)
@@ -66,6 +77,8 @@ export default function TaskEditor({
         ...task,
         text: latest.title,
         dueDate: latest.dueDate || null,
+        recurrence: latest.recurrence || null,
+        recurrenceAnchorDate: latest.recurrence ? latest.recurrenceAnchorDate || null : null,
         effort: latest.effort !== undefined ? latest.effort : null,
         people: normalizedPeople,
       };
@@ -99,6 +112,8 @@ export default function TaskEditor({
       people: normalizedPeople,
       effort: effort !== undefined ? effort : null,
       dueDate: dueDate || null,
+      recurrence: recurrence || null,
+      recurrenceAnchorDate: recurrence ? recurrenceAnchorDate || dueDate || null : null,
     };
     onUpdateTask(updated);
     if (closeAfter) onSave(updated);
@@ -129,12 +144,31 @@ export default function TaskEditor({
   // unique ids for inputs (avoid duplicates when multiple editors are mounted)
   const editorId = React.useId();
   const dateId = `task-date-${task.id || 'editor'}-${editorId}`;
+  const titleId = `task-title-${task.id || 'editor'}-${editorId}`;
+  const recurrenceId = `task-recurrence-${task.id || 'editor'}-${editorId}`;
   const effortId = `task-effort-${task.id || 'editor'}-${editorId}`;
 
   return (
     <div className={containerClass}>
       {!inline && <h2>Edit Task</h2>}
       <div className="task-editor-fields">
+
+        {/* Task title */}
+        <div className="task-editor-field task-editor-field--title">
+          <label htmlFor={titleId} className="task-editor-label">Task</label>
+          <div className="task-editor-input-wrap">
+            <input
+              id={titleId}
+              type="text"
+              className="task-editor-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => onUpdateTask({ ...task, text: title })}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+              aria-label="Task title"
+            />
+          </div>
+        </div>
 
         {/* Effort */}
         <div className="task-editor-field">
@@ -160,6 +194,39 @@ export default function TaskEditor({
           </div>
         </div>
 
+        {/* Repeat */}
+        <div className="task-editor-field">
+          <label htmlFor={recurrenceId} className="task-editor-label">
+            <span className="material-icons task-editor-label-icon">repeat</span>
+            Repeat
+          </label>
+          <div className="task-editor-input-wrap">
+            <select
+              id={recurrenceId}
+              className="task-editor-input"
+              value={recurrence}
+              aria-label="Repeat"
+              onChange={(e) => {
+                const value = e.target.value as TaskRecurrence | "";
+                setRecurrence(value);
+                const anchorDate = value ? dueDate : "";
+                setRecurrenceAnchorDate(anchorDate);
+                onUpdateTask({
+                  ...task,
+                  recurrence: value || null,
+                  recurrenceAnchorDate: anchorDate || null,
+                });
+              }}
+            >
+              <option value="">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+        </div>
+
         {/* Due Date */}
         <div className="task-editor-field">
           <label htmlFor={dateId} className="task-editor-label">
@@ -175,7 +242,12 @@ export default function TaskEditor({
               onChange={(e) => {
                 const newValue = e.target.value;
                 setDueDate(newValue);
-                onUpdateTask({ ...task, dueDate: newValue || null });
+                if (recurrence) setRecurrenceAnchorDate(newValue);
+                onUpdateTask({
+                  ...task,
+                  dueDate: newValue || null,
+                  ...(recurrence ? { recurrenceAnchorDate: newValue || null } : {}),
+                });
               }}
             />
           </div>

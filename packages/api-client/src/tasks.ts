@@ -2,8 +2,8 @@ import type { TaskItem } from '@myorg/types';
 
 export interface TasksApiClient {
   listTasks: () => Promise<TaskItem[]>;
-  createTask: (input: { text: string; dueDate?: string | null; description?: string; favorite?: boolean; people?: import('@myorg/types').ProjectTaskPerson[]; priority?: "low" | "medium" | "high" | null; effort?: number | null }) => Promise<TaskItem>;
-  updateTask: (id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>) => Promise<TaskItem>;
+  createTask: (input: { text: string; dueDate?: string | null; recurrence?: import('@myorg/types').TaskRecurrence | null; recurrenceAnchorDate?: string | null; description?: string; favorite?: boolean; people?: import('@myorg/types').ProjectTaskPerson[]; priority?: "low" | "medium" | "high" | null; effort?: number | null }) => Promise<TaskItem>;
+  updateTask: (id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'recurrence' | 'recurrenceAnchorDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>) => Promise<TaskItem>;
   deleteTask: (id: string) => Promise<void>;
 }
 
@@ -29,7 +29,7 @@ export function createTasksApiClient(baseUrl = ''): TasksApiClient {
       return payload.tasks;
     },
 
-    async createTask(input: { text: string; dueDate?: string | null; description?: string; favorite?: boolean; people?: import('@myorg/types').ProjectTaskPerson[] }): Promise<TaskItem> {
+    async createTask(input: { text: string; dueDate?: string | null; recurrence?: import('@myorg/types').TaskRecurrence | null; recurrenceAnchorDate?: string | null; description?: string; favorite?: boolean; people?: import('@myorg/types').ProjectTaskPerson[]; priority?: "low" | "medium" | "high" | null; effort?: number | null }): Promise<TaskItem> {
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -39,7 +39,7 @@ export function createTasksApiClient(baseUrl = ''): TasksApiClient {
       return out;
     },
 
-    async updateTask(id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>): Promise<TaskItem> {
+    async updateTask(id: string, patch: Partial<Pick<TaskItem, 'text' | 'done' | 'dueDate' | 'recurrence' | 'recurrenceAnchorDate' | 'favorite' | 'description' | 'people' | 'priority' | 'effort'>>): Promise<TaskItem> {
       const response = await fetch(`${baseUrl}/api/tasks`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },

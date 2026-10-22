@@ -118,7 +118,40 @@ describe('rapid project task completion', () => {
     await waitFor(() => expect(document.querySelector('[data-task-id="second"]')).toHaveClass('is-editing'));
     const dueDateInput = await screen.findByLabelText(/Due date/);
     expect(dueDateInput.id).toMatch(/^task-date-second-/);
+    expect(screen.getByLabelText('Task title')).toBeInTheDocument();
+    const repeatSelect = screen.getByLabelText('Repeat');
+    expect(repeatSelect).toBeInTheDocument();
+    fireEvent.change(repeatSelect, { target: { value: 'weekly' } });
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalled());
+    const recurrenceSaved = mockProjectsApi.updateProject.mock.calls.some(([, patch]) =>
+      (patch as Partial<ProjectItem>).subprojects?.some(sub =>
+        sub.tasks.some(item => item.id === 'second' && item.recurrence === 'weekly'),
+      ),
+    );
+    expect(recurrenceSaved).toBe(true);
     expect(screen.queryByTestId('notification-conversation')).not.toBeInTheDocument();
+  });
+
+  it('advances a recurring project task in place when completed', async () => {
+    const recurringProject = project();
+    recurringProject.subprojects[0]!.tasks[0] = {
+      ...task('first'), dueDate: '2099-01-01', recurrence: 'weekly',
+    };
+    mockProjectsApi.listProjects.mockResolvedValue([recurringProject]);
+
+    render(<ProjectsPage canManage />);
+    await waitFor(() => expect(checkbox('first')).not.toBeChecked());
+    fireEvent.click(checkbox('first'));
+
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalled());
+    const patch = mockProjectsApi.updateProject.mock.calls[0]?.[1] as Partial<ProjectItem>;
+    const tasks = patch.subprojects?.flatMap(sub => sub.tasks) ?? [];
+    expect(tasks).toHaveLength(3);
+    expect(tasks.filter(item => item.id === 'first')).toHaveLength(1);
+    expect(tasks.find(item => item.id === 'first')).toMatchObject({
+      id: 'first', text: 'Task first', done: false, dueDate: '2099-01-08', recurrence: 'weekly',
+      completedAt: null,
+    });
   });
 
   it.each(['', 'Task'])('keeps every batched toggle in the editor with search %j', (searchQuery) => {

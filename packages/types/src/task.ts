@@ -13,6 +13,10 @@ export interface TaskItem {
   done: boolean;
   /** Due date in ISO 8601 format, or null if not set */
   dueDate: string | null;
+  /** Repeat cadence; completing the task creates its next occurrence */
+  recurrence?: TaskRecurrence | null;
+  /** Original due date anchoring monthly and yearly recurrence schedules */
+  recurrenceAnchorDate?: string | null;
   /** Whether the task is marked as favorite/starred */
   favorite: boolean;
   /** Extended description/notes for the task */
@@ -27,6 +31,8 @@ export interface TaskItem {
   createdAt?: string;
 }
 
+export type TaskRecurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 /**
  * TaskFilter - Available filter types for task lists
  */
@@ -38,6 +44,8 @@ export type TaskFilter = 'completed' | 'overdue' | 'upcoming' | 'starred' | 'ass
 export interface TaskCreateInput {
   text: string;
   dueDate?: string | null;
+  recurrence?: TaskRecurrence | null;
+  recurrenceAnchorDate?: string | null;
   favorite?: boolean;
   description?: string;
   people?: import("./project").ProjectTaskPerson[];
@@ -52,6 +60,8 @@ export interface TaskUpdateInput {
   text?: string;
   done?: boolean;
   dueDate?: string | null;
+  recurrence?: TaskRecurrence | null;
+  recurrenceAnchorDate?: string | null;
   favorite?: boolean;
   description?: string;
   people?: import("./project").ProjectTaskPerson[];

@@ -35,7 +35,7 @@ export type {
 export type { ProjectTaskPerson, ProjectTask, ProjectSubproject, ProjectItem, ProjectMember, ProjectCreateInput, ProjectUpdateInput } from './project';
 
 // Task types
-export type { TaskItem, TaskFilter, TaskCreateInput, TaskUpdateInput } from './task';
+export type { TaskItem, TaskFilter, TaskCreateInput, TaskUpdateInput, TaskRecurrence } from './task';
 
 // Notification types
 export type {

@@ -4,8 +4,9 @@ import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { unauthorizedResponse } from '@/lib/server/apiUtils';
 import { createProject, deleteProject, listProjects, updateProject, resolveProjectOwner, removeSharedProjectRef } from '@/lib/projects/server/projectsStore';
 import { notifyTaskCompleted, notifyTaskAssigned } from '@/lib/projects/server/projectCommentsStore';
-import type { ProjectItem } from '@myorg/types';
+import type { ProjectCreateInput, ProjectUpdateInput } from '@myorg/types';
 import { isValidExternalUrl } from '@myorg/utils';
+import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
 
 export async function GET(request: Request) {
   const session = await getFrameworkSession();
@@ -38,9 +39,22 @@ export async function POST(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { text?: string; color?: string; progress?: number; order?: number; subprojects?: any[]; goal?: string; description?: string; externalUrl?: string; dueDate?: string | null; aiInstructions?: string; avatarUrl?: string };
-  if (!body?.text || !body.text.trim()) {
+  let body = (await request.json()) as ProjectCreateInput;
+  if (typeof body?.text !== 'string' || !body.text.trim()) {
     return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
+  }
+  if (body.isTemplate !== undefined && typeof body.isTemplate !== 'boolean') {
+    return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
+  }
+  if (body.templateId !== undefined) {
+    if (typeof body.templateId !== 'string' || !body.templateId.trim() || body.isTemplate === true) {
+      return NextResponse.json({ error: 'A valid templateId is required to create a project from a template' }, { status: 400 });
+    }
+    const template = (await listProjects(session.userId)).find(project => project.id === body.templateId && project.isTemplate);
+    if (!template) {
+      return NextResponse.json({ error: 'Template not found or access denied' }, { status: 404 });
+    }
+    body = instantiateTemplate(template, body.text.trim());
   }
   if (body.externalUrl !== undefined) {
     if (typeof body.externalUrl !== 'string' || (body.externalUrl.trim() && !isValidExternalUrl(body.externalUrl))) {
@@ -59,6 +73,7 @@ export async function POST(request: Request) {
   const created = await createProject(session.userId, {
     text: body.text.trim(),
     members: [creatorMember],
+    ...(body.isTemplate !== undefined ? { isTemplate: body.isTemplate } : {}),
     ...(body.color ? { color: body.color } : {}),
     ...(typeof body.progress === 'number' ? { progress: body.progress } : {}),
     ...(typeof body.order === 'number' ? { order: body.order } : {}),
@@ -77,9 +92,12 @@ export async function PATCH(request: Request) {
   const session = await getFrameworkSession();
   if (!session.isAuthenticated) return unauthorizedResponse();
 
-  const body = (await request.json()) as { id?: string; patch?: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>> };
+  const body = (await request.json()) as { id?: string; patch?: ProjectUpdateInput };
   if (!body?.id || !body.patch) {
     return NextResponse.json({ error: 'id and patch are required' }, { status: 400 });
+  }
+  if (body.patch.isTemplate !== undefined && typeof body.patch.isTemplate !== 'boolean') {
+    return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
   }
   if (body.patch.externalUrl !== undefined) {
     if (typeof body.patch.externalUrl !== 'string' || (body.patch.externalUrl.trim() && !isValidExternalUrl(body.patch.externalUrl))) {
@@ -97,7 +115,7 @@ export async function PATCH(request: Request) {
     try {
       const existing = await listProjects(ownerUserId);
       const currentProject = existing.find((p) => p.id === body.id);
-      if (currentProject) {
+      if (currentProject && !(body.patch.isTemplate ?? currentProject.isTemplate)) {
         // Build maps of taskId → done / assignee names from the CURRENT persisted state
         const currentDoneMap = new Map<string, boolean>();
         const currentPeopleMap = new Map<string, string[]>();

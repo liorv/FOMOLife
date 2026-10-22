@@ -58,6 +58,7 @@ export interface ProjectItem {
   members?: ProjectMember[];
   archived?: boolean;
   archivedAt?: string | null;
+  isTemplate?: boolean;
   preferences?: {
     showCompleted?: boolean;
     activeFilters?: string[];
@@ -245,7 +246,7 @@ export async function listProjects(userId: string): Promise<ProjectItem[]> {
 
 export async function createProject(
   userId: string,
-  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
+  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'isTemplate' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
 ): Promise<ProjectItem> {
   const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
@@ -257,6 +258,7 @@ export async function createProject(
     subprojects: timestampTasks(input.subprojects ?? []),
     creatorId: userId,
     members: input.members ?? [],
+    ...(input.isTemplate !== undefined ? { isTemplate: input.isTemplate } : {}),
     ...(typeof input.progress === 'number' ? { progress: input.progress } : {}),
     ...(typeof input.order === 'number' ? { order: input.order } : {}),
     ...(input.goal ? { goal: input.goal } : {}),
@@ -267,31 +269,35 @@ export async function createProject(
     ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
   };
   const normalized = ensureProjectLevelTasks(project);
-  current.push(normalized);
-  projectsByUser.set(userId, current);
+  const next = [...current, normalized];
   const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
-  await storage.save(userId, { ...persisted, projects: current.map((item) => ensureProjectLevelTasks(item)) }).catch(() => {});
+  await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) });
+  projectsByUser.set(userId, next);
   return normalized;
 }
 
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
+  patch: Partial<Pick<ProjectItem, 'isTemplate' | 'text' | 'color' | 'subprojects' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {
     if (item.id !== id) return item;
     const updated = { ...item, ...patch };
+    if (patch.isTemplate === true) {
+      updated.archived = false;
+      updated.archivedAt = null;
+    }
     if (patch.subprojects) {
       updated.subprojects = timestampTasks(patch.subprojects, item.subprojects);
     }
     return ensureProjectLevelTasks(updated);
   });
   const updated = next.find((item) => item.id === id) ?? null;
-  projectsByUser.set(userId, next);
   const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
   await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) });
+  projectsByUser.set(userId, next);
   return updated;
 }
 
@@ -323,6 +329,7 @@ export async function promoteSubproject(
     color,
     subprojects: [projectLevelSubproject],
     order: current.length,
+    ...(source.isTemplate ? { isTemplate: true } : {}),
     ...(subproject.description ? { description: subproject.description } : {}),
     ...(source.creatorId ? { creatorId: source.creatorId } : { creatorId: userId }),
     ...(source.members ? { members: source.members } : {}),

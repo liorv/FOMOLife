@@ -14,6 +14,7 @@ import { getCachedProjectsSync, setCachedProjects, areProjectsStale } from '@/li
 import { getCachedTasksSync, setCachedTasks, areTasksStale } from '@/lib/client/tasksCache';
 import { getCachedContactsSync } from '@/lib/client/contactsCache';
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
+import { advanceRecurringTask } from '@/lib/tasks/recurrence';
 
 // Module-level snapshot for feedback (survives React remounts)
 let _feedbackSnap: FeedbackItem[] | null = null;
@@ -252,7 +253,18 @@ function DashboardTaskItem({
       >
         <span className={`material-icons ${styles.itemIcon} ${iconClassName ?? ''}`}>{icon}</span>
         <div className={styles.itemContent}>
-          <h3 className={styles.itemTitle}>{task.text}</h3>
+          <div className={styles.itemTitleRow}>
+            <h3 className={styles.itemTitle}>{task.text}</h3>
+            {task.recurrence && (
+              <span
+                className={`material-icons ${styles.recurrenceIcon}`}
+                title={`Repeats ${task.recurrence}`}
+                aria-label={`Repeats ${task.recurrence}`}
+              >
+                repeat
+              </span>
+            )}
+          </div>
           <p className={`${styles.itemMeta} ${metaClassName ?? ''}`}>{meta}</p>
         </div>
       </div>
@@ -283,6 +295,8 @@ function DashboardTaskItem({
             done: task.done,
             favorite: task.favorite,
             dueDate: task.dueDate,
+            ...(task.recurrence !== undefined ? { recurrence: task.recurrence } : {}),
+            ...(task.recurrenceAnchorDate !== undefined ? { recurrenceAnchorDate: task.recurrenceAnchorDate } : {}),
             description: task.description ?? '',
             people: task.people ?? [],
             ...(task.effort !== undefined ? { effort: task.effort } : {}),
@@ -429,7 +443,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
     }));
 
     projects.forEach(p => {
-      if (p.archived) return;
+      if (p.archived || p.isTemplate) return;
       p.subprojects.forEach(sp => {
         sp.tasks.forEach(t => {
           list.push({
@@ -543,9 +557,18 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
     if (task.source === 'project') {
       const project = projects.find(p => p.id === task.projectId);
       if (!project) return;
+      const completedAt = new Date();
       const updatedSubprojects = (project.subprojects || []).map(sp =>
         sp.id === task.subprojectId
-          ? { ...sp, tasks: (sp.tasks || []).map(t => t.id === task.id ? { ...t, done: true } : t) }
+          ? {
+              ...sp,
+              tasks: (sp.tasks || []).map(current => {
+                if (current.id !== task.id) return current;
+                const completed = { ...current, done: true };
+                if (completed.recurrence) return advanceRecurringTask(completed, completedAt) ?? completed;
+                return { ...completed, completedAt: completedAt.toISOString() };
+              }),
+            }
           : sp
       );
       // Optimistically update so the task disappears from the panel immediately
@@ -564,10 +587,26 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
     }
 
     const previous = tasks.find(t => t.id === task.id);
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: true } : t));
-    void tasksApi.updateTask(task.id, { done: true }).then(updated => {
-      setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+    const optimistic = task.recurrence
+      ? advanceRecurringTask(task, new Date())
+      : { ...task, done: true };
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, ...optimistic } : t));
+    void tasksApi.updateTask(task.id, { done: true }).then(async updated => {
+      setTasks(prev => {
+        const next = prev.map(t => t.id === updated.id ? updated : t);
+        setCachedTasks(next);
+        return next;
+      });
       window.dispatchEvent(new CustomEvent('fomo:taskUpdated', { detail: updated }));
+      if (task.recurrence) {
+        try {
+          const refreshed = await tasksApi.listTasks();
+          setTasks(refreshed);
+          setCachedTasks(refreshed);
+        } catch (error) {
+          console.error('Failed to refresh recurring task:', error);
+        }
+      }
     }).catch(error => {
       console.error('Failed to mark task as done:', error);
       if (previous) setTasks(prev => prev.map(t => t.id === previous.id ? previous : t));
@@ -638,6 +677,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
 
     // New Projects
     projects.forEach(p => {
+       if (p.isTemplate) return;
        const timeStr = p.createdAt;
        if (!timeStr) return;
        feed.push({

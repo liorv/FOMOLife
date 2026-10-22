@@ -7,7 +7,7 @@ jest.mock('@myorg/storage', () => ({
 }));
 jest.mock('@/lib/server/webPush', () => ({ sendPushToUser: jest.fn().mockResolvedValue(undefined) }));
 
-import { createTask, updateTask } from '@/lib/tasks/server/tasksStore';
+import { createTask, listTasks, updateTask } from '@/lib/tasks/server/tasksStore';
 import { createProject, updateProject, listProjects } from '@/lib/projects/server/projectsStore';
 import type { ProjectSubproject } from '@/lib/projects/server/projectsStore';
 
@@ -42,6 +42,25 @@ it('persists standalone creation and completion dates without refreshing complet
   }));
   expect((await updateTask(userId, task.id, { done: false }))?.completedAt).toBeNull();
   expect((await updateTask(userId, task.id, { done: true }))?.completedAt).toBe('2026-10-07T12:00:00.000Z');
+});
+
+it('advances a recurring standalone task in place without retaining completed copies', async () => {
+  const task = await createTask(userId, {
+    text: 'Daily review', dueDate: '2026-10-07', recurrence: 'daily',
+  });
+
+  const updated = await updateTask(userId, task.id, { done: true });
+
+  const tasks = await listTasks(userId);
+  expect(tasks).toHaveLength(1);
+  expect(updated).toMatchObject({
+    id: task.id, text: 'Daily review', done: false, dueDate: '2026-10-08',
+    recurrence: 'daily', completedAt: null,
+  });
+  expect(tasks[0]?.id).toBe(task.id);
+  expect(mockSave).toHaveBeenLastCalledWith(userId, expect.objectContaining({
+    tasks: [expect.objectContaining({ id: task.id, done: false, recurrence: 'daily' })],
+  }));
 });
 
 it('timestamps project task creation and transitions across full-project saves', async () => {
