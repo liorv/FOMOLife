@@ -8,7 +8,6 @@ import React, {
 import ReactDOM from "react-dom";
 import styles from "./ProjectTile.module.css";
 import ModalOverlay from "./ModalOverlay";
-import { UiButton } from "./ui-button";
 import { ProjectLink } from "./ProjectLink";
 import { isValidExternalUrl } from "@myorg/utils";
 
@@ -817,6 +816,23 @@ export default function ProjectTile({
           if (event.key !== "Escape") event.stopPropagation();
         }}
       >
+        {showDelete && isPendingDelete ? (
+          <div className={styles.deleteConfirmation}>
+            <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
+              aria-label={`Confirm delete ${project.text}`} title="Confirm delete project"
+              onClick={() => { closeActions(); onConfirmDelete(project.id); }}>
+              <span className="material-icons" aria-hidden="true">delete_forever</span>
+              <span>Confirm</span>
+            </button>
+            <button type="button" className={`${styles.actionButton} ${styles.actionCancel}`}
+              aria-label="Cancel delete" title="Cancel delete"
+              onClick={() => { onDelete(project.id); closeActions(); }}>
+              <span className="material-icons" aria-hidden="true">close</span>
+              <span>Cancel</span>
+            </button>
+          </div>
+        ) : (
+          <>
         <button type="button" className={`${styles.actionButton} ${styles.actionEdit}`}
           aria-label={`Edit ${project.text}`} title="Edit project" onClick={handleEdit}>
           <span className="material-icons" aria-hidden="true">edit</span>
@@ -859,34 +875,21 @@ export default function ProjectTile({
             <span>{project.archived ? "Restore" : "Complete"}</span>
           </button>
         )}
-        {showDelete && (isPendingDelete ? (
-          <div className={styles.deleteConfirmation}>
-            <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
-              aria-label={`Confirm delete ${project.text}`} title="Confirm delete project"
-              onClick={() => { closeActions(); onConfirmDelete(project.id); }}>
-              <span className="material-icons" aria-hidden="true">delete_forever</span>
-              <span>Confirm</span>
-            </button>
-            <button type="button" className={`${styles.actionButton} ${styles.actionCancel}`}
-              aria-label="Cancel delete" title="Cancel delete"
-              onClick={() => { onDelete(project.id); closeActions(); }}>
-              <span className="material-icons" aria-hidden="true">close</span>
-              <span>Cancel</span>
-            </button>
-          </div>
-        ) : (
+        {showDelete && (
           <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
             aria-label={`Delete ${project.text}`} title="Delete project" onClick={handleDelete}>
             <span className="material-icons" aria-hidden="true">delete</span>
             <span>Delete</span>
           </button>
-        ))}
+        )}
         {showLeave && (
           <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
             aria-label={`Leave ${project.text}`} title="Leave project" onClick={handleLeave}>
             <span className="material-icons" aria-hidden="true">exit_to_app</span>
             <span>Leave</span>
           </button>
+        )}
+          </>
         )}
       </div>
 
@@ -919,23 +922,25 @@ export default function ProjectTile({
         onClose={() => setShowLeaveConfirm(false)}
         className="leave-confirm-modal-overlay"
         contentClassName="leave-confirm-modal-content"
+        ariaLabelledby={`leave-confirm-title-${project.id}`}
       >
         <div className="leave-confirm-modal-header">
-          <h3>Leave Project</h3>
+          <span className="material-icons leave-confirm-modal-icon" aria-hidden="true">logout</span>
+          <h3 id={`leave-confirm-title-${project.id}`}>Leave project?</h3>
         </div>
         <div className="leave-confirm-modal-body">
-          <p>Are you sure you want to leave <strong>"{project.text}"</strong>?</p>
+          <p>Are you sure you want to leave <strong>{project.text}</strong>?</p>
           <p className="leave-confirm-warning">
             You will lose access to this project and all its tasks.
           </p>
         </div>
         <div className="leave-confirm-modal-actions">
-          <UiButton variant="secondary" onClick={() => setShowLeaveConfirm(false)}>
+          <button type="button" className="leave-confirm-cancel" onClick={() => setShowLeaveConfirm(false)}>
             Cancel
-          </UiButton>
-          <UiButton variant="primary" onClick={confirmLeave}>
+          </button>
+          <button type="button" className="leave-confirm-submit" onClick={confirmLeave}>
             Leave Project
-          </UiButton>
+          </button>
         </div>
       </ModalOverlay>
     </div>

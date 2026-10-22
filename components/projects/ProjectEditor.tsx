@@ -32,7 +32,7 @@ interface ProjectEditorProps {
   taskFilters?: string[];
   searchQuery?: string;
   canManage?: boolean;
-  dashboardProjectHeaderTop?: React.ReactNode;
+  dashboardProjectHeaderTop?: (members: React.ReactNode) => React.ReactNode;
   dashboardSummary?: React.ReactNode;
   taskToolbar?: React.ReactNode;
   taskFilterPanel?: React.ReactNode;
@@ -933,126 +933,115 @@ export default function ProjectEditor({
   // Show flat filter view whenever any filter except 'hide_completed' is active
   const showFlatFilterView = taskFilters.length > 0 && !taskFilters.includes('hide_completed');
 
+  const membersBar = (
+    <div className="project-members-bar">
+      {members.map((m) => (
+        <div key={m.userId} className="project-member-avatar-wrap" title={m.name}>
+          {m.avatarUrl ? (
+            <img src={m.avatarUrl} alt={m.name} className="project-member-avatar" />
+          ) : (
+            <span className="project-member-avatar project-member-avatar--initials">
+              {m.name.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
+      ))}
+      <button
+        className="expand-collapse-btn invite-members-btn"
+        title="Invite a connection to this project"
+        aria-label="Invite to project"
+        onClick={() => setShowInviteModal(true)}
+        style={local.color ? { background: `#${local.color.replace(/^#/, '')}`, color: '#fff' } : undefined}
+      >
+        <span className="material-icons" aria-hidden="true">person_add</span>
+        <span className="btn-label">Invite</span>
+      </button>
+    </div>
+  );
+
+  const projectTools = (
+    <div className="project-editor-task-toolbar" role="group" aria-label="Project tools">
+      {taskToolbar}
+      <ProjectActionMenu label="View options" icon="tune">
+        {onToggleFilter && (
+          <>
+            <label>
+              <input
+                type="checkbox"
+                checked={!taskFilters.includes('hide_completed')}
+                onChange={(e) => onToggleFilter(e.target.checked ? null : 'hide_completed')}
+              />
+              Show completed tasks
+            </label>
+            <hr />
+          </>
+        )}
+        <button type="button" onClick={expandAll}>
+          <span className="material-icons" aria-hidden="true">unfold_more</span>
+          Expand all sections
+        </button>
+        <button type="button" onClick={collapseAll}>
+          <span className="material-icons" aria-hidden="true">unfold_less</span>
+          Collapse all sections
+        </button>
+      </ProjectActionMenu>
+      <ProjectActionMenu label="More project actions" icon="more_horiz">
+        <button type="button" onClick={() => setShowOverviewEditor(true)}>
+          <span className="material-icons" aria-hidden="true">edit</span>
+          Edit project overview
+        </button>
+        {projectActions}
+        {onExport && (
+          <button type="button" onClick={onExport}>
+            <span className="material-icons" aria-hidden="true">download</span>
+            Export JSON
+          </button>
+        )}
+        {onArchiveToggle && (
+          <>
+            <hr />
+            <button type="button" onClick={() => onArchiveToggle(!local.archived)}>
+              <span className="material-icons" aria-hidden="true">{local.archived ? 'unarchive' : 'archive'}</span>
+              {local.archived ? 'Restore project' : 'Mark complete & archive'}
+            </button>
+          </>
+        )}
+      </ProjectActionMenu>
+    </div>
+  );
+
   return (
     <div
       className="project-editor"
       ref={editorContainerRef}
     >
-      <div className="dashboard-project-header">
+      <div
+        className={`dashboard-project-header${dashboardProjectHeaderTop ? ' dashboard-project-header--tile' : ''}`}
+        style={dashboardProjectHeaderTop ? {
+          '--project-color': local.color || '#1a73e8',
+        } as React.CSSProperties : undefined}
+      >
         {dashboardProjectHeaderTop && (
           <div className="dashboard-project-title-row">
-            {dashboardProjectHeaderTop}
+            {dashboardProjectHeaderTop(membersBar)}
           </div>
         )}
 
-        <div className="project-editor-header-controls">
-          <div className="project-members-bar">
-            {members.map((m) => (
-              <div key={m.userId} className="project-member-avatar-wrap" title={m.name}>
-                {m.avatarUrl ? (
-                  <img src={m.avatarUrl} alt={m.name} className="project-member-avatar" />
-                ) : (
-                  <span className="project-member-avatar project-member-avatar--initials">
-                    {m.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                {/* Remove button removed - leave functionality moved to header */}
-              </div>
-            ))}
-            <button
-              className="expand-collapse-btn invite-members-btn"
-              title="Invite a connection to this project"
-              aria-label="Invite to project"
-              onClick={() => setShowInviteModal(true)}
-              style={local.color ? { background: `#${local.color.replace(/^#/, '')}`, color: '#fff' } : undefined}
-            >
-              <span className="material-icons" aria-hidden="true">person_add</span>
-              <span className="btn-label">Invite</span>
-            </button>
-
+        {!dashboardProjectHeaderTop && (
+          <div className="project-editor-header-controls">
+            {membersBar}
+            {projectTools}
           </div>
-          <div className="project-editor-task-toolbar" role="group" aria-label="Project tools">
-            {taskToolbar}
-            <ProjectActionMenu label="View options" icon="tune">
-              {onToggleFilter && (
-                <>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={!taskFilters.includes('hide_completed')}
-                      onChange={(e) => onToggleFilter(e.target.checked ? null : 'hide_completed')}
-                    />
-                    Show completed tasks
-                  </label>
-                  <hr />
-                </>
-              )}
-              <button type="button" onClick={expandAll}>
-                <span className="material-icons" aria-hidden="true">unfold_more</span>
-                Expand all sections
-              </button>
-              <button type="button" onClick={collapseAll}>
-                <span className="material-icons" aria-hidden="true">unfold_less</span>
-                Collapse all sections
-              </button>
-            </ProjectActionMenu>
-            <ProjectActionMenu label="More project actions" icon="more_horiz">
-              <button type="button" onClick={() => setShowOverviewEditor(true)}>
-                <span className="material-icons" aria-hidden="true">edit</span>
-                Edit project overview
-              </button>
-              {projectActions}
-              {onExport && (
-                <button type="button" onClick={onExport}>
-                  <span className="material-icons" aria-hidden="true">download</span>
-                  Export JSON
-                </button>
-              )}
-              {onArchiveToggle && (
-                <>
-                  <hr />
-                  <button type="button" onClick={() => onArchiveToggle(!local.archived)}>
-                    <span className="material-icons" aria-hidden="true">{local.archived ? 'unarchive' : 'archive'}</span>
-                    {local.archived ? 'Restore project' : 'Mark complete & archive'}
-                  </button>
-                </>
-              )}
-            </ProjectActionMenu>
-          </div>
-        </div>
-        {taskFilterPanel}
-
-        {/* Project profile icon */}
-        <div className="project-profile-icon-container">
-          <button
-            type="button"
-            className="project-profile-icon"
-            onClick={() => setShowOverviewEditor(true)}
-            title="Edit project overview"
-            aria-label="Edit project image and overview"
-          >
-            {local.avatarUrl ? (
-              <img
-                src={local.avatarUrl}
-                alt="Project avatar"
-                className="project-avatar"
-                style={{ objectFit: 'cover' }}
-              />
-            ) : (
-              <img
-                src={effectiveDefaultIconUrl}
-                alt="Project default avatar"
-                className="project-avatar"
-                style={{ objectFit: 'cover' }}
-              />
-            )}
-            <div className="project-profile-hover-overlay">
-              <span className="material-icons">edit</span>
-            </div>
-          </button>
-        </div>
-
+        )}
       </div>
+
+      {dashboardProjectHeaderTop && (
+        <div className="project-editor-actions-area">
+          {projectTools}
+          {taskFilterPanel}
+        </div>
+      )}
+      {!dashboardProjectHeaderTop && taskFilterPanel}
 
       {/* Import Tasks Modal */}
       {importSubId && (

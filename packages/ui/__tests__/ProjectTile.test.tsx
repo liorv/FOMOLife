@@ -342,7 +342,10 @@ test('keeps delete confirmation and cancellation in the tray', () => {
     />,
   );
   const tray = screen.getByRole('group', { name: 'Test actions' });
-  expect(tray.children).toHaveLength(6);
+  expect(tray.children).toHaveLength(1);
+  expect(screen.queryByRole('button', { name: 'Edit Test' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Rename Test' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Delete Test' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Confirm delete Test' }).parentElement)
     .toBe(screen.getByRole('button', { name: 'Cancel delete' }).parentElement);
   fireEvent.click(screen.getByRole('button', { name: 'Cancel delete' }));
@@ -376,6 +379,7 @@ test('preserves restore and membership-aware leave confirmation', () => {
   expect(onArchiveToggle).toHaveBeenCalledWith(project.id, false);
   fireEvent.click(screen.getByRole('button', { name: 'Leave Test' }));
   expect(onLeave).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: 'Leave project?' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Leave Project' }));
   expect(onLeave).toHaveBeenCalledWith(project.id);
 });

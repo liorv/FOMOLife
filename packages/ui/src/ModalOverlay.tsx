@@ -8,6 +8,7 @@ export interface ModalOverlayProps {
   className?: string | undefined;
   contentClassName?: string | undefined;
   contentRef?: React.Ref<HTMLDivElement> | undefined;
+  ariaLabelledby?: string | undefined;
 }
 
 export default function ModalOverlay({
@@ -17,6 +18,7 @@ export default function ModalOverlay({
   className,
   contentClassName,
   contentRef,
+  ariaLabelledby,
 }: ModalOverlayProps) {
   if (!open) return null;
 
@@ -36,6 +38,7 @@ export default function ModalOverlay({
         ref={contentRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={ariaLabelledby}
       >
         {children}
       </div>

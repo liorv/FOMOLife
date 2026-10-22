@@ -301,6 +301,9 @@ export default function ProjectsDashboard({
   }, [visibleProjects, selectedProject]);
 
   const completedTasks = useMemo(() => scopedTasks.filter((t) => t.done).length, [scopedTasks]);
+  const projectProgress = scopedTasks.length
+    ? Math.round((completedTasks / scopedTasks.length) * 100)
+    : 0;
 
   const starredCount = useMemo(
     () => scopedTasks.filter((t) => (t as any).starred || t.favorite).length,
@@ -354,8 +357,8 @@ export default function ProjectsDashboard({
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
               targetTaskId={selectedTaskId ?? null}
-              dashboardProjectHeaderTop={
-                <div 
+              dashboardProjectHeaderTop={(membersBar) => (
+                <div
                   className="dashboard-project-header-modern"
                   style={{
                     '--project-color': selectedProject.color || "#1a73e8",
@@ -369,49 +372,75 @@ export default function ProjectsDashboard({
                       {onUseTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'use', project: selectedProject })}>Use template</button>}
                     </div>
                   )}
+                  <button
+                    type="button"
+                    className="dashboard-back-btn dashboard-back-btn--breadcrumb"
+                    onClick={handleBack}
+                    title="Back to projects"
+                    aria-label="Back to projects"
+                  >
+                    <span className="material-icons" aria-hidden="true">arrow_back</span>
+                    <span>Projects</span>
+                  </button>
                   <div className="dashboard-project-header-main">
-                    <button
-                      className="dashboard-back-btn"
-                      onClick={handleBack}
-                      title="Back to projects"
-                      aria-label="Back to projects"
+                    <div
+                      className="dashboard-project-avatar"
+                      aria-hidden="true"
+                      style={selectedProject.avatarUrl
+                        ? { backgroundImage: `url(${JSON.stringify(selectedProject.avatarUrl)})` }
+                        : undefined}
                     >
-                      <span className="material-icons">arrow_back_ios</span>
-                    </button>
-                    <span
-                      className="dashboard-project-dot-lg"
-                    />
-                    <h2
-                      className={`dashboard-project-title${selectedProject.externalUrl ? ' dashboard-project-title--linked' : ''}`}
-                      contentEditable
-                      suppressContentEditableWarning
-                      onFocus={(e) => {
-                        // Select all text when focusing
-                        const range = document.createRange();
-                        range.selectNodeContents(e.currentTarget);
-                        const selection = window.getSelection();
-                        selection?.removeAllRanges();
-                        selection?.addRange(range);
-                      }}
-                      onBlur={(e) => {
-                        const newText = e.currentTarget.textContent.trim();
-                        if (newText && newText !== selectedProject.text) {
-                          onTitleChange?.(selectedProject.id, newText);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }
-                      }}
-                    >
-                      {selectedProject.text}
-                    </h2>
-                    <ProjectLink url={selectedProject.externalUrl} projectName={selectedProject.text} />
+                      {!selectedProject.avatarUrl && <span>{selectedProject.text.charAt(0).toUpperCase()}</span>}
+                    </div>
+                    <div className="dashboard-project-header-details">
+                      <div className="dashboard-project-name-row">
+                        <h2
+                          className={`dashboard-project-title${selectedProject.externalUrl ? ' dashboard-project-title--linked' : ''}`}
+                          contentEditable
+                          suppressContentEditableWarning
+                          onFocus={(e) => {
+                            const range = document.createRange();
+                            range.selectNodeContents(e.currentTarget);
+                            const selection = window.getSelection();
+                            selection?.removeAllRanges();
+                            selection?.addRange(range);
+                          }}
+                          onBlur={(e) => {
+                            const newText = e.currentTarget.textContent.trim();
+                            if (newText && newText !== selectedProject.text) {
+                              onTitleChange?.(selectedProject.id, newText);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                        >
+                          {selectedProject.text}
+                        </h2>
+                        <ProjectLink url={selectedProject.externalUrl} projectName={selectedProject.text} />
+                        {membersBar}
+                      </div>
+                      <div className="dashboard-project-name-accent" />
+                      <div className="dashboard-project-progress-row">
+                        <div
+                          className="dashboard-project-progress"
+                          role="progressbar"
+                          aria-label={`${selectedProject.text} progress`}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={projectProgress}
+                        >
+                          <span style={{ width: `${projectProgress}%` }} />
+                        </div>
+                        <span>{projectProgress}%</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              }
+              )}
               taskFilterPanel={showFilters && (
                     <div className="project-actions-bar project-filter-bar">
                       <button

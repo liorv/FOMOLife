@@ -670,22 +670,22 @@
 
 .deleteConfirmation {
   display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
   min-height: 0;
 }
 
-.tile:has(.deleteConfirmation) {
-  min-height: 178px;
+.actionTray:has(.deleteConfirmation) {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
 }
 
 .deleteConfirmation .actionButton {
-  padding: 1px 2px;
-  font-size: clamp(0.5rem, 7cqw, 0.65rem);
-}
-
-.deleteConfirmation :global(.material-icons) {
-  display: none;
+  gap: 6px;
+  padding: 8px 4px;
+  font-size: clamp(0.65rem, 8cqw, 0.8rem);
 }
 
 .actionButton:hover {
@@ -706,8 +706,8 @@
 .actionColor { background: #af52de; }
 .actionLink { background: #007c91; }
 .actionArchive { background: #248a3d; }
-.actionDelete { background: #d32f2f; }
-.actionCancel { background: #636366; }
+.actionDelete { background: #b3261e; }
+.actionCancel { background: #5f6368; }
 
 @media (prefers-reduced-motion: reduce) {
   .actionTray { transition: none; }

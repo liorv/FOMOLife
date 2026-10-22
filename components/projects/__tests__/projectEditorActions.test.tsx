@@ -57,6 +57,35 @@ it("does not count completed-task visibility as an active task filter", async ()
   expect(screen.queryByText("Filter (1)")).not.toBeInTheDocument();
 });
 
+it("shows the project-tile-style header with a breadcrumb back action", async () => {
+  const onSelectProject = jest.fn();
+  await act(async () => {
+    render(
+      <ProjectsDashboard
+        projects={[project]}
+        selectedProjectId={project.id}
+        onSelectProject={onSelectProject}
+      />,
+    );
+  });
+
+  const projectHeading = screen.getByRole("heading", { name: "Launch plan" });
+  const projectHeader = projectHeading.closest(".dashboard-project-header");
+  expect(projectHeader).toHaveClass("dashboard-project-header--tile");
+  expect(screen.getByRole("progressbar", { name: "Launch plan progress" })).toHaveAttribute("aria-valuenow", "0");
+  const nameRow = projectHeading.closest(".dashboard-project-name-row");
+  expect(nameRow).toContainElement(screen.getByRole("button", { name: "Invite to project" }));
+  const actionsArea = projectHeader?.nextElementSibling;
+  expect(actionsArea).toHaveClass("project-editor-actions-area");
+  expect(actionsArea).toContainElement(screen.getByRole("button", { name: "Filter tasks" }));
+  expect(actionsArea).toContainElement(screen.getByRole("group", { name: "Project tools" }));
+  expect(projectHeader).not.toContainElement(screen.getByRole("button", { name: "Filter tasks" }));
+  expect(screen.queryByRole("button", { name: "Edit project image and overview" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "Back button layout preview" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Back to projects" }));
+  expect(onSelectProject).toHaveBeenCalledWith(null);
+});
+
 it("offers restoration rather than completion for archived projects", () => {
   const onArchiveToggle = jest.fn();
   render(

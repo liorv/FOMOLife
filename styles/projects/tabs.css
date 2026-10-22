@@ -1856,7 +1856,7 @@ html[data-theme="dark"] .inline-editor {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 0;
   box-sizing: border-box;
   padding: 20px 24px 16px;
   background: var(--color-surface, #fff);
@@ -1868,31 +1868,87 @@ html[data-theme="dark"] .inline-editor {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.dashboard-project-header--tile {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-bottom: 0;
+}
+
 .dashboard-project-title-row {
-  padding-right: 56px;
+  padding: 0;
   min-width: 0;
+}
+
+.dashboard-project-header--tile .dashboard-project-title-row {
+  box-sizing: border-box;
+  padding: 10px 16px 0;
+  background: var(--color-bg, #f8fafc);
 }
 
 .dashboard-project-header-modern {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-left: 4px solid var(--project-color, #1a73e8);
+  border-radius: 14px;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--project-color, #1a73e8) 9%, white),
+    var(--color-surface, #fff) 48%
+  );
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--project-color, #1a73e8) 12%, transparent);
+}
+
+.dashboard-back-btn:focus-visible {
+  outline: 2px solid var(--color-primary, #1a73e8);
+  outline-offset: 2px;
 }
 
 .dashboard-project-header-main {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
-.dashboard-project-dot-lg {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+.dashboard-project-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--project-color, #1a73e8), color-mix(in srgb, var(--project-color, #1a73e8) 60%, #6b65d8));
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
+  color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  background: var(--project-color, #1a73e8);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.dashboard-project-header-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-project-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 /* Subproject drag states */
@@ -1907,13 +1963,13 @@ html[data-theme="dark"] .inline-editor {
 }
 
 .dashboard-project-title {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 600;
   margin: 0;
-  flex: 1;
+  flex: 1 1 auto;
   outline: none;
   border-bottom: 2px solid transparent;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
   transition: all 0.2s ease;
   min-width: 0;
   white-space: nowrap;
@@ -1923,8 +1979,13 @@ html[data-theme="dark"] .inline-editor {
   letter-spacing: -0.02em;
 }
 
-.dashboard-project-title--linked {
-  flex: 0 1 auto;
+.dashboard-project-name-accent {
+  width: 60px;
+  height: 3px;
+  margin-top: 5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--project-color, #1a73e8), rgba(255, 255, 255, 0.65));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-project-title:focus {
@@ -1949,24 +2010,61 @@ html[data-theme="dark"] .inline-editor {
   display: none;
 }
 
-/* Back button — deselects project (primary use: mobile) */
-.dashboard-back-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 2px 4px 4px;
-  border-radius: 6px;
-  color: var(--color-text-muted);
+.dashboard-project-progress-row {
   display: flex;
   align-items: center;
+  gap: 8px;
+  max-width: 360px;
+  margin-top: 5px;
+  color: var(--color-text-muted, #64748b);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dashboard-project-progress {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--project-color, #1a73e8) 14%, white);
+}
+
+.dashboard-project-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--project-color, #1a73e8);
+  transition: width 0.2s ease;
+}
+
+/* Back button — deselects project (primary use: mobile) */
+.dashboard-back-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex-shrink: 0;
-  transition: color 0.12s, background 0.12s;
+  font: inherit;
+  font-size: 14px;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 .dashboard-back-btn:hover {
   color: var(--color-primary);
   background: rgba(26, 115, 232, 0.08);
 }
 .dashboard-back-btn .material-icons { font-size: 18px !important; }
+.dashboard-back-btn--breadcrumb {
+  align-self: flex-start;
+  padding: 3px 6px 3px 2px;
+  border: 0;
+  font-size: 13px;
+}
 
 /* Leave group button */
 .dashboard-leave-btn {
