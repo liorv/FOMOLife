@@ -3,6 +3,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ProjectItem, ProjectTask } from '@myorg/types';
 import ProjectsPage from '../ProjectsPage';
 import ProjectEditor from '../ProjectEditor';
+import { setCachedProjects } from '@/lib/client/projectsCache';
+import { TaskModal } from '@myorg/ui';
 
 let mockSearchParams = new URLSearchParams();
 jest.mock('next/navigation', () => ({
@@ -154,6 +156,65 @@ describe('rapid project task completion', () => {
     });
   });
 
+  it('advances a daily task on every check, including clicks in the enlarged target', () => {
+    const recurringProject = project();
+    recurringProject.subprojects[0]!.tasks[0] = {
+      ...task('first'), dueDate: '2099-01-01', recurrence: 'daily',
+      recurrenceAnchorDate: '2098-01-01',
+    };
+    const onApplyChange = jest.fn();
+    render(<ProjectEditor project={recurringProject} onApplyChange={onApplyChange} />);
+    const target = checkbox('first').closest('label')!;
+
+    fireEvent.click(target);
+    fireEvent.click(target);
+
+    expect(onApplyChange).toHaveBeenCalledTimes(2);
+    const latest: ProjectItem = onApplyChange.mock.calls[1][0];
+    expect(latest.subprojects[0]!.tasks[0]).toMatchObject({
+      id: 'first', done: false, dueDate: '2099-01-03', recurrence: 'daily',
+    });
+
+    expect(checkbox('first')).not.toBeChecked();
+    expect(document.querySelector('[data-task-id="first"]')).not.toHaveClass('is-editing');
+  });
+
+  it('keeps the saved recurring due date in the reload cache and after remounting', async () => {
+    let persisted = project();
+    persisted.subprojects[0]!.tasks[0] = {
+      ...task('first'), dueDate: '2099-01-01', recurrence: 'weekly',
+    };
+    mockProjectsApi.listProjects.mockImplementation(async () => JSON.parse(JSON.stringify([persisted])));
+    mockProjectsApi.updateProject.mockImplementation(async (_id: string, patch: Partial<ProjectItem>) => {
+      persisted = JSON.parse(JSON.stringify({ ...persisted, ...patch }));
+      return persisted;
+    });
+    const view = render(<ProjectsPage canManage />);
+    await waitFor(() => expect(checkbox('first')).not.toBeChecked());
+    fireEvent.click(checkbox('first'));
+
+    await waitFor(() => expect(setCachedProjects).toHaveBeenLastCalledWith([
+      expect.objectContaining({
+        subprojects: expect.arrayContaining([
+          expect.objectContaining({
+            tasks: expect.arrayContaining([
+              expect.objectContaining({ id: 'first', done: false, dueDate: '2099-01-08' }),
+            ]),
+          }),
+        ]),
+      }),
+    ]));
+    view.unmount();
+    mockProjectsApi.updateProject.mockClear();
+    render(<ProjectsPage canManage />);
+    await waitFor(() => expect(checkbox('first')).not.toBeChecked());
+    fireEvent.click(checkbox('first'));
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalled());
+    expect(persisted.subprojects[0]!.tasks[0]).toMatchObject({
+      id: 'first', done: false, dueDate: '2099-01-15', recurrence: 'weekly',
+    });
+  });
+
   it.each(['', 'Task'])('keeps every batched toggle in the editor with search %j', (searchQuery) => {
     const onApplyChange = jest.fn();
     render(<ProjectEditor project={project()} onApplyChange={onApplyChange} searchQuery={searchQuery} />);
@@ -258,5 +319,83 @@ describe('rapid project task completion', () => {
     fireEvent.click(checkbox('first'));
     expect(onApplyChange).not.toHaveBeenCalled();
     expect(checkbox('first')).not.toBeChecked();
+  });
+
+  it('updates the open task editor due date on each recurring completion without reverting on close', () => {
+    const recurringProject = project();
+    recurringProject.subprojects[0]!.tasks[0] = {
+      ...task('first'), dueDate: '2099-01-01', recurrence: 'weekly',
+    };
+    const onApplyChange = jest.fn();
+    render(<ProjectEditor project={recurringProject} targetTaskId="first" onApplyChange={onApplyChange} />);
+    expect(screen.getByLabelText(/Due date/)).toHaveValue('2099-01-01');
+    fireEvent.click(checkbox('first'));
+    expect(screen.getByLabelText(/Due date/)).toHaveValue('2099-01-08');
+    fireEvent.click(checkbox('first'));
+    expect(screen.getByLabelText(/Due date/)).toHaveValue('2099-01-15');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    const latest: ProjectItem = onApplyChange.mock.calls.at(-1)![0];
+    expect(latest.subprojects[0]!.tasks[0]).toMatchObject({
+      dueDate: '2099-01-15', done: false, recurrence: 'weekly',
+    });
+  });
+
+  it('removes an open task without its editor restoring the deleted task', () => {
+    const onApplyChange = jest.fn();
+    render(<ProjectEditor project={project()} targetTaskId="first" onApplyChange={onApplyChange} />);
+    expect(screen.getByLabelText('Task title')).toBeInTheDocument();
+    const deleteButton = document.querySelector<HTMLButtonElement>('[data-task-id="first"] button.delete')!;
+    fireEvent.click(deleteButton);
+    expect(document.querySelector('[data-task-id="first"]')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument();
+    const latest: ProjectItem = onApplyChange.mock.calls.at(-1)![0];
+    expect(latest.subprojects.flatMap(sub => sub.tasks).map(task => task.id)).toEqual(['second', 'third']);
+  });
+
+  it('removes a deleted recurring task from the reload cache before its save completes', async () => {
+    const initial = project();
+    initial.subprojects[0]!.tasks[0] = {
+      ...task('first'), dueDate: '2099-01-01', recurrence: 'weekly',
+    };
+    const pending = deferred<ProjectItem>();
+    mockProjectsApi.listProjects.mockResolvedValue([initial]);
+    mockProjectsApi.updateProject.mockReturnValueOnce(pending.promise);
+    render(<ProjectsPage canManage />);
+    await waitFor(() => expect(checkbox('first')).not.toBeChecked());
+    fireEvent.click(document.querySelector<HTMLButtonElement>('[data-task-id="first"] button.delete')!);
+    expect(document.querySelector('[data-task-id="first"]')).not.toBeInTheDocument();
+    const cached = jest.mocked(setCachedProjects).mock.calls.at(-1)![0];
+    expect(cached[0]!.subprojects.flatMap(sub => sub.tasks).map(task => task.id))
+      .toEqual(['second', 'third']);
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalledTimes(1));
+    await act(async () => { pending.resolve(savedRequest(0)); });
+    expect(jest.mocked(setCachedProjects).mock.calls.at(-1)![0][0]!.subprojects
+      .flatMap(sub => sub.tasks).map(task => task.id)).toEqual(['second', 'third']);
+  });
+
+  it('saves title edits immediately without saving stale tasks during Strict Mode cleanup', () => {
+    const onUpdateTask = jest.fn();
+    const onSave = jest.fn();
+    const onClose = jest.fn();
+    const initial = { ...task('first'), dueDate: '2099-01-01', recurrence: 'weekly' as const };
+    const view = render(
+      <React.StrictMode>
+        <TaskModal task={initial} onUpdateTask={onUpdateTask} onSave={onSave} onClose={onClose} />
+      </React.StrictMode>,
+    );
+    expect(onUpdateTask).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Task title'), { target: { value: 'Renamed task' } });
+    expect(onUpdateTask).toHaveBeenLastCalledWith(expect.objectContaining({ text: 'Renamed task' }));
+    const updated = { ...initial, text: 'Renamed task', dueDate: '2099-01-08' };
+    view.rerender(
+      <React.StrictMode>
+        <TaskModal task={updated} onUpdateTask={onUpdateTask} onSave={onSave} onClose={onClose} />
+      </React.StrictMode>,
+    );
+    expect(screen.getByLabelText('Task title')).toHaveValue('Renamed task');
+    expect(screen.getByLabelText(/Due date/)).toHaveValue('2099-01-08');
+    onUpdateTask.mockClear();
+    view.unmount();
+    expect(onUpdateTask).not.toHaveBeenCalled();
   });
 });

@@ -36,6 +36,7 @@ it('persists a link on creation, updates it, loads it, and allows removing it', 
   const updatedResponse = await PATCH(request('PATCH', { id: created.id, patch: { externalUrl: 'http://example.org/new' } }));
   expect(updatedResponse.status).toBe(200);
   const loaded = await GET(request('GET', undefined));
+  expect(loaded.headers.get('Cache-Control')).toBe('private, no-store');
   expect((await loaded.json()).projects).toEqual(expect.arrayContaining([
     expect.objectContaining({ id: created.id, externalUrl: 'http://example.org/new' }),
   ]));

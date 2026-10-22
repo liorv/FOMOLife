@@ -32,7 +32,7 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
 
   return {
     async listProjects(): Promise<ProjectItem[]> {
-      const response = await fetch(endpoint, { method: 'GET' });
+      const response = await fetch(endpoint, { method: 'GET', cache: 'no-store' });
       const payload = await parseResponse<{ projects: ProjectItem[] }>(response);
       return payload.projects;
     },

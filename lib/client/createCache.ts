@@ -88,6 +88,7 @@ export function createCache<T>(
 
     invalidate(): void {
       fetchedAt = 0;
+      persist();
     },
 
     patchOne(match: (item: T) => boolean, updated: T): void {

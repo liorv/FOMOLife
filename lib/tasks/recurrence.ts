@@ -43,17 +43,11 @@ export function getNextTaskDueDate(
   dueDate: string | null | undefined,
   recurrence: TaskRecurrence,
   completedAt: Date,
+  recurrenceAnchorDate?: string | null,
 ): string {
-  const completedDate = localDateKey(completedAt);
-  const anchorDate = dueDate?.slice(0, 10) || completedDate;
-  const anchorDay = Number(anchorDate.slice(8, 10));
-  let nextDate = addRecurrence(anchorDate, recurrence, anchorDay);
-
-  while (nextDate <= completedDate) {
-    nextDate = addRecurrence(nextDate, recurrence, anchorDay);
-  }
-
-  return nextDate;
+  const currentDate = dueDate?.slice(0, 10) || localDateKey(completedAt);
+  const anchorDay = Number((recurrenceAnchorDate || currentDate).slice(8, 10));
+  return addRecurrence(currentDate, recurrence, anchorDay);
 }
 
 export function advanceRecurringTask<T extends RecurringTask>(
@@ -65,7 +59,7 @@ export function advanceRecurringTask<T extends RecurringTask>(
   return {
     ...task,
     done: false,
-    dueDate: getNextTaskDueDate(task.recurrenceAnchorDate ?? task.dueDate, task.recurrence, completedAt),
+    dueDate: getNextTaskDueDate(task.dueDate, task.recurrence, completedAt, task.recurrenceAnchorDate),
     recurrenceAnchorDate: task.recurrenceAnchorDate ?? task.dueDate ?? localDateKey(completedAt),
     completedAt: null,
   };

@@ -340,13 +340,8 @@
 
 /* shrink header height and spacing inside subproject tasks */
 .subproject .task-header {
-  height: 36px;
+  height: 44px;
   gap: 6px;
-}
-.subproject .task-checkbox {
-  width: 0.9em;
-  height: 0.9em;
-  margin-right: 4px;
 }
 .subproject .task-row button {
   padding: 2px;
@@ -364,12 +359,6 @@
 /* keep drag handle icon a little smaller */
 .subproject .task-row .material-icons.expand-icon {
   font-size: 1.1rem;
-}
-
-/* ensure checkbox and buttons remain properly sized */
-.subproject .task-row .task-checkbox,
-.subproject .task-row button {
-  padding: 2px;
 }
 
 /* ============================================================
@@ -617,14 +606,9 @@
 
 /* shrink header height and spacing inside filtered tasks */
 .filter-flat-view .task-header {
-  height: 36px;
+  height: 44px;
   gap: 6px;
   background: #fff;
-}
-.filter-flat-view .task-checkbox {
-  width: 0.9em;
-  height: 0.9em;
-  margin-right: 4px;
 }
 .filter-flat-view .task-row button {
   padding: 2px;
@@ -642,12 +626,6 @@
 /* keep drag handle icon a little smaller */
 .filter-flat-view .task-row .material-icons.expand-icon {
   font-size: 1.1rem;
-}
-
-/* ensure checkbox and buttons remain properly sized */
-.filter-flat-view .task-row .task-checkbox,
-.filter-flat-view .task-row button {
-  padding: 2px;
 }
 
 

@@ -340,9 +340,10 @@ export default function ProjectEditor({
       return;
     }
 
+    const current = localRef.current;
     const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) => {
+      ...current,
+      subprojects: (current.subprojects || []).map((s) => {
         if (s.id !== subId) return s;
         return {
           ...s,
@@ -352,8 +353,7 @@ export default function ProjectEditor({
         };
       }),
     };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    setLocalAndApply(updated);
   };
 
   const handleEditorSave = (subId: string) =>
@@ -725,9 +725,11 @@ export default function ProjectEditor({
   };
 
   const handleTaskDelete = (subId: string, taskId: string) => {
+    if (!canManage) return;
+    const current = localRef.current;
     const updated = {
-      ...local,
-      subprojects: (local.subprojects || []).map((s) => {
+      ...current,
+      subprojects: (current.subprojects || []).map((s) => {
         if (s.id !== subId) return s;
         return {
           ...s,
@@ -735,8 +737,8 @@ export default function ProjectEditor({
         };
       }),
     };
-    setLocal(updated);
-    safeOnApplyChange(updated);
+    setLocalAndApply(updated);
+    if (editorTaskId === taskId) setEditorTaskId(null);
   };
 
   const handleTaskStar = (subId: string, taskId: string) => {

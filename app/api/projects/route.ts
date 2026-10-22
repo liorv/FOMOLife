@@ -32,7 +32,10 @@ export async function GET(_request: Request) {
   }
 
   const returnProjects = didUpgrade ? await listProjects(session.userId) : projects;
-  return NextResponse.json({ projects: returnProjects });
+  return NextResponse.json(
+    { projects: returnProjects },
+    { headers: { 'Cache-Control': 'private, no-store' } },
+  );
 }
 
 export async function POST(request: Request) {

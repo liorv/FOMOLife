@@ -47,7 +47,15 @@ It saves when the field loses focus (or you press Enter). A small link icon besi
 the project name on its tile and in the editor opens the URL in a new tab.
 Clear the field to remove the link. Project exports include the saved link.
 Project tiles use a sliding action tray like Home tasks in Cards, List, and Compact
-views. Hover with a mouse or focus with the keyboard to reveal the actions.
+views. Click or tap the grid-and-chevron handle at the far right of a tile to
+slide the actions open to the left. The handle stays visible and its chevron
+points right when open; activate it again to close the actions. Keyboard users
+can focus the handle and press Enter or Space. Hovering or focusing a tile no
+longer opens its actions automatically.
+The handle and action tray both use three columns and two rows. Icons and
+single-line labels scale down in narrow trays. Delete confirmation shares its
+action cell and temporarily expands short tiles to preserve usable buttons
+without a scrolling action tray.
 The project icon stays at the left edge, vertically centered before the title,
 with space reserved so the sliding actions cannot cover it.
 A dismissible left-arrow hint above the tiles explains "Swipe left for actions";
@@ -66,6 +74,22 @@ Cancel, Escape, or clicking outside the dialog closes it without saving.
 Checkboxes update immediately. Project saves are queued per project in click
 order, and earlier save responses cannot replace newer pending edits. Save
 failures are displayed in the projects page rather than silently ignored.
+Successful saves also update the session cache, including recurring-task due
+dates, so reloading does not first restore an older task date.
+Pending task edits and deletions update the session cache immediately and remain
+marked stale across reloads until saved. Project reloads bypass HTTP caching to
+reconcile with the server rather than restore a previously fetched task list.
+Open task editors follow updated task values, including due dates advanced by
+recurring completion. Field edits save directly; closing or deleting an editor
+does not save an old task snapshot or restore a deleted task.
+
+Task checkboxes use a 24px box inside a 44px press target, including compact
+project and filtered task rows. Completing a recurring task keeps it open and
+advances its due date by one recurrence interval from its last due date, not from
+the completion date or original anchor. Overdue occurrences are not skipped;
+each check advances one occurrence, even when completing early or repeatedly.
+Undated recurring tasks start from the completion date. Monthly and yearly
+recurrences retain their original day when clamping to shorter months.
 
 Dragging projects into a new order saves that order and restores it after a
 reload or returning to the Projects tab. Projects without a saved position appear

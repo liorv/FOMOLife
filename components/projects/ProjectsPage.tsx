@@ -68,7 +68,11 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
       const next = await request;
       if (projectSavesRef.current.get(projectId) === request) {
         projectSavesRef.current.delete(projectId);
-        setProjects((prev) => prev.map((item) => (item.id === projectId ? next : item)));
+        setProjects((prev) => {
+          const saved = prev.map((item) => (item.id === projectId ? next : item));
+          setCachedProjects(saved);
+          return saved;
+        });
       }
       return next;
     } catch (err) {
@@ -545,13 +549,15 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     }
 
     // Optimistic update — apply immediately so the UI reflects the change without waiting for the API
-    setProjects((prev) =>
-      prev.map((item) =>
+    setProjects((prev) => {
+      const next = prev.map((item) =>
         item.id === projectId ? { ...item, ...updated } : item,
-      ),
-    );
-    // Mark the shared projects cache as stale so Home re-fetches on next tab switch
-    invalidateProjectsCache();
+      );
+      setCachedProjects(next);
+      // Keep pending edits across reloads, but revalidate them with the server.
+      invalidateProjectsCache();
+      return next;
+    });
     try {
       await apiUpdateProject(projectId, updated);
     } catch (_) {

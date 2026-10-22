@@ -107,6 +107,58 @@ test('reveals project actions with a left pointer swipe and dismisses with a rig
   expect(onEdit).not.toHaveBeenCalled();
 });
 
+test.each(['cards', 'list', 'compact'])(
+  'toggles actions with the right-edge handle without activating the tile in %s view',
+  (view) => {
+    const onOpen = jest.fn();
+    render(
+      <div className={`dashboard-tiles-grid dashboard-tiles-grid--${view}`} onClick={onOpen} onKeyDown={onOpen}>
+        <ProjectTile project={project} />
+      </div>,
+    );
+    const tile = screen.getByTestId('project-tile');
+    const handle = screen.getByRole('button', { name: 'Open actions for Test' });
+    const tray = screen.getByRole('group', { name: 'Test actions' });
+    expect(handle).toHaveAttribute('aria-expanded', 'false');
+    expect(handle).toHaveAttribute('aria-controls', tray.id);
+    const closedChevron = handle.querySelector('path')?.getAttribute('d');
+    const cells = Array.from(handle.querySelectorAll('rect'));
+    expect(cells).toHaveLength(6);
+    expect(new Set(cells.map(cell => cell.getAttribute('x'))).size).toBe(3);
+    expect(new Set(cells.map(cell => cell.getAttribute('y'))).size).toBe(2);
+
+    fireEvent.mouseEnter(tile);
+    fireEvent.focus(tile);
+    expect(tile).not.toHaveClass('project-tile-actions-open');
+    fireEvent.keyDown(handle, { key: 'Enter' });
+    fireEvent.click(handle);
+    expect(tile).toHaveClass('project-tile-actions-open');
+    expect(handle).toHaveAccessibleName('Close actions for Test');
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    expect(handle.querySelector('path')?.getAttribute('d')).not.toBe(closedChevron);
+
+    fireEvent.click(handle);
+    expect(tile).not.toHaveClass('project-tile-actions-open');
+    expect(handle).toHaveAttribute('aria-expanded', 'false');
+    expect(handle.querySelector('path')?.getAttribute('d')).toBe(closedChevron);
+    expect(onOpen).not.toHaveBeenCalled();
+  },
+);
+
+test('keeps the handle in sync with swipes and returns focus to it on Escape', () => {
+  render(<ProjectTile project={project} />);
+  const tile = screen.getByTestId('project-tile');
+  const handle = screen.getByRole('button', { name: 'Open actions for Test' });
+  swipeTouch(tile, -60);
+  expect(handle).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Edit Test' }), { key: 'Escape' });
+  expect(handle).toHaveAttribute('aria-expanded', 'false');
+  expect(handle).toHaveFocus();
+  swipeTouch(tile, -60);
+  fireEvent.pointerDown(document.body);
+  expect(handle).toHaveAttribute('aria-expanded', 'false');
+});
+
 test('does not treat a vertical pointer movement as a project swipe', () => {
   const onEdit = jest.fn();
   render(
@@ -272,7 +324,7 @@ test('keeps delete confirmation and cancellation in the tray', () => {
   const onDelete = jest.fn();
   const onConfirmDelete = jest.fn();
   const { rerender } = render(
-    <ProjectTile project={project} onDelete={onDelete} />,
+    <ProjectTile project={project} onDelete={onDelete} onExternalUrlChange={() => {}} onArchiveToggle={() => {}} />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Delete Test' }));
   expect(onDelete).toHaveBeenCalledWith(project.id);
@@ -285,8 +337,14 @@ test('keeps delete confirmation and cancellation in the tray', () => {
       isPendingDelete
       onDelete={onDelete}
       onConfirmDelete={onConfirmDelete}
+      onExternalUrlChange={() => {}}
+      onArchiveToggle={() => {}}
     />,
   );
+  const tray = screen.getByRole('group', { name: 'Test actions' });
+  expect(tray.children).toHaveLength(6);
+  expect(screen.getByRole('button', { name: 'Confirm delete Test' }).parentElement)
+    .toBe(screen.getByRole('button', { name: 'Cancel delete' }).parentElement);
   fireEvent.click(screen.getByRole('button', { name: 'Cancel delete' }));
   expect(onDelete).toHaveBeenCalledTimes(2);
   fireEvent.click(screen.getByRole('button', { name: 'Confirm delete Test' }));

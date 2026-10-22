@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import type { ProjectTask, ProjectTaskPerson, Contact, TaskRecurrence } from "@myorg/types";
 
 export interface TaskEditorProps {
@@ -37,52 +37,24 @@ export default function TaskEditor({
   }));
   const [people, setPeople] = useState<PersonEntry[]>(initialPeople);
 
-  // Keep a ref to latest editable state so cleanup can persist on unmount
-  const latestRef = React.useRef<{
-    title: string;
-    dueDate: string;
-    recurrence: TaskRecurrence | "";
-    recurrenceAnchorDate: string;
-    effort: number | null | undefined;
-    people: PersonEntry[];
-  }>({
-    title: task.text || "",
-    dueDate: task.dueDate || "",
-    recurrence: task.recurrence || "",
-    recurrenceAnchorDate: task.recurrenceAnchorDate || task.dueDate || "",
-    effort: task.effort,
-    people: initialPeople,
-  });
   useEffect(() => {
-    latestRef.current = { title, dueDate, recurrence, recurrenceAnchorDate, effort, people };
-  }, [title, dueDate, recurrence, recurrenceAnchorDate, effort, people]);
-
-  // persist latest edits when editor unmounts (e.g. user switches tasks)
-  // Use a flag to ensure cleanup only runs once (handles Strict Mode double-mount)
-  const cleanupRanRef = React.useRef(false);
-
+    setTitle(task.text || "");
+  }, [task.id, task.text]);
   useEffect(() => {
-    return () => {
-      // Prevent running twice in React 18 Strict Mode
-      if (cleanupRanRef.current) return;
-      cleanupRanRef.current = true;
-
-      const latest = latestRef.current;
-      const normalizedPeople = latest.people.map((p: PersonEntry) => ({ name: p.name }));
-      // Build updated task from latest values, preserving original task properties
-      const updatedTask = {
-        ...task,
-        text: latest.title,
-        dueDate: latest.dueDate || null,
-        recurrence: latest.recurrence || null,
-        recurrenceAnchorDate: latest.recurrence ? latest.recurrenceAnchorDate || null : null,
-        effort: latest.effort !== undefined ? latest.effort : null,
-        people: normalizedPeople,
-      };
-      onUpdateTask(updatedTask);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setDueDate(task.dueDate || "");
+  }, [task.id, task.dueDate]);
+  useEffect(() => {
+    setRecurrence(task.recurrence || "");
+    setRecurrenceAnchorDate(task.recurrenceAnchorDate || task.dueDate || "");
+  }, [task.id, task.recurrence, task.recurrenceAnchorDate, task.dueDate]);
+  useEffect(() => {
+    setEffort(task.effort);
+  }, [task.id, task.effort]);
+  useEffect(() => {
+    setPeople((task.people || []).map(p => ({
+      name: typeof p === "string" ? p : p.name || "",
+    })));
+  }, [task.id, task.people]);
 
   // --- People handlers ---------------------------------------------------
 
@@ -101,7 +73,7 @@ export default function TaskEditor({
 
   // --- Save / keyboard shortcuts ------------------------------------------
 
-  const saveToParent = (closeAfter = false) => {
+  const saveToParent = useCallback((closeAfter = false) => {
     const normalizedPeople: ProjectTaskPerson[] = people.map((p) => ({ name: p.name }));
     const updated: ProjectTask = {
       ...task,
@@ -114,7 +86,7 @@ export default function TaskEditor({
     };
     onUpdateTask(updated);
     if (closeAfter) onSave(updated);
-  };
+  }, [task, title, people, effort, dueDate, recurrence, recurrenceAnchorDate, onUpdateTask, onSave]);
 
   // Keyboard shortcuts: Esc → close, Ctrl/Cmd+Enter → save & close
   useEffect(() => {
@@ -130,7 +102,7 @@ export default function TaskEditor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [people, onSave, onUpdateTask, task]);
+  }, [saveToParent]);
 
   // --- Render ---
 
@@ -157,8 +129,10 @@ export default function TaskEditor({
               type="text"
               className="task-editor-input"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={() => onUpdateTask({ ...task, text: title })}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                onUpdateTask({ ...task, text: e.target.value });
+              }}
               onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
               aria-label="Task title"
             />

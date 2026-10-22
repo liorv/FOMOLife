@@ -230,10 +230,22 @@
   align-self: center !important;
 }
 
+.task-checkbox-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
 .task-checkbox {
-  margin-right: 6px;
-  width: 1.1em;
-  height: 1.1em;
+  margin: 0;
+  width: 24px;
+  height: 24px;
+  flex: none;
   accent-color: #2b6cb0;
   cursor: pointer;
 }
@@ -2280,11 +2292,19 @@ html[data-theme="dark"] .inline-editor {
   border: none;
   cursor: pointer;
   padding: 0;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
   color: var(--color-text-muted, #94a3b8);
   transition: color 0.15s;
   flex-shrink: 0;
+}
+
+.search-result-check .material-icons {
+  font-size: 24px;
 }
 
 .search-result-check:hover {

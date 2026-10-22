@@ -164,15 +164,18 @@ item,
         )}
 
         {type === "tasks" && (
-          <input
-            id={`task-${id}-done`}
-            name={`task-${id}-done`}
-            type="checkbox"
-            checked={item.done}
-            onChange={() => handleToggle?.(id)}
-            className="task-checkbox"
-            title={item.done ? "Mark as incomplete" : "Mark as complete"}
-          />
+          <label className="task-checkbox-target" onClick={(e) => e.stopPropagation()}>
+            <input
+              id={`task-${id}-done`}
+              name={`task-${id}-done`}
+              type="checkbox"
+              checked={item.done}
+              onChange={() => handleToggle?.(id)}
+              className="task-checkbox"
+              title={item.done ? "Mark as incomplete" : "Mark as complete"}
+              aria-label={`${item.done ? "Mark as incomplete" : "Mark as complete"}: ${item.text}`}
+            />
+          </label>
         )}
       </div>
 

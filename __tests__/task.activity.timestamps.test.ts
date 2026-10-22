@@ -10,6 +10,7 @@ jest.mock('@/lib/server/webPush', () => ({ sendPushToUser: jest.fn().mockResolve
 import { createTask, listTasks, updateTask } from '@/lib/tasks/server/tasksStore';
 import { createProject, updateProject, listProjects } from '@/lib/projects/server/projectsStore';
 import type { ProjectSubproject } from '@/lib/projects/server/projectsStore';
+import { advanceRecurringTask } from '@/lib/tasks/recurrence';
 
 const mockLoad = jest.fn();
 const mockSave = jest.fn();
@@ -61,6 +62,66 @@ it('advances a recurring standalone task in place without retaining completed co
   expect(mockSave).toHaveBeenLastCalledWith(userId, expect.objectContaining({
     tasks: [expect.objectContaining({ id: task.id, done: false, recurrence: 'daily' })],
   }));
+
+  const second = await updateTask(userId, task.id, { done: true });
+  expect(second).toMatchObject({ id: task.id, done: false, dueDate: '2026-10-09' });
+  expect(mockSave).toHaveBeenLastCalledWith(userId, expect.objectContaining({
+    tasks: [expect.objectContaining({ id: task.id, done: false, dueDate: '2026-10-09' })],
+  }));
+  expect(await listTasks(userId)).toHaveLength(1);
+});
+
+it('persists the next overdue occurrence relative to the last due date', async () => {
+  const task = await createTask(userId, {
+    text: 'Overdue daily review', dueDate: '2026-10-01', recurrence: 'daily',
+    recurrenceAnchorDate: '2026-09-01',
+  });
+  expect(await updateTask(userId, task.id, { done: true })).toMatchObject({
+    id: task.id, done: false, dueDate: '2026-10-02',
+  });
+  expect(mockSave).toHaveBeenLastCalledWith(userId, expect.objectContaining({
+    tasks: [expect.objectContaining({ id: task.id, dueDate: '2026-10-02' })],
+  }));
+});
+
+it('reloads a recurring project task from persisted storage after the server store restarts', async () => {
+  let persisted: unknown = null;
+  mockLoad.mockImplementation(async () => persisted === null ? null : JSON.parse(JSON.stringify(persisted)));
+  mockSave.mockImplementation(async (_userId: string, data: unknown) => {
+    persisted = JSON.parse(JSON.stringify(data));
+  });
+  const recurring = {
+    id: 'repeat', text: 'Weekly review', done: false, dueDate: '2026-10-07',
+    recurrence: 'weekly' as const, favorite: false, people: [],
+  };
+  let projectId = '';
+  await jest.isolateModulesAsync(async () => {
+    const store = await import('@/lib/projects/server/projectsStore');
+    const created = await store.createProject(userId, {
+      text: 'Recurring project',
+      subprojects: [{
+        id: 'project-tasks', text: 'Project Tasks', isProjectLevel: true,
+        tasks: [recurring],
+      }],
+    });
+    projectId = created.id;
+    const advanced = advanceRecurringTask(recurring)!;
+    await store.updateProject(userId, projectId, {
+      subprojects: created.subprojects.map(sub => ({
+        ...sub, tasks: sub.tasks.map(task => task.id === recurring.id ? advanced : task),
+      })),
+    });
+  });
+  await jest.isolateModulesAsync(async () => {
+    const store = await import('@/lib/projects/server/projectsStore');
+    const reloaded = (await store.listProjects(userId)).find(project => project.id === projectId);
+    expect(reloaded?.subprojects.flatMap(sub => sub.tasks)).toEqual([
+      expect.objectContaining({
+        id: recurring.id, done: false, dueDate: '2026-10-14',
+        recurrence: 'weekly', recurrenceAnchorDate: '2026-10-07', completedAt: null,
+      }),
+    ]);
+  });
 });
 
 it('timestamps project task creation and transitions across full-project saves', async () => {

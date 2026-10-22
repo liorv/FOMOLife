@@ -3,6 +3,7 @@ import React, {
   useMemo,
   useRef,
   useEffect,
+  useId,
 } from "react";
 import ReactDOM from "react-dom";
 import styles from "./ProjectTile.module.css";
@@ -108,6 +109,8 @@ export default function ProjectTile({
   const [linkError, setLinkError] = useState("");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const dragRef = useRef<HTMLDivElement | null>(null);
+  const actionsHandleRef = useRef<HTMLButtonElement | null>(null);
+  const actionsId = useId();
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const linkButtonRef = useRef<HTMLButtonElement | null>(null);
   const linkInputRef = useRef<HTMLInputElement | null>(null);
@@ -455,7 +458,7 @@ export default function ProjectTile({
         if (event.key === "Escape") {
           event.stopPropagation();
           closeActions();
-          if (event.target instanceof HTMLButtonElement) event.target.blur();
+          actionsHandleRef.current?.focus();
         }
       }}
       onClickCapture={(event) => {
@@ -771,7 +774,41 @@ export default function ProjectTile({
         )}
       </div>
 
+      <button
+        ref={actionsHandleRef}
+        type="button"
+        className={styles.actionsHandle}
+        aria-label={`${touchActionsOpen ? "Close" : "Open"} actions for ${project.text}`}
+        aria-expanded={touchActionsOpen}
+        aria-controls={actionsId}
+        title={touchActionsOpen ? "Close actions" : "Open actions"}
+        onClick={(event) => {
+          event.stopPropagation();
+          setSwipeOffset(null);
+          setTouchActionsOpen((open) => !open);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") event.stopPropagation();
+        }}
+        onDragStart={(event) => event.preventDefault()}
+      >
+        <svg width="32" height="24" viewBox="0 0 32 24" fill="currentColor" aria-hidden="true">
+          <path
+            d={touchActionsOpen ? "M3 7l5 5-5 5" : "M8 7l-5 5 5 5"}
+            fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"
+          />
+          <rect x="13" y="5" width="4" height="4" rx="1" />
+          <rect x="20" y="5" width="4" height="4" rx="1" />
+          <rect x="27" y="5" width="4" height="4" rx="1" />
+          <rect x="13" y="12" width="4" height="4" rx="1" />
+          <rect x="20" y="12" width="4" height="4" rx="1" />
+          <rect x="27" y="12" width="4" height="4" rx="1" />
+        </svg>
+      </button>
+
       <div
+        id={actionsId}
         className={styles.actionTray}
         role="group"
         aria-label={`${project.text} actions`}
@@ -823,7 +860,7 @@ export default function ProjectTile({
           </button>
         )}
         {showDelete && (isPendingDelete ? (
-          <>
+          <div className={styles.deleteConfirmation}>
             <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
               aria-label={`Confirm delete ${project.text}`} title="Confirm delete project"
               onClick={() => { closeActions(); onConfirmDelete(project.id); }}>
@@ -836,7 +873,7 @@ export default function ProjectTile({
               <span className="material-icons" aria-hidden="true">close</span>
               <span>Cancel</span>
             </button>
-          </>
+          </div>
         ) : (
           <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
             aria-label={`Delete ${project.text}`} title="Delete project" onClick={handleDelete}>
