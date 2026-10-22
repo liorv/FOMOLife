@@ -288,8 +288,6 @@ export default function ProjectsDashboard({
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [leaveArmed, setLeaveArmed] = useState(false);
-  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -500,7 +498,7 @@ export default function ProjectsDashboard({
               taskToolbar={
                 <>
                       <button
-                        className={`project-action-btn${taskFilterCount > 0 ? ' project-action-btn--active' : ''}`}
+                        className={`project-action-btn${showFilters || taskFilterCount > 0 ? ' project-action-btn--active' : ''}`}
                         onClick={() => setShowFilters(!showFilters)}
                         title="Filter tasks"
                         aria-label={`Filter tasks${taskFilterCount > 0 ? ` (${taskFilterCount} active)` : ''}`}
@@ -524,14 +522,13 @@ export default function ProjectsDashboard({
               }
               projectActions={
                 <>
-                      <hr />
                       {onConvertTemplate && (
                         <button
                           type="button"
                           onClick={() => setTemplateAction({ kind: selectedProject.isTemplate ? 'restore' : 'convert', project: selectedProject })}
                         >
                           <span className="material-icons" aria-hidden="true">{selectedProject.isTemplate ? 'folder_open' : 'dashboard_customize'}</span>
-                          {selectedProject.isTemplate ? 'Convert to project' : 'Convert to template'}
+                          <span>{selectedProject.isTemplate ? 'Convert to project' : 'Convert to template'}</span>
                         </button>
                       )}
                       <button
@@ -543,44 +540,15 @@ export default function ProjectsDashboard({
                         }}
                       >
                         <span className="material-icons" aria-hidden="true">download</span>
-                        <span>Export</span>
+                        <span>Export JSON</span>
                       </button>
                       {onImportProject && <button
                         title="Import sub-projects from JSON into this project"
                         onClick={() => setShowImportModal(true)}
                       >
                         <span className="material-icons" aria-hidden="true">upload</span>
-                        <span>Import sub-projects</span>
+                        <span>Import JSON</span>
                       </button>}
-                      {(()  => {
-                        const members = selectedProject.members ?? [];
-                        const isCurrentUserMember = currentUserId && members.some((m) => m.userId === currentUserId);
-                        const canLeave = isCurrentUserMember && onRemoveMember;
-                        return canLeave ? (
-                          <button
-                            data-keep-open={!leaveArmed ? '' : undefined}
-                            className={`project-action-btn--leave${leaveArmed ? " project-action-btn--leave-armed" : ""}`}
-                            title={leaveArmed ? "Click again to confirm" : "Leave project"}
-                            onClick={() => {
-                              if (!leaveArmed) {
-                                setLeaveArmed(true);
-                                leaveTimerRef.current = setTimeout(() => setLeaveArmed(false), 3000);
-                              } else {
-                                if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-                                setLeaveArmed(false);
-                                onRemoveMember?.(selectedProject.id, currentUserId);
-                              }
-                            }}
-                            onBlur={() => {
-                              if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
-                              setLeaveArmed(false);
-                            }}
-                          >
-                            <span className="material-icons" aria-hidden="true">{leaveArmed ? "warning" : "logout"}</span>
-                            <span>{leaveArmed ? "Confirm Leave?" : "Leave"}</span>
-                          </button>
-                        ) : null;
-                      })()}
                 </>
               }
               onToggleFilter={onToggleFilter}
@@ -606,7 +574,9 @@ export default function ProjectsDashboard({
               searchQuery={projectSearch}
               currentUserId={currentUserId}
               onInviteMember={(member) => onInviteMember?.(selectedProject.id, member)}
-              onRemoveMember={(userId) => onRemoveMember?.(selectedProject.id, userId)}
+              {...(onRemoveMember ? {
+                onRemoveMember: (userId: string) => onRemoveMember(selectedProject.id, userId),
+              } : {})}
               collapseAllRef={collapseAllRef}
               expandAllRef={expandAllRef}
               {...(onOpenTaskThread ? { onTaskChatClick: (task: ProjectTask) => onOpenTaskThread(task, selectedProject) } : {})}

@@ -1113,6 +1113,7 @@
 }
 
 .project-editor-actions-area {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1155,13 +1156,149 @@
   font-size: 18px;
 }
 
-.project-editor-actions-area .project-editor-task-toolbar > div > button {
-  min-height: 38px;
-  padding: 0 10px;
-  border-color: var(--color-border, #dfe3eb);
-  border-radius: 12px;
+.project-editor-actions-area .project-editor-task-toolbar > .project-action-btn--active {
+  border-color: var(--accent-primary, #1a73e8);
+  background: color-mix(in srgb, var(--accent-primary, #1a73e8) 12%, var(--color-surface, #fff));
+  color: var(--accent-primary, #1a73e8);
+}
+
+.project-editor-tool-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--color-border, #dfe3eb);
+  border-radius: 16px;
   background: var(--color-surface, #fff);
+  min-width: 0;
+}
+
+.project-editor-tool-options button,
+.project-editor-tool-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--color-text, #263238);
+  font: inherit;
   font-size: 13px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.project-editor-tool-options button:hover,
+.project-editor-tool-options label:hover {
+  background: var(--color-inline-editor-bg, #f0f4f9);
+}
+
+.project-editor-tool-options .material-icons {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.project-editor-tool-options input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary, #1a73e8);
+}
+
+.project-editor-tool-options hr {
+  display: none;
+}
+
+.project-editor-tool-options .project-editor-tool-options-close {
+  flex: 0 0 36px;
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  background: var(--color-surface, #fff);
+  color: var(--color-text-secondary, #5f6368);
+}
+
+@container (max-width: 760px) {
+  .project-editor-tool-options {
+    align-items: stretch;
+    gap: 2px;
+    padding: 4px;
+  }
+
+  .project-editor-tool-options button,
+  .project-editor-tool-options label {
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 2px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .project-editor-tool-options .project-editor-tool-options-close {
+    flex-basis: 28px;
+    width: 28px;
+    align-self: center;
+  }
+}
+
+.project-overview-leave {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border, #dfe3eb);
+}
+
+.project-overview-leave h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--color-text, #263238);
+}
+
+.project-overview-leave p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary, #5f6368);
+}
+
+.project-overview-leave-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid currentColor;
+  border-radius: 24px;
+  background: transparent;
+  color: var(--color-danger, #b3261e);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.project-overview-leave-btn:hover {
+  background: color-mix(in srgb, var(--color-danger, #b3261e) 8%, transparent);
+}
+
+.project-overview-leave-btn--armed,
+.project-overview-leave-btn--armed:hover {
+  background: var(--color-danger, #b3261e);
+  border-color: var(--color-danger, #b3261e);
+  color: #fff;
 }
 
 .project-editor-task-toolbar {
@@ -1189,7 +1326,10 @@
 }
 
 .project-editor-task-toolbar > .project-action-btn:focus-visible,
-.project-editor-header-controls .invite-members-btn:focus-visible {
+.project-editor-tool-options button:focus-visible,
+.project-editor-tool-options input:focus-visible,
+.project-overview-leave-btn:focus-visible,
+.project-members-bar .invite-members-btn:focus-visible {
   outline: 2px solid var(--accent-primary, #1a73e8);
   outline-offset: 2px;
 }
@@ -1240,19 +1380,34 @@
 }
 
 /* ── Invite button ── */
-.project-editor-header-controls .invite-members-btn {
+.project-members-bar .invite-members-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
   color: #fff;
-  background: var(--accent-primary, #1a73e8);
-  border-radius: 20px;
+  background: var(--project-color, var(--accent-primary, #1a73e8));
+  border-radius: 24px;
+  font: inherit;
+  font-size: 13px;
   font-weight: 600;
   min-width: 44px;
   min-height: 44px;
   justify-content: center;
-  padding: 0 14px;
+  padding: 0 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: background 0.15s, box-shadow 0.15s;
 }
-.project-editor-header-controls .invite-members-btn:hover {
-  background: #0d5ab8;
+.project-members-bar .invite-members-btn:hover {
+  background: color-mix(in srgb, var(--project-color, var(--accent-primary, #1a73e8)) 90%, #000);
   color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.project-members-bar .invite-members-btn .material-icons {
+  font-size: 20px;
 }
 
 /* ── Member avatars bar ── */
@@ -1273,20 +1428,6 @@
   width: 26px;
   height: 26px;
   font-size: 11px;
-}
-
-.dashboard-project-header--tile .invite-members-btn {
-  min-width: 34px;
-  min-height: 34px;
-  padding: 0 10px !important;
-  border: 1px solid color-mix(in srgb, var(--project-color, #1a73e8) 22%, transparent);
-  background: color-mix(in srgb, var(--project-color, #1a73e8) 10%, var(--color-surface, #fff)) !important;
-  color: var(--project-color, #1a73e8) !important;
-}
-
-.dashboard-project-header--tile .invite-members-btn:hover {
-  background: color-mix(in srgb, var(--project-color, #1a73e8) 17%, var(--color-surface, #fff)) !important;
-  color: var(--project-color, #1a73e8) !important;
 }
 
 .project-member-avatar-wrap {

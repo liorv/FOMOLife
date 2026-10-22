@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "October 2026 Update",
+      "date": "October 22, 2026",
+      "changes": [
+        "View and More now open options below the project toolbar instead of overlay menus. Open controls stay highlighted, and options are easy to dismiss.",
+        "Project tools fit a single row without horizontal scrolling, with icons above wrapping labels on smaller screens.",
+        "Clearer project actions make it easier to open the project overview, import or export JSON, and complete and archive a project.",
+        "The project header now has a rounded, Material-style Invite button.",
+        "Leave project now lives at the bottom of the project overview, with a second click required to confirm."
+      ]
+    },
+    {
       "version": "September 2026 Update",
       "date": "September 18, 2026",
       "changes": [

@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useId } from "react";
 import type { ProjectItem, ProjectSubproject, ProjectTask, Contact, ProjectMember } from "@myorg/types";
 import type { TaskItem } from "@myorg/types";
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { advanceRecurringTask } from '@/lib/tasks/recurrence';
-import ProjectActionMenu from './ProjectActionMenu';
 import DashboardMetricCard from './DashboardMetricCard';
 import { deleteProjectTask, updateProjectTask } from '@/lib/projects/taskUpdates';
 
@@ -89,6 +88,7 @@ export default function ProjectEditor({
   onExport,
   currentUserId = '',
   onInviteMember,
+  onRemoveMember,
   onArchiveToggle,
   collapseAllRef,
   expandAllRef,
@@ -103,6 +103,37 @@ export default function ProjectEditor({
   const localRef = useRef<LocalProject>(local);
   localRef.current = local;
   const [showOverviewEditor, setShowOverviewEditor] = useState(false);
+  const [leaveArmed, setLeaveArmed] = useState(false);
+  useEffect(() => {
+    setLeaveArmed(false);
+  }, [showOverviewEditor, project.id]);
+  useEffect(() => {
+    if (!leaveArmed) return;
+    const timer = setTimeout(() => setLeaveArmed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [leaveArmed]);
+  const [openToolPanel, setOpenToolPanel] = useState<'view' | 'more' | null>(null);
+  const toolPanelId = useId();
+  const toolTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeToolPanel = () => {
+    setOpenToolPanel(null);
+    toolTriggerRef.current?.focus();
+  };
+  useEffect(() => {
+    if (!openToolPanel) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setOpenToolPanel(null);
+        toolTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [openToolPanel]);
+  useEffect(() => {
+    setOpenToolPanel(null);
+  }, [project.id]);
   const [externalUrlDraft, setExternalUrlDraft] = useState(project.externalUrl ?? '');
   const [externalUrlError, setExternalUrlError] = useState('');
   useEffect(() => {
@@ -947,11 +978,11 @@ export default function ProjectEditor({
         </div>
       ))}
       <button
-        className="expand-collapse-btn invite-members-btn"
+        type="button"
+        className="invite-members-btn"
         title="Invite a connection to this project"
         aria-label="Invite to project"
         onClick={() => setShowInviteModal(true)}
-        style={local.color ? { background: `#${local.color.replace(/^#/, '')}`, color: '#fff' } : undefined}
       >
         <span className="material-icons" aria-hidden="true">person_add</span>
         <span className="btn-label">Invite</span>
@@ -962,51 +993,86 @@ export default function ProjectEditor({
   const projectTools = (
     <div className="project-editor-task-toolbar" role="group" aria-label="Project tools">
       {taskToolbar}
-      <ProjectActionMenu label="View options" icon="tune">
-        {onToggleFilter && (
-          <>
+      {(['view', 'more'] as const).map((panel) => (
+        <button
+          key={panel}
+          type="button"
+          className={`project-action-btn${openToolPanel === panel ? ' project-action-btn--active' : ''}`}
+          aria-label={panel === 'view' ? 'View options' : 'More project actions'}
+          aria-expanded={openToolPanel === panel}
+          aria-controls={`${toolPanelId}-${panel}`}
+          onClick={(event) => {
+            toolTriggerRef.current = event.currentTarget;
+            setOpenToolPanel(openToolPanel === panel ? null : panel);
+          }}
+        >
+          <span className="material-icons" aria-hidden="true">{panel === 'view' ? 'tune' : 'more_horiz'}</span>
+          <span>{panel === 'view' ? 'View' : 'More'}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const toolOptions = openToolPanel && (
+    <div
+      id={`${toolPanelId}-${openToolPanel}`}
+      role="group"
+      aria-label={openToolPanel === 'view' ? 'View options' : 'More project actions'}
+      className="project-editor-tool-options"
+      onClick={(event) => {
+        const button = event.target instanceof Element ? event.target.closest('button') : null;
+        if (button && !button.hasAttribute('data-keep-open')) closeToolPanel();
+      }}
+    >
+      <button
+        type="button"
+        className="project-editor-tool-options-close"
+        aria-label={openToolPanel === 'view' ? 'Close view options' : 'Close more project actions'}
+      >
+        <span className="material-icons" aria-hidden="true">close</span>
+      </button>
+      {openToolPanel === 'view' ? (
+        <>
+          {onToggleFilter && (
             <label>
               <input
                 type="checkbox"
                 checked={!taskFilters.includes('hide_completed')}
                 onChange={(e) => onToggleFilter(e.target.checked ? null : 'hide_completed')}
               />
-              Show completed tasks
+              <span>Show completed tasks</span>
             </label>
-            <hr />
-          </>
-        )}
-        <button type="button" onClick={expandAll}>
-          <span className="material-icons" aria-hidden="true">unfold_more</span>
-          Expand all sections
-        </button>
-        <button type="button" onClick={collapseAll}>
-          <span className="material-icons" aria-hidden="true">unfold_less</span>
-          Collapse all sections
-        </button>
-      </ProjectActionMenu>
-      <ProjectActionMenu label="More project actions" icon="more_horiz">
-        <button type="button" onClick={() => setShowOverviewEditor(true)}>
-          <span className="material-icons" aria-hidden="true">edit</span>
-          Edit project overview
-        </button>
-        {projectActions}
-        {onExport && (
-          <button type="button" onClick={onExport}>
-            <span className="material-icons" aria-hidden="true">download</span>
-            Export JSON
+          )}
+          <button type="button" onClick={expandAll}>
+            <span className="material-icons" aria-hidden="true">unfold_more</span>
+            <span>Expand all sections</span>
           </button>
-        )}
-        {onArchiveToggle && (
-          <>
-            <hr />
+          <button type="button" onClick={collapseAll}>
+            <span className="material-icons" aria-hidden="true">unfold_less</span>
+            <span>Collapse all sections</span>
+          </button>
+        </>
+      ) : (
+        <>
+          <button type="button" onClick={() => setShowOverviewEditor(true)}>
+            <span className="material-icons" aria-hidden="true">edit</span>
+            <span>Project overview</span>
+          </button>
+          {projectActions}
+          {onExport && (
+            <button type="button" onClick={onExport}>
+              <span className="material-icons" aria-hidden="true">download</span>
+              <span>Export JSON</span>
+            </button>
+          )}
+          {onArchiveToggle && (
             <button type="button" onClick={() => onArchiveToggle(!local.archived)}>
               <span className="material-icons" aria-hidden="true">{local.archived ? 'unarchive' : 'archive'}</span>
-              {local.archived ? 'Restore project' : 'Mark complete & archive'}
+              <span>{local.archived ? 'Restore project' : 'Complete & archive'}</span>
             </button>
-          </>
-        )}
-      </ProjectActionMenu>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -1017,9 +1083,9 @@ export default function ProjectEditor({
     >
       <div
         className={`dashboard-project-header${dashboardProjectHeaderTop ? ' dashboard-project-header--tile' : ''}`}
-        style={dashboardProjectHeaderTop ? {
+        style={{
           '--project-color': local.color || '#1a73e8',
-        } as React.CSSProperties : undefined}
+        } as React.CSSProperties}
       >
         {dashboardProjectHeaderTop && (
           <div className="dashboard-project-title-row">
@@ -1039,9 +1105,15 @@ export default function ProjectEditor({
         <div className="project-editor-actions-area">
           {projectTools}
           {taskFilterPanel}
+          {toolOptions}
         </div>
       )}
-      {!dashboardProjectHeaderTop && taskFilterPanel}
+      {!dashboardProjectHeaderTop && Boolean(taskFilterPanel || toolOptions) && (
+        <div className="project-editor-actions-area">
+          {taskFilterPanel}
+          {toolOptions}
+        </div>
+      )}
 
       {/* Import Tasks Modal */}
       {importSubId && (
@@ -1531,6 +1603,31 @@ export default function ProjectEditor({
                   className="project-editor-ai-instructions-input"
                 />
               </div>
+              {onRemoveMember && members.some((member) => member.userId === currentUserId) && (
+                <div className="project-overview-leave">
+                  <div>
+                    <h3>Leave project</h3>
+                    <p>You will lose access to this project unless you are invited again.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className={`project-overview-leave-btn${leaveArmed ? ' project-overview-leave-btn--armed' : ''}`}
+                    onClick={() => {
+                      if (!leaveArmed) {
+                        setLeaveArmed(true);
+                        return;
+                      }
+                      setLeaveArmed(false);
+                      onRemoveMember(currentUserId);
+                      setShowOverviewEditor(false);
+                    }}
+                    onBlur={() => setLeaveArmed(false)}
+                  >
+                    <span className="material-icons" aria-hidden="true">{leaveArmed ? 'warning' : 'logout'}</span>
+                    {leaveArmed ? 'Confirm leave project' : 'Leave project'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

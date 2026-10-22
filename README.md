@@ -99,8 +99,14 @@ after ordered projects, preserving their existing relative order.
 
 The project editor keeps collaboration and task filters in a compact toolbar.
 Use **View** to show completed tasks or expand/collapse all sections. **More**
-contains the project overview, import/export, template conversion, leaving, and
+contains the project overview, JSON import/export, template conversion, and
 completion/archive actions. Filter and Chat remain available while filtering.
+View and More expand options below the toolbar instead of opening overlay menus.
+The open control is highlighted; tap it again, use the panel's close button, or
+press Escape to dismiss its options. Options fit a single row without scrolling;
+on smaller screens, icons sit above wrapping labels. The header's rounded Invite button opens
+the project invitation dialog. **Leave project** is at the bottom of the project
+overview and requires a second click to confirm.
 
 In Projects, switch to **Templates** to browse reusable workflows, or choose
 **New template** to build one from scratch using the regular project editor.
