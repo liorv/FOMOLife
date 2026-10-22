@@ -126,6 +126,11 @@ interface ProjectsDashboardProps {
 }
 
 type ProjectView = "cards" | "list" | "compact";
+const PROJECT_VIEW_STORAGE_KEY = "fomo:projects:view";
+
+function isProjectView(value: string | null): value is ProjectView {
+  return value === "cards" || value === "list" || value === "compact";
+}
 
 export default function ProjectsDashboard({
   projects = [] as ProjectItem[],
@@ -175,6 +180,26 @@ export default function ProjectsDashboard({
   const [projectView, setProjectView] = useState<ProjectView>("cards");
   const [templateAction, setTemplateAction] = useState<TemplateAction | null>(null);
   const templates = useMemo(() => projects.filter(project => project.isTemplate), [projects]);
+  useEffect(() => {
+    try {
+      const savedView = localStorage.getItem(PROJECT_VIEW_STORAGE_KEY);
+      if (isProjectView(savedView)) {
+        setProjectView(savedView);
+      }
+    } catch {
+      // Keep the default view when browser storage is unavailable.
+    }
+  }, []);
+
+  const selectProjectView = (view: ProjectView) => {
+    setProjectView(view);
+    try {
+      localStorage.setItem(PROJECT_VIEW_STORAGE_KEY, view);
+    } catch {
+      // The selected view still applies for this session if storage is unavailable.
+    }
+  };
+
   const visibleProjects = useMemo(
     () => projects.filter((p) => !p.isTemplate && (showArchived ? !!p.archived : !p.archived)),
     [projects, showArchived],
@@ -738,7 +763,7 @@ export default function ProjectsDashboard({
                     aria-label="Cards view"
                     title="Cards view"
                     aria-pressed={projectView === "cards"}
-                    onClick={() => setProjectView("cards")}
+                    onClick={() => selectProjectView("cards")}
                   >
                     <span className="material-icons" aria-hidden="true">dashboard</span>
                   </button>
@@ -748,7 +773,7 @@ export default function ProjectsDashboard({
                     aria-label="List view"
                     title="List view"
                     aria-pressed={projectView === "list"}
-                    onClick={() => setProjectView("list")}
+                    onClick={() => selectProjectView("list")}
                   >
                     <span className="material-icons" aria-hidden="true">view_list</span>
                   </button>
@@ -758,7 +783,7 @@ export default function ProjectsDashboard({
                     aria-label="Compact view"
                     title="Compact view"
                     aria-pressed={projectView === "compact"}
-                    onClick={() => setProjectView("compact")}
+                    onClick={() => selectProjectView("compact")}
                   >
                     <span className="material-icons" aria-hidden="true">grid_view</span>
                   </button>

@@ -3,11 +3,13 @@ import ProjectsDashboard from "../ProjectsDashboard";
 
 beforeEach(() => {
   localStorage.removeItem("project-swipe-actions-hint-dismissed");
+  localStorage.removeItem("fomo:projects:view");
   jest.spyOn(global, "fetch").mockImplementation(() => new Promise(() => {}));
 });
 
 afterEach(() => {
   localStorage.removeItem("project-swipe-actions-hint-dismissed");
+  localStorage.removeItem("fomo:projects:view");
   jest.restoreAllMocks();
 });
 
@@ -61,6 +63,7 @@ it("switches between card, list, and compact project layouts", () => {
 
   fireEvent.click(listButton);
   expect(listButton).toHaveAttribute("aria-pressed", "true");
+  expect(localStorage.getItem("fomo:projects:view")).toBe("list");
   expect(cardsButton).toHaveAttribute("aria-pressed", "false");
   expect(document.querySelector(".dashboard-tiles-grid--list")).toBeInTheDocument();
   expect(document.querySelector(".project-inline-progress-fill")).toHaveStyle({ width: "50%" });
@@ -86,11 +89,24 @@ it("switches between card, list, and compact project layouts", () => {
   fireEvent.click(compactButton);
   expect(compactButton).toHaveAttribute("aria-pressed", "true");
   expect(document.querySelector(".dashboard-tiles-grid--compact")).toBeInTheDocument();
+  expect(localStorage.getItem("fomo:projects:view")).toBe("compact");
   const hint = screen.getByText("Swipe left for actions").closest("div")!;
   expect(hint.querySelectorAll("svg")).toHaveLength(1);
   fireEvent.click(hint.querySelector("button")!);
   expect(screen.queryByText("Swipe left for actions")).not.toBeInTheDocument();
   expect(localStorage.getItem("project-swipe-actions-hint-dismissed")).toBe("1");
+});
+
+it("restores the previously selected project layout", () => {
+  localStorage.setItem("fomo:projects:view", "list");
+  render(
+    <ProjectsDashboard
+      projects={[{ id: "p1", text: "Project", color: "#1976D2", subprojects: [] }]}
+    />,
+  );
+
+  expect(screen.getByRole("button", { name: "List view" })).toHaveAttribute("aria-pressed", "true");
+  expect(document.querySelector(".dashboard-tiles-grid--list")).toBeInTheDocument();
 });
 
 it("does not show the swipe hint again after it has been dismissed", () => {
