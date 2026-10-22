@@ -157,6 +157,7 @@ it("dismisses disclosures with Escape, outside interaction, and keyboard focus l
 
 it("keeps Filter and Chat available while filtering and groups project management in More", async () => {
   const onOpenProjectThread = jest.fn();
+  const onImportProject = jest.fn();
   await act(async () => {
     render(
       <ProjectsDashboard
@@ -164,7 +165,7 @@ it("keeps Filter and Chat available while filtering and groups project managemen
         selectedProjectId={project.id}
         onOpenProjectThread={onOpenProjectThread}
         onConvertTemplate={jest.fn()}
-        onImportProject={jest.fn()}
+        onImportProject={onImportProject}
       />,
     );
   });
@@ -185,6 +186,25 @@ it("keeps Filter and Chat available while filtering and groups project managemen
   expect(
     screen.getByRole("heading", { name: "Import into Launch plan" }),
   ).toBeInTheDocument();
+  fireEvent.change(screen.getByPlaceholderText('{"name": "My project", "sub_projects": [...]}'), {
+    target: {
+      value: JSON.stringify({
+        name: "Imported project",
+        sub_projects: [{ title: "Preparation", tasks: [{ text: "Write brief" }] }],
+      }),
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+  expect(screen.getByText("1 sub-project, 1 task")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm Import" }));
+  expect(onImportProject).toHaveBeenCalledWith(
+    project.id,
+    [expect.objectContaining({
+      text: "Preparation",
+      tasks: [expect.objectContaining({ text: "Write brief" })],
+    })],
+  );
+  expect(screen.queryByRole("heading", { name: "Import into Launch plan" })).not.toBeInTheDocument();
 });
 
 it("preserves the two-step leave confirmation inside More", async () => {

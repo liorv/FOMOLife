@@ -21,7 +21,7 @@ describe('notification setup controls', () => {
     jest.mocked(ensurePushSubscription).mockResolvedValueOnce('enabled');
     fireEvent.click(enable);
     expect(ensurePushSubscription).toHaveBeenLastCalledWith(true);
-    expect(await screen.findByRole('button', { name: 'Send test notification' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Send test' })).toBeInTheDocument();
   });
 
   it('explains blocked permissions instead of showing an unusable enable button', async () => {
@@ -43,7 +43,7 @@ describe('notification setup controls', () => {
     jest.mocked(ensurePushSubscription).mockResolvedValue('enabled');
     global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'No push could be sent' }) });
     render(<PushNotificationSettings />);
-    const test = await screen.findByRole('button', { name: 'Send test notification' });
+    const test = await screen.findByRole('button', { name: 'Send test' });
     await waitFor(() => expect(test).not.toBeDisabled());
     fireEvent.click(test);
     expect(await screen.findByRole('alert')).toHaveTextContent('No push could be sent');
@@ -60,6 +60,6 @@ describe('notification setup controls', () => {
     const toggle = await screen.findByRole('switch', { name: 'Toggle tasks i created reminders' });
     fireEvent.click(toggle);
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not save');
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(toggle).toBeChecked();
   });
 });
