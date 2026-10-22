@@ -12,7 +12,7 @@ const project: ProjectItem = {
   subprojects: [],
 };
 const url = 'https://example.com/project?view=overview';
-const linkName = /Open external link for Linked project/;
+const linkName = /Open (?:external|project) link for Linked project/;
 
 function openOverview() {
   fireEvent.click(screen.getByTitle('Edit project overview'));
@@ -120,7 +120,7 @@ it('adds a link from the tile and exposes the same saved value in the overview',
   render(<Projects />);
   await act(async () => {});
   const addButton = screen.getByRole('button', { name: `Add link to ${project.text}` });
-  expect(screen.getByText(project.text).nextElementSibling).toBe(addButton);
+  expect(screen.getByRole('group', { name: `${project.text} actions` })).toContainElement(addButton);
   fireEvent.click(addButton);
   const input = screen.getByRole('textbox', { name: 'External Link' });
   expect(input).toHaveFocus();
@@ -133,6 +133,7 @@ it('adds a link from the tile and exposes the same saved value in the overview',
   expect(onApplyChange).toHaveBeenCalledWith(project.id, { externalUrl: url });
   expect(screen.getByRole('link', { name: linkName })).toHaveAttribute('href', url);
   expect(screen.queryByRole('button', { name: `Add link to ${project.text}` })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: `Edit link for ${project.text}` })).toBeInTheDocument();
 
   fireEvent.click(screen.getByText(project.text));
   await act(async () => {});
@@ -164,9 +165,60 @@ it('validates a pasted tile link and lets the user cancel without saving or open
   expect(onExternalUrlChange).not.toHaveBeenCalled();
 });
 
-it('does not offer adding a tile link without a save handler', () => {
-  render(<ProjectTile project={project} />);
+it.each([undefined, url])('does not offer changing a tile link without a save handler (%s)', (externalUrl) => {
+  render(<ProjectTile project={{ ...project, ...(externalUrl ? { externalUrl } : {}) }} />);
   expect(screen.queryByRole('button', { name: `Add link to ${project.text}` })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: `Edit link for ${project.text}` })).not.toBeInTheDocument();
+});
+
+it('edits an existing link from the swipe actions and persists it without opening the project', async () => {
+  const onApplyChange = jest.fn();
+  const onSelectProject = jest.fn();
+  const updatedUrl = 'https://example.org/updated';
+  function Projects() {
+    const [savedProject, setSavedProject] = React.useState({ ...project, externalUrl: url });
+    return (
+      <ProjectsDashboard
+        projects={[savedProject]}
+        onSelectProject={onSelectProject}
+        onApplyChange={(id, patch) => {
+          onApplyChange(id, patch);
+          setSavedProject((current) => ({ ...current, ...patch }));
+        }}
+      />
+    );
+  }
+  render(<Projects />);
+  await act(async () => {});
+  const tile = screen.getByTestId('project-tile');
+  fireEvent.touchStart(tile, { touches: [{ clientX: 150, clientY: 100 }] });
+  fireEvent.touchMove(tile, { touches: [{ clientX: 80, clientY: 102 }] });
+  fireEvent.touchEnd(tile, { changedTouches: [{ clientX: 80, clientY: 102 }] });
+  fireEvent.click(tile);
+  expect(tile).toHaveClass('project-tile-actions-open');
+  const trigger = screen.getByRole('button', { name: `Edit link for ${project.text}` });
+  expect(screen.getByRole('group', { name: `${project.text} actions` })).toContainElement(trigger);
+  fireEvent.click(trigger);
+  expect(screen.getByRole('dialog', { name: 'Edit project link' })).toBeInTheDocument();
+  const input = screen.getByRole('textbox', { name: 'External Link' });
+  expect(input).toHaveValue(url);
+  expect(input).toHaveFocus();
+  fireEvent.change(input, { target: { value: 'javascript:alert(1)' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid link');
+  expect(onApplyChange).not.toHaveBeenCalled();
+  fireEvent.change(input, { target: { value: `  ${updatedUrl}  ` } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+  expect(onApplyChange).toHaveBeenCalledWith(project.id, { externalUrl: updatedUrl });
+  expect(screen.getByRole('link', { name: linkName })).toHaveAttribute('href', updatedUrl);
+  expect(trigger).toHaveFocus();
+  fireEvent.click(trigger);
+  expect(screen.getByRole('textbox', { name: 'External Link' })).toHaveValue(updatedUrl);
+  fireEvent.change(screen.getByRole('textbox', { name: 'External Link' }), { target: { value: url } });
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(onApplyChange).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('link', { name: linkName })).toHaveAttribute('href', updatedUrl);
+  expect(onSelectProject).not.toHaveBeenCalled();
 });
 
 it('keeps keyboard focus inside the link dialog and restores it when dismissed', () => {

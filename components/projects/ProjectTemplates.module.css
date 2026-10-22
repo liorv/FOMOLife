@@ -54,6 +54,44 @@
   gap: 8px;
 }
 
+.viewSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--color-surface, #fff);
+}
+
+.viewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.viewButton:hover {
+  background: #7771ce14;
+}
+
+.viewButton[aria-pressed="true"] {
+  background: var(--color-primary, #4f46b8);
+  color: #fff;
+}
+
+.viewButton:focus-visible {
+  outline: 3px solid var(--color-primary, #4f46b8);
+  outline-offset: 2px;
+}
+
 .primaryButton {
   color: #fff;
   background: var(--color-primary, #4f46b8);

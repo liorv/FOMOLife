@@ -516,6 +516,20 @@ body {
   z-index: 12001;
 }
 
+@media (max-width: 900px) {
+  .main-layout {
+    padding-bottom: calc(var(--nav-height) + 20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tabnav-bottom.tabs {
+    bottom: env(safe-area-inset-bottom, 0px);
+    /* Extend black behind the native navigation area without recoloring the tabs. */
+    box-shadow:
+      0 -2px 4px rgba(0, 0, 0, 0.06),
+      0 env(safe-area-inset-bottom, 0px) 0 #000;
+  }
+}
+
 /* The curved 'hump' - Updated to a circle to eliminate vertical side-walls */
 .tabs::before {
   content: "";

@@ -125,6 +125,8 @@ interface ProjectsDashboardProps {
   onArchiveProject?: (projectId: string, archived: boolean) => void;
 }
 
+type ProjectView = "cards" | "list" | "compact";
+
 export default function ProjectsDashboard({
   projects = [] as ProjectItem[],
   people = [] as any[],
@@ -170,6 +172,7 @@ export default function ProjectsDashboard({
   const [showFilters, setShowFilters] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [projectView, setProjectView] = useState<ProjectView>("cards");
   const [templateAction, setTemplateAction] = useState<TemplateAction | null>(null);
   const templates = useMemo(() => projects.filter(project => project.isTemplate), [projects]);
   const visibleProjects = useMemo(
@@ -727,6 +730,40 @@ export default function ProjectsDashboard({
               </button>
             </div>
             <div className={templateStyles.toolbarActions}>
+              {!showTemplates && (
+                <div className={templateStyles.viewSwitcher} role="group" aria-label="Project layout">
+                  <button
+                    type="button"
+                    className={templateStyles.viewButton}
+                    aria-label="Cards view"
+                    title="Cards view"
+                    aria-pressed={projectView === "cards"}
+                    onClick={() => setProjectView("cards")}
+                  >
+                    <span className="material-icons" aria-hidden="true">dashboard</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={templateStyles.viewButton}
+                    aria-label="List view"
+                    title="List view"
+                    aria-pressed={projectView === "list"}
+                    onClick={() => setProjectView("list")}
+                  >
+                    <span className="material-icons" aria-hidden="true">view_list</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={templateStyles.viewButton}
+                    aria-label="Compact view"
+                    title="Compact view"
+                    aria-pressed={projectView === "compact"}
+                    onClick={() => setProjectView("compact")}
+                  >
+                    <span className="material-icons" aria-hidden="true">grid_view</span>
+                  </button>
+                </div>
+              )}
               {onAddProject && <button type="button" className={templateStyles.textButton} onClick={() => { setShowTemplates(false); onAddProject(); }}>New project</button>}
               {onCreateTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'create' })}>
                 <span className="material-icons" aria-hidden="true">add</span>New template
@@ -903,6 +940,13 @@ export default function ProjectsDashboard({
             ) : (
               <>
                 <div className="dashboard-drag-hint-row">
+                  {visibleProjects.length > 0 && (
+                    <DismissibleHint
+                      storageKey="project-swipe-actions-hint-dismissed"
+                      direction="left"
+                      lines={['Swipe left for actions']}
+                    />
+                  )}
                   <DismissibleHint
                     storageKey="project-drag-reorder-hint-dismissed"
                     direction="down"
@@ -938,7 +982,7 @@ export default function ProjectsDashboard({
                     />
                   </div>
                 ) : (
-                <div className="dashboard-tiles-grid">
+                <div className={`dashboard-tiles-grid dashboard-tiles-grid--${projectView}`}>
                   {visibleProjects.map((p) => (
                     <div
                       key={p.id}

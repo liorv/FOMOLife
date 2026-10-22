@@ -3,8 +3,6 @@ import React, {
   useMemo,
   useRef,
   useEffect,
-  useLayoutEffect,
-  MouseEvent,
 } from "react";
 import ReactDOM from "react-dom";
 import styles from "./ProjectTile.module.css";
@@ -67,6 +65,10 @@ export const PROJECT_COLORS = [
   "#F57F17", // dark orange
 ];
 
+const SWIPE_OPEN_THRESHOLD = 44;
+const SWIPE_AXIS_LOCK = 8;
+const ACTIONS_WIDTH = 198;
+
 export default function ProjectTile({
   project,
   // old 'size' used for both dimensions; newer code accepts width/height separately
@@ -97,28 +99,187 @@ export default function ProjectTile({
     );
   }, [project.subprojects]);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuFlippedVertically, setMenuFlippedVertically] = useState(false);
-  const [dropdownStyle, setDropdownStyle] = useState({});
+  const [touchActionsOpen, setTouchActionsOpen] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState<number | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(project.text || "");
   const [editingLink, setEditingLink] = useState(false);
   const [draftLink, setDraftLink] = useState("");
   const [linkError, setLinkError] = useState("");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<HTMLDivElement | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
-  const addLinkButtonRef = useRef<HTMLButtonElement | null>(null);
+  const linkButtonRef = useRef<HTMLButtonElement | null>(null);
   const linkInputRef = useRef<HTMLInputElement | null>(null);
   const saveLinkButtonRef = useRef<HTMLButtonElement | null>(null);
+  const touchGestureRef = useRef<{
+    x: number;
+    y: number;
+    axis: "none" | "x" | "y";
+    open: boolean;
+  } | null>(null);
+  const swipedRef = useRef(false);
+  const hasLink = isValidExternalUrl(project.externalUrl);
+
+  const closeActions = () => {
+    setTouchActionsOpen(false);
+    setSwipeOffset(null);
+  };
+
+  const isInteractiveTarget = (target: EventTarget) =>
+    target instanceof Element &&
+    Boolean(target.closest("button, input, a, [role='dialog']"));
 
   useEffect(() => {
     if (!editingLink) return;
     linkInputRef.current?.focus();
-    return () => addLinkButtonRef.current?.focus();
+    return () => linkButtonRef.current?.focus();
   }, [editingLink]);
+
+  useEffect(() => {
+    if (!touchActionsOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        dragRef.current &&
+        event.target instanceof Node &&
+        !dragRef.current.contains(event.target)
+      ) {
+        closeActions();
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [touchActionsOpen]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    swipedRef.current = false;
+    if (
+      !event.isPrimary ||
+      event.pointerType === "touch" ||
+      (event.pointerType === "mouse" && event.button !== 0) ||
+      isInteractiveTarget(event.target)
+    ) {
+      return;
+    }
+    touchGestureRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      axis: "none",
+      open: touchActionsOpen,
+    };
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    const gesture = touchGestureRef.current;
+    if (!gesture) return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    if (gesture.axis === "none") {
+      if (
+        Math.abs(dx) < SWIPE_AXIS_LOCK &&
+        Math.abs(dy) < SWIPE_AXIS_LOCK
+      ) {
+        return;
+      }
+      gesture.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (gesture.axis === "x") {
+      swipedRef.current = true;
+      updateSwipe(dx, gesture.open);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      if (event.pointerType === "mouse") event.preventDefault();
+    }
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    const gesture = touchGestureRef.current;
+    touchGestureRef.current = null;
+    if (!gesture || gesture.axis !== "x") return;
+    event.stopPropagation();
+
+    const dx = event.clientX - gesture.x;
+    finishSwipe(dx, gesture.open);
+  };
+
+  const handlePointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    const gesture = touchGestureRef.current;
+    touchGestureRef.current = null;
+    setSwipeOffset(null);
+    if (gesture?.axis === "x") {
+      event.stopPropagation();
+      swipedRef.current = false;
+    }
+  };
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    swipedRef.current = false;
+    if (event.touches.length !== 1 || isInteractiveTarget(event.target)) {
+      touchGestureRef.current = null;
+      return;
+    }
+    const touch = event.touches[0]!;
+    touchGestureRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      axis: "none",
+      open: touchActionsOpen,
+    };
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const gesture = touchGestureRef.current;
+    if (!gesture) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    const dx = touch.clientX - gesture.x;
+    const dy = touch.clientY - gesture.y;
+    if (gesture.axis === "none") {
+      if (
+        Math.abs(dx) < SWIPE_AXIS_LOCK &&
+        Math.abs(dy) < SWIPE_AXIS_LOCK
+      ) {
+        return;
+      }
+      gesture.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+    if (gesture.axis === "x") {
+      swipedRef.current = true;
+      updateSwipe(dx, gesture.open);
+    }
+  };
+
+  const updateSwipe = (dx: number, open: boolean) => {
+    setSwipeOffset(Math.max(0, Math.min(ACTIONS_WIDTH, open ? ACTIONS_WIDTH - dx : Math.abs(dx))));
+  };
+
+  const finishSwipe = (dx: number, open: boolean) => {
+    setSwipeOffset(null);
+    setTouchActionsOpen(open ? dx < SWIPE_OPEN_THRESHOLD : Math.abs(dx) >= SWIPE_OPEN_THRESHOLD);
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const gesture = touchGestureRef.current;
+    touchGestureRef.current = null;
+    if (!gesture || gesture.axis !== "x") return;
+    event.stopPropagation();
+
+    const touch = event.changedTouches[0];
+    if (touch) finishSwipe(touch.clientX - gesture.x, gesture.open);
+    else setSwipeOffset(null);
+  };
+
+  const handleTouchCancel = (event: React.TouchEvent<HTMLDivElement>) => {
+    const gesture = touchGestureRef.current;
+    touchGestureRef.current = null;
+    setSwipeOffset(null);
+    if (gesture?.axis === "x") {
+      event.stopPropagation();
+      swipedRef.current = false;
+    }
+  };
 
   const color = useMemo(() => {
     const computedColor =
@@ -140,108 +301,6 @@ export default function ProjectTile({
     }
   }, [editingName]);
 
-  // Close menu when clicking outside (including portal dropdown)
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent | globalThis.MouseEvent) {
-      const clickedInsideMenu =
-        (menuRef.current && menuRef.current.contains(event.target as Node)) ||
-        (dropdownRef.current &&
-          dropdownRef.current.contains(event.target as Node));
-      if (!clickedInsideMenu) {
-        setMenuOpen(false);
-      }
-    }
-
-    if (menuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [menuOpen]);
-
-  // Close modal when clicking overlay (but not the modal itself)
-  // Removed document listener - using React onClick instead for better event handling
-
-  // Position the dropdown in a fixed portal and update on resize/scroll
-  useLayoutEffect(() => {
-    if (!menuOpen) return;
-
-    const updatePosition = () => {
-      if (!menuRef.current || !dropdownRef.current) return;
-      const buttonRect = menuRef.current.getBoundingClientRect();
-      const dropdownRect = dropdownRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      const threshold = viewportWidth < 768 ? 20 : 10;
-
-      // Account for the fixed bottom navbar so the dropdown is never hidden
-      // behind it. Read the CSS custom property so it stays in sync with the
-      // design token; fall back to 70 which is the default --nav-height.
-      const navHeight = parseInt(
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--nav-height",
-        ) || "70",
-        10,
-      );
-      const effectiveBottom = viewportHeight - navHeight - threshold;
-
-      const isBottomCutOff =
-        buttonRect.bottom + dropdownRect.height > effectiveBottom;
-      setMenuFlippedVertically(isBottomCutOff);
-
-      const top = isBottomCutOff
-        ? buttonRect.top - dropdownRect.height - 4
-        : buttonRect.bottom + 4;
-
-      // Calculate the left position
-      // Start with left-aligned to button
-      let left = buttonRect.left;
-
-      // Check if dropdown would overflow right side of viewport
-      if (left + dropdownRect.width > viewportWidth - threshold) {
-        // Right-align the dropdown with the button instead
-        left = buttonRect.right - dropdownRect.width;
-      }
-
-      // Ensure the dropdown doesn't go off the left edge either
-      left = Math.max(threshold, left);
-
-      // Clamp top so the dropdown doesn't go above the viewport either
-      const clampedTop = Math.max(threshold, top);
-
-      setDropdownStyle({ top: `${clampedTop}px`, left: `${left}px` });
-    };
-
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [menuOpen]);
-
-  // listen for global menu close events to prevent multiple menus from being open
-  useEffect(() => {
-    function handleCloseAllMenus(event: Event) {
-      // custom event with detail.projectId
-      const detail = (event as CustomEvent<{ projectId: string }>).detail;
-      if (detail && detail.projectId !== project.id) {
-        setMenuOpen(false);
-      }
-    }
-
-    document.addEventListener(
-      "closeAllMenus",
-      handleCloseAllMenus as EventListener,
-    );
-    return () =>
-      document.removeEventListener(
-        "closeAllMenus",
-        handleCloseAllMenus as EventListener,
-      );
-  }, [project.id]);
-
   // compute final width/height with CSS variable overrides
   const resolvedWidth = width !== undefined ? width : size;
   const resolvedHeight = height !== undefined ? height : size;
@@ -250,7 +309,7 @@ export default function ProjectTile({
 
   const handleEdit = () => {
     onEdit(project.id);
-    setMenuOpen(false);
+    closeActions();
   };
 
   const finishInlineRename = () => {
@@ -268,11 +327,11 @@ export default function ProjectTile({
 
   const handleDelete = () => {
     onDelete(project.id);
-    setMenuOpen(false);
+    setTouchActionsOpen(true);
   };
 
   const handleLeave = () => {
-    setMenuOpen(false);
+    closeActions();
     setShowLeaveConfirm(true);
   };
 
@@ -281,15 +340,11 @@ export default function ProjectTile({
     setShowLeaveConfirm(false);
   };
 
-  // Membership-aware menu logic:
+  // Membership-aware actions:
   // - sole member → show Delete only
   // - multiple members → show Leave only
   // - no membership info → show Delete (legacy / no-member projects)
   const members = project.members ?? [];
-  const isSoleMember =
-    !!currentUserId &&
-    members.length === 1 &&
-    members[0]!.userId === currentUserId;
   const isAmongMultiple =
     !!currentUserId &&
     !!onLeave &&
@@ -300,12 +355,12 @@ export default function ProjectTile({
 
   const handleColorChange = (newColor: string) => {
     onChangeColor(project.id, newColor);
-    setMenuOpen(false);
+    closeActions();
   };
 
   const handleArchiveToggle = () => {
     onArchiveToggle?.(project.id, !project.archived);
-    setMenuOpen(false);
+    closeActions();
   };
 
   const handleOpenColorPicker = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -332,6 +387,15 @@ export default function ProjectTile({
   }, [project.id]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const gesture = touchGestureRef.current;
+    if (
+      gesture &&
+      (gesture.axis === "x" ||
+        Math.abs(e.clientX - gesture.x) > Math.abs(e.clientY - gesture.y))
+    ) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData(
       "application/json",
@@ -367,23 +431,49 @@ export default function ProjectTile({
 
   return (
     <div
-      className={styles.tile}
+      className={`${styles.tile} ${touchActionsOpen ? `${styles.actionsOpen} project-tile-actions-open` : ""} ${swipeOffset !== null ? styles.swiping : ""}`}
       style={
         {
           width: widthStr,
           height: heightStr,
           "--project-color": color,
           opacity: isDragging ? 0.5 : project.archived ? 0.75 : 1,
-          zIndex: menuOpen ? 999 : undefined,
-        } as any
+          "--actions-offset": swipeOffset === null ? undefined : `${100 - swipeOffset / ACTIONS_WIDTH * 100}%`,
+        } as React.CSSProperties
       }
       data-testid="project-tile"
       ref={dragRef}
-      draggable={!editingLink}
+      draggable={!editingLink && !editingName}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerCancel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          closeActions();
+          if (event.target instanceof HTMLButtonElement) event.target.blur();
+        }
+      }}
+      onClickCapture={(event) => {
+        if (swipedRef.current) {
+          swipedRef.current = false;
+          event.preventDefault();
+          event.stopPropagation();
+        } else if (touchActionsOpen && !isInteractiveTarget(event.target)) {
+          closeActions();
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
     >
       {/* Artistic background elements */}
       <div className={`${styles.tileBg} project-tile-bg`}>
@@ -400,7 +490,7 @@ export default function ProjectTile({
 
       {/* Main content container */}
       <div className={`${styles.tileContent} project-tile-content`}>
-        {/* Header with name and menu */}
+        {/* Project name and link */}
         <div className={`${styles.tileHeader} project-tile-header`}>
           <div className={`${styles.nameSection} project-name-section`}>
             <div className={`${styles.nameRow} project-name-row`}>
@@ -415,6 +505,7 @@ export default function ProjectTile({
                   onClick={(e) => e.stopPropagation()}
                   onBlur={finishInlineRename}
                   onKeyDown={(e) => {
+                    e.stopPropagation();
                     if (e.key === "Enter") {
                       e.preventDefault();
                       finishInlineRename();
@@ -433,43 +524,27 @@ export default function ProjectTile({
                   <div className={`${styles.name} project-name`}>
                     {project.text}
                   </div>
-                  <ProjectLink url={project.externalUrl} projectName={project.text} />
-                  {!isValidExternalUrl(project.externalUrl) && onExternalUrlChange && (
-                    <button
-                      type="button"
-                      ref={addLinkButtonRef}
-                      className={styles.addLinkButton}
-                      title="Add project link"
-                      aria-label={`Add link to ${project.text}`}
-                      aria-expanded={editingLink}
-                      aria-haspopup="dialog"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDraftLink("");
-                        setLinkError("");
-                        setEditingLink(true);
-                      }}
+                  {isValidExternalUrl(project.externalUrl) && (
+                    <a
+                      className="project-layout-link"
+                      href={project.externalUrl.trim()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open project link for ${project.text} (opens in a new tab)`}
+                      title="Open project link"
+                      onClick={(event) => event.stopPropagation()}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      draggable={false}
                     >
-                      <span className="material-icons" aria-hidden="true">add_link</span>
-                    </button>
+                      <span className="material-icons" aria-hidden="true">link</span>
+                    </a>
                   )}
-                  <button
-                    className={`${styles.nameEditBtn} project-name-edit-btn`}
-                    title="Rename project"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingName(true);
-                    }}
-                  >
-                    <span className="material-icons">edit</span>
-                  </button>
                 </>
               )}
               {editingName && <ProjectLink url={project.externalUrl} projectName={project.text} />}
             </div>
-            {editingLink && ReactDOM.createPortal(
+              {editingLink && ReactDOM.createPortal(
               <div
                 className={styles.linkDialogOverlay}
                 onClick={(e) => {
@@ -517,7 +592,7 @@ export default function ProjectTile({
                 <div className={styles.linkDialogIcon} aria-hidden="true">
                   <span className="material-icons">add_link</span>
                 </div>
-                <h2 id={`project-tile-link-title-${project.id}`}>Add project link</h2>
+                <h2 id={`project-tile-link-title-${project.id}`}>{hasLink ? "Edit project link" : "Add project link"}</h2>
                 <p id={`project-tile-link-description-${project.id}`} className={styles.linkDescription}>
                   Keep a useful resource one click away from <strong>{project.text}</strong>.
                 </p>
@@ -544,7 +619,7 @@ export default function ProjectTile({
                   className={linkError ? styles.linkError : styles.linkHelper}
                   role={linkError ? "alert" : undefined}
                 >
-                  {linkError || "Use an https:// or http:// URL. You can edit it later in the overview."}
+                  {linkError || "Use an https:// or http:// URL. You can edit it later from the actions or overview."}
                 </p>
                 <div className={styles.linkEditorActions}>
                   <button className={styles.linkCancelButton} type="button" onClick={() => setEditingLink(false)}>Cancel</button>
@@ -555,137 +630,21 @@ export default function ProjectTile({
               document.body,
             )}
             <div className={`${styles.nameAccent} project-name-accent`} />
+            <div
+              className="project-inline-progress"
+              role="progressbar"
+              aria-label={`${project.text} progress`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+            >
+              <span
+                className="project-inline-progress-fill"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
 
-          {isPendingDelete ? (
-            <div className={styles.menu} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.pendingActions}>
-                <button
-                  className={`${styles.confirmDeleteButton} confirm-delete-button`}
-                  title="Confirm delete project"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onConfirmDelete(project.id);
-                  }}
-                >
-                  <span className="material-icons">delete_forever</span>
-                </button>
-                <button
-                  className={`${styles.cancelDeleteButton} cancel-delete-button`}
-                  title="Cancel delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(project.id); // This will unset pending
-                  }}
-                >
-                  <span className="material-icons">close</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              className={styles.menu}
-              ref={menuRef}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className={styles.menuButton}
-                title="More options"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Dispatch event to close all other menus
-                  const event = new CustomEvent("closeAllMenus", {
-                    detail: { projectId: project.id },
-                  });
-                  document.dispatchEvent(event);
-                  setMenuOpen(!menuOpen);
-                }}
-                aria-label="Project menu"
-              >
-                <span className="material-icons">more_vert</span>
-              </button>
-              {menuOpen &&
-                ReactDOM.createPortal(
-                  <div
-                    className={`${styles.menuDropdown} project-menu-dropdown`}
-                    ref={dropdownRef}
-                    data-flipped-v={menuFlippedVertically ? "true" : "false"}
-                    style={{
-                      position: "fixed",
-                      ...dropdownStyle,
-                      right: "auto",
-                      zIndex: 1001,
-                    }}
-                  >
-                    <button
-                      className={`${styles.menuItem} ${styles.colorMenuItem} menu-item color-menu-item`}
-                      onClick={(e) => {
-                        setMenuOpen(false);
-                        handleOpenColorPicker(e);
-                      }}
-                      title="Change color"
-                    >
-                      <span className="material-icons">palette</span>
-                      <span>Color</span>
-                      <span className={`${styles.menuArrow} menu-arrow`}>
-                        ›
-                      </span>
-                    </button>
-
-                    <div className={`${styles.menuDivider} menu-divider`} />
-
-                    <button
-                      className={`${styles.menuItem} ${styles.editMenuItem} menu-item edit-menu-item`}
-                      onClick={handleEdit}
-                      title="Edit project"
-                    >
-                      <span className="material-icons">edit</span>
-                      <span>Edit</span>
-                    </button>
-
-                    {showDelete && (
-                      <button
-                        className={`${styles.menuItem} ${styles.deleteMenuItem} menu-item delete-menu-item`}
-                        onClick={handleDelete}
-                        title="Delete project"
-                      >
-                        <span className="material-icons">delete</span>
-                        <span>Delete</span>
-                      </button>
-                    )}
-
-                    {onArchiveToggle && (
-                      <>
-                        <div className={`${styles.menuDivider} menu-divider`} />
-                        <button
-                          className={`${styles.menuItem} menu-item archive-menu-item`}
-                          onClick={handleArchiveToggle}
-                          title={project.archived ? "Restore project" : "Mark project complete"}
-                        >
-                          <span className="material-icons">{project.archived ? "unarchive" : "archive"}</span>
-                          <span>{project.archived ? "Restore" : "Mark Complete"}</span>
-                        </button>
-                      </>
-                    )}
-
-                    {showLeave && (
-                      <>
-                        <div className={`${styles.menuDivider} menu-divider`} />
-                        <button
-                          className={`${styles.menuItem} ${styles.leaveMenuItem} menu-item leave-menu-item`}
-                          onClick={handleLeave}
-                          title="Leave project"
-                        >
-                          <span className="material-icons">exit_to_app</span>
-                          <span>Leave Project</span>
-                        </button>
-                      </>
-                    )}
-                  </div>,
-                  document.body,
-                )}
-            </div>
-          )}
         </div>
 
         {/* Progress visualization with avatar */}
@@ -814,6 +773,88 @@ export default function ProjectTile({
             <span className="material-icons" style={{ fontSize: 13 }}>archive</span>
             Archived
           </span>
+        )}
+      </div>
+
+      <div
+        className={styles.actionTray}
+        role="group"
+        aria-label={`${project.text} actions`}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") event.stopPropagation();
+        }}
+      >
+        <button type="button" className={`${styles.actionButton} ${styles.actionEdit}`}
+          aria-label={`Edit ${project.text}`} title="Edit project" onClick={handleEdit}>
+          <span className="material-icons" aria-hidden="true">edit</span>
+          <span>Edit</span>
+        </button>
+        <button type="button" className={`${styles.actionButton} ${styles.actionRename}`}
+          aria-label={`Rename ${project.text}`} title="Rename project"
+          onClick={() => { closeActions(); setEditingName(true); }}>
+          <span className="material-icons" aria-hidden="true">drive_file_rename_outline</span>
+          <span>Rename</span>
+        </button>
+        <button type="button" className={`${styles.actionButton} ${styles.actionColor}`}
+          aria-label={`Change ${project.text} color`} title="Change project color"
+          onClick={handleOpenColorPicker}>
+          <span className="material-icons" aria-hidden="true">palette</span>
+          <span>Color</span>
+        </button>
+        {onExternalUrlChange && (
+          <button type="button" ref={linkButtonRef}
+            className={`${styles.actionButton} ${styles.actionLink}`}
+            aria-label={hasLink ? `Edit link for ${project.text}` : `Add link to ${project.text}`}
+            title={hasLink ? "Edit project link" : "Add project link"}
+            aria-expanded={editingLink} aria-haspopup="dialog"
+            onClick={() => {
+              closeActions();
+              setDraftLink(project.externalUrl || "");
+              setLinkError("");
+              setEditingLink(true);
+            }}>
+            <span className="material-icons" aria-hidden="true">add_link</span>
+            <span>{hasLink ? "Edit link" : "Add link"}</span>
+          </button>
+        )}
+        {onArchiveToggle && (
+          <button type="button" className={`${styles.actionButton} ${styles.actionArchive}`}
+            aria-label={`${project.archived ? "Restore" : "Complete"} ${project.text}`}
+            title={project.archived ? "Restore project" : "Mark project complete"}
+            onClick={handleArchiveToggle}>
+            <span className="material-icons" aria-hidden="true">{project.archived ? "unarchive" : "archive"}</span>
+            <span>{project.archived ? "Restore" : "Complete"}</span>
+          </button>
+        )}
+        {showDelete && (isPendingDelete ? (
+          <>
+            <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
+              aria-label={`Confirm delete ${project.text}`} title="Confirm delete project"
+              onClick={() => { closeActions(); onConfirmDelete(project.id); }}>
+              <span className="material-icons" aria-hidden="true">delete_forever</span>
+              <span>Confirm</span>
+            </button>
+            <button type="button" className={`${styles.actionButton} ${styles.actionCancel}`}
+              aria-label="Cancel delete" title="Cancel delete"
+              onClick={() => { onDelete(project.id); closeActions(); }}>
+              <span className="material-icons" aria-hidden="true">close</span>
+              <span>Cancel</span>
+            </button>
+          </>
+        ) : (
+          <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
+            aria-label={`Delete ${project.text}`} title="Delete project" onClick={handleDelete}>
+            <span className="material-icons" aria-hidden="true">delete</span>
+            <span>Delete</span>
+          </button>
+        ))}
+        {showLeave && (
+          <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
+            aria-label={`Leave ${project.text}`} title="Leave project" onClick={handleLeave}>
+            <span className="material-icons" aria-hidden="true">exit_to_app</span>
+            <span>Leave</span>
+          </button>
         )}
       </div>
 

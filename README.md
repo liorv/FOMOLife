@@ -42,8 +42,20 @@ In Edit Project Overview, attach an optional HTTP/HTTPS URL using External Link.
 It saves when the field loses focus (or you press Enter). A small link icon beside
 the project name on its tile and in the editor opens the URL in a new tab.
 Clear the field to remove the link. Project exports include the saved link.
-For a project without a link, hover over its tile (or focus it with the keyboard)
-and click Add project link beside the name. In the dialog, paste the URL and choose Save link
+Project tiles use a sliding action tray like Home tasks in Cards, List, and Compact
+views. Hover with a mouse or focus with the keyboard to reveal the actions.
+The project icon stays at the left edge, vertically centered before the title,
+with space reserved so the sliding actions cannot cover it.
+A dismissible left-arrow hint above the tiles explains "Swipe left for actions";
+dismissing it remembers the choice on that browser.
+On mobile, swipe left or right on a closed tile to reveal them; swipe right again,
+tap the tile or elsewhere, or press Escape to dismiss. Horizontal swipes do not
+change the active app tab. The old floating hover menu and More options dropdown
+are replaced by direct Edit, Rename, Color, Add/Edit link, Complete/Restore, and
+Delete/Leave actions, as applicable.
+For a project without a link, choose Add link from the tray.
+For a project with a link, choose Edit link to update the prefilled URL.
+In the dialog, paste the URL and choose Save link
 to attach it directly without opening the overview.
 Cancel, Escape, or clicking outside the dialog closes it without saving.
 

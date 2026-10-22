@@ -1501,6 +1501,9 @@ html[data-theme="dark"] .inline-editor {
 /* Drag-reorder hint above tile grid */
 .dashboard-drag-hint-row {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
   justify-content: center;
   padding: 4px 16px 8px;
   width: 100%;
@@ -1553,6 +1556,286 @@ html[data-theme="dark"] .inline-editor {
 .dashboard-tile-wrapper:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Denser project layouts keep using ProjectTile so its actions remain available. */
+.project-inline-progress {
+  display: none;
+}
+
+.dashboard-tiles-grid .project-name-row .project-layout-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 34px;
+  height: 34px;
+  margin: 0 0 0 6px;
+  padding: 0;
+  border: 1px solid #dbe4f0;
+  border-radius: 50%;
+  background: #fff;
+  color: #315ea8;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+  text-decoration: none;
+}
+
+.dashboard-tiles-grid .project-name-row .project-layout-link:hover {
+  border-color: #aebfda;
+  background: #f7faff;
+  color: #183e7a;
+}
+
+.dashboard-tiles-grid .project-name-row .project-layout-link .material-icons {
+  font-size: 18px;
+}
+
+.dashboard-tiles-grid--list {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.dashboard-tiles-grid--list .dashboard-tile-wrapper {
+  --project-tile-height: 96px;
+}
+
+.dashboard-tiles-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+  gap: 8px;
+}
+
+.dashboard-tiles-grid--compact .dashboard-tile-wrapper {
+  --project-tile-height: 96px;
+}
+
+.dashboard-tiles-grid--list [data-testid="project-tile"],
+.dashboard-tiles-grid--compact [data-testid="project-tile"] {
+  --project-icon-space: 72px;
+  --project-avatar-size: 40px;
+  min-width: 0;
+  overflow: hidden;
+  z-index: 0;
+  border-color: var(--color-border, #e2e8f0);
+  border-left: 4px solid var(--project-color, #1a73e8);
+  border-radius: 12px;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--project-color, #1a73e8) 9%, white),
+    var(--color-surface, #fff) 48%
+  );
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--project-color, #1a73e8) 12%, transparent);
+}
+
+.dashboard-tiles-grid--list [data-testid="project-tile"]:hover,
+.dashboard-tiles-grid--compact [data-testid="project-tile"]:hover {
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--project-color, #1a73e8) 22%, transparent);
+}
+
+.dashboard-tiles-grid--list .dashboard-tile-wrapper:hover,
+.dashboard-tiles-grid--compact .dashboard-tile-wrapper:hover,
+.dashboard-tiles-grid--list .dashboard-tile-wrapper:focus-within,
+.dashboard-tiles-grid--compact .dashboard-tile-wrapper:focus-within {
+  position: relative;
+  z-index: 10;
+}
+
+.dashboard-tiles-grid--list .project-tile-bg,
+.dashboard-tiles-grid--compact .project-tile-bg,
+.dashboard-tiles-grid--list .project-name-accent,
+.dashboard-tiles-grid--compact .project-name-accent {
+  display: none;
+}
+
+.dashboard-tiles-grid--list .project-tile-content,
+.dashboard-tiles-grid--compact .project-tile-content {
+  position: relative;
+  overflow: visible;
+  box-sizing: border-box;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px var(--project-icon-space);
+}
+
+.dashboard-tiles-grid--list .project-tile-header,
+.dashboard-tiles-grid--compact .project-tile-header {
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.dashboard-tiles-grid--list .project-name-row,
+.dashboard-tiles-grid--compact .project-name-row {
+  margin: 0;
+}
+
+.dashboard-tiles-grid--list .project-name-row > a,
+.dashboard-tiles-grid--compact .project-name-row > a {
+  display: inline-flex;
+}
+
+.dashboard-tiles-grid--list .project-name-row .project-layout-link,
+.dashboard-tiles-grid--compact .project-name-row .project-layout-link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 34px;
+  height: 34px;
+  margin: 0 0 0 6px;
+  padding: 0;
+  border: 1px solid #dbe4f0;
+  border-radius: 50%;
+  background: #fff;
+  color: #315ea8;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+}
+
+.dashboard-tiles-grid--list .project-name-row .project-layout-link:hover,
+.dashboard-tiles-grid--compact .project-name-row .project-layout-link:hover {
+  border-color: #aebfda;
+  background: #f7faff;
+  color: #183e7a;
+}
+
+.dashboard-tiles-grid--list .project-name-row .project-layout-link .material-icons,
+.dashboard-tiles-grid--compact .project-name-row .project-layout-link .material-icons {
+  font-size: 18px;
+}
+
+.dashboard-tiles-grid--list .project-name-section,
+.dashboard-tiles-grid--compact .project-name-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+}
+
+.dashboard-tiles-grid--list .project-layout-link,
+.dashboard-tiles-grid--compact .project-layout-link {
+  display: none;
+}
+
+.dashboard-tiles-grid--list .project-inline-progress,
+.dashboard-tiles-grid--compact .project-inline-progress {
+  display: block;
+  width: min(100%, 320px);
+  height: 10px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6eaf0;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12), 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-tiles-grid--compact .project-inline-progress {
+  width: min(100%, 220px);
+  height: 8px;
+  margin-top: 8px;
+}
+
+.dashboard-tiles-grid--list .project-inline-progress-fill,
+.dashboard-tiles-grid--compact .project-inline-progress-fill {
+  display: block;
+  min-width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--project-color, #1a73e8),
+    color-mix(in srgb, var(--project-color, #1a73e8) 72%, white)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 8px color-mix(in srgb, var(--project-color, #1a73e8) 35%, transparent);
+  transition: width 300ms ease;
+}
+
+.dashboard-tiles-grid--list .project-progress-section,
+.dashboard-tiles-grid--compact .project-progress-section {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  right: auto;
+  z-index: 3;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-tiles-grid--list .project-progress-section svg,
+.dashboard-tiles-grid--compact .project-progress-section svg,
+.dashboard-tiles-grid--list .progress-text-overlay,
+.dashboard-tiles-grid--compact .progress-text-overlay {
+  display: none;
+}
+
+.dashboard-tiles-grid--list .progress-circle,
+.dashboard-tiles-grid--compact .progress-circle,
+.dashboard-tiles-grid--list .progress-avatar-container,
+.dashboard-tiles-grid--compact .progress-avatar-container {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+}
+
+.dashboard-tiles-grid--list .progress-avatar,
+.dashboard-tiles-grid--compact .progress-avatar {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background-color: #f8fafc;
+  box-shadow: 0 0 0 2px #fff, 0 1px 5px rgba(15, 23, 42, 0.15);
+  object-fit: cover;
+}
+
+.dashboard-tiles-grid--list .progress-avatar--initials,
+.dashboard-tiles-grid--compact .progress-avatar--initials {
+  font-size: 20px;
+}
+
+.dashboard-tiles-grid--list .progress-text-overlay,
+.dashboard-tiles-grid--compact .progress-text-overlay {
+  font-size: 10px;
+}
+
+.dashboard-tiles-grid--list .progress-percent,
+.dashboard-tiles-grid--compact .progress-percent {
+  font-size: 10px;
+}
+
+.dashboard-tiles-grid--list .project-stats,
+.dashboard-tiles-grid--compact .project-stats {
+  display: none;
+}
+
+.dashboard-tiles-grid--list .project-archived-badge,
+.dashboard-tiles-grid--compact .project-archived-badge {
+  position: static !important;
+  align-self: center;
+}
+
+.dashboard-tiles-grid--compact .project-tile-content {
+  gap: 8px;
+  padding: 10px 12px 10px var(--project-icon-space);
+}
+
+.dashboard-tiles-grid--compact .project-name {
+  font-size: 14px;
 }
 
 /* Sticky header for the selected project */
@@ -1753,6 +2036,11 @@ html[data-theme="dark"] .inline-editor {
     grid-template-columns: 1fr;
     padding: 0 12px 100px;
     gap: 14px;
+  }
+
+  .dashboard-tiles-grid--list,
+  .dashboard-tiles-grid--compact {
+    padding-right: 40px;
   }
 
   /* dashboard-home-bg removed */

@@ -15,8 +15,11 @@
 
 /* Tile custom property defaults */
 .tile {
+  --project-icon-space: 144px;
+  --project-avatar-size: 80px;
   width: 100%;
   min-width: 300px;
+  touch-action: pan-y;
   position: relative;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 182, 193, 0.08) 50%, rgba(221, 160, 221, 0.06) 100%);
@@ -88,9 +91,11 @@
 .tileContent {
   position: relative;
   z-index: 2;
-  padding: 16px;
+  padding: 16px 16px 16px var(--project-icon-space);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 12px;
   height: 100%;
 }
@@ -164,62 +169,12 @@
   white-space: nowrap;
 }
 
-.nameEditBtn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0;
-  padding: 2px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.nameEditBtn .materialIcons {
-  font-size: 15px !important;
-}
-
-.tile:hover .nameEditBtn,
-.nameEditBtn:focus-visible {
-  opacity: 1;
-}
-
 .nameAccent {
   height: 3px;
   width: 60px;
   background: linear-gradient(90deg, var(--project-color, #0d47a1), rgba(255, 255, 255, 0.3));
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.addLinkButton {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  margin-left: 8px;
-  padding: 4px;
-  border: none;
-  background: none;
-  color: inherit;
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.addLinkButton :global(.material-icons) {
-  font-size: 18px;
-}
-
-.tile:hover .addLinkButton,
-.tile:focus-within .addLinkButton {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-@media (hover: none) {
-  .addLinkButton {
-    opacity: 1;
-    pointer-events: auto;
-  }
 }
 
 .linkDialogOverlay {
@@ -411,8 +366,8 @@
 .progressSection {
   position: absolute;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  left: 12px;
+  transform: translateY(-50%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -509,8 +464,8 @@
 
 .progressAvatarWrap {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: var(--project-avatar-size);
+  height: var(--project-avatar-size);
   border-radius: 50%;
 }
 
@@ -584,16 +539,12 @@
   text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.9), 0px 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* Stats - rounded so that the left edge aligns exactly with the tile's edge. */
 .stats {
   display: flex;
-  position: absolute;
-  top: 50%;
-  left: 0;
-  transform: translate(-8px, -50%);
+  align-self: flex-start;
   justify-content: flex-start;
   align-items: center;
-  border-radius: 0 16px 16px 0;
+  border-radius: 16px;
   overflow: hidden;
   padding: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
@@ -627,172 +578,87 @@
   color: var(--color-text-muted);
 }
 
-/* Menu button */
-.tile .menu {
-  position: relative;
+.actionTray {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(44px, 1fr);
+  width: min(calc(100% - var(--project-icon-space)), 198px);
+  overflow-y: auto;
+  transform: translateX(100%);
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-.tile .menuButton {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px;
-  border-radius: 50%;
-  cursor: pointer;
+.actionsOpen .actionTray,
+.actionTray:has(:focus-visible),
+:global(.dashboard-tile-wrapper):focus-visible .actionTray {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover .actionTray {
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+}
+
+.tile.swiping .actionTray {
+  transform: translateX(var(--actions-offset));
+  transition: none;
+  pointer-events: none;
+}
+
+.actionButton {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
-  transition: all 0.2s ease;
-  font-size: 0;
-  line-height: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.tile .menuButton:hover {
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--color-text);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.tile .menuButton:active {
-  transform: scale(0.95);
-}
-
-.tile .menuButton .materialIcons {
-  font-size: 1.25rem;
-}
-
-.confirmDeleteButton {
-  background: #d32f2f;
-  border: 1px solid rgba(211, 47, 47, 0.3);
-  padding: 10px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: all 0.2s ease;
-  font-size: 0;
-  line-height: 1;
-  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
-}
-
-.confirmDeleteButton:hover {
-  background: #b71c1c;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
-}
-
-.confirmDeleteButton:active {
-  transform: scale(0.95);
-}
-
-.confirmDeleteButton .materialIcons {
-  font-size: 1.25rem;
-}
-
-.pendingActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.cancelDeleteButton {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-  transition: all 0.2s ease;
-  font-size: 0;
-  line-height: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.cancelDeleteButton:hover {
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--color-text);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.cancelDeleteButton:active {
-  transform: scale(0.95);
-}
-
-.cancelDeleteButton .materialIcons {
-  font-size: 1.25rem;
-}
-
-.menuDropdown {
-  background: #ffffff;
-  border-radius: var(--border-radius);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.12);
-  min-width: 180px;
-  z-index: 1000;
-  overflow: visible;
-  animation: slideDown 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.menuDropdown[data-flipped-v="true"] {
-  animation: slideUp 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.menuItem {
-  width: 100%;
-  padding: 12px 16px;
-  background: transparent;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 2px;
   border: none;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--color-text);
-  font-size: 0.95rem;
+  border-radius: 0;
+  color: #fff;
   font-family: inherit;
-  transition: background-color 0.2s ease;
-  position: relative;
-  white-space: nowrap;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: filter 0.15s;
 }
 
-.menuItem:hover {
-  background-color: #f8f9fa;
+.actionButton :global(.material-icons) {
+  font-size: 20px;
 }
 
-.colorMenuItem:hover .material-icons {
-  color: #f57c00;
+.actionButton:hover {
+  filter: brightness(1.08);
 }
 
-.editMenuItem:hover .material-icons {
-  color: #1f77d1;
+.actionButton:active {
+  filter: brightness(0.92);
 }
 
-.deleteMenuItem:hover .material-icons {
-  color: #d33b27;
+.actionButton:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -3px;
 }
 
-.leaveMenuItem:hover .material-icons {
-  color: #e65100;
-}
+.actionEdit { background: #5856d6; }
+.actionRename { background: #0a84ff; }
+.actionColor { background: #af52de; }
+.actionLink { background: #007c91; }
+.actionArchive { background: #248a3d; }
+.actionDelete { background: #d32f2f; }
+.actionCancel { background: #636366; }
 
-.menuArrow {
-  margin-left: auto;
-}
-
-.menuDivider {
-  height: 1px;
-  margin: 4px 0;
-  background: rgba(0, 0, 0, 0.08);
+@media (prefers-reduced-motion: reduce) {
+  .actionTray { transition: none; }
 }
 
 .colorPickerModalOverlay {

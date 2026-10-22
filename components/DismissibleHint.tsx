@@ -11,8 +11,9 @@ interface DismissibleHintProps {
   /** Arrow orientation:
    *  - 'horizontal' (default): left + right arrows flanking the text, inline
    *  - 'up': single upward arrow above the text block, stacked vertically
+   *  - 'left': single left arrow before the text
    */
-  direction?: 'horizontal' | 'up' | 'down';
+  direction?: 'horizontal' | 'up' | 'down' | 'left';
   /** Optional extra className for the wrapper */
   className?: string | undefined;
 }
@@ -115,10 +116,10 @@ export default function DismissibleHint({ storageKey, lines, direction = 'horizo
       </span>
 
       {/* Hand-drawn right arrow */}
-      <svg className={styles.arrowSvg} viewBox="0 0 44 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {direction !== 'left' && <svg className={styles.arrowSvg} viewBox="0 0 44 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d="M2 10 C10 11 26 12 38 10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
         <path d="M32 4 C36 7 39 9 38 10 C37 11 35 13 32 16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      </svg>
+      </svg>}
 
       <button
         className={styles.dismiss}

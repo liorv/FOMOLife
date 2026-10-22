@@ -1,10 +1,18 @@
 import "../styles/projects/projects.css";
 import "../styles/projects/layout.css";
 import "../styles/projects/tabs.css";
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import InstallPrompt from '../components/InstallPrompt';
 import Script from 'next/script';
+
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(max-width: 900px)', color: '#000000' },
+    { media: '(min-width: 901px)', color: '#d32998' },
+  ],
+};
 
 export const metadata: Metadata = {
   title: 'FOMO Life',
@@ -24,7 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <meta name="theme-color" content="#d32998" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/assets/logo_fomo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

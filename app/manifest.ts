@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#f1f3f4',
-    theme_color: '#d32998',
+    theme_color: '#000000',
     icons: [
       {
         src: '/assets/logo_fomo.png',
