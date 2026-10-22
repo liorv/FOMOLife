@@ -76,6 +76,9 @@ completion/archive actions. Filter and Chat remain available while filtering.
 
 In Projects, switch to **Templates** to browse reusable workflows, or choose
 **New template** to build one from scratch using the regular project editor.
+The toolbar shows **New project** in Projects and **New template** in Templates.
+On mobile, the Projects/Templates selector spans the first row, with layout
+controls and the current tab's creation button below it.
 Open any existing project and choose **Convert to template** to move it into the
 library. Conversion keeps its content and members, removes its archived status,
 and can be reversed with **Convert to project**.

@@ -3,13 +3,18 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   margin: 8px 0 24px;
+  padding: 0 12px;
+  box-sizing: border-box;
 }
 
 .tabs {
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 4px;
   gap: 4px;
   border-radius: 28px;
@@ -35,6 +40,7 @@
 }
 
 .tab {
+  white-space: nowrap;
   background: transparent;
   color: var(--color-text-secondary, #475569);
 }
@@ -54,11 +60,22 @@
   gap: 8px;
 }
 
+.toolbarActions {
+  align-items: stretch;
+  margin-left: auto;
+  max-width: 100%;
+  gap: 12px;
+}
+
+.toolbarActions .primaryButton {
+  white-space: nowrap;
+}
+
 .viewSwitcher {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 10px;
   background: var(--color-surface, #fff);
@@ -68,8 +85,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   padding: 0;
   border: 0;
   border-radius: 7px;
@@ -336,11 +354,34 @@
 @media (max-width: 600px) {
   .toolbar {
     align-items: stretch;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
   }
 
   .toolbarActions {
     width: 100%;
-    justify-content: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .toolbarActions .primaryButton {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+
+  .toolbarActions .viewSwitcher {
+    flex-shrink: 0;
   }
 
   .hero {

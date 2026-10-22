@@ -268,18 +268,10 @@ export default function ProjectsDashboard({
 
   // Notify thumb that project editor is open/closed so it can show the assistant glyph
   useEffect(() => {
-    try {
-      if (selectedProject) {
-        window.dispatchEvent(new CustomEvent('project-editor-open'));
-      } else {
-        window.dispatchEvent(new CustomEvent('project-editor-close'));
-      }
-    } catch (e) {
-      // ignore
-    }
+    window.dispatchEvent(new CustomEvent(selectedProject ? 'project-editor-open' : 'project-editor-close'));
     // also ensure we close on unmount
     return () => {
-      try { window.dispatchEvent(new CustomEvent('project-editor-close')); } catch (e) {}
+      window.dispatchEvent(new CustomEvent('project-editor-close'));
     };
   }, [selectedProject]);
 
@@ -639,7 +631,7 @@ export default function ProjectsDashboard({
                         title="Export JSON"
                         onClick={() => {
                           const exportObj = buildProjectExport(selectedProject, people);
-                          const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_\-]/gi, '_');
+                          const safeName = (exportObj.name || 'project').replace(/[^a-z0-9_-]/gi, '_');
                           downloadJSON(exportObj, `${safeName}_export.json`);
                         }}
                       >
@@ -732,9 +724,7 @@ export default function ProjectsDashboard({
               title={llmAvailable === false ? (llmUnavailableMsg || 'AI assistant unavailable') : 'AI assistant'}
               onClick={() => {
                 if (llmAvailable === false) return;
-                try {
-                  window.dispatchEvent(new CustomEvent('open-project-assistant'));
-                } catch (e) {}
+                window.dispatchEvent(new CustomEvent('open-project-assistant'));
                 setIsAssistantOpen(true);
               }}
             >
@@ -746,7 +736,7 @@ export default function ProjectsDashboard({
         /* ── Home: watermark + direct grid ── */
         <>
           <div className={templateStyles.toolbar}>
-            <div className={templateStyles.tabs} aria-label="Project views">
+            <div className={templateStyles.tabs} role="group" aria-label="Project views">
               <button type="button" className={templateStyles.tab} aria-pressed={!showTemplates} onClick={() => setShowTemplates(false)}>
                 <span className="material-icons" aria-hidden="true">folder_open</span>Projects
               </button>
@@ -789,8 +779,10 @@ export default function ProjectsDashboard({
                   </button>
                 </div>
               )}
-              {onAddProject && <button type="button" className={templateStyles.textButton} onClick={() => { setShowTemplates(false); onAddProject(); }}>New project</button>}
-              {onCreateTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'create' })}>
+              {!showTemplates && onAddProject && <button type="button" className={templateStyles.primaryButton} onClick={onAddProject}>
+                <span className="material-icons" aria-hidden="true">add</span>New project
+              </button>}
+              {showTemplates && onCreateTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'create' })}>
                 <span className="material-icons" aria-hidden="true">add</span>New template
               </button>}
             </div>
@@ -1069,7 +1061,7 @@ export default function ProjectsDashboard({
           projectExport={buildAIContext(selectedProject, people)}
           onClose={() => {
             setIsAssistantOpen(false);
-            try { window.dispatchEvent(new CustomEvent('close-project-assistant')); } catch (e) {}
+            window.dispatchEvent(new CustomEvent('close-project-assistant'));
           }}
           onApplyChange={onApplyChange}
           project={selectedProject}
@@ -1091,7 +1083,7 @@ export default function ProjectsDashboard({
               {!importPreview ? (
                 <>
                   <p style={{ marginTop: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
-                    Select or paste a project JSON file matching the format produced by "Export".
+                    Select or paste a project JSON file matching the format produced by &quot;Export&quot;.
                     Its sub-projects and tasks will be added into <strong>{selectedProject?.text}</strong>.
                   </p>
                   <input

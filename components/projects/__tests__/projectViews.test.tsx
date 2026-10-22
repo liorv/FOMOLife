@@ -123,3 +123,39 @@ it("does not show a swipe hint when there are no project tiles", () => {
   render(<ProjectsDashboard projects={[]} />);
   expect(screen.queryByText("Swipe left for actions")).not.toBeInTheDocument();
 });
+
+it("shows only the creation action for the selected tab and preserves the project layout", () => {
+  const onAddProject = jest.fn();
+  const onCreateTemplate = jest.fn();
+  render(
+    <ProjectsDashboard
+      onAddProject={onAddProject}
+      onCreateTemplate={onCreateTemplate}
+    />,
+  );
+
+  expect(screen.getByRole("group", { name: "Project views" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /New template/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /New project/ }));
+  expect(onAddProject).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Compact view" }));
+
+  fireEvent.click(screen.getByRole("button", { name: /Templates \(0\)/ }));
+  expect(screen.queryByRole("group", { name: "Project layout" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /New project/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /New template/ }));
+  expect(screen.getByRole("dialog", { name: "Create a template" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(onCreateTemplate).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: /Projects$/ }));
+  expect(screen.getByRole("button", { name: "Compact view" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: /New project/ })).toBeInTheDocument();
+});
+
+it("does not offer creation actions without the corresponding permission", () => {
+  render(<ProjectsDashboard />);
+  expect(screen.queryByRole("button", { name: /New project/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Templates \(0\)/ }));
+  expect(screen.queryByRole("button", { name: /New template/ })).not.toBeInTheDocument();
+});
