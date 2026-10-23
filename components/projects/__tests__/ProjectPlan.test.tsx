@@ -68,7 +68,7 @@ it('selects the dependent first, highlights it, then saves the chosen prerequisi
   await waitFor(() => expect(saved).toHaveBeenCalledWith([link]));
   expect(fetchMock).toHaveBeenCalledWith('/api/projects/p/plan', expect.objectContaining({ method: 'PATCH' }));
   expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ action: 'add', link });
-  expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Get approval. Dependency saved.');
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Get approval. Saved.'));
   expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Get approval' })).toBeInTheDocument();
   expect(screen.getByText(/Deadline conflict/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Add dependency for Publish (task, Prepare)' })).toHaveFocus();
@@ -92,7 +92,7 @@ it('allows a section to depend on a task', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Add dependency for Launch (section, Section)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' }));
   await waitFor(() => expect(save).toHaveBeenCalledWith('add', hint));
-  expect(await screen.findByRole('status')).toHaveTextContent('Launch depends on Get approval.');
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Launch depends on Get approval. Saved.'));
 });
 
 it('cancels prerequisite selection with Escape without saving', () => {
@@ -146,36 +146,58 @@ it('prevents duplicate links and dependency cycles', () => {
   expect(save).not.toHaveBeenCalled();
 });
 
-it('shows save errors, keeps the selection, and allows retry without unsaved links', async () => {
+it('undoes an optimistic dependency when saving fails and allows retry', async () => {
   const saved = jest.fn();
   const save = jest.fn().mockRejectedValueOnce(new Error('Offline; retry when connected')).mockResolvedValue([link]);
   render(<ProjectPlan project={project} canManage onLinksSaved={saved} onSaveLink={save} />);
   startDependency();
   fireEvent.click(screen.getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
+  expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Get approval' })).toBeInTheDocument();
+  expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save: Publish depends on Get approval. Offline; retry when connected The change was undone.");
   expect(saved).not.toHaveBeenCalled();
   expect(screen.queryByRole('button', { name: /Remove dependency/ })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Select prerequisite: Publish (task, Prepare)' })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Dismiss save error' }));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  startDependency();
   fireEvent.click(screen.getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' }));
   await waitFor(() => expect(saved).toHaveBeenCalledWith([link]));
+  expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Get approval. Saved.');
 });
 
-it('prevents duplicate submissions and cancellation while saving', async () => {
+it('shows a dependency immediately and confirms once the background save finishes', async () => {
   let resolveSave!: (links: PlanLink[]) => void;
   const save = jest.fn(() => new Promise<PlanLink[]>(resolve => { resolveSave = resolve; }));
-  const parentKeyDown = jest.fn();
-  render(<div onKeyDown={parentKeyDown}><ProjectPlan project={project} canManage onSaveLink={save} /></div>);
+  render(<ProjectPlan project={project} canManage onSaveLink={save} />);
   startDependency();
-  const prerequisite = screen.getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' });
-  fireEvent.click(prerequisite);
-  fireEvent.click(prerequisite);
-  expect(save).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
-  fireEvent.keyDown(screen.getByRole('region', { name: 'Release project plan' }), { key: 'Escape' });
-  expect(parentKeyDown).not.toHaveBeenCalled();
-  expect(screen.getByText('Select what it depends on')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' }));
+  expect(screen.queryByText('Select what it depends on')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Get approval' })).toBeEnabled();
+  expect(screen.getByRole('status')).toHaveTextContent('Saving…');
+  expect(screen.getByRole('button', { name: 'Add dependency for Get approval (task, Prepare)' })).toBeEnabled();
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
   resolveSave([link]);
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Dependency saved.'));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Get approval. Saved.'));
+});
+
+it('saves rapid dependency changes in order and keeps the latest local state', async () => {
+  const resolvers: Array<(links: PlanLink[]) => void> = [];
+  const save = jest.fn(() => new Promise<PlanLink[]>(resolve => { resolvers.push(resolve); }));
+  render(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage onSaveLink={save} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Get approval' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add dependency for Publish (task, Prepare)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Select prerequisite: Launch (section, Section)' }));
+  const hint: PlanLink = { dependent: link.dependent, prerequisite: { kind: 'section', id: 'launch' } };
+  expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Launch' })).toBeInTheDocument();
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+  expect(save).toHaveBeenLastCalledWith('remove', link);
+  resolvers[0]!([]);
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+  expect(save).toHaveBeenLastCalledWith('add', hint);
+  expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Launch' })).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Saving…');
+  resolvers[1]!([hint]);
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Launch. Saved.'));
+  expect(screen.queryByRole('button', { name: 'Remove dependency: Publish depends on Get approval' })).not.toBeInTheDocument();
 });
 
 it('renders the map and keeps a read-only plan read-only', () => {
@@ -215,7 +237,7 @@ it('shows the map above the table without a second dependency list and supports 
   fireEvent.click(screen.getByRole('button', { name: 'Add dependency for Launch (section, Section)' }));
   fireEvent.click(within(map).getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' }));
   await waitFor(() => expect(save).toHaveBeenCalledWith('add', hint));
-  expect(await screen.findByRole('status')).toHaveTextContent('Launch depends on Get approval.');
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Launch depends on Get approval. Saved.'));
   expect(screen.getByRole('region', { name: 'Dependency map' }).querySelectorAll('foreignObject')).toHaveLength(3);
 });
 
@@ -297,7 +319,7 @@ it('reveals Add dependency when a graph node is clicked and saves its chosen pre
   expect(screen.queryByRole('group', { name: 'Selected graph item' })).not.toBeInTheDocument();
   fireEvent.click(table().getByRole('button', { name: 'Select prerequisite: Launch (section, Section)' }));
   await waitFor(() => expect(save).toHaveBeenCalledWith('add', hint));
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Launch.'));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Publish depends on Launch. Saved.'));
   await waitFor(() => expect(node).toHaveFocus());
 });
 
@@ -319,15 +341,16 @@ it.each(['click', 'Enter', ' '])('selects an arrow with %s and removes it only a
   expect(screen.getByRole('table', { name: 'Project dependencies' })).toHaveFocus();
 });
 
-it('keeps the arrow and removal action available after a save error for retry', async () => {
+it('restores the arrow after a failed removal so it can be retried', async () => {
   const save = jest.fn().mockRejectedValueOnce(new Error('Offline')).mockResolvedValue([]);
   render(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage onSaveLink={save} />);
   fireEvent.click(screen.getByRole('button', { name: 'Dependency: Publish depends on Get approval' }));
   fireEvent.click(screen.getByRole('button', { name: 'Remove dependency' }));
+  expect(screen.queryByRole('button', { name: 'Dependency: Publish depends on Get approval' })).not.toBeInTheDocument();
   expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
-  expect(screen.getByRole('button', { name: 'Dependency: Publish depends on Get approval' })).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: 'Dependency: Publish depends on Get approval' }));
   fireEvent.click(screen.getByRole('button', { name: 'Remove dependency' }));
-  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Dependency removed.'));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Dependency removed. Saved.'));
 });
 
 it('dismisses graph actions with Escape and does not select arrows during prerequisite selection', () => {
@@ -380,8 +403,7 @@ it('zooms with the wheel only inside the graph, prevents page scrolling, and cla
 
 it('expands the existing editor in the selected task row and persists edits without changing links', () => {
   const apply = jest.fn();
-  render(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage onApplyChange={apply}
-    people={[{ id: 'person', name: 'Alex', status: 'linked', avatarUrl: 'https://example.com/alex.png' }]} />);
+  render(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage onApplyChange={apply} />);
   fireEvent.click(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
   const editor = screen.getByRole('region', { name: 'Edit Publish' });
@@ -398,6 +420,16 @@ it('expands the existing editor in the selected task row and persists edits with
   expect(screen.queryByRole('region', { name: 'Roadmap' })).not.toBeInTheDocument();
   fireEvent.click(within(editor).getByRole('button', { name: 'Done' }));
   expect(screen.queryByRole('region', { name: 'Edit Ship release' })).not.toBeInTheDocument();
+});
+
+it('offers only project members as owners when editing, never other contacts', () => {
+  const members = { ...project, members: [{ userId: 'u1', name: 'Member Mia' }] };
+  render(<ProjectPlan project={members} canManage onApplyChange={jest.fn()} />);
+  fireEvent.click(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+  const editor = screen.getByRole('region', { name: 'Edit Publish' });
+  expect(within(editor).getByTitle('Member Mia')).toBeInTheDocument();
+  expect(within(editor).queryByTitle('Outside Olly')).not.toBeInTheDocument();
 });
 
 it('shows forecast bars, dates and assignee photos with an estimated duration label', () => {
@@ -419,7 +451,9 @@ it('shows forecast bars, dates and assignee photos with an estimated duration la
   const label = within(publish.parentElement!).getByText('Publish');
   expect(label).toHaveClass('roadmapLabel');
   expect(publish.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(within(publish.parentElement!).getByRole('img', { name: 'Alex' }).parentElement).toHaveClass('assignees');
+  const avatar = within(publish).getByRole('img', { name: 'Alex' });
+  expect(avatar.parentElement).toHaveClass('assignees');
+  expect(avatar.compareDocumentPosition(within(publish).getByText('~1d')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(roadmap.getByText(/Forecast from \d{4}-\d{2}-\d{2}/)).toBeInTheDocument();
 });
 

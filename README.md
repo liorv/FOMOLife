@@ -110,7 +110,9 @@ the map.
 
 Click a row's **Add dependency**, then **Select what it depends on** in the
 table or map. The dependent stays highlighted while you choose its prerequisite.
-The relationship saves immediately and updates both the map and table.
+The relationship appears in the map and table instantly while it saves in the
+background; a snackbar shows **Saving…** and then confirms **Saved**. Changes
+save in order, and a failed save is undone with a dismissible error.
 Click a graph node to reveal **Add dependency**, then choose its prerequisite
 in the graph or table. Click an arrow to reveal **Remove dependency**; removal
 only happens after confirming with that button. Graph arrows also support
@@ -124,7 +126,8 @@ name in both the graph and table.
 Section nodes use a double border in the graph to distinguish them from tasks.
 Select a task in the graph or table, then choose **Edit** in the header to expand
 the existing task editor in its table row. Edits use the same project save path
-as Tasks and update the forecast when opening Roadmap.
+as Tasks and update the forecast when opening Roadmap. Owners can only be chosen
+from project members; the server also rejects assigning anyone else.
 Static graph hints are hidden; a scroll-to-zoom graphic appears on hover or focus.
 
 The separate **Roadmap** tab is a forecast, not saved scheduling. Summary cards
@@ -141,7 +144,7 @@ error rather than invented dates. Existing due dates are unchanged. Assigned
 people show their contact/member photos, falling back to initials when unavailable.
 Dependency chains share roadmap lanes, with each task starting after all its
 prerequisites finish. Parallel branches use separate lanes. Task labels appear
-under bars and assignee icons sit immediately to their right. Header **Edit**
+under bars, and assignee photos sit inside the bar on its left, before the effort. Header **Edit**
 scrolls to the expanded editor, including when that task is already expanded.
 Zero-effort tasks stay in their dependency-chain lane; coincident
 milestones stagger their annotations so they remain readable. Consecutive bars
@@ -152,9 +155,10 @@ double-counting project totals. Person grouping does not change dates or
 introduce resource-capacity scheduling.
 Click a roadmap bar to highlight it (amber ring) and show **Edit** and **Add
 dependency** in the project header. **Edit** expands the task editor in place
-beneath that bar's row. **Add dependency** prompts you to click another bar as
+beneath that bar's row, spanning the full roadmap width. **Add dependency** prompts you to click another bar as
 the prerequisite; it saves through the same plan path as the Plan tab and
-rejects self-links, duplicates, and cycles. Escape cancels prerequisite
+rejects self-links, duplicates, and cycles. Like the Plan tab, the new link
+appears immediately and is confirmed once saved. Escape cancels prerequisite
 selection or clears the highlighted bar. Read-only members see static bars.
 
 Switching between Tasks, Plan, and Roadmap slides the content below the header

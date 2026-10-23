@@ -57,4 +57,41 @@ describe('shared task completion delivery', () => {
     expect((await response).status).toBe(200);
     expect(responded).toBe(true);
   });
+
+  describe('task assignee membership', () => {
+    const task = { id: 'task', text: 'Task', done: false, dueDate: null, favorite: false, people: [{ name: 'Former' }] };
+    const project = {
+      id: 'project', text: 'Project', color: 'blue',
+      members: [{ userId: 'owner', name: 'Owner' }, { userId: 'member', name: 'Member Person' }],
+      subprojects: [{ id: 'sub', text: 'Sub', tasks: [task] }],
+    };
+    const patch = (people: { name: string }[], extra: object = {}) => PATCH(new Request('http://localhost/api/projects', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: 'project', patch: { subprojects: [{ id: 'sub', text: 'Sub', tasks: [{ ...task, people }, { ...task, id: 'new', people: [] }] }], ...extra } }),
+    }));
+
+    beforeEach(() => {
+      jest.mocked(listProjects).mockResolvedValue([project]);
+      jest.mocked(updateProject).mockImplementation(async (_owner, _id, update) => ({ ...project, ...update }));
+    });
+
+    it('rejects newly assigning a contact who is not a project member without saving', async () => {
+      const response = await patch([{ name: 'Former' }, { name: 'Outside Contact' }]);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toContain('Outside Contact');
+      expect(updateProject).not.toHaveBeenCalled();
+    });
+
+    it('cannot bypass the roster by sending a members list in the same patch', async () => {
+      const response = await patch([{ name: 'Outside Contact' }], { members: [...project.members, { userId: 'x', name: 'Outside Contact' }] });
+      expect(response.status).toBe(400);
+      expect(updateProject).not.toHaveBeenCalled();
+    });
+
+    it('allows members (case-insensitive) and keeps existing assignees of people who left', async () => {
+      const response = await patch([{ name: 'Former' }, { name: 'member person' }]);
+      expect(response.status).toBe(200);
+      expect(updateProject).toHaveBeenCalled();
+    });
+  });
 });

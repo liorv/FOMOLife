@@ -51,6 +51,49 @@
   box-shadow: 0 1px 4px #24304a1a;
 }
 
+.workspaceToolbar {
+  justify-content: flex-start;
+}
+
+/* Material 3 filled button. */
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 24px 10px 16px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--color-primary, #4f46b8);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 1px 2px #0000004d, 0 1px 3px 1px #00000026;
+  transition: box-shadow 160ms ease, filter 160ms ease, transform 160ms ease;
+}
+
+.backButton:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 1px 2px #0000004d, 0 2px 6px 2px #00000026;
+}
+
+.backButton:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px #0000004d;
+}
+
+.backButton:focus-visible {
+  outline: 3px solid var(--color-primary, #4f46b8);
+  outline-offset: 3px;
+}
+
+.backButton :global(.material-icons) {
+  font-size: 20px;
+}
+
 .toolbarActions,
 .cardActions,
 .dialogActions {

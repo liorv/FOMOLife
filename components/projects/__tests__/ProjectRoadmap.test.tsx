@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ProjectItem } from '@myorg/types';
 import ProjectRoadmap from '../ProjectRoadmap';
 import type { PlanLink } from '@/lib/projects/planning';
@@ -115,8 +115,10 @@ describe('roadmap task actions', () => {
     fireEvent.click(within(container).getByRole('button', { name: 'Add dependency' }));
     expect(screen.getByText('Select what Review depends on')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Select prerequisite: Publish:/ }));
-    expect(onSaveLink).toHaveBeenCalledWith('add', { dependent: { kind: 'task', id: 'c' }, prerequisite: { kind: 'task', id: 'b' } });
-    expect(await screen.findByText('Review depends on Publish. Dependency saved.')).toBeInTheDocument();
+    expect(screen.queryByText('Select what Review depends on')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Saving…');
+    await waitFor(() => expect(onSaveLink).toHaveBeenCalledWith('add', { dependent: { kind: 'task', id: 'c' }, prerequisite: { kind: 'task', id: 'b' } }));
+    expect(await screen.findByText('Review depends on Publish. Saved.')).toBeInTheDocument();
     expect(screen.queryByText('Select what Review depends on')).not.toBeInTheDocument();
   });
 
@@ -133,6 +135,19 @@ describe('roadmap task actions', () => {
     expect(screen.queryByText('Select what Approve depends on')).not.toBeInTheDocument();
   });
 
+  it('limits owners to project members and opens a full-width editor', () => {
+    const { container } = renderManaged({
+      project: { ...project, members: [{ userId: 'u1', name: 'Alex' }] },
+      people: [{ id: 'contact', name: 'Outside Olly', status: 'linked' }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Publish:/ }));
+    fireEvent.click(within(container).getByRole('button', { name: 'Edit' }));
+    const editor = screen.getByRole('region', { name: 'Edit Publish' });
+    expect(within(editor).getByTitle('Alex')).toBeInTheDocument();
+    expect(within(editor).queryByTitle('Outside Olly')).not.toBeInTheDocument();
+    expect(editor.style.marginLeft).toBe('');
+    expect(editor).toHaveClass('roadmapEditor');
+  });
   it('edits the task in place below its bar', () => {
     const { container, onApplyChange } = renderManaged();
     fireEvent.click(screen.getByRole('button', { name: /^Publish:/ }));

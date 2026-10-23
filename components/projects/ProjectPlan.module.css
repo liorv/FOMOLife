@@ -27,6 +27,17 @@
 .caption { font-size: 11px; line-height: 1.4; opacity: 0.75; margin: 6px 0; }
 .status { font-size: 12px; margin: 6px 0; }
 .status:empty { display: none; }
+.saveStatus { position: fixed; left: 50%; bottom: 24px; z-index: 1000; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: min(560px, calc(100vw - 32px)); margin: 0; padding: 10px 16px; box-sizing: border-box; border-radius: 8px; background: #323232; color: #fff; font-size: 14px; line-height: 1.4; box-shadow: 0 3px 5px -1px #0003, 0 6px 10px #00000024, 0 1px 18px #0000001f; animation: saveStatusIn 160ms ease-out; }
+.saveStatus :global(.material-icons) { font-size: 18px; color: #81c995; }
+.saveError { background: #5f2120; }
+.saveError :global(.material-icons) { color: #ffb4ab; }
+.saveError button { display: inline-flex; margin-left: auto; padding: 2px; border: 0; border-radius: 50%; background: transparent; color: #fff; cursor: pointer; }
+.saveError button :global(.material-icons) { color: #fff; }
+.saveSpinner { animation: saveSpin 1s linear infinite; }
+.saveStatus :global(.material-icons).saveSpinner { color: #a8c7fa; }
+@keyframes saveSpin { to { transform: rotate(-360deg); } }
+@keyframes saveStatusIn { from { opacity: 0; transform: translate(-50%, 8px); } }
+@media (prefers-reduced-motion: reduce) { .saveStatus, .saveSpinner { animation: none; } }
 .sectionHeading { margin: 16px 0 8px; color: #263047; font-size: 17px; font-weight: 700; line-height: 1.3; }
 .selection { justify-content: space-between; background: #7771ce12; border: 1px solid var(--plan-accent); border-radius: 5px; padding: 4px 8px; margin: 6px 0; }
 .selection p { margin: 0; line-height: 1.4; }
@@ -130,16 +141,19 @@
 .roadmapItem { position: absolute; top: 0; height: 60px; min-width: 4px; }
 .roadmapBar { position: absolute; top: 6px; width: 100%; height: 24px; min-width: 36px; box-sizing: border-box; border-radius: 5px; background: #1565c0; color: #fff; border: 1px solid #1565c0; display: flex; align-items: center; justify-content: center; gap: 4px; }
 .estimatedBar { border: 2px dashed #ffffffb3 !important; }
-button.roadmapBar { padding: 0; font: inherit; cursor: pointer; transition: box-shadow 120ms ease, transform 120ms ease; }
+button.roadmapBar { padding: 0 2px; font: inherit; cursor: pointer; transition: box-shadow 120ms ease, transform 120ms ease; }
 button.roadmapBar:hover:not(:disabled) { box-shadow: 0 2px 6px #0000004d; transform: translateY(-1px); }
 button.roadmapBar:focus-visible { outline: 2px solid #ffab00; outline-offset: 2px; }
 .selectedBar { z-index: 2; outline: 3px solid #ffab00; outline-offset: 2px; box-shadow: 0 0 0 6px #ffab0040, 0 2px 8px #00000059; }
 button.pickableBar { cursor: crosshair; }
 button.pickableBar.selectedBar { cursor: not-allowed; }
-.roadmapEditor { box-sizing: border-box; max-width: calc(100vw - 48px); margin: 0 0 12px; padding: 12px; background: #f8fafd; border: 1px solid var(--plan-border); border-left: 4px solid #ffab00; border-radius: 8px; box-shadow: 0 2px 8px #0000001f; scroll-margin: 24px; }
+.roadmapEditor { box-sizing: border-box; position: sticky; left: 0; width: 100%; margin: 0 0 12px; padding: 12px; background: #f8fafd; border: 1px solid var(--plan-border); border-left: 4px solid #ffab00; border-radius: 8px; box-shadow: 0 2px 8px #0000001f; scroll-margin: 24px; }
 .estimateLabel { font-size: 11px; font-weight: 600; padding: 0 3px; white-space: nowrap; }
-.assignees { position: absolute; top: 7px; left: max(40px, calc(100% + 4px)); z-index: 1; display: flex; gap: 2px; }
-.assignee { display: inline-flex; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background-color: #455a64; background-size: cover; background-position: center; color: #fff; align-items: center; justify-content: center; font-size: 9px; border: 1px solid #fff; }
+.roadmapBar { justify-content: flex-start; padding: 0 2px; overflow: hidden; }
+.roadmapBar .estimateLabel { flex: 1 1 auto; text-align: center; }
+.assignees { display: flex; flex-shrink: 0; gap: 0; }
+.assignees .assignee + .assignee { margin-left: -4px; }
+.assignee { display: inline-flex; flex-shrink: 0; box-sizing: border-box; width: 20px; height: 20px; border-radius: 50%; background-color: #455a64; background-size: cover; background-position: center; color: #fff; align-items: center; justify-content: center; font-size: 9px; border: 1px solid #fff; }
 .empty { padding: 16px 8px; text-align: center; font-size: 13px; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 

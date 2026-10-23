@@ -378,12 +378,22 @@ export default function ProjectsDashboard({
         /* ── Main body: full-width content for selected project ── */
         <div className="dashboard-body">
           <div className="dashboard-content">
-            <div className={templateStyles.toolbar}>
+            <div className={`${templateStyles.toolbar} ${templateStyles.workspaceToolbar}`}>
               <div className={templateStyles.tabs} role="group" aria-label="Project workspace view">
                 <button type="button" className={templateStyles.tab} aria-pressed={showingTasks} onClick={() => switchWorkspace('tasks')}>Tasks</button>
                 <button type="button" className={templateStyles.tab} aria-pressed={showingPlan} onClick={() => switchWorkspace('plan')}>Plan</button>
                 <button type="button" className={templateStyles.tab} aria-pressed={showingRoadmap} onClick={() => switchWorkspace('roadmap')}>Roadmap</button>
               </div>
+              <button
+                type="button"
+                className={templateStyles.backButton}
+                onClick={handleBack}
+                title="Back to projects"
+                aria-label="Back to projects"
+              >
+                <span className="material-icons" aria-hidden="true">arrow_back</span>
+                <span>Projects</span>
+              </button>
             </div>
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
@@ -391,7 +401,6 @@ export default function ProjectsDashboard({
               workspaceContent={showingPlan ? (
                 <ProjectPlan key={selectedProject.id} project={selectedProject} canManage={canManage}
                   actionsContainer={planActionsContainer}
-                  people={people}
                   {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                   {...(onPlanMutation ? { onSaveLink: (action, link) => onPlanMutation(selectedProject.id, action, link) } : {})}
                 />
@@ -420,16 +429,6 @@ export default function ProjectsDashboard({
                       {onUseTemplate && <button type="button" className={templateStyles.primaryButton} onClick={() => setTemplateAction({ kind: 'use', project: selectedProject })}>Use template</button>}
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className="dashboard-back-btn dashboard-back-btn--breadcrumb"
-                    onClick={handleBack}
-                    title="Back to projects"
-                    aria-label="Back to projects"
-                  >
-                    <span className="material-icons" aria-hidden="true">arrow_back</span>
-                    <span>Projects</span>
-                  </button>
                   <div className="dashboard-project-header-main">
                     <div
                       className="dashboard-project-avatar"

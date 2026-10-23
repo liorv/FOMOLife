@@ -30,7 +30,9 @@ it("opens the optional Plan view and returns to the unchanged task editor", () =
   fireEvent.click(within(views).getByRole("button", { name: "Plan" }));
   expect(screen.getByRole("region", { name: "Release project plan" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")).toBe(projectHeader);
-  expect(screen.getByRole("button", { name: "Back to projects" })).toHaveClass("dashboard-back-btn--breadcrumb");
+  const back = screen.getByRole("button", { name: "Back to projects" });
+  expect(views.nextElementSibling).toBe(back);
+  expect(projectHeader).not.toContainElement(back);
   expect(screen.queryByRole("group", { name: "Project tools" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Open AI assistant" })).not.toBeInTheDocument();
   fireEvent.click(tasks);

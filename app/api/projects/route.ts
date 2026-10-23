@@ -135,11 +135,13 @@ export async function PATCH(request: Request) {
   // Before saving, detect tasks that are newly completed or newly assigned so we can notify members
   let newlyCompletedTasks: Array<{ id: string; text: string }> = [];
   let newlyAssignedTasks: Array<{ id: string; text: string; newAssigneeNames: string[] }> = [];
+  const nonMemberAssignees = new Set<string>();
   if (Array.isArray(body.patch.subprojects)) {
     try {
       const existing = await listProjects(ownerUserId);
       const currentProject = existing.find((p) => p.id === body.id);
       if (currentProject && !(body.patch.isTemplate ?? currentProject.isTemplate)) {
+        const memberNames = new Set((currentProject.members ?? []).map((m) => m.name.toLowerCase()));
         // Build maps of taskId → done / assignee names from the CURRENT persisted state
         const currentDoneMap = new Map<string, boolean>();
         const currentPeopleMap = new Map<string, string[]>();
@@ -162,6 +164,12 @@ export async function PATCH(request: Request) {
               .filter((name) => !prevNames.has(name.toLowerCase()));
             if (newAssigneeNames.length > 0) {
               newlyAssignedTasks.push({ id: task.id, text: task.text, newAssigneeNames });
+              // Legacy projects without explicit members have no roster to enforce.
+              if (memberNames.size > 0) {
+                for (const name of newAssigneeNames) {
+                  if (!memberNames.has(name.toLowerCase())) nonMemberAssignees.add(name);
+                }
+              }
             }
           }
         }
@@ -170,6 +178,13 @@ export async function PATCH(request: Request) {
       console.error('Failed to detect task notification changes:', error);
       throw error;
     }
+  }
+
+  if (nonMemberAssignees.size > 0) {
+    return NextResponse.json(
+      { error: `Only project members can be assigned to tasks: ${[...nonMemberAssignees].join(', ')}` },
+      { status: 400 },
+    );
   }
 
   const updated = await updateProject(ownerUserId, body.id, body.patch);
