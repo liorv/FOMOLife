@@ -15,7 +15,8 @@ const url = 'https://example.com/project?view=overview';
 const linkName = /Open (?:external|project) link for Linked project/;
 
 function openOverview() {
-  fireEvent.click(screen.getByTitle('Edit project overview'));
+  fireEvent.click(screen.getByRole('button', { name: 'More project actions' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Project overview' }));
   return screen.getByRole('textbox', { name: 'External Link' });
 }
 
