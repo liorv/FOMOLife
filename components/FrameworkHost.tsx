@@ -307,6 +307,8 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   const animClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchStart.current = null;
+    if (e.target instanceof Element && e.target.closest('[data-tab-swipe-ignore]')) return;
     const t = e.touches[0];
     if (!t) return;
     swipeTouchStart.current = { x: t.clientX, y: t.clientY };

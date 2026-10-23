@@ -25,6 +25,7 @@ function summary(label: string) {
 
 it('hides completed tasks and summarizes remaining sized effort separately from unsized tasks', () => {
   render(<ProjectRoadmap project={project} links={links} people={[]} />);
+  expect(screen.getByRole('region', { name: 'Roadmap' }).querySelector('[data-tab-swipe-ignore]')).toBeInTheDocument();
   expect(screen.queryByRole('img', { name: /Already finished:/ })).not.toBeInTheDocument();
   expect(summary('Sized effort remaining')).toHaveTextContent('2.5 days');
   expect(summary('Unsized tasks')).toHaveTextContent('1');

@@ -30,7 +30,6 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="dark"] body {
-  background: var(--color-bg);
   color: var(--color-text);
 }
 
@@ -77,7 +76,7 @@ html {
 }
 
 body {
-  background: var(--color-bg);
+  background-color: #000000; /* Ensures the underlying background canvas is black */
 }
 
 .material-icons {
@@ -529,11 +528,15 @@ body {
   }
 
   .tabnav-bottom.tabs {
-    bottom: env(safe-area-inset-bottom, 0px);
-    /* Extend black behind the native navigation area without recoloring the tabs. */
-    box-shadow:
-      0 -2px 4px rgba(0, 0, 0, 0.06),
-      0 env(safe-area-inset-bottom, 0px) 0 #000;
+    --safe-area-max-bottom: env(safe-area-max-inset-bottom, 36px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) - var(--safe-area-max-bottom));
+    height: calc(var(--nav-height) + var(--safe-area-max-bottom));
+    padding-bottom: var(--safe-area-max-bottom);
+    background: linear-gradient(
+      to bottom,
+      var(--color-surface) 0 var(--nav-height),
+      #000000 var(--nav-height) 100%
+    );
   }
 }
 

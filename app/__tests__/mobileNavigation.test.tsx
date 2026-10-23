@@ -10,6 +10,8 @@ describe('mobile system navigation', () => {
   });
 
   it('exposes the safe area so the bottom navbar can sit above native controls', () => {
+    expect(viewport.width).toBe('device-width');
+    expect(viewport.initialScale).toBe(1);
     expect(viewport.viewportFit).toBe('cover');
   });
 

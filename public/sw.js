@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fomo-life-v3';
+const CACHE_NAME = 'fomo-life-v4';
 
 // Only cache immutable static assets — never HTML or JS chunks
 const PRECACHE_URLS = [
@@ -28,6 +28,12 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle same-origin GET requests
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // The manifest controls installed-app colors and must not be served from cache.
+  if (url.pathname.endsWith('.webmanifest')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // Always go network for: navigation (HTML), API routes, Next.js chunks, auth, and RSC requests
   if (

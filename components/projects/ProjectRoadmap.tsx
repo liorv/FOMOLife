@@ -179,7 +179,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       ? <p className={styles.empty}>No remaining tasks.</p>
       : <>
         <p className={styles.roadmapCaption}>Forecast from {date(0)} · Effort in calendar days · Unsized tasks estimated at 1 day{view === 'person' && ' · Grouped by assignee; project forecast dates unchanged'}</p>
-        <div className={styles.roadmapScroll} ref={scrollRef}>
+        <div className={styles.roadmapScroll} ref={scrollRef} data-tab-swipe-ignore="true">
           <div style={{ minWidth: width + 100 }}>
             <div className={styles.roadmapRow}>
               <div className={styles.dateAxis} style={{ width }}>

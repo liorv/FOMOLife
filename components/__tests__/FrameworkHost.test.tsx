@@ -85,6 +85,20 @@ describe('global search on manual tab navigation', () => {
     expect(mockReplace).toHaveBeenLastCalledWith('/?tab=projects&keep=value');
   });
 
+  it('does not change tabs when a horizontal swipe starts in a graph scroller', async () => {
+    const { container } = await renderHost();
+    const main = container.querySelector('main')!;
+    const graph = document.createElement('div');
+    graph.dataset.tabSwipeIgnore = 'true';
+    main.appendChild(graph);
+
+    fireEvent.touchStart(graph, { touches: [{ clientX: 200, clientY: 100 }] });
+    fireEvent.touchEnd(graph, { changedTouches: [{ clientX: 50, clientY: 100 }] });
+
+    expect(screen.getByLabelText('Global search')).toHaveValue('existing');
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it('preserves a search query supplied by a direct link', async () => {
     mockSearchParams = new URLSearchParams('tab=people&q=linked search');
     await renderHost();

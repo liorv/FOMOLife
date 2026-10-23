@@ -280,7 +280,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
           <h3 className={styles.sectionHeading}>Dependency Graph</h3>
           <div className={styles.graphTile}>
           <div className={styles.zoomHint} aria-hidden="true"><span className="material-icons">mouse</span><span className="material-icons">unfold_more</span><span>Scroll to zoom</span></div>
-          <div ref={mapRef} className={styles.map} role="region" aria-label="Dependency map" tabIndex={0}>
+          <div ref={mapRef} className={styles.map} role="region" aria-label="Dependency map" tabIndex={0} data-tab-swipe-ignore="true">
             <svg width={mapWidth * zoom} height={mapHeight * zoom} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
               <defs>
                 <marker id={`${mapId}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000" /></marker>

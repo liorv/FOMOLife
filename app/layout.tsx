@@ -7,6 +7,8 @@ import InstallPrompt from '../components/InstallPrompt';
 import Script from 'next/script';
 
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
     { media: '(max-width: 900px)', color: '#000000' },

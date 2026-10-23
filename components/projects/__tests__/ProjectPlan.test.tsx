@@ -205,6 +205,7 @@ it('renders the map and keeps a read-only plan read-only', () => {
   expect(screen.queryByRole('button', { name: 'Add dependency' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Remove dependency/ })).not.toBeInTheDocument();
   const map = screen.getByRole('region', { name: 'Dependency map' });
+  expect(map).toHaveAttribute('data-tab-swipe-ignore', 'true');
   expect(within(map).getByRole('button', { name: /Inspect: Get approval/ })).toBeInTheDocument();
   expect(map.querySelectorAll('path[stroke="currentColor"]')).toHaveLength(1);
   const mapNodes = map.querySelectorAll('foreignObject');
