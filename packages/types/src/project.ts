@@ -96,6 +96,11 @@ export interface ProjectItem {
   color: string;
   /** Subprojects within this project */
   subprojects: ProjectSubproject[];
+  /** Isolated Plan-view links; task completion does not enforce these yet. */
+  planningLinks?: {
+    prerequisite: { kind: 'task' | 'section'; id: string };
+    dependent: { kind: 'task' | 'section'; id: string };
+  }[];
   /** Progress percentage (0-100) */
   progress?: number;
   /** Sort order */
@@ -143,6 +148,7 @@ export interface ProjectCreateInput {
   progress?: number;
   order?: number;
   subprojects?: ProjectSubproject[];
+  planningLinks?: NonNullable<ProjectItem['planningLinks']>;
   goal?: string;
   description?: string;
   externalUrl?: string;

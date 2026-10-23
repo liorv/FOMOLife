@@ -7,6 +7,7 @@ import { notifyTaskCompleted, notifyTaskAssigned } from '@/lib/projects/server/p
 import type { ProjectCreateInput, ProjectUpdateInput } from '@myorg/types';
 import { isValidExternalUrl } from '@myorg/utils';
 import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
+import { getPlanNodes, parsePlanLinks, validatePlanLinks } from '@/lib/projects/planning';
 
 export async function GET(_request: Request) {
   const session = await getFrameworkSession();
@@ -57,7 +58,24 @@ export async function POST(request: Request) {
     if (!template) {
       return NextResponse.json({ error: 'Template not found or access denied' }, { status: 404 });
     }
+    const planError = validatePlanLinks(getPlanNodes(template), template.planningLinks ?? []);
+    if (template.planningLinks?.length && planError) {
+      return NextResponse.json({ error: `Repair the template plan before creating a project: ${planError}` }, { status: 400 });
+    }
     body = instantiateTemplate(template, body.text.trim());
+  }
+  if (body.planningLinks !== undefined) {
+    if (!Array.isArray(body.subprojects) || body.subprojects.some(section =>
+      !section || typeof section.id !== 'string' || !Array.isArray(section.tasks) ||
+      section.tasks.some(task => !task || typeof task.id !== 'string'),
+    )) {
+      return NextResponse.json({ error: 'Valid project sections and tasks are required for plan links' }, { status: 400 });
+    }
+    const links = parsePlanLinks(body.planningLinks);
+    if (!links) return NextResponse.json({ error: 'Invalid plan links' }, { status: 400 });
+    const planError = validatePlanLinks(getPlanNodes({ subprojects: body.subprojects }), links);
+    if (planError) return NextResponse.json({ error: planError }, { status: 400 });
+    body.planningLinks = links;
   }
   if (body.externalUrl !== undefined) {
     if (typeof body.externalUrl !== 'string' || (body.externalUrl.trim() && !isValidExternalUrl(body.externalUrl))) {
@@ -81,6 +99,7 @@ export async function POST(request: Request) {
     ...(typeof body.progress === 'number' ? { progress: body.progress } : {}),
     ...(typeof body.order === 'number' ? { order: body.order } : {}),
     ...(Array.isArray(body.subprojects) ? { subprojects: body.subprojects } : {}),
+    ...(body.planningLinks ? { planningLinks: body.planningLinks } : {}),
     ...(body.goal ? { goal: body.goal } : {}),
     ...(body.description ? { description: body.description } : {}),
     ...(body.externalUrl ? { externalUrl: body.externalUrl } : {}),
@@ -99,6 +118,8 @@ export async function PATCH(request: Request) {
   if (!body?.id || !body.patch) {
     return NextResponse.json({ error: 'id and patch are required' }, { status: 400 });
   }
+  // Plans have their own validated endpoint; legacy editor snapshots cannot overwrite them.
+  if ('planningLinks' in body.patch) delete body.patch.planningLinks;
   if (body.patch.isTemplate !== undefined && typeof body.patch.isTemplate !== 'boolean') {
     return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
   }

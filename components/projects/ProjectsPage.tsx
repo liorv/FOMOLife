@@ -56,9 +56,9 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   const reorderSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   // --- API helper wrappers to centralize optimistic updates and error handling
-  const apiUpdateProject = async (projectId: string, updated: Partial<ProjectItem>) => {
+  const apiUpdateProject = async (projectId: string, updated: Partial<ProjectItem>, saveOperation?: () => Promise<ProjectItem>) => {
     const previous = projectSavesRef.current.get(projectId);
-    const save = () => apiClient.updateProject(projectId, updated);
+    const save = saveOperation ?? (() => apiClient.updateProject(projectId, updated));
     // Project patches can contain the entire task list, so writes must finish in order.
     const request = previous
       ? previous.then(save, save)
@@ -888,6 +888,11 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               />
             ) : (
               <ProjectsDashboard
+              canManage={canManage}
+              onPlanMutation={async (projectId, action, link) => {
+                const saved = await apiUpdateProject(projectId, {}, () => apiClient.updateProjectPlan(projectId, action, link));
+                return saved.planningLinks ?? [];
+              }}
               projects={projects}
               people={people}
               selectedProjectId={editingProjectId}

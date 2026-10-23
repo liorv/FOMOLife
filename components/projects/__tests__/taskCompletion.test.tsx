@@ -5,6 +5,7 @@ import ProjectsPage from '../ProjectsPage';
 import ProjectEditor from '../ProjectEditor';
 import { setCachedProjects } from '@/lib/client/projectsCache';
 import { TaskModal } from '@myorg/ui';
+import type { PlanLink } from '@/lib/projects/planning';
 
 let mockSearchParams = new URLSearchParams();
 jest.mock('next/navigation', () => ({
@@ -36,27 +37,32 @@ jest.mock('../../ConversationThread', () => ({
 }));
 jest.mock('../ProjectsDashboard', () => ({
   __esModule: true,
-  default: ({ projects, selectedProjectId, selectedTaskId, onApplyChange }: {
+  default: ({ projects, selectedProjectId, selectedTaskId, onApplyChange, onPlanMutation }: {
     projects: ProjectItem[];
     selectedProjectId?: string | null;
     selectedTaskId?: string | null;
     onApplyChange: (id: string, patch: Partial<ProjectItem>) => void;
+    onPlanMutation: (id: string, action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
   }) => {
     const Editor = jest.requireActual('../ProjectEditor').default;
-    return projects.map(project => (
+    return projects.map(project => <React.Fragment key={project.id}>
+      <button type="button" onClick={() => void onPlanMutation(project.id, 'add', {
+        prerequisite: { kind: 'task', id: 'first' }, dependent: { kind: 'task', id: 'second' },
+      })}>Save dependency plan</button>
       <Editor
         key={project.id}
         project={project}
         targetTaskId={project.id === selectedProjectId ? selectedTaskId : null}
         onApplyChange={(patch: Partial<ProjectItem>) => onApplyChange(project.id, patch)}
       />
-    ));
+    </React.Fragment>);
   },
 }));
 
 const mockProjectsApi = {
   listProjects: jest.fn(),
   updateProject: jest.fn(),
+  updateProjectPlan: jest.fn(),
 };
 const mockContactsApi = { listContacts: jest.fn().mockResolvedValue([]) };
 const mockTasksApi = { listTasks: jest.fn().mockResolvedValue([]) };
@@ -102,6 +108,30 @@ describe('rapid project task completion', () => {
     localStorage.clear();
     mockProjectsApi.listProjects.mockResolvedValue([project()]);
     mockProjectsApi.updateProject.mockResolvedValue(project());
+  });
+
+  it('orders Plan saves after pending task edits and before subsequent task edits', async () => {
+    const taskSave = deferred<ProjectItem>();
+    const planSave = deferred<ProjectItem>();
+    const link: PlanLink = { prerequisite: { kind: 'task', id: 'first' }, dependent: { kind: 'task', id: 'second' } };
+    mockProjectsApi.updateProject.mockReturnValueOnce(taskSave.promise);
+    mockProjectsApi.updateProjectPlan.mockReturnValueOnce(planSave.promise);
+    render(<ProjectsPage canManage />);
+    await waitFor(() => expect(document.getElementById('task-first-done')).toBeInTheDocument());
+    fireEvent.click(checkbox('first'));
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Save dependency plan' }));
+    expect(mockProjectsApi.updateProjectPlan).not.toHaveBeenCalled();
+    const first = savedRequest(0);
+    await act(async () => { taskSave.resolve(first); });
+    await waitFor(() => expect(mockProjectsApi.updateProjectPlan).toHaveBeenCalledWith('project', 'add', link));
+    fireEvent.click(checkbox('second'));
+    expect(mockProjectsApi.updateProject).toHaveBeenCalledTimes(1);
+    const planned = { ...first, planningLinks: [link] };
+    mockProjectsApi.updateProject.mockImplementation(async (_id, patch) => ({ ...planned, ...patch }));
+    await act(async () => { planSave.resolve(planned); });
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalledTimes(2));
+    expect(setCachedProjects).toHaveBeenLastCalledWith([expect.objectContaining({ planningLinks: [link] })]);
   });
 
   it('opens the notification conversation after a delayed project load', async () => {

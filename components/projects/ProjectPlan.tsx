@@ -1,0 +1,372 @@
+'use client';
+
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { Contact, ProjectItem, ProjectTask } from '@myorg/types';
+import { TaskModal } from '@myorg/ui';
+import { createProjectsApiClient } from '@myorg/api-client';
+import {
+  getLinkWarning, getPlanLayers, getPlanNodes, isRequirement, linkKey, planKey,
+  parsePlanLinks, validatePlanLinks, type PlanLink, type PlanNode,
+} from '@/lib/projects/planning';
+import styles from './ProjectPlan.module.css';
+import { updateProjectTask } from '@/lib/projects/taskUpdates';
+
+type Props = {
+  project: ProjectItem;
+  canManage: boolean;
+  actionsContainer?: HTMLElement | null;
+  onLinksSaved?: (links: PlanLink[]) => void;
+  onSaveLink?: (action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
+  onApplyChange?: (updated: Partial<ProjectItem>) => void;
+  people?: Contact[];
+};
+
+const mapNodeWidth = 156;
+const mapNodeHeight = 44;
+const mapColumnGap = 40;
+const mapRowGap = 16;
+
+export default function ProjectPlan({ project, canManage, actionsContainer, onLinksSaved, onSaveLink, onApplyChange, people = [] }: Props) {
+  const [subprojects, setSubprojects] = useState(project.subprojects);
+  const subprojectsRef = useRef(subprojects);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [links, setLinks] = useState(project.planningLinks ?? []);
+  const [selectedKey, setSelectedKey] = useState('');
+  const [selecting, setSelecting] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [announcement, setAnnouncement] = useState('');
+  const [graphTarget, setGraphTarget] = useState<{ kind: 'node' | 'link'; key: string } | null>(null);
+  const busyRef = useRef(false);
+  const selectionActiveRef = useRef(false);
+  const addRef = useRef<HTMLButtonElement | null>(null);
+  const graphTriggerRef = useRef<HTMLButtonElement | SVGGElement | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef(1);
+  const zoomAnchorRef = useRef<{ x: number; y: number; left: number; top: number; ratio: number } | null>(null);
+  const promptRef = useRef<HTMLParagraphElement>(null);
+  const mapId = useId();
+  const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
+  const nodes = useMemo(() => getPlanNodes(planningProject), [subprojects]);
+  const tasks = subprojects.flatMap(section => section.tasks);
+  const editingTask = tasks.find(task => task.id === editingTaskId);
+  const byKey = useMemo(() => new Map(nodes.map(node => [node.key, node])), [nodes]);
+  const selected = byKey.get(selectedKey);
+  const graphNode = graphTarget?.kind === 'node' ? byKey.get(graphTarget.key) : undefined;
+  const graphLink = graphTarget?.kind === 'link' ? links.find(link => linkKey(link) === graphTarget.key) : undefined;
+  const graphError = validatePlanLinks(nodes, links);
+  const existingLinks = new Set(links.map(linkKey));
+  const missingLinks = links.filter(link => !byKey.has(planKey(link.dependent)));
+  const linkedKeys = new Set(links.flatMap(link => [planKey(link.prerequisite), planKey(link.dependent)]));
+  const layers = getPlanLayers(nodes.filter(node => linkedKeys.has(node.key)), links);
+  const positioned = layers.flatMap((layer, column) => layer.map((node, row) => ({
+    node, x: 12 + column * (mapNodeWidth + mapColumnGap), y: 12 + row * (mapNodeHeight + mapRowGap),
+  })));
+  const positions = new Map(positioned.map(item => [item.node.key, item]));
+  const mapWidth = Math.max(180, layers.length * (mapNodeWidth + mapColumnGap) - mapColumnGap + 24);
+  const mapHeight = Math.max(68, Math.max(0, ...layers.map(layer => layer.length)) * (mapNodeHeight + mapRowGap) - mapRowGap + 24);
+  const name = (key: string) => byKey.get(key)?.text ?? 'Deleted item';
+
+  useEffect(() => { setLinks(project.planningLinks ?? []); }, [project.planningLinks]);
+  useEffect(() => {
+    setSubprojects(project.subprojects);
+    subprojectsRef.current = project.subprojects;
+  }, [project.subprojects]);
+  useEffect(() => {
+    if (editingTaskId) revealEditor();
+  }, [editingTaskId]);
+
+  function revealEditor() {
+    editorRef.current?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+    const taskRow = editorRef.current?.closest('tr')?.previousElementSibling;
+    taskRow?.scrollIntoView?.({ behavior: 'instant', block: 'start', inline: 'nearest' });
+  }
+
+  function editTask(task: ProjectTask) {
+    if (!canManage || !onApplyChange) return;
+    const section = subprojectsRef.current.find(item => item.tasks.some(item => item.id === task.id));
+    if (!section) { setError('This task no longer exists. Reload the project before editing.'); return; }
+    const updated = updateProjectTask(subprojectsRef.current, section.id, task.id, () => task);
+    subprojectsRef.current = updated;
+    setSubprojects(updated);
+    onApplyChange({ subprojects: updated });
+  }
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (!event.deltaY) return;
+      const previous = zoomRef.current;
+      const next = Math.max(0.5, Math.min(2, previous * Math.exp(-event.deltaY * (event.deltaMode === 1 ? 0.04 : event.deltaMode === 2 ? 0.5 : 0.002))));
+      if (next === previous) return;
+      const rect = map.getBoundingClientRect();
+      const x = event.clientX - rect.left - map.clientLeft - 4;
+      const y = event.clientY - rect.top - map.clientTop - 4;
+      const pending = zoomAnchorRef.current;
+      zoomAnchorRef.current = {
+        x, y, left: map.scrollLeft, top: map.scrollTop,
+        ratio: pending ? pending.ratio * next / previous : next / previous,
+      };
+      zoomRef.current = next;
+      setZoom(next);
+    };
+    map.addEventListener('wheel', wheel, { passive: false });
+    return () => map.removeEventListener('wheel', wheel);
+  }, [links.length, graphError]);
+  useLayoutEffect(() => {
+    const map = mapRef.current;
+    const anchor = zoomAnchorRef.current;
+    if (map && anchor) {
+      map.scrollLeft = (anchor.left + anchor.x) * anchor.ratio - anchor.x;
+      map.scrollTop = (anchor.top + anchor.y) * anchor.ratio - anchor.y;
+      zoomAnchorRef.current = null;
+    }
+  }, [zoom]);
+  useEffect(() => {
+    if (selecting) promptRef.current?.focus();
+    else if (selectionActiveRef.current) addRef.current?.focus();
+    selectionActiveRef.current = !!selecting;
+  }, [selecting]);
+
+  function cancelSelection() {
+    setSelecting(false);
+    setSelectedKey('');
+    setError('');
+  }
+
+  function startSelection(node: PlanNode, trigger: HTMLButtonElement) {
+    addRef.current = trigger;
+    setGraphTarget(null);
+    setSelectedKey(node.key);
+    setSelecting(true);
+    setError('');
+    setAnnouncement('');
+  }
+
+  function chooseLink(link: PlanLink, trigger: SVGGElement) {
+    if (busyRef.current || selecting || !canManage) return;
+    graphTriggerRef.current = trigger;
+    setGraphTarget({ kind: 'link', key: linkKey(link) });
+    setSelectedKey('');
+    setError('');
+  }
+
+  const candidateError = (node: PlanNode): string | null => {
+    if (!selecting) return null;
+    if (!selected) return 'The selected item no longer exists. Cancel and choose another item.';
+    const link: PlanLink = { dependent: selected.ref, prerequisite: node.ref };
+    if (existingLinks.has(linkKey(link))) return 'Already linked.';
+    return validatePlanLinks(nodes, [...links, link]);
+  };
+
+  async function mutate(action: 'add' | 'remove', link: PlanLink) {
+    if (busyRef.current || !canManage) return;
+    busyRef.current = true;
+    setBusy(true);
+    setError('');
+    setAnnouncement('');
+    try {
+      const savedLinks = onSaveLink
+        ? await onSaveLink(action, link)
+        : (await createProjectsApiClient().updateProjectPlan(project.id, action, link)).planningLinks;
+      const saved = parsePlanLinks(savedLinks);
+      if (!saved) throw new Error('The server returned an invalid plan. Reload the project before retrying.');
+      setLinks(saved);
+      onLinksSaved?.(saved);
+      setSelecting(false);
+      if (action === 'remove' && graphTarget?.kind === 'link' && graphTarget.key === linkKey(link)) {
+        setGraphTarget(null);
+        tableRef.current?.focus();
+      }
+      setAnnouncement(action === 'add'
+        ? `${name(planKey(link.dependent))} depends on ${name(planKey(link.prerequisite))}. Dependency saved.`
+        : 'Dependency removed.');
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Unable to save the dependency.');
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  function chooseNode(node: PlanNode) {
+    if (busyRef.current) return;
+    if (selecting) {
+      const reason = candidateError(node);
+      if (reason) { setError(reason); return; }
+      if (selected) void mutate('add', { prerequisite: node.ref, dependent: selected.ref });
+      return;
+    }
+    setSelectedKey(node.key);
+    setError('');
+  }
+
+  function nodeCard(node: PlanNode) {
+    const reason = candidateError(node);
+    const action = selecting ? 'Select prerequisite' : 'Inspect';
+    return (
+      <button
+        type="button"
+        className={`${styles.node} ${node.ref.kind === 'section' ? styles.section : ''}`}
+        aria-pressed={selectedKey === node.key}
+        aria-label={`${action}: ${node.text} (${node.ref.kind}, ${node.context})`}
+        aria-disabled={!!reason}
+        title={reason ?? `${node.text} (${node.ref.kind === 'section' ? 'Section' : node.summary})`}
+        disabled={busy}
+        onClick={event => {
+          if (busyRef.current) return;
+          if (!selecting) {
+            setGraphTarget(canManage ? { kind: 'node', key: node.key } : null);
+            graphTriggerRef.current = event.currentTarget;
+          }
+          chooseNode(node);
+        }}
+      >
+        <span className={styles.nodeTitle}>{node.text}</span>
+        {node.ref.kind === 'task' && node.done && <svg className={styles.completed} viewBox="0 0 16 16" role="img" aria-label="Completed task">
+          <path d="m3 8 3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>}
+        {reason && selectedKey !== node.key && <span className={styles.srOnly}>{reason}</span>}
+      </button>
+    );
+  }
+
+  function dependencyList(items: PlanLink[], compact = false) {
+    return <ul className={styles.links}>{items.map(link => {
+      const warning = getLinkWarning(link, nodes);
+      const dependent = name(planKey(link.dependent));
+      const prerequisite = name(planKey(link.prerequisite));
+      return <li key={linkKey(link)}>
+        <div className={styles.relationship}>
+          <span title={`${dependent} depends on ${prerequisite}`}>{!compact && <><strong>{dependent}</strong> depends on </>}<strong>{prerequisite}</strong></span>
+          {!isRequirement(link) && <small title="Section hint">Hint<span className={styles.srOnly}>Section hint</span></small>}
+          {canManage && <button type="button" disabled={busy || !!selecting}
+            aria-label={`Remove dependency: ${dependent} depends on ${prerequisite}`}
+            title={`Remove dependency: ${dependent} depends on ${prerequisite}`}
+            onClick={() => void mutate('remove', link)}>{compact ? '×' : 'Remove'}</button>}
+          {warning && <details className={styles.warning}><summary title={warning}>Warning</summary><p>{warning}</p></details>}
+        </div>
+      </li>;
+    })}</ul>;
+  }
+
+  const graphActions = canManage && !selecting && (graphNode || graphLink) ? (
+    <div className={styles.graphActions} role="group" aria-label="Selected graph item">
+      <span className={styles.actionLabel}>{graphNode?.text ?? (graphLink && `${name(planKey(graphLink.dependent))} depends on ${name(planKey(graphLink.prerequisite))}`)}</span>
+      {graphNode && <button type="button" disabled={busy || !!graphError} onClick={event => {
+        const trigger = graphTriggerRef.current;
+        startSelection(graphNode, trigger instanceof HTMLButtonElement ? trigger : event.currentTarget);
+      }}><span className="material-icons" aria-hidden="true">add_link</span>Add dependency</button>}
+      {graphNode?.ref.kind === 'task' && onApplyChange && <button type="button" disabled={busy} onClick={() => {
+        if (editingTaskId === graphNode.ref.id) revealEditor();
+        else setEditingTaskId(graphNode.ref.id);
+      }}>
+        <span className="material-icons" aria-hidden="true">edit</span>Edit
+      </button>}
+      {graphLink && <button type="button" className={styles.removeAction} disabled={busy} onClick={() => void mutate('remove', graphLink)}>
+        <span className="material-icons" aria-hidden="true">link_off</span>Remove dependency
+      </button>}
+    </div>
+  ) : null;
+
+  return (
+    <section className={styles.plan} aria-label={`${project.text} project plan`} onKeyDown={event => {
+      if (editingTaskId) return;
+      if (event.key === 'Escape' && selecting) {
+        event.stopPropagation();
+        if (!busyRef.current) cancelSelection();
+      } else if (event.key === 'Escape' && graphTarget) {
+        event.stopPropagation();
+        if (!busyRef.current) {
+          setGraphTarget(null);
+          graphTriggerRef.current?.focus();
+        }
+      }
+    }}>
+      {actionsContainer ? createPortal(graphActions, actionsContainer) : graphActions}
+      {selecting && <div className={styles.selection}>
+        <p ref={promptRef} tabIndex={-1}>
+          Select what it depends on
+        </p>
+        <button type="button" disabled={busy} onClick={cancelSelection}>Cancel</button>
+      </div>}
+      {error && <p role="alert" className={styles.error}>{error}</p>}
+      <p role="status" className={styles.status}>{busy ? 'Saving dependency…' : announcement}</p>
+      {graphError && <p role="alert" className={styles.error}>{graphError} Remove invalid dependencies below to repair the plan.</p>}
+
+        {links.length > 0 && !graphError && <>
+          <h3 className={styles.sectionHeading}>Dependency Graph</h3>
+          <div className={styles.graphTile}>
+          <div className={styles.zoomHint} aria-hidden="true"><span className="material-icons">mouse</span><span className="material-icons">unfold_more</span><span>Scroll to zoom</span></div>
+          <div ref={mapRef} className={styles.map} role="region" aria-label="Dependency map" tabIndex={0}>
+            <svg width={mapWidth * zoom} height={mapHeight * zoom} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
+              <defs>
+                <marker id={`${mapId}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000" /></marker>
+                <marker id={`${mapId}-selected-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1565c0" /></marker>
+              </defs>
+              <g>{links.map(link => {
+                const from = positions.get(planKey(link.prerequisite));
+                const to = positions.get(planKey(link.dependent));
+                if (!from || !to) return null;
+                const start = from.x + mapNodeWidth;
+                const end = to.x - 4;
+                const fromY = from.y + mapNodeHeight / 2;
+                const toY = to.y + mapNodeHeight / 2;
+                const path = `M ${start} ${fromY} C ${start + 16} ${fromY}, ${end - 16} ${toY}, ${end} ${toY}`;
+                return <g key={linkKey(link)} className={styles.edge}
+                  role={canManage ? 'button' : undefined} tabIndex={canManage && !selecting ? 0 : undefined}
+                  aria-label={`Dependency: ${name(planKey(link.dependent))} depends on ${name(planKey(link.prerequisite))}`}
+                  aria-pressed={canManage ? graphTarget?.kind === 'link' && graphTarget.key === linkKey(link) : undefined}
+                  aria-disabled={canManage ? busy || selecting : undefined}
+                  onClick={event => chooseLink(link, event.currentTarget)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      chooseLink(link, event.currentTarget);
+                    }
+                  }}>
+                  <path d={path} fill="none" stroke="transparent" strokeWidth="16" pointerEvents="stroke" />
+                  <path d={path} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray={isRequirement(link) ? undefined : '6 5'} markerEnd={`url(#${mapId}-${graphTarget?.kind === 'link' && graphTarget.key === linkKey(link) ? 'selected-arrow' : 'arrow'})`} aria-hidden="true" />
+                </g>;
+              })}</g>
+              {positioned.map(({ node, x, y }) => <foreignObject key={node.key} x={x} y={y} width={mapNodeWidth} height={mapNodeHeight}>{nodeCard(node)}</foreignObject>)}
+            </svg>
+          </div>
+          </div>
+        </>}
+      <h3 className={styles.sectionHeading}>Dependency Table</h3>
+      <div className={styles.sequence}>
+        {!nodes.length && <p className={styles.empty}>Add tasks or sections in Tasks to start planning.</p>}
+        {!!nodes.length && <table ref={tableRef} className={styles.table} aria-label="Project dependencies" tabIndex={-1}>
+          <thead><tr><th scope="col">Task / Section</th><th scope="col">Depends on</th>{canManage && <th scope="col"><span className={styles.srOnly}>Actions</span></th>}</tr></thead>
+          <tbody>{nodes.map(node => {
+            const dependencies = links.filter(link => planKey(link.dependent) === node.key);
+            return <React.Fragment key={node.key}><tr className={`${node.ref.kind === 'section' ? styles.sectionRow : styles.taskRow} ${selectedKey === node.key ? styles.selectedRow : ''}`}>
+              <th scope="row">{nodeCard(node)}</th>
+              <td>{dependencies.length ? dependencyList(dependencies, true) : <span className={styles.noLinks}>—</span>}</td>
+              {canManage && <td className={styles.actions}><button type="button"
+                disabled={busy || selecting || !!graphError}
+                aria-label={`Add dependency for ${node.text} (${node.ref.kind}, ${node.context})`}
+                title={`Add dependency for ${node.text}`}
+                onClick={event => startSelection(node, event.currentTarget)}><span className="material-icons" aria-hidden="true">add_link</span></button></td>}
+            </tr>
+              {node.ref.kind === 'task' && editingTask?.id === node.ref.id && <tr><td colSpan={canManage ? 3 : 2}>
+                <div ref={editorRef} className={styles.taskEditor} role="region" aria-label={`Edit ${editingTask.text}`}>
+                  <TaskModal task={editingTask} inline allPeople={people} onUpdateTask={editTask}
+                    onSave={() => setEditingTaskId(null)} onClose={() => setEditingTaskId(null)} />
+                  <button type="button" className={styles.closeEditor} onClick={() => setEditingTaskId(null)}>Done</button>
+                </div>
+              </td></tr>}
+            </React.Fragment>;
+          })}</tbody>
+        </table>}
+        {missingLinks.length > 0 && <section aria-label="Missing items"><h3>Missing items</h3>{dependencyList(missingLinks)}</section>}
+      </div>
+    </section>
+  );
+}

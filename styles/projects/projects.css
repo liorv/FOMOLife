@@ -1122,6 +1122,50 @@
   background: var(--color-bg, #f8fafc);
 }
 
+/* Shared header-to-content gap and tab switch motion for Tasks / Plan / Roadmap. */
+.project-editor-workspace {
+  --workspace-gap: 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: var(--workspace-gap);
+}
+
+.project-editor-workspace > .project-editor-actions-area,
+.project-editor-workspace > section:first-child {
+  padding-top: 0;
+}
+
+.project-editor-workspace > section[aria-label="Roadmap"] {
+  padding-top: 12px;
+}
+
+.project-editor-workspace--forward {
+  animation: workspaceSlideFromRight 260ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+}
+
+.project-editor-workspace--backward {
+  animation: workspaceSlideFromLeft 260ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+}
+
+@keyframes workspaceSlideFromRight {
+  from { opacity: 0; transform: translateX(32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes workspaceSlideFromLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-editor-workspace--forward,
+  .project-editor-workspace--backward {
+    animation: none;
+  }
+}
+
 .project-editor-actions-area .project-editor-task-toolbar {
   justify-content: flex-start;
   flex-wrap: nowrap;

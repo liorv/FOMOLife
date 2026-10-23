@@ -4,6 +4,10 @@
       "version": "October 2026 Update",
       "date": "October 22, 2026",
       "changes": [
+        "New Plan tab: see project work as a Dependency Graph and a compact Dependency Table. Click a task or section, choose Add dependency, then pick what it depends on. Click an arrow to remove a dependency. Scroll the graph to zoom.",
+        "New Roadmap tab: forecasts when the remaining work will finish based on effort and dependencies, with a summary of the expected completion date, sized effort, and unsized tasks. View it across the project or by person.",
+        "Click a task on the Plan graph or a Roadmap bar to edit the task in place or add a dependency right from the project header.",
+        "Switching between Tasks, Plan, and Roadmap now slides smoothly, with consistent spacing below the project header.",
         "View and More now open options below the project toolbar instead of overlay menus. Open controls stay highlighted, and options are easy to dismiss.",
         "Project tools fit a single row without horizontal scrolling, with icons above wrapping labels on smaller screens.",
         "Clearer project actions make it easier to open the project overview, import or export JSON, and complete and archive a project.",

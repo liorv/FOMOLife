@@ -33,6 +33,9 @@ interface ProjectEditorProps {
   canManage?: boolean;
   dashboardProjectHeaderTop?: (members: React.ReactNode) => React.ReactNode;
   dashboardSummary?: React.ReactNode;
+  workspaceContent?: React.ReactNode;
+  workspaceView?: string;
+  workspaceDirection?: 'forward' | 'backward' | 'none';
   taskToolbar?: React.ReactNode;
   taskFilterPanel?: React.ReactNode;
   projectActions?: React.ReactNode;
@@ -81,6 +84,9 @@ export default function ProjectEditor({
   searchQuery = "",
   canManage = true,
   dashboardProjectHeaderTop,
+  workspaceContent,
+  workspaceView = 'tasks',
+  workspaceDirection = 'none',
   taskToolbar,
   taskFilterPanel,
   projectActions,
@@ -1101,7 +1107,12 @@ export default function ProjectEditor({
         )}
       </div>
 
-      {dashboardProjectHeaderTop && (
+      <div
+        key={workspaceView}
+        className={`project-editor-workspace project-editor-workspace--${workspaceDirection}`}
+        data-workspace-view={workspaceView}
+      >
+      {dashboardProjectHeaderTop && !workspaceContent && (
         <div className="project-editor-actions-area">
           {projectTools}
           {taskFilterPanel}
@@ -1633,8 +1644,7 @@ export default function ProjectEditor({
         </div>
       )}
 
-      {/* Main content - always show tasks */}
-      <div className="project-editor-content">
+      {workspaceContent ?? <div className="project-editor-content">
       {showFlatFilterView || (searchQuery && searchQuery.trim() !== "") ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
@@ -1749,7 +1759,8 @@ export default function ProjectEditor({
       ))}
         </div>
       )}
-    </div>
+    </div>}
+      </div>
 
     </div>
   );

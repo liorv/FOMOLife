@@ -95,6 +95,97 @@ Dragging projects into a new order saves that order and restores it after a
 reload or returning to the Projects tab. Projects without a saved position appear
 after ordered projects, preserving their existing relative order.
 
+### Project planning (optional view)
+
+Open a project and choose **Tasks**, **Plan**, or **Roadmap**. Tasks remains the default;
+opening a task from a notification returns to the normal task editor.
+
+Plan uses the same project header as Tasks. **Dependency Graph** appears
+above **Dependency Table**; there is no separate Sequence/Map switch.
+Solid arrows are task-to-task requirements; dashed arrows are advisory section
+planning hints. The table lists prerequisites in a **Depends on** column, with
+an **Add link** icon on each row and removal controls beside each link.
+Dependency warnings expand on demand. There is no duplicate link list below
+the map.
+
+Click a row's **Add dependency**, then **Select what it depends on** in the
+table or map. The dependent stays highlighted while you choose its prerequisite.
+The relationship saves immediately and updates both the map and table.
+Click a graph node to reveal **Add dependency**, then choose its prerequisite
+in the graph or table. Click an arrow to reveal **Remove dependency**; removal
+only happens after confirming with that button. Graph arrows also support
+keyboard activation. Contextual actions appear in the project header with
+Material icons, replacing members and Invite while viewing Plan. Selected nodes
+and arrows are highlighted blue; other arrows are black. Use the scroll wheel
+over the graph to zoom (50–200%) around the pointer, without scrolling the page.
+There is no separate zoom selector.
+Completed tasks show a small green checkmark beside their
+name in both the graph and table.
+Section nodes use a double border in the graph to distinguish them from tasks.
+Select a task in the graph or table, then choose **Edit** in the header to expand
+the existing task editor in its table row. Edits use the same project save path
+as Tasks and update the forecast when opening Roadmap.
+Static graph hints are hidden; a scroll-to-zoom graphic appears on hover or focus.
+
+The separate **Roadmap** tab is a forecast, not saved scheduling. Summary cards
+show expected completion, remaining sized effort in days, and the number of
+unsized tasks. The completion forecast includes the one-day estimates for unsized
+tasks; those estimates are not added to the sized-effort total. It starts
+today, uses one calendar day per effort unit, and starts tasks after their
+prerequisites finish; independent tasks run in parallel. Tasks without effort
+use one day, marked with a dashed bar and `~1d`. Completed tasks are hidden and
+do not delay future work. Recurring tasks represent their current
+occurrence, not an infinite series. Section hints are expanded to their member
+tasks for the forecast; contradictory section/task constraints show a scheduling
+error rather than invented dates. Existing due dates are unchanged. Assigned
+people show their contact/member photos, falling back to initials when unavailable.
+Dependency chains share roadmap lanes, with each task starting after all its
+prerequisites finish. Parallel branches use separate lanes. Task labels appear
+under bars and assignee icons sit immediately to their right. Header **Edit**
+scrolls to the expanded editor, including when that task is already expanded.
+Zero-effort tasks stay in their dependency-chain lane; coincident
+milestones stagger their annotations so they remain readable. Consecutive bars
+have different colors, and effort is always inside the bar. **Across project**
+shows project dependency chains; **By person** groups the same forecast by assignee,
+including an Unassigned group. Shared tasks appear under each assignee without
+double-counting project totals. Person grouping does not change dates or
+introduce resource-capacity scheduling.
+Click a roadmap bar to highlight it (amber ring) and show **Edit** and **Add
+dependency** in the project header. **Edit** expands the task editor in place
+beneath that bar's row. **Add dependency** prompts you to click another bar as
+the prerequisite; it saves through the same plan path as the Plan tab and
+rejects self-links, duplicates, and cycles. Escape cancels prerequisite
+selection or clears the highlighted bar. Read-only members see static bars.
+
+Switching between Tasks, Plan, and Roadmap slides the content below the header
+toward the chosen tab (left for later tabs, right for earlier ones); the header
+stays still. Motion is disabled under `prefers-reduced-motion`. All three views
+use the same gap between the header tile and their content.
+Edit aligns the task's title row with space above the editor, without a smooth
+scroll that can overshoot as the table expands.
+Use **Cancel** or Escape to leave selection without saving.
+Empty sections can be linked before their work is broken down.
+All tasks and sections remain visible in the table, including unlinked items.
+
+This first version is deliberately isolated: task requirements are **not enforced**
+by checkboxes. There are no completion/reopening cascades, new Home panels,
+automatic deadline changes, or scheduled work dates. Dependencies express
+precedence, not urgency or duration.
+
+Links stay within one project. Recurring tasks cannot be endpoints of task-to-task
+requirements, but may participate in section-related hints. Section progress
+excludes recurring tasks; empty sections are shown as not broken down rather
+than complete. Warnings flag deadline inversions and incomplete section timing.
+
+Links save separately from task edits and failures are shown in Plan. They use the
+existing project persistence model, not new cross-session transactional guarantees.
+Plan structure is copied with fresh identities when using a template. Legacy task
+JSON import/export does not transfer dependency links.
+Existing task deletion, section promotion, and recurrence editing are unchanged:
+links that become invalid remain visible inline (or under **Missing items** if
+their dependent was deleted) for explicit removal. They are never treated as
+satisfied prerequisites.
+
 ### Project templates
 
 The project editor keeps collaboration and task filters in a compact toolbar.

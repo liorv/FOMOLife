@@ -75,7 +75,8 @@ it("shows the project-tile-style header with a breadcrumb back action", async ()
   expect(screen.getByRole("progressbar", { name: "Launch plan progress" })).toHaveAttribute("aria-valuenow", "0");
   const nameRow = projectHeading.closest(".dashboard-project-name-row");
   expect(nameRow).toContainElement(screen.getByRole("button", { name: "Invite to project" }));
-  const actionsArea = projectHeader?.nextElementSibling;
+  const actionsArea = projectHeader?.nextElementSibling?.firstElementChild;
+  expect(projectHeader?.nextElementSibling).toHaveClass("project-editor-workspace");
   expect(actionsArea).toHaveClass("project-editor-actions-area");
   expect(actionsArea).toContainElement(screen.getByRole("button", { name: "Filter tasks" }));
   expect(actionsArea).toContainElement(screen.getByRole("group", { name: "Project tools" }));

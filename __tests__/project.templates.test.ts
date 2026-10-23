@@ -19,6 +19,7 @@ import { notifyTaskAssigned, notifyTaskCompleted } from '@/lib/projects/server/p
 import { getOrInitUserProjects } from '@/lib/projects/server/projectsStore';
 import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
 import type { ProjectItem } from '@myorg/types';
+import { getPlanNodes, validatePlanLinks } from '@/lib/projects/planning';
 
 const mockLoad = jest.fn().mockResolvedValue({ tasks: [], people: [] });
 const mockSave = jest.fn().mockResolvedValue(undefined);
@@ -59,6 +60,22 @@ beforeEach(() => {
   jest.mocked(getFrameworkSession).mockResolvedValue({
     isAuthenticated: true, userId, userName: 'Current user', authMode: 'none',
   });
+});
+
+it('remaps task and section plan links when instantiating a template', async () => {
+  const template: ProjectItem = await (await POST(request('POST', { ...definition, isTemplate: true }))).json();
+  const sourceSection = template.subprojects.find(section => section.id === 'original-sub')!;
+  template.planningLinks = [{
+    prerequisite: { kind: 'section', id: sourceSection.id },
+    dependent: { kind: 'section', id: template.subprojects[0]!.id },
+  }];
+  const before = JSON.stringify(template);
+  const copy = instantiateTemplate(template, 'Copy with plan');
+  expect(copy.planningLinks).toHaveLength(1);
+  expect(copy.planningLinks![0]!.prerequisite.id).not.toBe(sourceSection.id);
+  expect(copy.planningLinks![0]!.dependent.id).not.toBe(template.subprojects[0]!.id);
+  expect(validatePlanLinks(getPlanNodes({ subprojects: copy.subprojects! }), copy.planningLinks!)).toBeNull();
+  expect(JSON.stringify(template)).toBe(before);
 });
 
 it('creates templates, reloads them from storage, and converts projects in both directions without losing content', async () => {

@@ -20,6 +20,9 @@ import { deleteProjectTask, updateProjectTask } from "@/lib/projects/taskUpdates
 import ProjectImportDialog from "./ProjectImportDialog";
 import { TemplateLibrary, TemplateDialog, type TemplateAction } from "./ProjectTemplates";
 import templateStyles from "./ProjectTemplates.module.css";
+import ProjectPlan from "./ProjectPlan";
+import ProjectRoadmap from "./ProjectRoadmap";
+import type { PlanLink } from "@/lib/projects/planning";
 
 // Helper function to convert hex color to RGB string
 function hexToRgb(hex: string | undefined): string {
@@ -31,8 +34,13 @@ function hexToRgb(hex: string | undefined): string {
 
 // ─── Main dashboard component ─────────────────────────────────────────────────
 
+type WorkspaceView = 'tasks' | 'plan' | 'roadmap';
+const WORKSPACE_ORDER: WorkspaceView[] = ['tasks', 'plan', 'roadmap'];
+
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
+  canManage?: boolean;
+  onPlanMutation?: (projectId: string, action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
   projects?: ProjectItem[];
   people?: any[];
   selectedProjectId?: string | null;
@@ -78,6 +86,8 @@ function isProjectView(value: string | null): value is ProjectView {
 }
 
 export default function ProjectsDashboard({
+  canManage = true,
+  onPlanMutation,
   projects = [] as ProjectItem[],
   people = [] as any[],
   selectedProjectId,
@@ -116,6 +126,22 @@ export default function ProjectsDashboard({
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const [workspace, setWorkspace] = useState<{ projectId: string; view: 'plan' | 'roadmap' } | null>(null);
+  const [planActionsContainer, setPlanActionsContainer] = useState<HTMLDivElement | null>(null);
+  const showingPlan = workspace?.projectId === selectedProject?.id && workspace?.view === 'plan';
+  const showingRoadmap = workspace?.projectId === selectedProject?.id && workspace?.view === 'roadmap';
+  const showingTasks = !showingPlan && !showingRoadmap;
+  const workspaceView: WorkspaceView = showingPlan ? 'plan' : showingRoadmap ? 'roadmap' : 'tasks';
+  const [workspaceDirection, setWorkspaceDirection] = useState<'forward' | 'backward' | 'none'>('none');
+  const switchWorkspace = (view: WorkspaceView) => {
+    if (!selectedProject || view === workspaceView) return;
+    setWorkspaceDirection(WORKSPACE_ORDER.indexOf(view) > WORKSPACE_ORDER.indexOf(workspaceView) ? 'forward' : 'backward');
+    setWorkspace(view === 'tasks' ? null : { projectId: selectedProject.id, view });
+  };
+  useEffect(() => {
+    setWorkspace(null);
+    setWorkspaceDirection('none');
+  }, [selectedProjectId, selectedTaskId]);
   const taskFilterCount = filters.filter((filter) => filter !== 'hide_completed').length;
 
   const [showFilters, setShowFilters] = useState(false);
@@ -352,9 +378,33 @@ export default function ProjectsDashboard({
         /* ── Main body: full-width content for selected project ── */
         <div className="dashboard-body">
           <div className="dashboard-content">
+            <div className={templateStyles.toolbar}>
+              <div className={templateStyles.tabs} role="group" aria-label="Project workspace view">
+                <button type="button" className={templateStyles.tab} aria-pressed={showingTasks} onClick={() => switchWorkspace('tasks')}>Tasks</button>
+                <button type="button" className={templateStyles.tab} aria-pressed={showingPlan} onClick={() => switchWorkspace('plan')}>Plan</button>
+                <button type="button" className={templateStyles.tab} aria-pressed={showingRoadmap} onClick={() => switchWorkspace('roadmap')}>Roadmap</button>
+              </div>
+            </div>
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
               targetTaskId={selectedTaskId ?? null}
+              workspaceContent={showingPlan ? (
+                <ProjectPlan key={selectedProject.id} project={selectedProject} canManage={canManage}
+                  actionsContainer={planActionsContainer}
+                  people={people}
+                  {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
+                  {...(onPlanMutation ? { onSaveLink: (action, link) => onPlanMutation(selectedProject.id, action, link) } : {})}
+                />
+              ) : showingRoadmap ? (
+                <ProjectRoadmap key={selectedProject.id} project={selectedProject} links={selectedProject.planningLinks ?? []} people={people}
+                  canManage={canManage}
+                  actionsContainer={planActionsContainer}
+                  {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
+                  {...(onPlanMutation ? { onSaveLink: (action: 'add' | 'remove', link: PlanLink) => onPlanMutation(selectedProject.id, action, link) } : {})}
+                />
+              ) : undefined}
+              workspaceView={workspaceView}
+              workspaceDirection={workspaceDirection}
               dashboardProjectHeaderTop={(membersBar) => (
                 <div
                   className="dashboard-project-header-modern"
@@ -419,7 +469,7 @@ export default function ProjectsDashboard({
                           {selectedProject.text}
                         </h2>
                         <ProjectLink url={selectedProject.externalUrl} projectName={selectedProject.text} />
-                        {membersBar}
+                        {showingTasks && membersBar}
                       </div>
                       <div className="dashboard-project-name-accent" />
                       <div className="dashboard-project-progress-row">
@@ -435,6 +485,7 @@ export default function ProjectsDashboard({
                         </div>
                         <span>{projectProgress}%</span>
                       </div>
+                      {!showingTasks && <div ref={setPlanActionsContainer} />}
                     </div>
                   </div>
                 </div>
@@ -593,7 +644,7 @@ export default function ProjectsDashboard({
               } : {})}
             />
             {/* Floating AI assistant FAB (project editor) */}
-            <button
+            {showingTasks && <button
               type="button"
               className={`project-ai-fab${llmAvailable === false ? ' project-ai-fab--unavailable' : ''}`}
               aria-label="Open AI assistant"
@@ -606,7 +657,7 @@ export default function ProjectsDashboard({
               }}
             >
               <span className="material-icons">auto_awesome</span>
-            </button>
+            </button>}
           </div>
         </div>
       ) : (
@@ -991,7 +1042,7 @@ function buildAIContext(proj: ProjectItem | any, _people: any[] = []) {
 function buildProjectExport(proj: ProjectItem | any, people: any[] = []) {
   const { subprojects: _sub, id: _id, ...rest } = proj as any;
   // Strip any remaining id-like keys from metadata to prevent leaking internal identifiers
-  const { id: _mid, userId: _uid, ...safeMetadata } = rest as any;
+  const { id: _mid, userId: _uid, planningLinks: _plan, ...safeMetadata } = rest as any;
 
   return {
     name: proj.text ?? proj.title ?? '',
