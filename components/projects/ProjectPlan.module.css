@@ -148,7 +148,7 @@ button.roadmapBar:focus-visible { outline: 2px solid #ffab00; outline-offset: 2p
 button.pickableBar { cursor: crosshair; }
 button.pickableBar.selectedBar { cursor: not-allowed; }
 .roadmapEditor { box-sizing: border-box; position: sticky; left: 0; width: 100%; margin: 0 0 12px; padding: 12px; background: #f8fafd; border: 1px solid var(--plan-border); border-left: 4px solid #ffab00; border-radius: 8px; box-shadow: 0 2px 8px #0000001f; scroll-margin: 24px; }
-.estimateLabel { font-size: 11px; font-weight: 600; padding: 0 3px; white-space: nowrap; }
+.estimateLabel { font-size: 11px; font-weight: 600; padding: 0 3px; white-space: nowrap; color: inherit; }
 .roadmapBar { justify-content: flex-start; padding: 0 2px; overflow: hidden; }
 .roadmapBar .estimateLabel { flex: 1 1 auto; text-align: center; }
 .assignees { display: flex; flex-shrink: 0; gap: 0; }

@@ -24,6 +24,19 @@ type Props = {
 };
 const barColors = ['#1565c0', '#6a1b9a', '#00796b', '#ad4800', '#b3265e', '#37474f'];
 
+/** White text on dark backgrounds, near-black on light ones (WCAG relative luminance). */
+export function readableTextColor(hex: string): string {
+  const value = hex.replace('#', '');
+  const full = value.length === 3 ? value.split('').map(char => char + char).join('') : value.slice(0, 6);
+  const channel = (offset: number) => {
+    const c = parseInt(full.slice(offset, offset + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+  // Contrast against white beats contrast against #1f1f1f below roughly this luminance.
+  return Number.isNaN(luminance) || luminance < 0.2 ? '#ffffff' : '#1f1f1f';
+}
+
 export default function ProjectRoadmap({ project, links: initialLinks, people, canManage = false, actionsContainer, onSaveLink, onLinksSaved, onApplyChange }: Props) {
   const [view, setView] = useState<'project' | 'person'>('project');
   const [subprojects, setSubprojects] = useState(project.subprojects);
@@ -197,7 +210,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                   <div className={styles.roadmapTrack} style={{ width, height, backgroundSize: `${100 / ticks}% 100%` }}>
                     {items.map(({ entry: { task, section, start, end, estimated }, level: itemLevel }, taskIndex) => {
                       const effort = estimated ? '~1d' : `${task.effort ?? 0}d`;
-                      const color = barColors[taskIndex % barColors.length];
+                      const color = barColors[taskIndex % barColors.length] ?? '#1565c0';
                       const label = `${task.text}: ${date(start)} to ${date(end)}, ${end - start} days${estimated ? ', estimated' : ''}`;
                       const assignees = task.people.length > 0 && <span className={styles.assignees}>{task.people.map(person => {
                         const url = avatars.get(person.name);
@@ -206,7 +219,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                           {!url && person.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}
                         </span>;
                       })}</span>;
-                      const barStyle = { backgroundColor: color, borderColor: color, minWidth: 36 + task.people.length * 18 };
+                      const barStyle = { backgroundColor: color, borderColor: color, color: readableTextColor(color), minWidth: 36 + task.people.length * 18 };
                       const barClass = `${styles.roadmapBar} ${estimated ? styles.estimatedBar : ''} ${selectedId === task.id && canManage ? styles.selectedBar : ''} ${selecting ? styles.pickableBar : ''}`;
                       return <div key={task.id} className={styles.roadmapItem}
                         style={{ left: `${start / days * 100}%`, width: `${(end - start) / days * 100}%`, top: itemLevel * 56 }}>

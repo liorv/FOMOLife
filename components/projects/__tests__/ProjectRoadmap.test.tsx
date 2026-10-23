@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ProjectItem } from '@myorg/types';
-import ProjectRoadmap from '../ProjectRoadmap';
+import ProjectRoadmap, { readableTextColor } from '../ProjectRoadmap';
 import type { PlanLink } from '@/lib/projects/planning';
 
 const project: ProjectItem = {
@@ -43,6 +43,16 @@ it('uses different consecutive bar colors and displays effort inside every bar, 
   expect(within(publish).getByText('0.5d')).toBeInTheDocument();
   expect(within(screen.getByRole('img', { name: /Review:/ })).getByText('~1d')).toBeInTheDocument();
   expect(within(screen.getByRole('img', { name: /Milestone:/ })).getByText('0d')).toBeInTheDocument();
+});
+
+it('uses white text on dark bars and dark text on light bars', () => {
+  expect(readableTextColor('#1565c0')).toBe('#ffffff');
+  expect(readableTextColor('#37474f')).toBe('#ffffff');
+  expect(readableTextColor('#ad4800')).toBe('#ffffff');
+  expect(readableTextColor('#ffeb3b')).toBe('#1f1f1f');
+  expect(readableTextColor('#fff')).toBe('#1f1f1f');
+  render(<ProjectRoadmap project={project} links={links} people={[]} />);
+  screen.getAllByRole('img', { name: /days/ }).forEach(bar => expect(bar).toHaveStyle({ color: '#ffffff' }));
 });
 
 it('groups by assignee, includes unassigned work and keeps original forecast dates and totals', () => {
