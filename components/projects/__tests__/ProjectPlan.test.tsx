@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ProjectItem } from '@myorg/types';
 import ProjectPlan from '../ProjectPlan';
 import ProjectRoadmap from '../ProjectRoadmap';
@@ -158,6 +158,28 @@ it('opens Plan documentation from the thumb instead of starting a dependency flo
   fireEvent.keyDown(within(dialog).getByRole('button', { name: 'Close' }), { key: 'Escape' });
   expect(screen.queryByRole('dialog', { name: 'Project Plan' })).not.toBeInTheDocument();
   expect(thumb).toHaveFocus();
+});
+
+it('shows the Task thumb chevron menu with Add Task and Add Section actions', () => {
+  const addTask = jest.fn();
+  const addSection = jest.fn();
+  window.addEventListener('framework-action-add-task', addTask);
+  window.addEventListener('framework-action-add-section', addSection);
+  render(<ThumbButton activeTab="projects" />);
+  act(() => window.dispatchEvent(new CustomEvent('project-view-active', { detail: 'tasks' })));
+  const thumb = screen.getByRole('button', { name: 'Task actions' });
+  expect(thumb).toHaveTextContent('expand_less');
+  fireEvent.click(thumb);
+  const menu = within(screen.getByRole('group', { name: 'Task actions' }));
+  expect(menu.getByRole('button', { name: 'Add Task' })).toHaveTextContent('task_alt');
+  expect(menu.getByRole('button', { name: 'Add Section' })).toHaveTextContent('view_agenda');
+  fireEvent.click(menu.getByRole('button', { name: 'Add Section' }));
+  expect(addSection).toHaveBeenCalledTimes(1);
+  expect(addTask).not.toHaveBeenCalled();
+  expect(screen.queryByRole('group', { name: 'Task actions' })).not.toBeInTheDocument();
+  expect(thumb).toHaveTextContent('expand_less');
+  window.removeEventListener('framework-action-add-task', addTask);
+  window.removeEventListener('framework-action-add-section', addSection);
 });
 
 it('shows a dense section/task table without steps, an inspector, or advanced filters', () => {

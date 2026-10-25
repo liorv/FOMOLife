@@ -216,6 +216,33 @@ it("switches between View and More inline panels and keeps View open for checkbo
   expect(view).toHaveFocus();
 });
 
+it("adds a task to the selected section from the Tasks thumb dialog", () => {
+  const onApplyChange = jest.fn();
+  render(<ProjectEditor project={project} onApplyChange={onApplyChange} />);
+  fireEvent(window, new CustomEvent("project-view-active", { detail: "tasks" }));
+  fireEvent(window, new Event("framework-action-add-task"));
+  const dialog = screen.getByRole("dialog", { name: "Add task" });
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "Section" }), { target: { value: "section" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "Task title" }), { target: { value: "Prepare launch" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+  expect(onApplyChange).toHaveBeenLastCalledWith(expect.objectContaining({
+    subprojects: [expect.objectContaining({
+      id: "section",
+      tasks: expect.arrayContaining([expect.objectContaining({ text: "Prepare launch", done: false })]),
+    })],
+  }));
+  expect(screen.queryByRole("dialog", { name: "Add task" })).not.toBeInTheDocument();
+});
+
+it("routes the Add Section thumb action to the selected project", async () => {
+  const onAddSubproject = jest.fn();
+  await act(async () => {
+    render(<ProjectsDashboard projects={[project]} selectedProjectId={project.id} onAddSubproject={onAddSubproject} />);
+  });
+  act(() => fireEvent(window, new Event("framework-action-add-section")));
+  expect(onAddSubproject).toHaveBeenCalledWith(project.id, "");
+});
+
 it("resets inline options when switching projects and preserves the Invite dialog", () => {
   const { rerender } = render(<ProjectEditor project={project} />);
   fireEvent.click(screen.getByRole("button", { name: "View options" }));

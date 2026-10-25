@@ -143,6 +143,9 @@ and its URL query. Direct links can still open a tab with a search query.
 
 Tasks are managed inside the project editor, in the project-level tasks panel
 or a subproject. There is no standalone Tasks tab.
+In a project's Tasks view, the navbar chevron opens **Add Task** and **Add
+Section** actions. Add Task lets you choose a section and edit task details
+before saving.
 
 In Edit Project Overview, attach an optional HTTP/HTTPS URL using External Link.
 It saves when the field loses focus (or you press Enter). A small link icon beside

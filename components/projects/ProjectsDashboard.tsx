@@ -260,6 +260,13 @@ export default function ProjectsDashboard({
     return () => window.removeEventListener('framework-action-add-project', handleAdd);
   }, [selectedProject, onAddSubproject, onAddProject, showTemplates, onCreateTemplate]);
 
+  useEffect(() => {
+    if (!selectedProject || !showingTasks || !canManage) return;
+    const addSection = () => onAddSubproject?.(selectedProject.id, '');
+    window.addEventListener('framework-action-add-section', addSection);
+    return () => window.removeEventListener('framework-action-add-section', addSection);
+  }, [selectedProject, showingTasks, canManage, onAddSubproject]);
+
   // Notify thumb that project editor is open/closed so it can show the assistant glyph
   useEffect(() => {
     window.dispatchEvent(new CustomEvent(selectedProject ? 'project-editor-open' : 'project-editor-close'));

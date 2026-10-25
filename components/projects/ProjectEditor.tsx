@@ -5,6 +5,8 @@ import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { advanceRecurringTask } from '@/lib/tasks/recurrence';
 import DashboardMetricCard from './DashboardMetricCard';
 import { deleteProjectTask, updateProjectTask } from '@/lib/projects/taskUpdates';
+import { ModalOverlay, TaskModal } from '@myorg/ui';
+import taskDialogStyles from './ProjectEditorTaskDialog.module.css';
 
 // Subprojects used within the editor always have a defined `collapsed` boolean
 interface EditorSubproject extends ProjectSubproject {
@@ -225,6 +227,10 @@ export default function ProjectEditor({
     }
   };
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
+  const [taskCreation, setTaskCreation] = useState<{ subprojectId: string; task: ProjectTask } | null>(null);
+  const [taskCreationError, setTaskCreationError] = useState('');
+  const taskCreationTitleId = useId();
+  const taskCreationTriggerRef = useRef<HTMLElement | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
@@ -254,6 +260,73 @@ export default function ProjectEditor({
     localRef.current = updated;
     setLocal(updated);
     if (persist) safeOnApplyChange(updated);
+  };
+
+  useEffect(() => {
+    if (workspaceView === 'tasks') {
+      window.dispatchEvent(new CustomEvent('project-view-active', { detail: 'tasks' }));
+    }
+    if (!canManage || workspaceView !== 'tasks') {
+      return () => window.dispatchEvent(new CustomEvent('project-view-active', { detail: null }));
+    }
+    const handleAddTask = () => {
+      const firstSection = localRef.current.subprojects.find(section => !section.isProjectLevel);
+      taskCreationTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setTaskCreationError(firstSection ? '' : 'Add a section before creating a task.');
+      setTaskCreation({
+        subprojectId: firstSection?.id ?? '',
+        task: { id: generateId(), text: '', done: false, dueDate: null, favorite: false, people: [] },
+      });
+    };
+    window.addEventListener('framework-action-add-task', handleAddTask);
+    return () => {
+      window.removeEventListener('framework-action-add-task', handleAddTask);
+      window.dispatchEvent(new CustomEvent('project-view-active', { detail: null }));
+    };
+  }, [canManage, workspaceView]);
+
+  const taskCreationOpen = !!taskCreation;
+  useEffect(() => {
+    if (taskCreationOpen) {
+      document.querySelector<HTMLButtonElement>('#project-task-create-dialog input')?.focus();
+    } else {
+      taskCreationTriggerRef.current?.focus();
+    }
+  }, [taskCreationOpen]);
+
+  useEffect(() => {
+    if (!taskCreation || taskCreation.subprojectId) return;
+    const firstSection = local.subprojects.find(section => !section.isProjectLevel);
+    if (!firstSection) return;
+    setTaskCreation(current => current ? { ...current, subprojectId: firstSection.id } : current);
+    setTaskCreationError('');
+  }, [local.subprojects, taskCreation]);
+
+  const closeTaskCreation = () => {
+    setTaskCreation(null);
+    setTaskCreationError('');
+  };
+
+  const saveTaskCreation = (task: ProjectTask) => {
+    if (!taskCreation) return;
+    const text = task.text.trim();
+    if (!text) {
+      setTaskCreationError('Enter a task name to continue.');
+      return;
+    }
+    const current = localRef.current;
+    if (!current.subprojects.some(section => section.id === taskCreation.subprojectId)) {
+      setTaskCreationError('That section is no longer available. Choose another section.');
+      return;
+    }
+    const updated: LocalProject = {
+      ...current,
+      subprojects: current.subprojects.map(section => section.id === taskCreation.subprojectId
+        ? { ...section, collapsed: false, tasks: [...section.tasks, { ...task, text }] }
+        : section),
+    };
+    setLocalAndApply(updated);
+    closeTaskCreation();
   };
 
   // Only show contacts who are members of this project as assignable people
@@ -1137,6 +1210,47 @@ export default function ProjectEditor({
   );
 
   return (
+    <>
+    <ModalOverlay open={!!taskCreation} onClose={closeTaskCreation} ariaLabelledby={taskCreationTitleId}
+      className={taskDialogStyles.overlay} contentClassName={taskDialogStyles.dialog}>
+      {taskCreation && <div id="project-task-create-dialog" onKeyDown={event => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          closeTaskCreation();
+        }
+      }}>
+        <div className={taskDialogStyles.header}>
+          <span className={`material-icons ${taskDialogStyles.headerIcon}`} aria-hidden="true">add_task</span>
+          <div>
+            <h2 id={taskCreationTitleId}>Add task</h2>
+            <p>Choose a section, then add task details.</p>
+          </div>
+        </div>
+        <label className={taskDialogStyles.sectionField}>
+          <span>Section</span>
+          <select aria-label="Section" value={taskCreation.subprojectId}
+            onChange={event => setTaskCreation(current => current ? { ...current, subprojectId: event.target.value } : current)}>
+            {!local.subprojects.some(section => !section.isProjectLevel) && <option value="">Add a section first</option>}
+            {local.subprojects.filter(section => !section.isProjectLevel).map(section =>
+              <option key={section.id} value={section.id}>{section.text}</option>)}
+          </select>
+        </label>
+        {taskCreationError && <p className={taskDialogStyles.error} role="alert">{taskCreationError}</p>}
+        {!local.subprojects.some(section => !section.isProjectLevel) && <button type="button"
+          className={taskDialogStyles.addSection} onClick={() => window.dispatchEvent(new Event('framework-action-add-section'))}>
+          <span className="material-icons" aria-hidden="true">view_agenda</span>Add section
+        </button>}
+        <TaskModal key={taskCreation.task.id} task={taskCreation.task} allPeople={peopleList}
+          onUpdateTask={task => setTaskCreation(current => current ? { ...current, task } : current)}
+          onSave={saveTaskCreation} onClose={closeTaskCreation} />
+        <div className={taskDialogStyles.actions}>
+          <button type="button" className={taskDialogStyles.cancel} onClick={closeTaskCreation}>Cancel</button>
+          <button type="button" className={taskDialogStyles.done} onClick={() => saveTaskCreation(taskCreation.task)}>
+            <span className="material-icons" aria-hidden="true">check</span>Done
+          </button>
+        </div>
+      </div>}
+    </ModalOverlay>
     <div
       className="project-editor"
       ref={editorContainerRef}
@@ -1820,5 +1934,6 @@ export default function ProjectEditor({
       </div>
 
     </div>
+    </>
   );
 }
