@@ -1,6 +1,7 @@
 .header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
 .header h3 { margin: 0; }
-.header select { padding: 4px 8px; border: 1px solid var(--plan-border); border-radius: 6px; background: var(--plan-surface); color: inherit; font: inherit; }
+.header button { color: var(--segment-text); }
+.header button[aria-pressed="true"] { color: var(--segment-text-active); }
 .table th:first-child { width: 34%; }
 .table thead th:nth-child(2), .table thead th:nth-child(3) { width: 33%; }
 .table tbody td { padding: 6px; vertical-align: top; }
@@ -16,7 +17,9 @@
 .quickAdd { margin-top: 4px; }
 .table .addRiskRow { background: var(--plan-surface); }
 .addRiskRow .quickAdd { margin-top: 0; }
-.quickAdd input { width: 100%; box-sizing: border-box; min-width: 0; border: 0; border-bottom: 1px solid var(--plan-border); padding: 4px 2px; background: transparent; color: inherit; font: inherit; }
+.quickAdd input { width: 100%; box-sizing: border-box; min-width: 0; padding: 4px 6px; font: inherit; }
+.quickAdd input, .inlineEditor input { border: 1px solid #747b87; border-radius: 6px; background: #fff; color: #263047; }
+.quickAdd input::placeholder, .inlineEditor input::placeholder { color: #5f6368; opacity: 1; }
 .tag { display: inline-flex; align-items: baseline; max-width: 100%; border-radius: 12px; background: #e3f2fd; color: #15385f; }
 .tag button { min-width: 0; padding: 2px 6px; border: 0; border-radius: 12px; background: transparent; color: inherit; text-align: left; overflow-wrap: anywhere; }
 .tag button:hover { background: #7771ce18; }
@@ -36,6 +39,6 @@
 .mitigation { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .mitigation label { flex: 1 1 180px; }
 .inlineEditor { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; white-space: normal; }
-.inlineEditor input { flex: 1 1 120px; min-width: 0; width: 100%; padding: 6px; border: 1px solid var(--plan-border); border-radius: 6px; background: var(--plan-surface); color: inherit; font: inherit; }
+.inlineEditor input { flex: 1 1 120px; box-sizing: border-box; min-width: 0; width: 100%; padding: 6px; font: inherit; }
 .inlineEditor button { border: 1px solid var(--plan-border); border-radius: 12px; padding: 4px 8px; background: var(--plan-surface); }
 .tooltip { position: fixed; z-index: 2000; box-sizing: border-box; width: max-content; max-width: min(280px, calc(100vw - 16px)); max-height: 90px; overflow: auto; padding: 8px 12px; border-radius: 6px; background: #323232; color: #fff; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 2px 8px #0003; }

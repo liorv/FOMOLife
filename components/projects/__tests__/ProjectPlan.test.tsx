@@ -628,7 +628,8 @@ it('shows forecast bars, dates and assignee photos with an estimated duration la
   expect(approval.closest('[aria-label^="Dependency chain"]')).toBe(publish.closest('[aria-label^="Dependency chain"]'));
   expect(roadmap.getAllByRole('group', { name: /Dependency chain/ })).toHaveLength(2);
   const label = within(publish.parentElement!).getByText('Publish');
-  expect(label).toHaveClass('roadmapLabel');
+  expect(label).toHaveClass('roadmapTaskName');
+  expect(label.parentElement).toHaveClass('roadmapLabel');
   expect(publish.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const avatar = within(publish).getByRole('img', { name: 'Alex' });
   expect(avatar.parentElement).toHaveClass('assignees');
@@ -668,7 +669,7 @@ it('removes static graph instructions and provides a hover-only scroll graphic',
   expect(hint.querySelectorAll('.material-icons')).toHaveLength(2);
 });
 
-it('shows green completion icons after completed task names in graph and table, but not sections or open tasks', () => {
+it('shows small completion icons before completed task names in graph and table, but not sections or open tasks', () => {
   const completedProject = {
     ...project, planningLinks: [link],
     subprojects: project.subprojects.map(section => ({
@@ -681,7 +682,7 @@ it('shows green completion icons after completed task names in graph and table, 
     const completed = within(scope.getByRole('button', { name: 'Inspect: Get approval (task, Prepare)' }));
     const icon = completed.getByRole('img', { name: 'Completed task' });
     expect(icon).toHaveClass('completed');
-    expect(completed.getByText('Get approval').compareDocumentPosition(icon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(icon.compareDocumentPosition(completed.getByText('Get approval')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(scope.getByRole('button', { name: 'Inspect: Publish (task, Prepare)' })).queryByRole('img')).not.toBeInTheDocument();
   }
   expect(within(table().getByRole('button', { name: 'Inspect: Prepare (section, Section)' })).queryByRole('img')).not.toBeInTheDocument();

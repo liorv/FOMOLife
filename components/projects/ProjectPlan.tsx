@@ -1,5 +1,7 @@
 'use client';
 
+import CompletedTaskIcon from './CompletedTaskIcon';
+
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ProjectItem, ProjectTask } from '@myorg/types';
@@ -258,10 +260,8 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
           chooseNode(node);
         }}
       >
+        {node.ref.kind === 'task' && node.done && <CompletedTaskIcon />}
         <span className={styles.nodeTitle}>{node.text}</span>
-        {node.ref.kind === 'task' && node.done && <svg className={styles.completed} viewBox="0 0 16 16" role="img" aria-label="Completed task">
-          <path d="m3 8 3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>}
         {reason && selectedKey !== node.key && <span className={styles.srOnly}>{reason}</span>}
       </button>
     );

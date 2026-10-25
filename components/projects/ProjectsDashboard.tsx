@@ -129,7 +129,7 @@ export default function ProjectsDashboard({
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
-  const [workspace, setWorkspace] = useState<{ projectId: string; view: Exclude<WorkspaceView, 'tasks'> } | null>(null);
+  const [workspace, setWorkspace] = useState<{ projectId: string; view: Exclude<WorkspaceView, 'tasks'>; riskFilter?: 'unmitigated' } | null>(null);
   const [planActionsContainer, setPlanActionsContainer] = useState<HTMLDivElement | null>(null);
   const showingPlan = workspace?.projectId === selectedProject?.id && workspace?.view === 'plan';
   const showingRoadmap = workspace?.projectId === selectedProject?.id && workspace?.view === 'roadmap';
@@ -137,10 +137,10 @@ export default function ProjectsDashboard({
   const showingTasks = !showingPlan && !showingRoadmap && !showingRisks;
   const workspaceView: WorkspaceView = showingPlan ? 'plan' : showingRoadmap ? 'roadmap' : showingRisks ? 'risks' : 'tasks';
   const [workspaceDirection, setWorkspaceDirection] = useState<'forward' | 'backward' | 'none'>('none');
-  const switchWorkspace = (view: WorkspaceView) => {
+  const switchWorkspace = (view: WorkspaceView, riskFilter?: 'unmitigated') => {
     if (!selectedProject || view === workspaceView) return;
     setWorkspaceDirection(WORKSPACE_ORDER.indexOf(view) > WORKSPACE_ORDER.indexOf(workspaceView) ? 'forward' : 'backward');
-    setWorkspace(view === 'tasks' ? null : { projectId: selectedProject.id, view });
+    setWorkspace(view === 'tasks' ? null : { projectId: selectedProject.id, view, ...(riskFilter ? { riskFilter } : {}) });
   };
   useEffect(() => {
     setWorkspace(null);
@@ -411,12 +411,14 @@ export default function ProjectsDashboard({
               ) : showingRoadmap ? (
                 <ProjectRoadmap key={selectedProject.id} project={selectedProject} links={selectedProject.planningLinks ?? []} people={people}
                   canManage={canManage}
+                  onShowUnmitigatedRisks={() => switchWorkspace('risks', 'unmitigated')}
                   actionsContainer={planActionsContainer}
                   {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                   {...(onPlanMutation ? { onSaveLink: (action: 'add' | 'remove', link: PlanLink) => onPlanMutation(selectedProject.id, action, link) } : {})}
                 />
               ) : showingRisks ? (
                 <ProjectRisks key={selectedProject.id} project={selectedProject} canManage={canManage}
+                  initialFilter={workspace?.riskFilter ?? 'all'}
                   {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                 />
               ) : undefined}

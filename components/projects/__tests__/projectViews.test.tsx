@@ -72,6 +72,32 @@ it("opens Risks as a peer stage and saves task risks through the project editor"
   expect(within(screen.getByRole("table", { name: "Risk Management" })).getByText("Unmitigated", { exact: true })).toBeInTheDocument();
 });
 
+it("opens unmitigated risks from a roadmap warning, including in read-only projects", () => {
+  render(<ProjectsDashboard selectedProjectId="p" projects={[{
+    id: "p", text: "Release", color: "#1976D2",
+    subprojects: [{ id: "s", text: "Launch", tasks: [{
+      id: "a", text: "Approve", done: false, favorite: false, dueDate: null, people: [],
+      risks: [
+        { id: "r", name: "Delay", description: "", mitigations: [] },
+        { id: "r2", name: "Damage", description: "", mitigations: [{ id: "m", text: "Packaging" }] },
+      ],
+    }] }],
+  }]} />);
+  const views = within(screen.getByRole("group", { name: "Project workspace view" }));
+  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
+  fireEvent.click(screen.getByRole("button", { name: "View unmitigated risks for Approve" }));
+  expect(views.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
+  const filters = within(screen.getByRole("group", { name: "Filter risks" }));
+  expect(filters.getByRole("button", { name: "Unmitigated" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByText("Delay")).toBeInTheDocument();
+  expect(screen.queryByText("Damage")).not.toBeInTheDocument();
+  fireEvent.click(filters.getByRole("button", { name: "All" }));
+  expect(screen.getByText("Damage")).toBeInTheDocument();
+  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
+  fireEvent.click(views.getByRole("button", { name: "Risks" }));
+  expect(within(screen.getByRole("group", { name: "Filter risks" })).getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+});
+
 it("round-trips risks and mitigations through JSON export/import without exporting their IDs", () => {
   const createUrl = URL.createObjectURL;
   const revokeUrl = URL.revokeObjectURL;

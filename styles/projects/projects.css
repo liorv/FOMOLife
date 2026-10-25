@@ -313,6 +313,14 @@
   box-sizing: border-box;
 }
 
+.project-editor .task-header {
+  height: 36px;
+}
+
+.project-editor .task-checkbox-target {
+  height: 36px;
+}
+
 
 /* compact task rows for expanded subprojects
    ------------------------------------------------------------
@@ -340,7 +348,7 @@
 
 /* shrink header height and spacing inside subproject tasks */
 .subproject .task-header {
-  height: 44px;
+  height: 36px;
   gap: 6px;
 }
 .subproject .task-row button {
@@ -606,7 +614,7 @@
 
 /* shrink header height and spacing inside filtered tasks */
 .filter-flat-view .task-header {
-  height: 44px;
+  height: 36px;
   gap: 6px;
   background: #fff;
 }
@@ -626,6 +634,13 @@
 /* keep drag handle icon a little smaller */
 .filter-flat-view .task-row .material-icons.expand-icon {
   font-size: 1.1rem;
+}
+
+@media (pointer: coarse) {
+  .project-editor .task-header,
+  .project-editor .task-checkbox-target {
+    height: 44px;
+  }
 }
 
 

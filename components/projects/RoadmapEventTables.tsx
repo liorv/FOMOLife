@@ -6,6 +6,7 @@ import { CheckeredFlag, ModalOverlay } from '@myorg/ui';
 import { generateId } from '@myorg/utils';
 import { isRoadmapDate } from '@/lib/projects/roadmapEvents';
 import styles from './ProjectPlan.module.css';
+import CompletedTaskIcon from './CompletedTaskIcon';
 
 type Props = {
   milestones: ProjectMilestone[];
@@ -71,7 +72,10 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
               if (label !== milestone.label) onMilestonesChange(milestones.map(item => item.id === milestone.id ? { ...item, label } : item));
             })} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /> : milestone.label}</td>
           <td><ul className={styles.links}>{milestone.taskIds.map(id => <li key={id} className={styles.relationship}>
-            <span>{tasks.find(task => task.id === id)?.text ?? 'Deleted task'}</span>
+            <span className={styles.taskName}>
+              {tasks.find(task => task.id === id)?.done && <CompletedTaskIcon />}
+              <span>{tasks.find(task => task.id === id)?.text ?? 'Deleted task'}</span>
+            </span>
             {canManage && milestone.taskIds.length > 1 && <button type="button" aria-label={`Remove ${tasks.find(task => task.id === id)?.text ?? 'deleted task'} from ${milestone.label}`}
               onClick={() => onMilestonesChange(milestones.map(item => item.id === milestone.id ? { ...item, taskIds: item.taskIds.filter(taskId => taskId !== id) } : item))}>&times;</button>}
           </li>)}</ul>

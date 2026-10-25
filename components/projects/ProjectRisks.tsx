@@ -10,22 +10,30 @@ import { updateProjectTask } from '@/lib/projects/taskUpdates';
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import styles from './ProjectPlan.module.css';
 import riskStyles from './ProjectRisks.module.css';
+import templateStyles from './ProjectTemplates.module.css';
+import CompletedTaskIcon from './CompletedTaskIcon';
 
 type Props = {
   project: ProjectItem;
   canManage: boolean;
+  initialFilter?: RiskFilter;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
 };
 
 type RiskFilter = 'all' | 'mitigated' | 'unmitigated';
+const RISK_FILTERS: { value: RiskFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'mitigated', label: 'Mitigated' },
+  { value: 'unmitigated', label: 'Unmitigated' },
+];
 
 function matchesRiskFilter(risk: ProjectRisk, filter: RiskFilter) {
   return filter === 'all' || (filter === 'mitigated' ? risk.mitigations.length > 0 : risk.mitigations.length === 0);
 }
 
-export default function ProjectRisks({ project, canManage, onApplyChange }: Props) {
+export default function ProjectRisks({ project, canManage, initialFilter = 'all', onApplyChange }: Props) {
   const [subprojects, setSubprojects] = useState(project.subprojects);
-  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>(initialFilter);
   const latest = useRef(subprojects);
   const [editor, setEditor] = useState<{ taskId: string; risk: ProjectRisk; isNew: boolean } | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -179,22 +187,22 @@ export default function ProjectRisks({ project, canManage, onApplyChange }: Prop
     <section className={styles.plan} aria-label={`${project.text} project risks`}>
       <div className={riskStyles.header}>
         <h3 className={styles.sectionHeading}>Risk Management</h3>
-        <select aria-label="Filter risks" value={riskFilter} onChange={event => {
-          const value = event.currentTarget.value;
-          if (value !== 'all' && value !== 'mitigated' && value !== 'unmitigated') return;
-          setRiskFilter(value);
-          mitigationTriggerRef.current = null;
-          setSelection(null);
-          setMitigationDraft(null);
-          setHoveredRisk(null);
-          setRiskNameDraft('');
-          setEditingTaskId(null);
-          setError('');
-        }}>
-          <option value="all">All</option>
-          <option value="mitigated">Mitigated</option>
-          <option value="unmitigated">Unmitigated</option>
-        </select>
+        <div role="group" aria-label="Filter risks" className={templateStyles.segmented}
+          style={{ '--segment-count': RISK_FILTERS.length, '--segment-index': RISK_FILTERS.findIndex(filter => filter.value === riskFilter) } as React.CSSProperties}>
+          <span className={templateStyles.segmentThumb} aria-hidden="true" />
+          {RISK_FILTERS.map(({ value, label }) => <button key={value} type="button" className={templateStyles.segment}
+            aria-pressed={riskFilter === value} onClick={() => {
+              if (riskFilter === value) return;
+              setRiskFilter(value);
+              mitigationTriggerRef.current = null;
+              setSelection(null);
+              setMitigationDraft(null);
+              setHoveredRisk(null);
+              setRiskNameDraft('');
+              setEditingTaskId(null);
+              setError('');
+            }}>{label}</button>)}
+        </div>
       </div>
       <p className={styles.caption}>{canManage
         ? 'Select a row to edit risks and mitigations. Click outside the row to finish.'
@@ -236,10 +244,11 @@ export default function ProjectRisks({ project, canManage, onApplyChange }: Prop
                     {task && canManage ? <button type="button" className={styles.node}
                       title={task ? `${task.text} (${node.context})` : node.text}
                       onClick={() => { setEditor(null); setSelection(null); setMitigationDraft(null); setEditingTaskId(node.ref.id); }}>
+                      {node.done && <CompletedTaskIcon />}
                       <span className={styles.nodeTitle}>{node.text}</span>
-                      {node.done && <span className={`material-icons ${styles.completed}`} aria-label="Completed">check</span>}
-                    </button> : <span className={styles.node}>{node.text}
-                      {node.done && <span className={`material-icons ${styles.completed}`} aria-label="Completed">check</span>}
+                    </button> : <span className={styles.node}>
+                      {task && node.done && <CompletedTaskIcon />}
+                      <span className={styles.nodeTitle}>{node.text}</span>
                     </span>}
                   </th>}
                   <td className={risk ? (risk.mitigations.length ? riskStyles.riskMitigated : riskStyles.riskUnmitigated) : undefined}><div className={riskStyles.riskCell}>

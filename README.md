@@ -37,8 +37,10 @@ a task, then select what it depends on. Cancel or Escape exits without saving.
 The existing graph and table dependency actions remain available.
 
 In a project's Risks stage, the Risk Management table uses the Plan table's
-section/task layout. Add one or more risks to each task, with a name, description,
-and any number of text mitigations. The filter beside Risk Management defaults
+section/task layout. Dependency, risk, and milestone tables use the same small
+green checkmark to the left of completed task names (not section names).
+Add one or more risks to each task, with a name, description,
+and any number of text mitigations. The segmented control beside Risk Management defaults
 to All; choose Mitigated or Unmitigated to show only matching risks and their
 tasks and sections. Tasks without risks appear only under All. Filtering does
 not change saved risks. Unselected rows display plain text without
@@ -69,6 +71,9 @@ editing controls.
 
 In a project's Roadmap view, the navbar's upward chevron expands Add Milestone
 (star with a plus) and Add Deadline (black-and-white checkered flag with a plus).
+Tasks with unmitigated risks have a red-outlined bar with a small red exclamation
+icon inside its right edge in both roadmap groupings. Clicking the icon opens
+Risks with Unmitigated selected.
 The chevron points down while expanded. Hover or focus a FAB to
 see its label. Add Milestone asks you to select a task by clicking its roadmap
 bar, without opening a separate task list. The Milestones table

@@ -23,6 +23,34 @@ function summary(label: string) {
   return screen.getByText(label).nextElementSibling;
 }
 
+it('shows warnings only for unmitigated risks in both groupings without selecting the task', () => {
+  const onShowUnmitigatedRisks = jest.fn();
+  const withRisks = { ...project, subprojects: project.subprojects.map(section => ({
+    ...section, tasks: section.tasks.map(task => ({ ...task, risks: task.id === 'b'
+      ? [{ id: 'r', name: 'Delay', description: '', mitigations: [] }]
+      : [{ id: `r-${task.id}`, name: 'Covered', description: '', mitigations: [{ id: 'm', text: 'Backup' }] }] })),
+  })) };
+  const { rerender } = render(<ProjectRoadmap project={withRisks} links={links} people={[]} canManage
+    onShowUnmitigatedRisks={onShowUnmitigatedRisks} />);
+  const warning = screen.getByRole('button', { name: 'View unmitigated risks for Publish' });
+  const bar = screen.getByRole('button', { name: /^Publish:/ });
+  expect(bar).toHaveClass('riskBar');
+  expect(bar).toHaveStyle({ borderColor: '#c5221f' });
+  expect(warning.parentElement).toBe(bar.parentElement);
+  expect(warning.closest('.roadmapLabel')).toBeNull();
+  expect(warning.closest('button')).toBe(warning);
+  expect(screen.getByRole('button', { name: /^Approve:/ })).not.toHaveClass('riskBar');
+  expect(screen.queryByRole('button', { name: 'View unmitigated risks for Approve' })).not.toBeInTheDocument();
+  fireEvent.click(warning);
+  expect(onShowUnmitigatedRisks).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: /^Publish:/ })).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(screen.getByRole('button', { name: 'By person' }));
+  expect(screen.getAllByRole('button', { name: 'View unmitigated risks for Publish' })).toHaveLength(2);
+  rerender(<ProjectRoadmap project={project} links={links} people={[]} canManage
+    onShowUnmitigatedRisks={onShowUnmitigatedRisks} />);
+  expect(screen.queryByRole('button', { name: 'View unmitigated risks for Publish' })).not.toBeInTheDocument();
+});
+
 it('hides completed tasks and summarizes remaining sized effort separately from unsized tasks', () => {
   render(<ProjectRoadmap project={project} links={links} people={[]} />);
   expect(screen.getByRole('region', { name: 'Roadmap' }).querySelector('[data-tab-swipe-ignore]')).toBeInTheDocument();

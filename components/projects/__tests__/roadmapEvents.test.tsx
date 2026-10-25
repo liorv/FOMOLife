@@ -36,6 +36,18 @@ function day(offset: number) {
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) + offset * 86400000).toISOString().slice(0, 10);
 }
 
+it.each([true, false])('marks completed milestone tasks with a leading shared check (canManage=%s)', canManage => {
+  setup({ ...project, milestones: [{ ...milestone, taskIds: ['a', 'c', 'deleted'] }] }, canManage);
+  const table = within(screen.getByRole('table', { name: 'Milestones' }));
+  const text = table.getByText('Completed work');
+  const icon = within(text.parentElement!).getByRole('img', { name: 'Completed task' });
+  expect(icon.tagName.toLowerCase()).toBe('svg');
+  expect(icon).toHaveClass('completed');
+  expect(icon.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(table.getAllByRole('img', { name: 'Completed task' })).toHaveLength(1);
+  expect(table.getByText('Deleted task')).toBeInTheDocument();
+});
+
 it('uses a chevron to expand two labeled FABs without invoking the normal thumb action', () => {
   const { thumbClick } = setup();
   const thumb = screen.getByRole('button', { name: 'Roadmap actions' });

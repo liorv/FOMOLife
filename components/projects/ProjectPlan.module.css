@@ -72,7 +72,8 @@
 .node[aria-pressed="true"] { border-color: var(--plan-selected); background: #d6eaff; box-shadow: inset 3px 0 var(--plan-selected); }
 .node[aria-disabled="true"] { cursor: not-allowed; }
 .nodeTitle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.completed { width: 14px; height: 14px; flex: 0 0 14px; margin-left: 4px; color: #16803c; }
+.completed { width: 14px; height: 14px; flex: 0 0 14px; margin-right: 4px; color: #16803c; }
+.taskName { display: inline-flex; align-items: center; min-width: 0; }
 .section { font-weight: 600 !important; }
 .noLinks { opacity: 0.4; }
 .actions { white-space: nowrap; }
@@ -150,7 +151,10 @@
 .deadlineGuides { position: absolute; top: 36px; bottom: 0; pointer-events: none; z-index: 1; }
 .deadlineLine { position: absolute; top: 0; bottom: 0; border-left: 2px dotted #000; transform: translateX(-1px); }
 .roadmapRow { display: flex; align-items: center; min-height: 36px; border-bottom: 1px solid var(--plan-border); }
-.roadmapLabel { position: absolute; top: 34px; left: 0; width: max-content; max-width: 180px; box-sizing: border-box; padding-right: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.roadmapLabel { position: absolute; top: 34px; left: 0; width: max-content; max-width: 180px; box-sizing: border-box; padding-right: 6px; display: flex; align-items: center; gap: 3px; white-space: nowrap; font-size: 12px; }
+.roadmapTaskName { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.roadmapItem .roadmapRiskWarning { position: absolute; top: 9px; right: 3px; z-index: 3; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: #fff; color: #c5221f; }
+.roadmapRiskWarning :global(.material-icons) { font-size: 16px; }
 .effortLabel { margin-left: 6px; color: #526178; font-size: 11px; }
 .dateAxis { position: relative; height: 28px; flex-shrink: 0; font-size: 10px; }
 .dateAxis > span { position: absolute; top: 6px; transform: translateX(-50%); }
@@ -170,6 +174,8 @@ button.pickableBar.selectedBar { cursor: not-allowed; }
 .estimateLabel { font-size: 11px; font-weight: 600; padding: 0 3px; white-space: nowrap; color: inherit; }
 .roadmapBar { justify-content: flex-start; padding: 0 2px; overflow: hidden; }
 .roadmapBar .estimateLabel { flex: 1 1 auto; text-align: center; }
+.roadmapBar.riskBar { padding-right: 22px; border-width: 2px; outline: 1px solid #c5221f; }
+button.roadmapBar.riskBar:hover:not(:disabled) { transform: none; }
 .assignees { display: flex; flex-shrink: 0; gap: 0; }
 .assignees .assignee + .assignee { margin-left: -4px; }
 .assignee { display: inline-flex; flex-shrink: 0; box-sizing: border-box; width: 20px; height: 20px; border-radius: 50%; background-color: #455a64; background-size: cover; background-position: center; color: #fff; align-items: center; justify-content: center; font-size: 9px; border: 1px solid #fff; }

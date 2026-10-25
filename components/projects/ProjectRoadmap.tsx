@@ -24,6 +24,7 @@ type Props = {
   onSaveLink?: (action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
   onLinksSaved?: (links: PlanLink[]) => void;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
+  onShowUnmitigatedRisks?: () => void;
 };
 const barColors = ['#1565c0', '#6a1b9a', '#00796b', '#ad4800', '#b3265e', '#37474f'];
 
@@ -40,7 +41,7 @@ export function readableTextColor(hex: string): string {
   return Number.isNaN(luminance) || luminance < 0.2 ? '#ffffff' : '#1f1f1f';
 }
 
-export default function ProjectRoadmap({ project, links: initialLinks, people, canManage = false, actionsContainer, onSaveLink, onLinksSaved, onApplyChange }: Props) {
+export default function ProjectRoadmap({ project, links: initialLinks, people, canManage = false, actionsContainer, onSaveLink, onLinksSaved, onApplyChange, onShowUnmitigatedRisks }: Props) {
   const [view, setView] = useState<'project' | 'person'>('project');
   const [subprojects, setSubprojects] = useState(project.subprojects);
   const subprojectsRef = useRef(subprojects);
@@ -304,6 +305,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                   <div className={styles.roadmapTrack} style={{ width, height, backgroundSize: `${100 / ticks}% 100%` }}>
                     {items.map(({ entry: { task, section, start, end, estimated }, level: itemLevel }, taskIndex) => {
                       const effort = estimated ? '~1d' : `${task.effort ?? 0}d`;
+                      const hasUnmitigatedRisks = task.risks?.some(risk => risk.mitigations.length === 0);
                       const color = barColors[taskIndex % barColors.length] ?? '#1565c0';
                       const label = `${task.text}: ${date(start)} to ${date(end)}, ${end - start} days${estimated ? ', estimated' : ''}`;
                       const assignees = task.people.length > 0 && <span className={styles.assignees}>{task.people.map(person => {
@@ -313,10 +315,11 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                           {!url && person.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}
                         </span>;
                       })}</span>;
-                      const barStyle = { backgroundColor: color, borderColor: color, color: readableTextColor(color), minWidth: 36 + task.people.length * 18 };
-                      const barClass = `${styles.roadmapBar} ${estimated ? styles.estimatedBar : ''} ${selectedId === task.id && canManage ? styles.selectedBar : ''} ${pickingTask ? styles.pickableBar : ''}`;
+                      const minBarWidth = 36 + task.people.length * 18 + (hasUnmitigatedRisks ? 22 : 0);
+                      const barStyle = { backgroundColor: color, borderColor: hasUnmitigatedRisks ? '#c5221f' : color, color: readableTextColor(color), minWidth: minBarWidth };
+                      const barClass = `${styles.roadmapBar} ${hasUnmitigatedRisks ? styles.riskBar : ''} ${estimated ? styles.estimatedBar : ''} ${selectedId === task.id && canManage ? styles.selectedBar : ''} ${pickingTask ? styles.pickableBar : ''}`;
                       return <div key={task.id} className={styles.roadmapItem}
-                        style={{ left: position(start), width: `${(end - start) / days * 100}%`, top: itemLevel * 56 }}>
+                        style={{ left: position(start), width: `${(end - start) / days * 100}%`, top: itemLevel * 56, ...(hasUnmitigatedRisks ? { minWidth: minBarWidth } : {}) }}>
                         {canManage
                           ? <button type="button" className={barClass}
                             style={barStyle}
@@ -332,8 +335,19 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                             title={`${task.text} · ${date(start)} – ${date(end)}${estimated ? ' · Estimated: 1 day' : ''}${task.dueDate ? ` · Due ${task.dueDate.slice(0, 10)}` : ''}`}>
                             {assignees}<span className={styles.estimateLabel}>{effort}</span>
                           </div>}
+                        {hasUnmitigatedRisks && (onShowUnmitigatedRisks
+                            ? <button type="button" className={styles.roadmapRiskWarning}
+                              aria-label={`View unmitigated risks for ${task.text}`} title="View unmitigated risks"
+                              onClick={onShowUnmitigatedRisks}>
+                              <span className="material-icons" aria-hidden="true">error</span>
+                            </button>
+                            : <span className={styles.roadmapRiskWarning} role="img" aria-label={`Unmitigated risks for ${task.text}`}>
+                              <span className="material-icons" aria-hidden="true">error</span>
+                            </span>)}
                         <span className={styles.roadmapLabel} title={`${section}: ${task.text} · ${effort}`}
-                          style={{ maxWidth: end === start || taskIndex === lane.length - 1 ? 180 : '100%' }}>{task.text}</span>
+                          style={{ maxWidth: end === start || taskIndex === lane.length - 1 ? 180 : '100%' }}>
+                          <span className={styles.roadmapTaskName}>{task.text}</span>
+                        </span>
                       </div>;
                     })}
                   </div>
