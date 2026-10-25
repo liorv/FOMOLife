@@ -32,6 +32,21 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ## Task editing
 
+### Shareable project URLs
+
+Opening a project or selecting Tasks, Plan, Roadmap, or Risks updates the browser
+URL. Copy the address to share the same view with another project member:
+
+- `/?tab=projects&projectId=<id>` opens Tasks.
+- `/?tab=projects&projectId=<id>&view=plan` opens Plan (also `roadmap` or `risks`).
+- `/?tab=projects&projectId=<id>&subprojectId=<section-id>` expands and scrolls
+  to a task section.
+
+Links use stable IDs, survive reloads, and support browser Back/Forward.
+Signed-out visitors return to the destination after signing in. Links do not
+grant access: the signed-in user's existing project permissions still apply.
+Deleted or inaccessible targets display an availability message.
+
 In a project's Plan view, the navbar's Add dependency button asks you to select
 a task, then select what it depends on. Cancel or Escape exits without saving.
 The existing graph and table dependency actions remain available.
@@ -91,6 +106,29 @@ table. The timeline includes deadlines before today or beyond the task forecast.
 Milestones and deadlines are saved with the project. Clear Milestones and Clear
 Deadlines have blue backgrounds, sit above their respective tables, and ask for confirmation; neither
 operation deletes tasks or Plan dependencies.
+
+### Deadline and milestone notifications
+
+The notification bell includes approaching deadlines, missed deadlines, and
+achieved milestones for active projects you belong to. Both project due dates
+and Roadmap deadlines are included. Roadmap deadlines are independent calendar
+markers: "missed" means the date has passed, not that a linked task is incomplete.
+Archived projects and templates do not produce these alerts.
+
+In Notification settings, independently toggle each event type and choose
+deadline reminders on the date, one day before (default), or one week before.
+These preferences apply to both the bell and device push; device push still
+requires permission and an enabled subscription. Turning a type off hides its
+existing alerts. Alerts support the bell's existing read, dismiss, clear-all,
+and history controls; opening one navigates to the project's Roadmap.
+
+The daily `/api/tasks/cron` scheduler checks deadlines even when the app is
+closed. Project saves and notification refreshes also check these events.
+Calendar boundaries use UTC; a deadline is missed starting the following day.
+A milestone is achieved when every linked task exists and is complete.
+Repeated scans, reopening/recompleting tasks, and dismissing alerts do not
+repeat the same event. Changing a deadline date or milestone dependency set
+allows a new alert for that revised event.
 
 The document canvas and PWA launch background are black; app content keeps its
 existing light/dark backgrounds. This is a best-effort backdrop for Android
@@ -171,6 +209,20 @@ the map.
 Selected graph links use the theme pink without a rectangular focus outline.
 Managers can use **Clear dependencies** above the table to remove all task
 requirements and section hints after confirmation; tasks and sections are kept.
+
+In Plan, a labeled **Link tasks in order** button sits beside each section name
+in the Dependency Table (not in the narrow add-link icon column). Click once to link
+the full section in its current Tasks sort order (manual, due date, or alphabetical):
+task 1 -> task 2 -> task 3, with no preview or confirmation. Filtered-out and completed
+tasks are included; recurring tasks are named as excluded in the save status. Existing
+links are preserved and duplicates skipped. Cycles prevent saving the chain.
+All new links are validated and saved in one request/write, so a failed save
+does not leave a partially created chain. This is a one-time action: adding or
+reordering tasks later does not automatically change dependencies.
+
+Switching workspace stages or sections inside the open project updates browser
+history locally without a server navigation, keeping selection responsive while
+preserving shareable URLs and browser Back/Forward.
 
 Click a row's **Add dependency**, then **Select what it depends on** in the
 table or map. The dependent stays highlighted while you choose its prerequisite.

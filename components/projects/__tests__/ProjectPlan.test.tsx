@@ -21,6 +21,111 @@ const project: ProjectItem = {
 
 afterEach(() => jest.restoreAllMocks());
 
+describe('linking a section in order', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  const third = { id: 'c', text: 'Archive', done: true, favorite: false, dueDate: null, people: [] };
+  const chainProject: ProjectItem = {
+    ...project,
+    subprojects: [{ ...project.subprojects[0]!, tasks: [...project.subprojects[0]!.tasks, third] }],
+  };
+  const next: PlanLink = { prerequisite: { kind: 'task', id: 'b' }, dependent: { kind: 'task', id: 'c' } };
+
+  function linkInOrder() {
+    fireEvent.click(screen.getByRole('button', { name: 'Link tasks in order: Prepare' }));
+  }
+
+  it('places the labeled action beside the section name, not in the narrow icon column', () => {
+    render(<ProjectPlan project={chainProject} canManage />);
+    const action = screen.getByRole('button', { name: 'Link tasks in order: Prepare' });
+    const heading = action.closest('th');
+    expect(heading).not.toBeNull();
+    expect(heading).toContainElement(screen.getByRole('button', { name: 'Inspect: Prepare (section, Section)' }));
+    expect(action).toHaveTextContent('Link tasks in order');
+    const row = heading!.closest('tr')!;
+    const cells = within(row).getAllByRole('cell');
+    expect(within(cells[1]!).getAllByRole('button')).toHaveLength(1);
+    expect(within(cells[1]!).getByRole('button', { name: 'Add dependency for Prepare (section, Section)' })).toBeInTheDocument();
+  });
+
+  it('links the entire section with one click, includes completed tasks, and reports recurring exclusions', async () => {
+    const save = jest.fn().mockResolvedValue([link, next]);
+    render(<ProjectPlan project={chainProject} canManage onSaveLinks={save} />);
+    linkInOrder();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove dependency: Archive depends on Publish' })).toBeInTheDocument();
+    await waitFor(() => expect(save).toHaveBeenCalledWith([link, next]));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Recurring tasks excluded: Weekly review.'));
+  });
+
+  it('adds the whole chain with a single batch callback and skips existing links', async () => {
+    const saved = jest.fn();
+    const save = jest.fn().mockResolvedValue([link, next]);
+    const singleSave = jest.fn();
+    render(<ProjectPlan project={{ ...chainProject, planningLinks: [link] }} canManage
+      onSaveLinks={save} onSaveLink={singleSave} onLinksSaved={saved} />);
+    linkInOrder();
+    await waitFor(() => expect(saved).toHaveBeenCalledWith([link, next]));
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith([next]);
+    expect(singleSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveTextContent('Tasks linked in order.');
+    expect(screen.getByRole('status')).toHaveTextContent('Saved.');
+  });
+
+  it('uses displayed alphabetical order rather than stored manual order', async () => {
+    const save = jest.fn().mockResolvedValue([]);
+    render(<ProjectPlan project={{ ...chainProject, subprojects: [{ ...chainProject.subprojects[0]!, sortMode: 'alphabetical' }] }}
+      canManage onSaveLinks={save} />);
+    linkInOrder();
+    await waitFor(() => expect(save).toHaveBeenCalledWith([
+      { prerequisite: { kind: 'task', id: 'c' }, dependent: { kind: 'task', id: 'a' } }, link,
+    ]));
+  });
+
+  it('blocks cycles through existing links before saving', () => {
+    const save = jest.fn();
+    render(<ProjectPlan project={{ ...chainProject, planningLinks: [{ prerequisite: next.dependent, dependent: link.prerequisite }] }}
+      canManage onSaveLinks={save} />);
+    linkInOrder();
+    expect(screen.getByRole('alert')).toHaveTextContent('cycle');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('uses one API request and rolls back the entire optimistic chain on failure', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockRejectedValue(new Error('Offline'));
+    render(<ProjectPlan project={chainProject} canManage />);
+    linkInOrder();
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Offline'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ action: 'add-many', links: [link, next] });
+    expect(screen.queryByRole('button', { name: /^Remove dependency:/ })).not.toBeInTheDocument();
+  });
+
+  it('reports an already-linked chain without saving again', () => {
+    const save = jest.fn();
+    render(<ProjectPlan project={{ ...chainProject, planningLinks: [link, next] }} canManage onSaveLinks={save} />);
+    linkInOrder();
+    expect(screen.getByText(/These tasks are already linked in this order/)).toHaveAttribute('role', 'status');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('explains when a section has too few non-recurring tasks', () => {
+    const save = jest.fn();
+    render(<ProjectPlan project={project} canManage onSaveLinks={save} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Link tasks in order: Launch' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('At least two non-recurring tasks');
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('does not expose the action to read-only members', () => {
+    render(<ProjectPlan project={chainProject} canManage={false} />);
+    expect(screen.queryByRole('button', { name: /^Link tasks in order:/ })).not.toBeInTheDocument();
+  });
+});
+
 function savedResponse(links: PlanLink[]) {
   const response = Response.json({ ...project, planningLinks: links });
   Object.defineProperty(response, 'ok', { value: true });

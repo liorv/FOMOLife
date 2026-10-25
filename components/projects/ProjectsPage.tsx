@@ -8,7 +8,7 @@ import type { ProjectItem, ProjectSubproject, Contact, TaskItem, ProjectTask } f
 import { generateId, preloadImages } from "@myorg/utils";
 import { getCachedContacts, getContactsCacheAge } from "@/lib/client/contactsCache";
 import { getCachedProjectsSync, setCachedProjects, areProjectsStale, invalidateProjectsCache } from '@/lib/client/projectsCache';
-import ProjectsDashboard from "./ProjectsDashboard";
+import ProjectsDashboard, { type WorkspaceView } from "./ProjectsDashboard";
 import ConversationThread from "../ConversationThread";
 import layoutStyles from "../../styles/projects/layout.module.css";
 import { PROJECT_COLORS, ColorPickerOverlay } from "@myorg/ui";
@@ -45,6 +45,10 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   const pathname = usePathname();
   const embeddedUid = searchParams.get("uid") ?? "";
   const initialProjectId = searchParams.get("projectId") || null;
+  const targetSubprojectId = searchParams.get('subprojectId');
+  const requestedView = searchParams.get('view');
+  const workspaceView: WorkspaceView = requestedView === 'plan' || requestedView === 'roadmap' || requestedView === 'risks'
+    ? requestedView : 'tasks';
   const apiClient = useMemo(
     () => createProjectsApiClient("", { uid: embeddedUid }),
     [embeddedUid],
@@ -117,21 +121,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   >(null);
 
   useEffect(() => {
-    const onNav = (e: CustomEvent) => {
-      if (e.detail?.projectId) {
-        setEditingProjectId(e.detail.projectId);
-      }
-    };
-    window.addEventListener('framework-navigate-project', onNav as EventListener);
-    return () => {
-      window.removeEventListener('framework-navigate-project', onNav as EventListener);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (initialProjectId) {
-      setEditingProjectId(initialProjectId);
-    }
+    setEditingProjectId(initialProjectId);
   }, [initialProjectId]);
 
   const [colorPickerProjectId, setColorPickerProjectId] = useState<string | null>(null);
@@ -144,6 +134,40 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   const targetThreadId = searchParams.get('threadId');
   const targetTaskId = searchParams.get('taskId');
   const targetTab = searchParams.get('tab');
+
+  const navigateProject = useCallback((id: string | null, view: WorkspaceView = 'tasks', subprojectId: string | null = null) => {
+    setEditingProjectId(id);
+    setNotificationTaskId(null);
+    setActiveThread(null);
+    const params = new URLSearchParams(searchParams.toString());
+    for (const key of ['q', 'projectId', 'view', 'subprojectId', 'taskId', 'threadId', 'feedbackId']) params.delete(key);
+    params.set('tab', 'projects');
+    if (id) {
+      params.set('projectId', id);
+      if (view !== 'tasks') params.set('view', view);
+      if (subprojectId) params.set('subprojectId', subprojectId);
+    }
+    const url = `${pathname}?${params.toString()}`;
+    if (id && id === initialProjectId) {
+      // Workspace and section changes only select already-loaded client content.
+      window.history.pushState(null, '', url);
+    } else {
+      router.push(url, { scroll: false });
+    }
+  }, [searchParams, router, pathname, initialProjectId]);
+
+  useEffect(() => {
+    const onNav = (event: Event) => {
+      const id = (event as CustomEvent<{ projectId?: string }>).detail?.projectId;
+      if (id) navigateProject(id);
+    };
+    window.addEventListener('framework-navigate-project', onNav);
+    return () => window.removeEventListener('framework-navigate-project', onNav);
+  }, [navigateProject]);
+
+  useEffect(() => {
+    setActiveThread(null);
+  }, [initialProjectId, targetThreadId, targetTaskId, requestedView, targetSubprojectId]);
 
   useEffect(() => {
     if (targetTab !== 'projects' || !initialProjectId || (!targetThreadId && !targetTaskId)) {
@@ -227,6 +251,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     string | null
   >(null);
   const [filters, setFilters] = useState<string[]>(['hide_completed']);
+  useEffect(() => {
+    if (targetSubprojectId) setFilters(['hide_completed']);
+  }, [targetSubprojectId]);
   const projectSearch = searchParams.get('q') || '';
   const onReadyCalledRef = useRef(false);
 
@@ -441,6 +468,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
 
   const handleGlobalNavigate = useCallback((tab: string, query: string, projectId?: string) => {
     const nextParams = new URLSearchParams(searchParams.toString());
+    for (const key of ['view', 'subprojectId', 'taskId', 'threadId']) nextParams.delete(key);
     nextParams.set('tab', tab);
     if (query) {
       nextParams.set('q', query);
@@ -509,7 +537,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     });
     setProjects(prev => [...prev, created]);
     invalidateProjectsCache();
-    setEditingProjectId(created.id);
+    navigateProject(created.id);
   };
 
   const handleConvertTemplate = async (projectId: string, isTemplate: boolean) => {
@@ -727,7 +755,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     const snapshotProjects = projects;
     setProjects((prev) => prev.filter((item) => item.id !== projectId));
     if (editingProjectId === projectId) {
-      setEditingProjectId(null);
+      navigateProject(null);
     }
     setPendingDeleteProjectId(null);
     try {
@@ -851,19 +879,17 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     .filter(Boolean)
     .join(" ");
 
-  const selectProject = (id: string | null) => {
-    setEditingProjectId(id);
-    if (id === null) {
-      setNotificationTaskId(null);
-      const nextParams = new URLSearchParams(searchParams.toString());
-      nextParams.delete('q');
-      nextParams.delete('projectId');
-      nextParams.delete('taskId');
-      router.replace(`${pathname}?${nextParams.toString()}`);
-    }
-  };
+  const selectProject = (id: string | null) => navigateProject(id);
 
   const showProjectEditor = Boolean(editingProjectId) && projects.some((p) => p.id === editingProjectId);
+  const linkedProject = projects.find(project => project.id === initialProjectId);
+  const navigationError = !loading && initialProjectId && !linkedProject
+    ? 'This project is no longer available or you do not have access to it.'
+    : linkedProject && targetSubprojectId && !linkedProject.subprojects.some(sub => sub.id === targetSubprojectId)
+      ? 'This project section is no longer available.'
+      : requestedView && !['tasks', 'plan', 'roadmap', 'risks'].includes(requestedView)
+        ? 'This project view is not available.'
+        : null;
 
   return (
     <div style={style}>
@@ -883,6 +909,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
             {loading ? (
               <div className={layoutStyles.message}>Loading projects…</div>
             ) : null}
+            {navigationError ? <div role="alert" className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}>{navigationError}</div> : null}
             {errorMessage ? (
               <div
                 className={`${layoutStyles.message} ${layoutStyles.errorMessage}`}
@@ -914,10 +941,19 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
                 const saved = await apiUpdateProject(projectId, {}, () => apiClient.updateProjectPlan(projectId, action, link));
                 return saved.planningLinks ?? [];
               }}
+              onPlanBatchMutation={async (projectId, links) => {
+                const saved = await apiUpdateProject(projectId, {}, () => apiClient.addProjectPlanLinks(projectId, links));
+                if (!saved.planningLinks) throw new Error('The server returned an invalid plan. Reload the project before retrying.');
+                return saved.planningLinks;
+              }}
               projects={projects}
               people={people}
               selectedProjectId={editingProjectId}
               selectedTaskId={notificationTaskId}
+              selectedWorkspaceView={workspaceView}
+              onWorkspaceChange={(view) => navigateProject(editingProjectId, view)}
+              selectedSubprojectId={targetSubprojectId}
+              onSelectSubproject={(id) => navigateProject(editingProjectId, 'tasks', id)}
               onSelectProject={selectProject}
               onApplyChange={handleProjectApplyChange}
               onAddSubproject={handleAddSubproject}

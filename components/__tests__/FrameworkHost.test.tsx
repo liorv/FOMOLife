@@ -76,6 +76,13 @@ describe('global search on manual tab navigation', () => {
     expect(mockReplace).toHaveBeenLastCalledWith('/?tab=people&keep=value');
   });
 
+  it('clears project view and section targets when leaving Projects', async () => {
+    mockSearchParams = new URLSearchParams('tab=projects&projectId=p&view=roadmap&subprojectId=s');
+    await renderHost();
+    fireEvent.click(screen.getByRole('button', { name: 'Contacts' }));
+    expect(mockReplace).toHaveBeenLastCalledWith('/?tab=people');
+  });
+
   it('clears search on mobile tab swipes', async () => {
     const { container } = await renderHost();
     const main = container.querySelector('main')!;

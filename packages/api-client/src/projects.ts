@@ -5,6 +5,7 @@ export interface ProjectsApiClient {
   createProject: (input: ProjectCreateInput) => Promise<ProjectItem>;
   updateProject: (id: string, patch: ProjectUpdateInput) => Promise<ProjectItem>;
   updateProjectPlan: (id: string, action: 'add' | 'remove', link: NonNullable<ProjectItem['planningLinks']>[number]) => Promise<ProjectItem>;
+  addProjectPlanLinks: (id: string, links: NonNullable<ProjectItem['planningLinks']>) => Promise<ProjectItem>;
   promoteSubproject: (projectId: string, subprojectId: string) => Promise<{ sourceProject: ProjectItem; project: ProjectItem }>;
   deleteProject: (id: string) => Promise<void>;
 }
@@ -61,6 +62,15 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, link }),
+      });
+      return parseResponse<ProjectItem>(response);
+    },
+
+    async addProjectPlanLinks(id, links): Promise<ProjectItem> {
+      const response = await fetch(`${baseUrl}/api/projects/${encodeURIComponent(id)}/plan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add-many', links }),
       });
       return parseResponse<ProjectItem>(response);
     },

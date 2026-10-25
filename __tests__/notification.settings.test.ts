@@ -112,6 +112,27 @@ it('persists preferences through the authenticated settings endpoint', async () 
   expect((await (await GET()).json()).settings.events).toMatchObject(settings.events);
 });
 
+it('persists deadline timing and all three Roadmap preferences', async () => {
+  const settings = { ...reminders, deadlineNotifyBefore: '7d', events: {
+    deadlinesApproaching: false, deadlinesMissed: false, milestonesAchieved: false,
+  } };
+  const response = await PUT(new Request('http://localhost/api/tasks/notification-settings', {
+    method: 'PUT', body: JSON.stringify(settings),
+  }));
+  expect(response.status).toBe(200);
+  expect((await (await GET()).json()).settings).toMatchObject(settings);
+  await saveTaskNotificationSettings('settings-user', reminders);
+  expect((await getTaskNotificationSettings('settings-user')).deadlineNotifyBefore).toBe('7d');
+});
+
+it.each(['2d', false, null, 7])('rejects invalid deadline reminder timing %j', async deadlineNotifyBefore => {
+  const response = await PUT(new Request('http://localhost/api/tasks/notification-settings', {
+    method: 'PUT', body: JSON.stringify({ ...reminders, deadlineNotifyBefore }),
+  }));
+  expect(response.status).toBe(400);
+  expect(mockRows.size).toBe(0);
+});
+
 it.each([{ ownTaskCompletions: 'false' }, { unknown: false }, null, []])('rejects invalid event preferences %j', async (events) => {
   const response = await PUT(new Request('http://localhost/api/tasks/notification-settings', {
     method: 'PUT', body: JSON.stringify({ ...reminders, events }),

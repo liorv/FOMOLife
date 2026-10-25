@@ -80,3 +80,59 @@ it('surfaces persistence failures rather than returning success', async () => {
   expect(await response.json()).toEqual({ error: 'Unable to save the project plan. Please retry.' });
   log.mockRestore();
 });
+
+describe('atomic dependency additions', () => {
+  const next: PlanLink = { prerequisite: { kind: 'task', id: 'b' }, dependent: { kind: 'task', id: 'c' } };
+
+  beforeEach(() => {
+    project.subprojects[0]!.tasks.push({
+      id: 'c', text: 'Third', done: false, dueDate: null, favorite: false, people: [],
+    });
+  });
+
+  it('saves a complete chain once, preserving existing links and skipping duplicates', async () => {
+    project.planningLinks = [link];
+    const response = await PATCH(request({ action: 'add-many', links: [link, next, next] }), context);
+    expect(response.status).toBe(200);
+    expect((await response.json()).planningLinks).toEqual([link, next]);
+    expect(updateProject).toHaveBeenCalledTimes(1);
+    expect(updateProject).toHaveBeenCalledWith('owner', 'p', { planningLinks: [link, next] });
+  });
+
+  it('rejects the entire batch when its combined links form a cycle', async () => {
+    const reverse: PlanLink = { prerequisite: next.dependent, dependent: link.prerequisite };
+    expect((await PATCH(request({ action: 'add-many', links: [link, next, reverse] }), context)).status).toBe(400);
+    expect(updateProject).not.toHaveBeenCalled();
+    expect(project.planningLinks).toBeUndefined();
+  });
+
+  it('rejects cycles through existing dependencies without writing', async () => {
+    project.planningLinks = [{ prerequisite: next.dependent, dependent: link.prerequisite }];
+    expect((await PATCH(request({ action: 'add-many', links: [link, next] }), context)).status).toBe(400);
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
+  it.each([null, [], [{}], [link, {}]])('rejects invalid batch %j without writing', async links => {
+    expect((await PATCH(request({ action: 'add-many', links }), context)).status).toBe(400);
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing or recurring tasks for the entire batch', async () => {
+    project.subprojects[0]!.tasks[2]!.recurrence = 'weekly';
+    expect((await PATCH(request({ action: 'add-many', links: [link, next] }), context)).status).toBe(400);
+    project.subprojects[0]!.tasks.pop();
+    expect((await PATCH(request({ action: 'add-many', links: [link, next] }), context)).status).toBe(400);
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
+  it('leaves the original plan unchanged on a failed write', async () => {
+    project.planningLinks = [link];
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.mocked(updateProject).mockRejectedValue(new Error('Storage unavailable'));
+    const response = await PATCH(request({ action: 'add-many', links: [next] }), context);
+    expect(response.status).toBe(500);
+    expect(project.planningLinks).toEqual([link]);
+    expect(updateProject).toHaveBeenCalledTimes(1);
+    log.mockRestore();
+  });
+});

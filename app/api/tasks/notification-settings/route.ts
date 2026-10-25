@@ -16,6 +16,7 @@ const VALID_NOTIFY_BEFORE: TaskNotifyBefore[] = ['7d', '1d', '0d', 'off'];
 function isValidSettings(body: unknown): body is TaskNotificationSettings {
   if (!body || typeof body !== 'object') return false;
   const b = body as Record<string, unknown>;
+  if (b.deadlineNotifyBefore !== undefined && !VALID_NOTIFY_BEFORE.includes(b.deadlineNotifyBefore as TaskNotifyBefore)) return false;
   for (const key of ['createdByMe', 'assignedToMe']) {
     const category = b[key] as Record<string, unknown> | undefined;
     if (!category || typeof category.enabled !== 'boolean') return false;

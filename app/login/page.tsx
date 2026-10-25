@@ -12,15 +12,14 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const env = getFrameworkServerEnv();
   const session = await getFrameworkSession();
-  if (session.isAuthenticated) {
-    redirect('/');
-  }
-
   const resolvedSearch = (await searchParams) ?? {};
   const errorValue = Array.isArray(resolvedSearch.error) ? resolvedSearch.error[0] : resolvedSearch.error;
   const showMissingUserError = errorValue === 'missing-user';
   const returnToRaw = Array.isArray(resolvedSearch.returnTo) ? resolvedSearch.returnTo[0] : resolvedSearch.returnTo;
-  const returnTo = typeof returnToRaw === 'string' && returnToRaw.startsWith('/') ? returnToRaw : '/';
+  const returnTo = typeof returnToRaw === 'string' && returnToRaw.startsWith('/') && !returnToRaw.startsWith('//') && !returnToRaw.includes('\\') ? returnToRaw : '/';
+  if (session.isAuthenticated) {
+    redirect(returnTo);
+  }
   const switchUserRaw = Array.isArray(resolvedSearch.switchUser) ? resolvedSearch.switchUser[0] : resolvedSearch.switchUser;
   const forceAccountSelect = switchUserRaw === '1' || switchUserRaw === 'true';
   const loggedOutRaw = Array.isArray(resolvedSearch.loggedOut) ? resolvedSearch.loggedOut[0] : resolvedSearch.loggedOut;
@@ -54,7 +53,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </button>
           </form>
         ) : env.authMode === 'mock-cookie' ? (
-          <MockCookieLogin showMissingUserError={showMissingUserError} />
+          <MockCookieLogin showMissingUserError={showMissingUserError} returnTo={returnTo} />
         ) : (
           <>
             <OAuthLoginClient returnTo={returnTo} forceAccountSelect={forceAccountSelect} suppressAutoLogin={suppressAutoLogin} />

@@ -5,6 +5,7 @@ import { SubprojectRow } from "@myorg/ui";
 import { applyFilters } from '@myorg/utils';
 import type { ProjectSubproject, ProjectItem, ProjectTask, Contact } from "@myorg/types";
 import type { TaskFilter } from "@myorg/types";
+import { sortSectionTasks } from '@/lib/projects/taskOrder';
 
 // Helper to return visible tasks after applying filters
 function getVisibleTasks(tasks: ProjectTask[] = [], taskFilters: TaskFilter[] = [], currentUserName?: string | undefined) {
@@ -108,29 +109,7 @@ export default function SubprojectEditor({
   };
 
   // Apply sorting to visible tasks
-  const sortedTasks = useMemo(() => {
-    if (sortMode === 'none') return visibleTasks;
-    
-    return [...visibleTasks].sort((a, b) => {
-      if (sortMode === 'due_date') {
-        // Tasks without due dates go to the end
-        if (!a.dueDate && !b.dueDate) return 0;
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        
-        const dateA = new Date(a.dueDate);
-        const dateB = new Date(b.dueDate);
-        return dateA.getTime() - dateB.getTime(); // ascending order (earliest first)
-      } else if (sortMode === 'alphabetical') {
-        // Alphabetical sort by task text
-        const textA = (a.text || '').toLowerCase();
-        const textB = (b.text || '').toLowerCase();
-        return textA.localeCompare(textB);
-      }
-      
-      return 0;
-    });
-  }, [visibleTasks, sortMode]);
+  const sortedTasks = useMemo(() => sortSectionTasks(visibleTasks, sortMode), [visibleTasks, sortMode]);
 
   const collapsed = sub.collapsed;
 
@@ -201,6 +180,7 @@ export default function SubprojectEditor({
 
   return (
     <div
+      data-subproject-id={sub.id}
       className={`${wrapperClass} ${isDragging ? 'subproject-tile--dragging' : ''} ${isDragOverSubprojectTile ? 'subproject-tile--drag-over' : ''}`}
       draggable
       onDragStart={handleSubDragStart}

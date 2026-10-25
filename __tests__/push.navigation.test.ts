@@ -35,6 +35,7 @@ describe('notification click destinations', () => {
       [`${origin}/dashboard`, '/'],
       ['/dashboard/?tab=projects&projectId=project&taskId=task', '/?tab=projects&projectId=project&taskId=task'],
       ['/?tab=feedback&feedbackId=feedback', '/?tab=feedback&feedbackId=feedback'],
+      ['/?tab=projects&projectId=project&view=roadmap', '/?tab=projects&projectId=project&view=roadmap'],
       ['/?tab=projects&projectId=project&threadId=task%3Aproject%3Atask', '/?tab=projects&projectId=project&threadId=task%3Aproject%3Atask'],
     ]) {
       const instance = worker(existingClient);

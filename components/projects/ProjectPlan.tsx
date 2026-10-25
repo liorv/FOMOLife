@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import type { ProjectItem, ProjectTask } from '@myorg/types';
 import { ModalOverlay, TaskModal } from '@myorg/ui';
 import {
-  getLinkWarning, getPlanLayers, getPlanNodes, isRequirement, linkKey, planKey,
+  getLinkWarning, getPlanLayers, getPlanNodes, getSectionSequence, isRequirement, linkKey, planKey,
   validatePlanLinks, type PlanLink, type PlanNode,
 } from '@/lib/projects/planning';
 import styles from './ProjectPlan.module.css';
@@ -22,6 +22,7 @@ type Props = {
   actionsContainer?: HTMLElement | null;
   onLinksSaved?: (links: PlanLink[]) => void;
   onSaveLink?: (action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
+  onSaveLinks?: (links: PlanLink[]) => Promise<PlanLink[]>;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
 };
 
@@ -31,13 +32,13 @@ const mapNodeHeight = 44;
 const mapColumnGap = 40;
 const mapRowGap = 16;
 
-export default function ProjectPlan({ project, canManage, actionsContainer, onLinksSaved, onSaveLink, onApplyChange }: Props) {
+export default function ProjectPlan({ project, canManage, actionsContainer, onLinksSaved, onSaveLink, onSaveLinks, onApplyChange }: Props) {
   const [subprojects, setSubprojects] = useState(project.subprojects);
   const subprojectsRef = useRef(subprojects);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
-  const { links, saveState, save: saveLink, dismissError: dismissSaveError } = usePlanLinks({
-    projectId: project.id, initialLinks: project.planningLinks ?? EMPTY_LINKS, onSaveLink, onLinksSaved,
+  const { links, saveState, save: saveLink, saveMany, dismissError: dismissSaveError } = usePlanLinks({
+    projectId: project.id, initialLinks: project.planningLinks ?? EMPTY_LINKS, onSaveLink, onSaveLinks, onLinksSaved,
   });
   const [selectedKey, setSelectedKey] = useState('');
   const [selecting, setSelecting] = useState(false);
@@ -47,6 +48,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const [confirmClear, setConfirmClear] = useState(false);
   const clearButtonRef = useRef<HTMLButtonElement>(null);
   const cancelClearRef = useRef<HTMLButtonElement>(null);
+  const [sequenceNotice, setSequenceNotice] = useState('');
   const [graphTarget, setGraphTarget] = useState<{ kind: 'node' | 'link'; key: string } | null>(null);
   const selectionActiveRef = useRef(false);
   const addRef = useRef<HTMLButtonElement | null>(null);
@@ -165,6 +167,32 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     cancelClearRef.current?.focus();
     return () => trigger?.focus();
   }, [confirmClear]);
+
+  function linkSectionInOrder(sectionId: string) {
+    if (!canManage || saveState.status === 'saving') return;
+    setError('');
+    setSequenceNotice('');
+    const section = subprojectsRef.current.find(item => item.id === sectionId);
+    if (!section) {
+      setError('This section no longer exists. Reload the project before linking tasks.');
+      return;
+    }
+    const sequence = getSectionSequence(section, links);
+    if (sequence.tasks.length < 2) {
+      setError('At least two non-recurring tasks are needed to link tasks in order.');
+      return;
+    }
+    const reason = validatePlanLinks(nodes, [...links, ...sequence.additions]);
+    if (reason) { setError(reason); return; }
+    const exclusions = sequence.excluded.length
+      ? ` Recurring tasks excluded: ${sequence.excluded.map(task => task.text || 'Untitled task').join(', ')}.`
+      : '';
+    if (!sequence.additions.length) {
+      setSequenceNotice(`These tasks are already linked in this order.${exclusions}`);
+      return;
+    }
+    void saveMany(sequence.additions, `Tasks linked in order.${exclusions}`);
+  }
 
   function clearDependencies() {
     if (!canManage || saveState.status === 'saving') return;
@@ -325,6 +353,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
         <button type="button" onClick={cancelSelection}>Cancel</button>
       </div>}
       {error && <p role="alert" className={styles.error}>{error}</p>}
+      {sequenceNotice && <p role="status" className={styles.status}>{sequenceNotice}</p>}
       <PlanSaveStatus state={saveState} onDismiss={dismissSaveError} />
       {graphError && <p role="alert" className={styles.error}>{graphError} Remove invalid dependencies below to repair the plan.</p>}
 
@@ -410,13 +439,23 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
           <tbody>{nodes.map(node => {
             const dependencies = links.filter(link => planKey(link.dependent) === node.key);
             return <React.Fragment key={node.key}><tr className={`${node.ref.kind === 'section' ? styles.sectionRow : styles.taskRow} ${selectedKey === node.key ? styles.selectedRow : ''}`}>
-              <th scope="row">{nodeCard(node)}</th>
+              <th scope="row">{node.ref.kind === 'section' && canManage ? (
+                <div className={styles.sectionLabel}>
+                  {nodeCard(node)}
+                  <button type="button" className={styles.sequenceButton}
+                    disabled={selecting || saveState.status === 'saving'}
+                    aria-label={`Link tasks in order: ${node.text}`}
+                    title="Link all non-recurring tasks in this section's current sort order"
+                    onClick={() => linkSectionInOrder(node.ref.id)}>Link tasks in order</button>
+                </div>
+              ) : nodeCard(node)}</th>
               <td>{dependencies.length ? dependencyList(dependencies, true) : <span className={styles.noLinks}>—</span>}</td>
               {canManage && <td className={styles.actions}><button type="button"
                 disabled={selecting || !!graphError}
                 aria-label={`Add dependency for ${node.text} (${node.ref.kind}, ${node.context})`}
                 title={`Add dependency for ${node.text}`}
-                onClick={event => startSelection(node, event.currentTarget)}><span className="material-icons" aria-hidden="true">add_link</span></button></td>}
+                onClick={event => startSelection(node, event.currentTarget)}><span className="material-icons" aria-hidden="true">add_link</span></button>
+              </td>}
             </tr>
               {node.ref.kind === 'task' && editingTask?.id === node.ref.id && <tr><td colSpan={canManage ? 3 : 2}>
                 <div ref={editorRef} className={styles.taskEditor} role="region" aria-label={`Edit ${editingTask.text}`}>

@@ -3,6 +3,13 @@ import type { ProjectItem } from '@myorg/types';
 import { invalidateProjectsCache } from '@/lib/client/projectsCache';
 import ProjectsPage from '../ProjectsPage';
 
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
+  usePathname: () => '/',
+}));
+
 jest.mock('@myorg/api-client', () => ({
   createProjectsApiClient: () => mockProjectsApi,
   createContactsApiClient: () => ({ listContacts: async () => [] }),
@@ -65,6 +72,7 @@ it('persists and opens a newly created blank template', async () => {
   await waitFor(() => expect(mockProjectsApi.createProject).toHaveBeenCalledWith({ text: 'Blank workflow', isTemplate: true }));
   await waitFor(() => expect(screen.getByTestId('selected')).toHaveTextContent('created'));
   expect(invalidateProjectsCache).toHaveBeenCalled();
+  expect(mockPush).toHaveBeenCalledWith('/?tab=projects&projectId=created', { scroll: false });
 });
 
 it('waits for queued template edits before asking the server to copy it', async () => {
@@ -79,6 +87,7 @@ it('waits for queued template edits before asking the server to copy it', async 
   await act(async () => { finish({ ...template, description: 'Latest definition' }); });
   expect(mockProjectsApi.createProject).toHaveBeenCalledWith({ text: 'My project', templateId: 'template' });
   expect(screen.getByTestId('selected')).toHaveTextContent('created');
+  expect(mockPush).toHaveBeenCalledWith('/?tab=projects&projectId=created', { scroll: false });
 });
 
 it('persists conversion and clears archival state', async () => {

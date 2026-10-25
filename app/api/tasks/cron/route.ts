@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { runTaskDueNotificationsJob } from '@/lib/tasks/server/taskNotificationsStore';
+import { listAllUsersData } from '@/lib/tasks/server/allUsersData';
+import { listProjects } from '@/lib/projects/server/projectsStore';
+import { scanRoadmapNotifications } from '@/lib/projects/server/roadmapNotifications';
 
 /**
  * GET /api/tasks/cron
- * Scans every user's tasks for upcoming due dates and sends reminder
- * notifications per their notification settings. Intended to be invoked
+ * Scans task due dates, project deadlines, and milestone achievements and
+ * sends notifications per user settings. Intended to be invoked
  * once per day by a scheduler (e.g. Vercel Cron).
  *
  * If CRON_SECRET is set, requests must include a matching
@@ -22,7 +25,11 @@ export async function GET(request: Request) {
 
   try {
     const result = await runTaskDueNotificationsJob();
-    return NextResponse.json({ ok: true, ...result });
+    let roadmapNotified = 0;
+    for (const { userId } of await listAllUsersData()) {
+      roadmapNotified += await scanRoadmapNotifications(userId, await listProjects(userId));
+    }
+    return NextResponse.json({ ok: true, ...result, roadmapNotified });
   } catch (err) {
     console.error('[tasks/cron] error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -8,6 +8,9 @@ const storage = createStorageProvider();
 const SETTINGS_KEY_PREFIX = '__task_notif_settings__';
 
 export const DEFAULT_NOTIFICATION_EVENTS: NotificationEventSettings = {
+  deadlinesApproaching: true,
+  deadlinesMissed: true,
+  milestonesAchieved: true,
   ownTaskCompletions: true,
   othersTaskCompletions: true,
   taskAssignments: true,
@@ -18,6 +21,7 @@ export const DEFAULT_NOTIFICATION_EVENTS: NotificationEventSettings = {
 };
 
 export const DEFAULT_TASK_NOTIFICATION_SETTINGS: TaskNotificationSettings = {
+  deadlineNotifyBefore: '1d',
   createdByMe: { enabled: true, notifyBefore: '1d' },
   assignedToMe: { enabled: true, notifyBefore: '1d' },
   events: DEFAULT_NOTIFICATION_EVENTS,
@@ -27,6 +31,7 @@ export async function getTaskNotificationSettings(userId: string) {
   const persisted = await storage.load(`${SETTINGS_KEY_PREFIX}${userId}`);
   const settings = persisted?.settings as TaskNotificationSettings | undefined;
   return {
+    deadlineNotifyBefore: settings?.deadlineNotifyBefore ?? '1d',
     createdByMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.createdByMe, ...settings?.createdByMe },
     assignedToMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.assignedToMe, ...settings?.assignedToMe },
     events: { ...DEFAULT_NOTIFICATION_EVENTS, ...settings?.events },
@@ -37,7 +42,7 @@ export async function saveTaskNotificationSettings(userId: string, settings: Tas
   await withKeyedLock(`notification-settings:${userId}`, async () => {
     const current = await getTaskNotificationSettings(userId);
     await storage.save(`${SETTINGS_KEY_PREFIX}${userId}`, {
-      settings: { ...settings, events: { ...current.events, ...settings.events } },
+      settings: { ...current, ...settings, events: { ...current.events, ...settings.events } },
     });
   });
 }

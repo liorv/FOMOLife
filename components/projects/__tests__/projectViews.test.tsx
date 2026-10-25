@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import ProjectEditor from "../ProjectEditor";
 import ProjectsDashboard from "../ProjectsDashboard";
 import { validateProjectImportJson } from "@/lib/projects/importProject";
 
@@ -12,6 +13,57 @@ afterEach(() => {
   localStorage.removeItem("project-swipe-actions-hint-dismissed");
   localStorage.removeItem("fomo:projects:view");
   jest.restoreAllMocks();
+});
+
+it("renders URL-controlled workspace changes and reports user navigation", () => {
+  const onWorkspaceChange = jest.fn();
+  const props = {
+    projects: [{ id: "p", text: "Release", color: "#1976D2", subprojects: [] }],
+    selectedProjectId: "p",
+    onWorkspaceChange,
+  };
+  const page = render(<ProjectsDashboard {...props} selectedWorkspaceView="plan" />);
+  expect(screen.getByRole("button", { name: "Plan" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
+  expect(onWorkspaceChange).toHaveBeenCalledWith("roadmap");
+  page.rerender(<ProjectsDashboard {...props} selectedWorkspaceView="roadmap" />);
+  expect(screen.getByRole("button", { name: "Roadmap" })).toHaveAttribute("aria-pressed", "true");
+  page.rerender(<ProjectsDashboard {...props} selectedWorkspaceView="tasks" />);
+  expect(screen.getByRole("button", { name: "Tasks" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it("expands linked sections without saving UI state and reports section navigation", () => {
+  const onApplyChange = jest.fn();
+  const onSelectSubproject = jest.fn();
+  const project = {
+    id: "p", text: "Release", color: "#1976D2",
+    subprojects: [
+      { id: "s", text: "Launch", collapsed: true, tasks: [] },
+      { id: "s2", text: "Follow-up", collapsed: true, tasks: [] },
+    ],
+  };
+  const page = render(<ProjectEditor project={project} targetSubprojectId="s" onSelectSubproject={onSelectSubproject} onApplyChange={onApplyChange} />);
+  expect(page.container.querySelector('[data-subproject-id="s"]')).toHaveClass("expanded");
+  expect(page.container.querySelector('[data-subproject-id="s2"]')).not.toHaveClass("expanded");
+  expect(onApplyChange).not.toHaveBeenCalled();
+  page.rerender(<ProjectEditor project={project} targetSubprojectId="s2" onSelectSubproject={onSelectSubproject} onApplyChange={onApplyChange} />);
+  expect(page.container.querySelector('[data-subproject-id="s2"]')).toHaveClass("expanded");
+  fireEvent.click(screen.getByText("Follow-up"));
+  expect(onSelectSubproject).toHaveBeenLastCalledWith(null);
+  fireEvent.click(screen.getByText("Follow-up"));
+  expect(onSelectSubproject).toHaveBeenLastCalledWith("s2");
+});
+
+it("expands a linked section when fresh data adds it after a cached project renders", () => {
+  const onApplyChange = jest.fn();
+  const project = { id: "p", text: "Release", color: "#1976D2", subprojects: [] };
+  const page = render(<ProjectEditor project={project} targetSubprojectId="new-section" onApplyChange={onApplyChange} />);
+  page.rerender(<ProjectEditor project={{
+    ...project,
+    subprojects: [{ id: "new-section", text: "New section", collapsed: true, tasks: [] }],
+  }} targetSubprojectId="new-section" onApplyChange={onApplyChange} />);
+  expect(page.container.querySelector('[data-subproject-id="new-section"]')).toHaveClass("expanded");
+  expect(onApplyChange).not.toHaveBeenCalled();
 });
 
 it("opens the optional Plan view and returns to the unchanged task editor", () => {

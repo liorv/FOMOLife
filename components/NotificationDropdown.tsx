@@ -21,7 +21,7 @@ interface FeedbackNotification {
 
 interface ProjectNotification {
   id: string;
-  type: 'project_comment' | 'task_completed' | 'task_assigned';
+  type: 'project_comment' | 'task_completed' | 'task_assigned' | 'deadline_approaching' | 'deadline_missed' | 'milestone_achieved';
   threadId: string;
   projectId: string;
   taskId?: string;
@@ -543,17 +543,25 @@ export function NotificationDropdown({
                 >
                   <div className="notif-type-row">
                     <span className="notif-type-badge notif-type-project">
-                      {notif.type === 'task_completed' ? 'Task completed' : notif.type === 'task_assigned' ? 'Task assigned' : 'Project'}
+                      {notif.type === 'deadline_approaching' ? 'Deadline approaching'
+                        : notif.type === 'deadline_missed' ? 'Deadline missed'
+                        : notif.type === 'milestone_achieved' ? 'Milestone achieved'
+                        : notif.type === 'task_completed' ? 'Task completed' : notif.type === 'task_assigned' ? 'Task assigned' : 'Project'}
                     </span>
                     <span className="feedback-notif-time">{timeAgo(notif.createdAt)}</span>
                   </div>
                   <div className="feedback-notif-body">
                     <span className="feedback-notif-icon material-icons">
-                      {notif.type === 'task_completed' ? 'check_circle' : notif.type === 'task_assigned' ? 'person_add' : 'chat_bubble_outline'}
+                      {notif.type === 'deadline_approaching' ? 'schedule'
+                        : notif.type === 'deadline_missed' ? 'event_busy'
+                        : notif.type === 'milestone_achieved' ? 'star'
+                        : notif.type === 'task_completed' ? 'check_circle' : notif.type === 'task_assigned' ? 'person_add' : 'chat_bubble_outline'}
                     </span>
                     <div className="feedback-notif-text">
                       <span className="feedback-notif-author">{notif.commentAuthorName}</span>
-                      {notif.type === 'task_completed'
+                      {notif.type === 'deadline_approaching' || notif.type === 'deadline_missed' || notif.type === 'milestone_achieved'
+                        ? <p className="feedback-notif-preview">{notif.commentText}</p>
+                        : notif.type === 'task_completed'
                         ? <>{' completed '}<span className="feedback-notif-title">&ldquo;{notif.threadTitle}&rdquo;</span></>
                         : notif.type === 'task_assigned'
                         ? <>{' '}{notif.commentText}</>

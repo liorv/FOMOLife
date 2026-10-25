@@ -108,6 +108,30 @@ describe('notification badge synchronization', () => {
     await screen.findByText(/all caught up/);
   });
 
+  it.each([
+    ['deadline_approaching', 'Deadline approaching'],
+    ['deadline_missed', 'Deadline missed'],
+    ['milestone_achieved', 'Milestone achieved'],
+  ])('renders %s and opens the Roadmap after dismissing it', async (type, label) => {
+    const notification = {
+      id: 'roadmap:event', type, projectId: 'project', threadId: 'proj:project',
+      threadTitle: label, commentAuthorName: 'Project', commentText: 'Roadmap event details',
+      createdAt: new Date().toISOString(), read: false,
+    };
+    global.fetch = jest.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).includes('/projects/') && init?.method !== 'PATCH'
+        ? { ok: true, json: async () => ({ notifications: [notification], unreadCount: 1 }) } as Response
+        : response(0));
+    render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    fireEvent.click(await screen.findByText(label));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/?tab=projects&projectId=project&view=roadmap'));
+    expect(global.fetch).toHaveBeenCalledWith('/api/projects/notifications', expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify({ ids: ['roadmap:event'], action: 'dismiss' }),
+    }));
+  });
+
   it.each(['feedback', 'projects', 'tasks'])(
     'does not show caught up while the %s source is still loading',
     async (source) => {

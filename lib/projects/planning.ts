@@ -1,4 +1,5 @@
 import type { ProjectItem, ProjectSubproject } from '@myorg/types';
+import { sortSectionTasks } from './taskOrder';
 
 export type PlanLink = NonNullable<ProjectItem['planningLinks']>[number];
 export type PlanEntityRef = PlanLink['prerequisite'];
@@ -20,6 +21,18 @@ export function planKey(ref: PlanEntityRef): string {
 
 export function linkKey(link: PlanLink): string {
   return JSON.stringify([planKey(link.prerequisite), planKey(link.dependent)]);
+}
+
+export function getSectionSequence(section: ProjectSubproject, links: PlanLink[]) {
+  const ordered = sortSectionTasks(section.tasks, section.sortMode);
+  const tasks = ordered.filter(task => !task.recurrence);
+  const excluded = ordered.filter(task => !!task.recurrence);
+  const existing = new Set(links.map(linkKey));
+  const additions = tasks.slice(1).map((task, index): PlanLink => ({
+    prerequisite: { kind: 'task', id: tasks[index]!.id },
+    dependent: { kind: 'task', id: task.id },
+  })).filter(link => !existing.has(linkKey(link)));
+  return { tasks, excluded, additions };
 }
 
 export function isRequirement(link: PlanLink): boolean {

@@ -28,7 +28,7 @@ export interface ProjectThreadComment {
 
 export interface ProjectNotification {
   id: string;
-  type: 'project_comment' | 'task_completed' | 'task_assigned';
+  type: 'project_comment' | 'task_completed' | 'task_assigned' | 'deadline_approaching' | 'deadline_missed' | 'milestone_achieved';
   /** e.g. "proj:abc" or "task:abc:xyz" */
   threadId: string;
   /** The project to open for navigation */
@@ -130,7 +130,7 @@ export async function addThreadComment(opts: {
   const now = comment.createdAt;
 
   const notifPromises = Array.from(toNotify).map((recipientId) =>
-    appendNotification(recipientId, {
+    appendProjectNotification(recipientId, {
       id: generateId(),
       type: 'project_comment',
       threadId,
@@ -169,37 +169,47 @@ async function loadNotifications(userId: string): Promise<ProjectNotification[]>
 }
 
 async function saveNotifications(userId: string, notifs: ProjectNotification[]): Promise<void> {
-  notifCache.set(userId, notifs);
   const data: PersistedUserData = { notifications: notifs };
   await storage.save(`${NOTIF_KEY_PREFIX}${userId}`, data);
+  notifCache.set(userId, notifs);
 }
 
 function notifLockKey(userId: string) {
   return `project-notifs:${userId}`;
 }
 
-async function appendNotification(userId: string, notif: ProjectNotification): Promise<void> {
-  if (!await isNotificationEnabled(userId, notificationEvent(userId, notif))) return;
-  await withKeyedLock(notifLockKey(userId), async () => {
+export async function appendProjectNotification(userId: string, notif: ProjectNotification): Promise<boolean> {
+  if (!await isNotificationEnabled(userId, notificationEvent(userId, notif))) return false;
+  const added = await withKeyedLock(notifLockKey(userId), async () => {
     const notifs = await loadNotifications(userId);
+    if (notifs.some((item) => item.id === notif.id)) return false;
     const trimmed = [notif, ...notifs].slice(0, 100);
     await saveNotifications(userId, trimmed);
+    return true;
   });
+  if (!added) return true;
 
-  const body = notif.type === 'task_completed' || notif.type === 'task_assigned'
+  const isRoadmap = notif.type === 'deadline_approaching' || notif.type === 'deadline_missed' || notif.type === 'milestone_achieved';
+  const body = isRoadmap
+    ? notif.commentText
+    : notif.type === 'task_completed' || notif.type === 'task_assigned'
     ? `${notif.commentAuthorName} ${notif.commentText}`
     : `${notif.commentAuthorName}: ${notif.commentText}`;
   await sendPushToUser(userId, {
     title: notif.threadTitle,
     body,
     url: getNotificationUrl(notif),
-    tag: `project-${notif.threadId}`,
+    tag: isRoadmap ? notif.id : `project-${notif.threadId}`,
   }).catch((error) => {
     console.error('Failed to send project notification push:', error);
   });
+  return true;
 }
 
 function notificationEvent(userId: string, notif: ProjectNotification): keyof NotificationEventSettings {
+  if (notif.type === 'deadline_approaching') return 'deadlinesApproaching';
+  if (notif.type === 'deadline_missed') return 'deadlinesMissed';
+  if (notif.type === 'milestone_achieved') return 'milestonesAchieved';
   if (notif.type === 'task_completed') {
     return notif.commentAuthorId === userId ? 'ownTaskCompletions' : 'othersTaskCompletions';
   }
@@ -257,7 +267,7 @@ export async function notifyTaskCompleted(opts: {
   const threadId = `task:${projectId}:${taskId}`;
   const toNotify = [...new Set([...memberIds, completedByUserId])].filter(Boolean);
   const notifPromises = toNotify.map((recipientId) =>
-    appendNotification(recipientId, {
+    appendProjectNotification(recipientId, {
       id: generateId(),
       type: 'task_completed',
       threadId,
@@ -295,7 +305,7 @@ export async function notifyTaskAssigned(opts: {
   const threadId = `task:${projectId}:${taskId}`;
   const toNotify = assigneeIds.filter((id) => id !== assignedByUserId);
   const notifPromises = toNotify.map((recipientId) =>
-    appendNotification(recipientId, {
+    appendProjectNotification(recipientId, {
       id: generateId(),
       type: 'task_assigned',
       threadId,

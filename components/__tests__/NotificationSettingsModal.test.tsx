@@ -43,6 +43,27 @@ it('restores the previous choice and shows an error when saving fails', async ()
   expect(own).toBeChecked();
 });
 
+it.each(['Deadlines approaching', 'Deadlines missed', 'Milestones achieved'])('saves the %s toggle', async title => {
+  const key = { 'Deadlines approaching': 'deadlinesApproaching', 'Deadlines missed': 'deadlinesMissed', 'Milestones achieved': 'milestonesAchieved' }[title]!;
+  global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ settings }) })
+    .mockResolvedValue({ ok: true });
+  render(<NotificationSettingsModal onClose={jest.fn()} />);
+  fireEvent.click(await screen.findByRole('switch', { name: title }));
+  await waitFor(() => expect(global.fetch).toHaveBeenLastCalledWith('/api/tasks/notification-settings', expect.objectContaining({
+    body: JSON.stringify({ ...settings, events: { ...settings.events, [key]: false } }),
+  })));
+});
+
+it('saves deadline reminder timing independently of task reminders', async () => {
+  global.fetch = jest.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ settings }) })
+    .mockResolvedValue({ ok: true });
+  render(<NotificationSettingsModal onClose={jest.fn()} />);
+  fireEvent.change(await screen.findByRole('combobox', { name: 'Deadline reminder timing' }), { target: { value: '7d' } });
+  await waitFor(() => expect(global.fetch).toHaveBeenLastCalledWith('/api/tasks/notification-settings', expect.objectContaining({
+    body: JSON.stringify({ ...settings, deadlineNotifyBefore: '7d' }),
+  })));
+});
+
 it('disables controls after a failed load instead of saving defaults over preferences', async () => {
   global.fetch = jest.fn().mockResolvedValue({ ok: false });
   render(<NotificationSettingsModal onClose={jest.fn()} />);

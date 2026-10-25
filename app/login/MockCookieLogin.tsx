@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 
 type MockCookieLoginProps = {
   showMissingUserError: boolean;
+  returnTo?: string;
 };
 
-export default function MockCookieLogin({ showMissingUserError }: MockCookieLoginProps) {
+export default function MockCookieLogin({ showMissingUserError, returnTo = '/' }: MockCookieLoginProps) {
   const [userId, setUserId] = useState('');
   const [existingUsers, setExistingUsers] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -93,7 +94,7 @@ export default function MockCookieLogin({ showMissingUserError }: MockCookieLogi
           </div>
         )}
       </div>
-      <input type="hidden" name="returnTo" value="/" />
+      <input type="hidden" name="returnTo" value={returnTo} />
       {showMissingUserError ? <p className="auth-error">Please enter a user ID.</p> : null}
       <button type="submit" className="auth-submit" disabled={!userId.trim()}>
         Sign in

@@ -21,20 +21,24 @@ export async function PATCH(request: Request, context: Context) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  if (!body || typeof body !== 'object' || !('action' in body) || !('link' in body)) {
+  if (!body || typeof body !== 'object' || !('action' in body)) {
     return NextResponse.json({ error: 'A plan action and link are required' }, { status: 400 });
   }
-  const parsed = parsePlanLinks([body.link]);
-  const link = parsed?.[0];
-  if (!link || (body.action !== 'add' && body.action !== 'remove')) {
+  const parsed = body.action === 'add-many'
+    ? parsePlanLinks('links' in body ? body.links : null)
+    : parsePlanLinks('link' in body ? [body.link] : null);
+  if (!parsed?.length || (body.action !== 'add' && body.action !== 'remove' && body.action !== 'add-many')) {
     return NextResponse.json({ error: 'Invalid plan action or link' }, { status: 400 });
   }
   const current = project.planningLinks ?? [];
+  const keys = new Set(parsed.map(linkKey));
+  const additions = new Map(parsed.map(link => [linkKey(link), link]));
+  current.forEach(link => additions.delete(linkKey(link)));
   const links = body.action === 'remove'
-    ? current.filter(item => linkKey(item) !== linkKey(link))
-    : current.some(item => linkKey(item) === linkKey(link)) ? current : [...current, link];
+    ? current.filter(item => !keys.has(linkKey(item)))
+    : [...current, ...additions.values()];
   // Removing a stale link must remain possible after tasks are deleted or changed elsewhere.
-  const error = body.action === 'add' ? validatePlanLinks(getPlanNodes(project), links) : null;
+  const error = body.action !== 'remove' ? validatePlanLinks(getPlanNodes(project), links) : null;
   if (error) return NextResponse.json({ error }, { status: 400 });
   const owner = await resolveProjectOwner(id, session.userId);
   try {

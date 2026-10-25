@@ -36,17 +36,22 @@ function hexToRgb(hex: string | undefined): string {
 
 // ─── Main dashboard component ─────────────────────────────────────────────────
 
-type WorkspaceView = 'tasks' | 'plan' | 'roadmap' | 'risks';
+export type WorkspaceView = 'tasks' | 'plan' | 'roadmap' | 'risks';
 const WORKSPACE_ORDER: WorkspaceView[] = ['tasks', 'plan', 'roadmap', 'risks'];
 
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
   canManage?: boolean;
   onPlanMutation?: (projectId: string, action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
+  onPlanBatchMutation?: (projectId: string, links: PlanLink[]) => Promise<PlanLink[]>;
   projects?: ProjectItem[];
   people?: any[];
   selectedProjectId?: string | null;
   selectedTaskId?: string | null;
+  selectedWorkspaceView?: WorkspaceView;
+  onWorkspaceChange?: (view: WorkspaceView) => void;
+  selectedSubprojectId?: string | null;
+  onSelectSubproject?: (id: string | null) => void;
   onSelectProject?: (id: string | null) => void;
   onApplyChange?: (projectId: string, updated: Partial<ProjectItem>) => void;
   onAddSubproject?: (projectId: string, name: string) => void;
@@ -91,10 +96,15 @@ function isProjectView(value: string | null): value is ProjectView {
 export default function ProjectsDashboard({
   canManage = true,
   onPlanMutation,
+  onPlanBatchMutation,
   projects = [] as ProjectItem[],
   people = [] as any[],
   selectedProjectId,
   selectedTaskId,
+  selectedWorkspaceView,
+  onWorkspaceChange,
+  selectedSubprojectId,
+  onSelectSubproject,
   onSelectProject,
   onApplyChange,
   onAddSubproject,
@@ -131,9 +141,10 @@ export default function ProjectsDashboard({
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
   const [workspace, setWorkspace] = useState<{ projectId: string; view: Exclude<WorkspaceView, 'tasks'>; riskFilter?: 'unmitigated' } | null>(null);
   const [planActionsContainer, setPlanActionsContainer] = useState<HTMLDivElement | null>(null);
-  const showingPlan = workspace?.projectId === selectedProject?.id && workspace?.view === 'plan';
-  const showingRoadmap = workspace?.projectId === selectedProject?.id && workspace?.view === 'roadmap';
-  const showingRisks = workspace?.projectId === selectedProject?.id && workspace?.view === 'risks';
+  const activeView = selectedWorkspaceView ?? (workspace?.projectId === selectedProject?.id ? workspace?.view : 'tasks');
+  const showingPlan = activeView === 'plan';
+  const showingRoadmap = activeView === 'roadmap';
+  const showingRisks = activeView === 'risks';
   const showingTasks = !showingPlan && !showingRoadmap && !showingRisks;
   const workspaceView: WorkspaceView = showingPlan ? 'plan' : showingRoadmap ? 'roadmap' : showingRisks ? 'risks' : 'tasks';
   const [workspaceDirection, setWorkspaceDirection] = useState<'forward' | 'backward' | 'none'>('none');
@@ -141,6 +152,7 @@ export default function ProjectsDashboard({
     if (!selectedProject || view === workspaceView) return;
     setWorkspaceDirection(WORKSPACE_ORDER.indexOf(view) > WORKSPACE_ORDER.indexOf(workspaceView) ? 'forward' : 'backward');
     setWorkspace(view === 'tasks' ? null : { projectId: selectedProject.id, view, ...(riskFilter ? { riskFilter } : {}) });
+    onWorkspaceChange?.(view);
   };
   useEffect(() => {
     setWorkspace(null);
@@ -407,6 +419,7 @@ export default function ProjectsDashboard({
                   actionsContainer={planActionsContainer}
                   {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                   {...(onPlanMutation ? { onSaveLink: (action, link) => onPlanMutation(selectedProject.id, action, link) } : {})}
+                  {...(onPlanBatchMutation ? { onSaveLinks: (links: PlanLink[]) => onPlanBatchMutation(selectedProject.id, links) } : {})}
                 />
               ) : showingRoadmap ? (
                 <ProjectRoadmap key={selectedProject.id} project={selectedProject} links={selectedProject.planningLinks ?? []} people={people}
@@ -614,6 +627,8 @@ export default function ProjectsDashboard({
               onToggleFilter={onToggleFilter}
               key={selectedProject.id}
               project={selectedProject}
+              targetSubprojectId={selectedSubprojectId ?? null}
+              {...(onSelectSubproject ? { onSelectSubproject } : {})}
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }

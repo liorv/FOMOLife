@@ -19,6 +19,8 @@ interface LocalProject extends ProjectItem {
 interface ProjectEditorProps {
   project: ProjectItem;
   targetTaskId?: string | null;
+  targetSubprojectId?: string | null;
+  onSelectSubproject?: (id: string | null) => void;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
   allPeople?: Contact[];
   onCreatePerson?: (name: string) => void;
@@ -72,6 +74,8 @@ function initLocalProject(project: ProjectItem): LocalProject {
 export default function ProjectEditor({
   project,
   targetTaskId,
+  targetSubprojectId,
+  onSelectSubproject,
   onApplyChange,
   allPeople,
   onCreatePerson,
@@ -407,6 +411,18 @@ export default function ProjectEditor({
     }));
   }, [targetTaskId, project.id]);
 
+  const targetSubprojectExists = project.subprojects.some(sub => sub.id === targetSubprojectId);
+  useEffect(() => {
+    if (!targetSubprojectId) return;
+    setLocal(previous => ({
+      ...previous,
+      subprojects: previous.subprojects.map(sub => sub.id === targetSubprojectId ? { ...sub, collapsed: false } : sub),
+    }));
+    const element = Array.from(editorContainerRef.current?.querySelectorAll<HTMLElement>('[data-subproject-id]') ?? [])
+      .find(element => element.dataset.subprojectId === targetSubprojectId);
+    element?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  }, [targetSubprojectId, targetSubprojectExists, project.id]);
+
   // Scroll expanded task into view
   useEffect(() => {
     if (!editorTaskId || !editorContainerRef.current) return;
@@ -524,6 +540,10 @@ export default function ProjectEditor({
     // each see the result of the previous call, not the stale closure value.
     const current = localRef.current;
     const subToToggle = (current.subprojects || []).find((s) => s.id === id);
+    if (subToToggle) {
+      if (subToToggle.collapsed) onSelectSubproject?.(id);
+      else if (id === targetSubprojectId) onSelectSubproject?.(null);
+    }
 
     // If currently expanded (about to collapse) and it's empty — delete it silently
     if (subToToggle && !subToToggle.collapsed && !subToToggle.isProjectLevel) {

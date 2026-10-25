@@ -6,6 +6,7 @@ import {
   dismissProjectNotifications,
 } from '@/lib/projects/server/projectCommentsStore';
 import { listProjects } from '@/lib/projects/server/projectsStore';
+import { scanRoadmapNotifications } from '@/lib/projects/server/roadmapNotifications';
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,12 +19,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const showDismissed = searchParams.get('dismissed') === '1';
 
+  const projects = await listProjects(session.userId);
+  await scanRoadmapNotifications(session.userId, projects);
   const all = await listProjectNotifications(session.userId);
 
   // Auto-dismiss notifications for tasks that no longer exist
   const staleDismissIds: string[] = [];
   try {
-    const projects = await listProjects(session.userId);
     const projectMap = new Map(projects.map((p) => [p.id, p]));
     for (const n of all) {
       if (n.dismissed) continue;

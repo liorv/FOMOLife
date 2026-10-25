@@ -14,16 +14,15 @@ type Options = {
   projectId: string;
   initialLinks: PlanLink[];
   onSaveLink?: ((action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>) | undefined;
+  onSaveLinks?: ((links: PlanLink[]) => Promise<PlanLink[]>) | undefined;
   onLinksSaved?: ((links: PlanLink[]) => void) | undefined;
 };
-
-const without = (links: PlanLink[], link: PlanLink) => links.filter(item => linkKey(item) !== linkKey(link));
 
 /**
  * Applies dependency changes immediately and persists them in order in the background.
  * Server results replace local links only once every queued save has settled; a failed save is undone.
  */
-export function usePlanLinks({ projectId, initialLinks, onSaveLink, onLinksSaved }: Options) {
+export function usePlanLinks({ projectId, initialLinks, onSaveLink, onSaveLinks, onLinksSaved }: Options) {
   const [links, setLinks] = useState(initialLinks);
   const [saveState, setSaveState] = useState<PlanSaveState>({ status: 'idle' });
   const linksRef = useRef(links);
@@ -54,15 +53,31 @@ export function usePlanLinks({ projectId, initialLinks, onSaveLink, onLinksSaved
   }
 
   function save(action: 'add' | 'remove', link: PlanLink, description: string): Promise<void> {
-    apply(action === 'add' ? [...without(linksRef.current, link), link] : without(linksRef.current, link));
+    return enqueue(action, [link], description, async () => onSaveLink
+      ? onSaveLink(action, link)
+      : (await createProjectsApiClient().updateProjectPlan(projectId, action, link)).planningLinks);
+  }
+
+  function saveMany(additions: PlanLink[], description: string): Promise<void> {
+    const existing = new Set(linksRef.current.map(linkKey));
+    const changes = additions.filter(link => !existing.has(linkKey(link)));
+    if (!changes.length) return Promise.resolve();
+    return enqueue('add', changes, description, async () => onSaveLinks
+      ? onSaveLinks(changes)
+      : (await createProjectsApiClient().addProjectPlanLinks(projectId, changes)).planningLinks);
+  }
+
+  function enqueue(action: 'add' | 'remove', changes: PlanLink[], description: string,
+    persist: () => Promise<unknown>): Promise<void> {
+    const keys = new Set(changes.map(linkKey));
+    const withoutChanges = (items: PlanLink[]) => items.filter(item => !keys.has(linkKey(item)));
+    apply(action === 'add' ? [...withoutChanges(linksRef.current), ...changes] : withoutChanges(linksRef.current));
     if (!pendingRef.current) failedRef.current = false;
     pendingRef.current++;
     setSaveState({ status: 'saving' });
     const run = async () => {
       try {
-        const savedLinks = onSaveLink
-          ? await onSaveLink(action, link)
-          : (await createProjectsApiClient().updateProjectPlan(projectId, action, link)).planningLinks;
+        const savedLinks = await persist();
         const saved = parsePlanLinks(savedLinks);
         if (!saved) throw new Error('The server returned an invalid plan. Reload the project before retrying.');
         pendingRef.current--;
@@ -74,7 +89,7 @@ export function usePlanLinks({ projectId, initialLinks, onSaveLink, onLinksSaved
       } catch (failure) {
         pendingRef.current--;
         failedRef.current = true;
-        apply(action === 'add' ? without(linksRef.current, link) : [...without(linksRef.current, link), link]);
+        apply(action === 'add' ? withoutChanges(linksRef.current) : [...withoutChanges(linksRef.current), ...changes]);
         const reason = failure instanceof Error ? failure.message : 'Unable to save the dependency.';
         if (mountedRef.current) setSaveState({ status: 'error', message: `Couldn't save: ${description} ${reason} The change was undone.` });
       }
@@ -83,5 +98,5 @@ export function usePlanLinks({ projectId, initialLinks, onSaveLink, onLinksSaved
     return queueRef.current;
   }
 
-  return { links, linksRef, saveState, save, dismissError: () => setSaveState({ status: 'idle' }) };
+  return { links, linksRef, saveState, save, saveMany, dismissError: () => setSaveState({ status: 'idle' }) };
 }

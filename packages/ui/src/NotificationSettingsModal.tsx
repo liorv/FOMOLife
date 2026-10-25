@@ -26,6 +26,15 @@ const EVENT_GROUPS: {
   events: { key: keyof NotificationEventSettings; title: string }[];
 }[] = [
   {
+    title: 'Deadlines & milestones',
+    icon: 'flag',
+    events: [
+      { key: 'deadlinesApproaching', title: 'Deadlines approaching' },
+      { key: 'deadlinesMissed', title: 'Deadlines missed' },
+      { key: 'milestonesAchieved', title: 'Milestones achieved' },
+    ],
+  },
+  {
     title: 'Task activity',
     icon: 'task_alt',
     events: [
@@ -256,6 +265,26 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
                       </label>
                     ))}
                   </div>
+                  {group.title === 'Deadlines & milestones' && (
+                    <label className={styles.reminderRow}>
+                      <span>Deadline reminder timing</span>
+                      <select
+                        className={styles.timing}
+                        aria-label="Deadline reminder timing"
+                        value={settings.deadlineNotifyBefore ?? '1d'}
+                        disabled={saving || loadFailed || settings.events?.deadlinesApproaching === false}
+                        onChange={event => {
+                          const option = NOTIFY_BEFORE_OPTIONS.find(item => item.value === event.target.value);
+                          if (option) void persist({ ...settings, deadlineNotifyBefore: option.value });
+                        }}
+                      >
+                        {settings.deadlineNotifyBefore === 'off' && <option value="off">Off</option>}
+                        {NOTIFY_BEFORE_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </section>
               ))}
               <section className={`${styles.section} ${styles.reminders}`} aria-label="Due-date reminders">

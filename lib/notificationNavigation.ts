@@ -1,4 +1,5 @@
 type NotificationTarget =
+  | { type: 'deadline_approaching' | 'deadline_missed' | 'milestone_achieved'; projectId: string }
   | { type: 'feedback_comment' | 'feedback_status'; feedbackId: string }
   | { type: 'project_comment' | 'task_completed' | 'task_assigned'; projectId: string; threadId: string; taskId?: string }
   | { type: 'task_due'; projectId?: string; taskId: string };
@@ -8,6 +9,10 @@ export function getNotificationUrl(notification: NotificationTarget): string {
   if (notification.type === 'feedback_comment' || notification.type === 'feedback_status') {
     params.set('tab', 'feedback');
     params.set('feedbackId', notification.feedbackId);
+  } else if (notification.type === 'deadline_approaching' || notification.type === 'deadline_missed' || notification.type === 'milestone_achieved') {
+    params.set('tab', 'projects');
+    params.set('projectId', notification.projectId);
+    params.set('view', 'roadmap');
   } else if ('threadId' in notification) {
     params.set('tab', 'projects');
     params.set('projectId', notification.projectId);

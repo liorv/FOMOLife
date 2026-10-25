@@ -19,6 +19,9 @@ export interface TaskNotificationCategorySettings {
 }
 
 export interface NotificationEventSettings {
+  deadlinesApproaching: boolean;
+  deadlinesMissed: boolean;
+  milestonesAchieved: boolean;
   ownTaskCompletions: boolean;
   othersTaskCompletions: boolean;
   taskAssignments: boolean;
@@ -30,6 +33,8 @@ export interface NotificationEventSettings {
 
 /** Per-user preferences shared by the notification bell and device push. */
 export interface TaskNotificationSettings {
+  /** Reminder timing for project and Roadmap deadlines; defaults to one day. */
+  deadlineNotifyBefore?: TaskNotifyBefore;
   /** Settings for tasks the user created/owns. */
   createdByMe: TaskNotificationCategorySettings;
   /** Settings for tasks the user is assigned to (project tasks). */

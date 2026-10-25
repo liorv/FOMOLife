@@ -3,6 +3,7 @@ import 'server-only';
 import { createStorageProvider } from '@myorg/storage';
 import type { PlanLink } from '@/lib/projects/planning';
 import type { ProjectMilestone, ProjectDeadline, ProjectRisk } from '@myorg/types';
+import { notifyRoadmapMembers } from './roadmapNotifications';
 
 const storage = createStorageProvider();
 
@@ -286,6 +287,11 @@ export async function updateProject(
   const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
   await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) });
   projectsByUser.set(userId, next);
+  if (updated) {
+    await notifyRoadmapMembers(updated, userId).catch(error => {
+      console.error('Failed to deliver project Roadmap notifications:', error);
+    });
+  }
   return updated;
 }
 
