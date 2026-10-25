@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ProjectItem, ProjectTask } from '@myorg/types';
-import { TaskModal } from '@myorg/ui';
+import { ModalOverlay, TaskModal } from '@myorg/ui';
 import {
   getLinkWarning, getPlanLayers, getPlanNodes, isRequirement, linkKey, planKey,
   validatePlanLinks, type PlanLink, type PlanNode,
@@ -41,6 +41,9 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const [selecting, setSelecting] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
+  const clearButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelClearRef = useRef<HTMLButtonElement>(null);
   const [graphTarget, setGraphTarget] = useState<{ kind: 'node' | 'link'; key: string } | null>(null);
   const selectionActiveRef = useRef(false);
   const addRef = useRef<HTMLButtonElement | null>(null);
@@ -51,6 +54,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const zoomAnchorRef = useRef<{ x: number; y: number; left: number; top: number; ratio: number } | null>(null);
   const promptRef = useRef<HTMLParagraphElement>(null);
   const mapId = useId();
+  const clearTitleId = `${mapId}-clear-title`;
   const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
   const nodes = useMemo(() => getPlanNodes(planningProject), [subprojects]);
   const tasks = subprojects.flatMap(section => section.tasks);
@@ -133,6 +137,24 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     else if (selectionActiveRef.current) addRef.current?.focus();
     selectionActiveRef.current = !!selecting;
   }, [selecting]);
+  useEffect(() => {
+    if (!confirmClear) return;
+    const trigger = clearButtonRef.current;
+    cancelClearRef.current?.focus();
+    return () => trigger?.focus();
+  }, [confirmClear]);
+
+  function clearDependencies() {
+    if (!canManage || saveState.status === 'saving') return;
+    setConfirmClear(false);
+    setGraphTarget(null);
+    setSelectedKey('');
+    setSelecting(false);
+    setError('');
+    links.forEach(link => {
+      void saveLink('remove', link, 'Dependencies cleared.');
+    });
+  }
 
   function cancelSelection() {
     setSelecting(false);
@@ -283,8 +305,8 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
           <div ref={mapRef} className={styles.map} role="region" aria-label="Dependency map" tabIndex={0} data-tab-swipe-ignore="true">
             <svg width={mapWidth * zoom} height={mapHeight * zoom} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
               <defs>
-                <marker id={`${mapId}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#000000" /></marker>
-                <marker id={`${mapId}-selected-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1565c0" /></marker>
+                <marker id={`${mapId}-arrow`} viewBox="0 0 8 6" refX="8" refY="3" markerWidth="8" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 8 3 L 0 6 z" fill="#000000" /></marker>
+                <marker id={`${mapId}-selected-arrow`} viewBox="0 0 8 6" refX="8" refY="3" markerWidth="8" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto"><path d="M 0 0 L 8 3 L 0 6 z" fill="var(--color-accent, #d32998)" /></marker>
               </defs>
               <g>{links.map(link => {
                 const from = positions.get(planKey(link.prerequisite));
@@ -294,7 +316,10 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
                 const end = to.x - 4;
                 const fromY = from.y + mapNodeHeight / 2;
                 const toY = to.y + mapNodeHeight / 2;
-                const path = `M ${start} ${fromY} C ${start + 16} ${fromY}, ${end - 16} ${toY}, ${end} ${toY}`;
+                // Keep the entire arrowhead on a straight landing, clear of the bend.
+                const landing = end - 10;
+                const bend = (landing - start) / 2;
+                const path = `M ${start} ${fromY} C ${start + bend} ${fromY}, ${landing - bend} ${toY}, ${landing} ${toY} L ${end} ${toY}`;
                 return <g key={linkKey(link)} className={styles.edge}
                   role={canManage ? 'button' : undefined} tabIndex={canManage && !selecting ? 0 : undefined}
                   aria-label={`Dependency: ${name(planKey(link.dependent))} depends on ${name(planKey(link.prerequisite))}`}
@@ -308,7 +333,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
                     }
                   }}>
                   <path d={path} fill="none" stroke="transparent" strokeWidth="16" pointerEvents="stroke" />
-                  <path d={path} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray={isRequirement(link) ? undefined : '6 5'} markerEnd={`url(#${mapId}-${graphTarget?.kind === 'link' && graphTarget.key === linkKey(link) ? 'selected-arrow' : 'arrow'})`} aria-hidden="true" />
+                  <path d={path} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={isRequirement(link) ? undefined : '6 5'} markerEnd={`url(#${mapId}-${graphTarget?.kind === 'link' && graphTarget.key === linkKey(link) ? 'selected-arrow' : 'arrow'})`} aria-hidden="true" />
                 </g>;
               })}</g>
               {positioned.map(({ node, x, y }) => <foreignObject key={node.key} x={x} y={y} width={mapNodeWidth} height={mapNodeHeight}>{nodeCard(node)}</foreignObject>)}
@@ -316,7 +341,38 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
           </div>
           </div>
         </>}
-      <h3 className={styles.sectionHeading}>Dependency Table</h3>
+      <div className={styles.tableHeading}>
+        <h3 className={styles.sectionHeading}>Dependency Table</h3>
+        {canManage && <button ref={clearButtonRef} type="button" className={styles.clearButton}
+          disabled={!links.length || selecting || saveState.status === 'saving'}
+          onClick={() => setConfirmClear(true)}>
+          <span className="material-icons" aria-hidden="true">link_off</span>Clear dependencies
+        </button>}
+      </div>
+      <ModalOverlay open={confirmClear} onClose={() => setConfirmClear(false)} ariaLabelledby={clearTitleId}
+        contentClassName={styles.clearDialog}>
+        <div onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            setConfirmClear(false);
+          } else if (event.key === 'Tab') {
+            const buttons = event.currentTarget.querySelectorAll('button');
+            const first = buttons[0];
+            const last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+          }
+        }}>
+          <h3 id={clearTitleId}>Clear all dependencies?</h3>
+          <p>This removes all task requirements and section planning hints from this project. Tasks and sections will not be deleted. This cannot be undone.</p>
+          <div className={styles.clearDialogActions}>
+            <button ref={cancelClearRef} type="button" onClick={() => setConfirmClear(false)}>Cancel</button>
+            <button type="button" className={styles.clearButton} disabled={saveState.status === 'saving'} onClick={clearDependencies}>
+              Clear dependencies
+            </button>
+          </div>
+        </div>
+      </ModalOverlay>
       <div className={styles.sequence}>
         {!nodes.length && <p className={styles.empty}>Add tasks or sections in Tasks to start planning.</p>}
         {!!nodes.length && <table ref={tableRef} className={styles.table} aria-label="Project dependencies" tabIndex={-1}>

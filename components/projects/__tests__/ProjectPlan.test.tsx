@@ -214,7 +214,7 @@ it('renders the map and keeps a read-only plan read-only', () => {
     expect(Number(node.getAttribute('width'))).toBeLessThanOrEqual(160);
     expect(Number(node.getAttribute('height'))).toBeLessThanOrEqual(44);
   });
-  expect(map.querySelector('path[stroke="currentColor"]')).toHaveAttribute('d', 'M 168 34 C 184 34, 188 34, 204 34');
+  expect(map.querySelector('path[stroke="currentColor"]')).toHaveAttribute('d', 'M 168 34 C 181 34, 181 34, 194 34 L 204 34');
   expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument();
   const svg = map.querySelector('svg')!;
   const initialWidth = Number(svg.getAttribute('width'));
@@ -249,6 +249,136 @@ it('shows the dependent highlighted in both map and table during selection', () 
   screen.getAllByRole('button', { name: 'Select prerequisite: Publish (task, Prepare)' }).forEach(node => {
     expect(node).toHaveAttribute('aria-pressed', 'true');
   });
+});
+
+it('gives aligned, offset, and long-span connectors a smooth horizontal landing with compact arrowheads', () => {
+  const taskRef = (id: string) => ({ kind: 'task' as const, id });
+  const planningLinks: PlanLink[] = [
+    { prerequisite: taskRef('a'), dependent: taskRef('b') },
+    { prerequisite: taskRef('a'), dependent: taskRef('c') },
+    { prerequisite: taskRef('a'), dependent: taskRef('d') },
+    { prerequisite: taskRef('b'), dependent: taskRef('e') },
+    { prerequisite: taskRef('c'), dependent: taskRef('e') },
+    { prerequisite: taskRef('d'), dependent: taskRef('e') },
+    { prerequisite: taskRef('a'), dependent: taskRef('e') },
+    { prerequisite: taskRef('a'), dependent: { kind: 'section', id: 'launch' } },
+  ];
+  const graphProject: ProjectItem = {
+    ...project,
+    subprojects: [
+      { id: 'prepare', text: 'Prepare', tasks: ['a', 'b', 'c', 'd', 'e'].map(id => ({
+        id, text: id, done: false, favorite: false, dueDate: null, people: [],
+      })) },
+      project.subprojects[1]!,
+    ],
+    planningLinks,
+  };
+  render(<ProjectPlan project={graphProject} canManage />);
+  const map = screen.getByRole('region', { name: 'Dependency map' });
+  const markers = map.querySelectorAll('marker');
+  expect(markers).toHaveLength(2);
+  markers.forEach(marker => {
+    expect(marker).toHaveAttribute('markerUnits', 'userSpaceOnUse');
+    expect(marker).toHaveAttribute('markerWidth', '8');
+    expect(marker).toHaveAttribute('markerHeight', '6');
+    expect(marker).toHaveAttribute('refX', '8');
+    expect(marker).toHaveAttribute('orient', 'auto');
+  });
+  const directions = new Set<number>();
+  const spans = new Set<number>();
+  within(map).getAllByRole('button', { name: /^Dependency:/ }).forEach(edge => {
+    const [hitArea, curve] = edge.querySelectorAll('path');
+    const path = curve!.getAttribute('d')!;
+    expect(hitArea).toHaveAttribute('d', path);
+    expect(hitArea).toHaveAttribute('stroke-width', '16');
+    expect(curve).toHaveAttribute('stroke-linecap', 'round');
+    expect(curve).toHaveAttribute('stroke-linejoin', 'round');
+    const [startX, startY, control1X, control1Y, control2X, control2Y, landingX, landingY, endX, endY] = path.match(/-?\d+(?:\.\d+)?/g)!.map(Number) as [number, number, number, number, number, number, number, number, number, number];
+    expect(path).toMatch(/^M .* C .* L /);
+    expect(control1Y).toBe(startY);
+    expect(control2Y).toBe(endY);
+    expect(landingY).toBe(endY);
+    expect(endX - landingX).toBe(10);
+    expect(control1X).toBeGreaterThan(startX);
+    expect(control2X).toBeLessThan(landingX);
+    directions.add(Math.sign(endY - startY));
+    spans.add(endX - startX);
+    const originalMarker = curve!.getAttribute('marker-end');
+    fireEvent.click(edge);
+    expect(curve).toHaveAttribute('d', path);
+    expect(curve!.getAttribute('marker-end')).not.toBe(originalMarker);
+  });
+  expect(directions).toEqual(new Set([-1, 0, 1]));
+  expect(spans.size).toBe(2);
+  expect(map.querySelectorAll('path[stroke-dasharray="6 5"]')).toHaveLength(1);
+  expect(markers[1]!.querySelector('path')).toHaveAttribute('fill', 'var(--color-accent, #d32998)');
+});
+
+it('confirms before clearing every task requirement and section hint, without changing tasks', async () => {
+  const hint: PlanLink = { prerequisite: { kind: 'section', id: 'launch' }, dependent: link.dependent };
+  const save = jest.fn().mockResolvedValueOnce([hint]).mockResolvedValueOnce([]);
+  const saved = jest.fn();
+  render(<ProjectPlan project={{ ...project, planningLinks: [link, hint] }} canManage onSaveLink={save} onLinksSaved={saved} />);
+  const clear = screen.getByRole('button', { name: 'Clear dependencies' });
+  expect(clear.querySelector('.material-icons')).toHaveTextContent('link_off');
+  fireEvent.click(clear);
+  const dialog = screen.getByRole('dialog', { name: 'Clear all dependencies?' });
+  const cancel = within(dialog).getByRole('button', { name: 'Cancel' });
+  expect(cancel).toHaveFocus();
+  expect(save).not.toHaveBeenCalled();
+  const confirm = within(dialog).getByRole('button', { name: 'Clear dependencies' });
+  fireEvent.keyDown(cancel, { key: 'Tab', shiftKey: true });
+  expect(confirm).toHaveFocus();
+  fireEvent.keyDown(confirm, { key: 'Tab' });
+  expect(cancel).toHaveFocus();
+  fireEvent.click(confirm);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Dependency map' })).not.toBeInTheDocument();
+  expect(clear).toBeDisabled();
+  await waitFor(() => expect(saved).toHaveBeenCalledWith([]));
+  expect(save.mock.calls).toEqual([['remove', link], ['remove', hint]]);
+  expect(screen.getByRole('status')).toHaveTextContent('Dependencies cleared. Saved.');
+  expect(table().getAllByRole('row')).toHaveLength(6);
+  expect(project.subprojects[0]!.tasks.every(task => !task.done)).toBe(true);
+});
+
+it.each(['Cancel', 'Escape'])('cancels clearing with %s and restores focus without saving', method => {
+  const save = jest.fn();
+  render(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage onSaveLink={save} />);
+  const clear = screen.getByRole('button', { name: 'Clear dependencies' });
+  fireEvent.click(clear);
+  const cancel = within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' });
+  if (method === 'Cancel') fireEvent.click(cancel);
+  else fireEvent.keyDown(cancel, { key: 'Escape' });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(clear).toHaveFocus();
+  expect(save).not.toHaveBeenCalled();
+  expect(screen.getByRole('region', { name: 'Dependency map' })).toBeInTheDocument();
+});
+
+it('retains failed removals, surfaces errors, and allows retrying a partially cleared plan', async () => {
+  const hint: PlanLink = { prerequisite: { kind: 'section', id: 'launch' }, dependent: link.dependent };
+  const save = jest.fn().mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce([link]).mockResolvedValueOnce([]);
+  render(<ProjectPlan project={{ ...project, planningLinks: [link, hint] }} canManage onSaveLink={save} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Clear dependencies' }));
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Clear dependencies' }));
+  await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
+  expect(screen.queryByText('Dependencies cleared. Saved.')).not.toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Dependency: Publish depends on Get approval' })).toBeInTheDocument();
+  const clear = screen.getByRole('button', { name: 'Clear dependencies' });
+  await waitFor(() => expect(clear).toBeEnabled());
+  fireEvent.click(clear);
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Clear dependencies' }));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Dependencies cleared. Saved.'));
+  expect(save).toHaveBeenLastCalledWith('remove', link);
+});
+
+it('disables clearing an empty plan and hides it for read-only users', () => {
+  const { rerender } = render(<ProjectPlan project={project} canManage />);
+  expect(screen.getByRole('button', { name: 'Clear dependencies' })).toBeDisabled();
+  rerender(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage={false} />);
+  expect(screen.queryByRole('button', { name: 'Clear dependencies' })).not.toBeInTheDocument();
 });
 
 it('adds a dependency directly from a row and lists prerequisites in that row only', async () => {

@@ -103,10 +103,14 @@ opening a task from a notification returns to the normal task editor.
 Plan uses the same project header as Tasks. **Dependency Graph** appears
 above **Dependency Table**; there is no separate Sequence/Map switch.
 Solid arrows are task-to-task requirements; dashed arrows are advisory section
-planning hints. The table lists prerequisites in a **Depends on** column, with
-an **Add link** icon on each row and removal controls beside each link.
+planning hints. Curved connectors land horizontally with compact arrowheads
+that keep their size when selected. The table lists prerequisites in a **Depends on**
+column, with an **Add link** icon on each row and removal controls beside each link.
 Dependency warnings expand on demand. There is no duplicate link list below
 the map.
+Selected graph links use the theme pink without a rectangular focus outline.
+Managers can use **Clear dependencies** above the table to remove all task
+requirements and section hints after confirmation; tasks and sections are kept.
 
 Click a row's **Add dependency**, then **Select what it depends on** in the
 table or map. The dependent stays highlighted while you choose its prerequisite.
