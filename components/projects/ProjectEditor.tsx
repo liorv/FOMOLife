@@ -33,7 +33,7 @@ interface ProjectEditorProps {
   taskFilters?: string[];
   searchQuery?: string;
   canManage?: boolean;
-  dashboardProjectHeaderTop?: (members: React.ReactNode) => React.ReactNode;
+  dashboardProjectHeaderTop?: (members: React.ReactNode, overviewButton: React.ReactNode) => React.ReactNode;
   dashboardSummary?: React.ReactNode;
   workspaceContent?: React.ReactNode;
   workspaceView?: string;
@@ -113,6 +113,23 @@ export default function ProjectEditor({
   const localRef = useRef<LocalProject>(local);
   localRef.current = local;
   const [showOverviewEditor, setShowOverviewEditor] = useState(false);
+  const overviewTriggerRef = useRef<HTMLButtonElement>(null);
+  const overviewTitleId = useId();
+  useEffect(() => {
+    if (!showOverviewEditor) return;
+    const trigger = overviewTriggerRef.current;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setShowOverviewEditor(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      trigger?.focus();
+    };
+  }, [showOverviewEditor]);
   const [leaveArmed, setLeaveArmed] = useState(false);
   useEffect(() => {
     setLeaveArmed(false);
@@ -143,6 +160,7 @@ export default function ProjectEditor({
   }, [openToolPanel]);
   useEffect(() => {
     setOpenToolPanel(null);
+    setShowOverviewEditor(false);
   }, [project.id]);
   const [externalUrlDraft, setExternalUrlDraft] = useState(project.externalUrl ?? '');
   const [externalUrlError, setExternalUrlError] = useState('');
@@ -1016,6 +1034,26 @@ export default function ProjectEditor({
     </div>
   );
 
+  const overviewButton = (
+    <button
+      ref={overviewTriggerRef}
+      type="button"
+      className="dashboard-project-avatar"
+      aria-label="Edit project image and overview"
+      aria-haspopup="dialog"
+      title="Edit project overview"
+      style={local.avatarUrl
+        ? { backgroundImage: `url(${JSON.stringify(local.avatarUrl)})` }
+        : undefined}
+      onClick={() => {
+        setOpenToolPanel(null);
+        setShowOverviewEditor(true);
+      }}
+    >
+      {!local.avatarUrl && <span aria-hidden="true">{local.text.charAt(0).toUpperCase()}</span>}
+    </button>
+  );
+
   const projectTools = (
     <div className="project-editor-task-toolbar" role="group" aria-label="Project tools">
       {taskToolbar}
@@ -1080,10 +1118,6 @@ export default function ProjectEditor({
         </>
       ) : (
         <>
-          <button type="button" onClick={() => setShowOverviewEditor(true)}>
-            <span className="material-icons" aria-hidden="true">edit</span>
-            <span>Project overview</span>
-          </button>
           {projectActions}
           {onExport && (
             <button type="button" onClick={onExport}>
@@ -1115,12 +1149,13 @@ export default function ProjectEditor({
       >
         {dashboardProjectHeaderTop && (
           <div className="dashboard-project-title-row">
-            {dashboardProjectHeaderTop(membersBar)}
+            {dashboardProjectHeaderTop(membersBar, overviewButton)}
           </div>
         )}
 
         {!dashboardProjectHeaderTop && (
           <div className="project-editor-header-controls">
+            {overviewButton}
             {membersBar}
             {projectTools}
           </div>
@@ -1308,10 +1343,12 @@ export default function ProjectEditor({
       {/* Overview Editor Modal */}
       {showOverviewEditor && (
         <div className="project-overview-modal-overlay" onClick={() => setShowOverviewEditor(false)}>
-          <div className="project-overview-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="project-overview-modal" role="dialog" aria-modal="true" aria-labelledby={overviewTitleId} onClick={(e) => e.stopPropagation()}>
             <div className="project-overview-modal-header">
-              <h2>Edit Project Overview</h2>
+              <h2 id={overviewTitleId}>Edit Project Overview</h2>
               <button
+                type="button"
+                autoFocus
                 className="project-overview-modal-close"
                 onClick={() => setShowOverviewEditor(false)}
                 title="Close"

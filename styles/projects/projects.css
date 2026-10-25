@@ -1179,9 +1179,29 @@
   to { opacity: 1; transform: none; }
 }
 
+.project-editor-workspace--forward.project-editor-workspace {
+  animation: workspaceContentFromRight 120ms ease-out both;
+}
+
+.project-editor-workspace--backward.project-editor-workspace {
+  animation: workspaceContentFromLeft 120ms ease-out both;
+}
+
+@keyframes workspaceContentFromRight {
+  from { transform: translateX(8px); }
+  to { transform: none; }
+}
+
+@keyframes workspaceContentFromLeft {
+  from { transform: translateX(-8px); }
+  to { transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .project-editor-workspace--forward,
-  .project-editor-workspace--backward {
+  .project-editor-workspace--backward,
+  .project-editor-workspace.project-editor-workspace--forward,
+  .project-editor-workspace.project-editor-workspace--backward {
     animation: none;
   }
 }

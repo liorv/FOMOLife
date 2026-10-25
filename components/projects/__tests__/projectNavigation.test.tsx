@@ -117,6 +117,21 @@ it('updates workspace and section URLs without waiting for a server navigation',
   expect(mockListProjects).toHaveBeenCalledTimes(1);
 });
 
+it('selects each workspace immediately even before Next.js synchronizes the URL', async () => {
+  mockSearchParams.set('projectId', mockProject.id);
+  await openPage();
+  historyPush.mockImplementation(() => {});
+  for (const view of ['plan', 'roadmap', 'risks', 'tasks'] as const) {
+    act(() => mockDashboardProps.onWorkspaceChange?.(view));
+    expect(mockSearchParams.get('view')).toBeNull();
+    expect(mockDashboardProps.selectedWorkspaceView).toBe(view);
+    const url = new URL(String(historyPush.mock.calls.at(-1)![2]), 'https://fomo.test');
+    expect(url.searchParams.get('view')).toBe(view === 'tasks' ? null : view);
+  }
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(mockListProjects).toHaveBeenCalledTimes(1);
+});
+
 it('restores browser Back/Forward URL changes, including returning to the project list', async () => {
   mockSearchParams.set('projectId', mockProject.id);
   mockSearchParams.set('view', 'plan');

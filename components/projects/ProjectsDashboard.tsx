@@ -413,6 +413,7 @@ export default function ProjectsDashboard({
             </div>
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
+              canManage={canManage}
               targetTaskId={selectedTaskId ?? null}
               workspaceContent={showingPlan ? (
                 <ProjectPlan key={selectedProject.id} project={selectedProject} canManage={canManage}
@@ -437,7 +438,7 @@ export default function ProjectsDashboard({
               ) : undefined}
               workspaceView={workspaceView}
               workspaceDirection={workspaceDirection}
-              dashboardProjectHeaderTop={(membersBar) => (
+              dashboardProjectHeaderTop={(membersBar, overviewButton) => (
                 <div
                   className="dashboard-project-header-modern"
                   style={{
@@ -453,15 +454,7 @@ export default function ProjectsDashboard({
                     </div>
                   )}
                   <div className="dashboard-project-header-main">
-                    <div
-                      className="dashboard-project-avatar"
-                      aria-hidden="true"
-                      style={selectedProject.avatarUrl
-                        ? { backgroundImage: `url(${JSON.stringify(selectedProject.avatarUrl)})` }
-                        : undefined}
-                    >
-                      {!selectedProject.avatarUrl && <span>{selectedProject.text.charAt(0).toUpperCase()}</span>}
-                    </div>
+                    {overviewButton}
                     <div className="dashboard-project-header-details">
                       <div className="dashboard-project-name-row">
                         <h2

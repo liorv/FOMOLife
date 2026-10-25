@@ -95,6 +95,8 @@ bar, without opening a separate task list. The Milestones table
 and Deadlines table each have an Add button at the top right beside Clear,
 using the same flows as the navbar FABs. The Milestones table
 below the roadmap lets you rename milestones and add or remove task dependencies.
+Use the **+** immediately to the right of the last dependent task to add another
+task to that milestone by selecting its roadmap bar.
 A yellow star marks the latest forecast finish among each milestone's linked
 tasks, with its name below. Deleted dependencies are labeled in the table and
 must be replaced or removed before that milestone can be plotted.
@@ -221,8 +223,13 @@ does not leave a partially created chain. This is a one-time action: adding or
 reordering tasks later does not automatically change dependencies.
 
 Switching workspace stages or sections inside the open project updates browser
-history locally without a server navigation, keeping selection responsive while
-preserving shareable URLs and browser Back/Forward.
+history locally without a server navigation. Workspace selection updates immediately,
+without waiting for URL synchronization, while preserving shareable URLs and browser
+Back/Forward.
+
+Click the project avatar in the editor header to open **Edit Project Overview**
+from any workspace. Overview is no longer in **More**; that menu contains the
+remaining project actions.
 
 Click a row's **Add dependency**, then **Select what it depends on** in the
 table or map. The dependent stays highlighted while you choose its prerequisite.
@@ -277,9 +284,10 @@ rejects self-links, duplicates, and cycles. Like the Plan tab, the new link
 appears immediately and is confirmed once saved. Escape cancels prerequisite
 selection or clears the highlighted bar. Read-only members see static bars.
 
-Switching between Tasks, Plan, and Roadmap slides the content below the header
+Switching between Tasks, Plan, Roadmap, and Risks slides the content below the header
 toward the chosen tab (left for later tabs, right for earlier ones); the header
-stays still. Motion is disabled under `prefers-reduced-motion`. All three views
+stays still. Content remains visible during the short 120 ms transition.
+Motion is disabled under `prefers-reduced-motion`. All four views
 use the same gap between the header tile and their content.
 Edit aligns the task's title row with space above the editor, without a smooth
 scroll that can overshoot as the table expands.

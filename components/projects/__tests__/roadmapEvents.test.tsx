@@ -108,15 +108,39 @@ it('opens deadline entry from the table Add button and restores focus on cancel'
 
 it('adds multiple dependencies and moves the milestone to the latest task finish', () => {
   const { save } = setup({ ...project, milestones: [milestone] });
-  fireEvent.click(screen.getByRole('button', { name: 'Add task to Launch ready' }));
+  const add = screen.getByRole('button', { name: 'Add task to Launch ready' });
+  expect(add).toHaveTextContent('+');
+  expect(add).not.toHaveTextContent('Add task');
+  expect(add.parentElement).toBe(screen.getByRole('table', { name: 'Milestones' }).querySelector('li:last-child'));
+  expect(add.previousElementSibling).toHaveTextContent('Approve');
+  fireEvent.click(add);
   fireEvent.click(screen.getByRole('button', { name: /^Select milestone task: Approve:/ }));
   expect(screen.getByRole('alert')).toHaveTextContent('already linked');
   expect(save).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: /^Select milestone task: Publish:/ }));
   expect(save).toHaveBeenLastCalledWith({ milestones: [{ ...milestone, taskIds: ['a', 'b'] }] });
   expect(screen.getByRole('img', { name: `Milestone: Launch ready, ${day(5)}` })).toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: 'Add task to Launch ready' })).toHaveLength(1);
+  expect(add.parentElement).toContainElement(within(screen.getByRole('table', { name: 'Milestones' })).getByText('Publish'));
+  expect(add).toHaveFocus();
   fireEvent.click(screen.getByRole('button', { name: 'Remove Publish from Launch ready' }));
   expect(save).toHaveBeenLastCalledWith({ milestones: [milestone] });
+});
+
+it('does not show the milestone add-task control in read-only projects', () => {
+  setup({ ...project, milestones: [milestone] }, false);
+  const table = within(screen.getByRole('table', { name: 'Milestones' }));
+  expect(table.getByText('Approve')).toBeInTheDocument();
+  expect(table.queryByRole('button', { name: 'Add task to Launch ready' })).not.toBeInTheDocument();
+});
+
+it('restores focus to the inline plus when task selection is cancelled', () => {
+  const { save } = setup({ ...project, milestones: [milestone] });
+  const add = screen.getByRole('button', { name: 'Add task to Launch ready' });
+  fireEvent.click(add);
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(add).toHaveFocus();
+  expect(save).not.toHaveBeenCalled();
 });
 
 it('cancels milestone selection without saving or offering a separate task picker', () => {

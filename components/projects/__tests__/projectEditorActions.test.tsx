@@ -81,7 +81,7 @@ it("shows the project-tile-style header without a separate back action", async (
   expect(actionsArea).toContainElement(screen.getByRole("button", { name: "Filter tasks" }));
   expect(actionsArea).toContainElement(screen.getByRole("group", { name: "Project tools" }));
   expect(projectHeader).not.toContainElement(screen.getByRole("button", { name: "Filter tasks" }));
-  expect(screen.queryByRole("button", { name: "Edit project image and overview" })).not.toBeInTheDocument();
+  expect(projectHeader).toContainElement(screen.getByRole("button", { name: "Edit project image and overview" }));
   expect(screen.queryByRole("group", { name: "Back button layout preview" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Back to projects" })).not.toBeInTheDocument();
   expect(onSelectProject).not.toHaveBeenCalled();
@@ -183,7 +183,7 @@ it("opens inline options below the toolbar and closes them with the trigger, clo
   fireEvent.pointerDown(document.body);
   fireEvent.blur(trigger, { relatedTarget: document.body });
   expect(trigger).toHaveAttribute("aria-expanded", "true");
-  screen.getByRole("button", { name: "Project overview" }).focus();
+  screen.getByRole("button", { name: "Close more project actions" }).focus();
   fireEvent.keyDown(document, { key: "Escape" });
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   expect(trigger).not.toHaveClass("project-action-btn--active");
@@ -299,7 +299,7 @@ it("places Leave project at the bottom of the overview with two-step confirmatio
   });
   fireEvent.click(screen.getByRole("button", { name: "More project actions" }));
   expect(screen.queryByRole("button", { name: "Leave project" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Project overview" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit project image and overview" }));
   const leave = screen.getByRole("button", { name: "Leave project" });
   const section = leave.closest(".project-overview-leave");
   expect(section?.parentElement).toHaveClass("project-overview-modal-content");
@@ -321,8 +321,7 @@ it("does not offer Leave project to nonmembers or without a removal callback", (
   const { rerender } = render(
     <ProjectEditor project={project} currentUserId="other" onRemoveMember={jest.fn()} />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "More project actions" }));
-  fireEvent.click(screen.getByRole("button", { name: "Project overview" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit project image and overview" }));
   expect(screen.queryByRole("button", { name: "Leave project" })).not.toBeInTheDocument();
   rerender(<ProjectEditor project={project} currentUserId="self" />);
   expect(screen.queryByRole("button", { name: "Leave project" })).not.toBeInTheDocument();
@@ -332,17 +331,45 @@ it("expires the leave confirmation and resets it after closing the overview", ()
   jest.useFakeTimers();
   try {
     render(<ProjectEditor project={project} currentUserId="self" onRemoveMember={jest.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "More project actions" }));
-    fireEvent.click(screen.getByRole("button", { name: "Project overview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit project image and overview" }));
     fireEvent.click(screen.getByRole("button", { name: "Leave project" }));
     act(() => jest.advanceTimersByTime(3000));
     expect(screen.getByRole("button", { name: "Leave project" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Leave project" }));
     fireEvent.click(screen.getByTitle("Close"));
-    fireEvent.click(screen.getByRole("button", { name: "More project actions" }));
-    fireEvent.click(screen.getByRole("button", { name: "Project overview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit project image and overview" }));
     expect(screen.getByRole("button", { name: "Leave project" })).toBeInTheDocument();
   } finally {
     jest.useRealTimers();
   }
+});
+
+it.each([true, false])("opens the overview from the project avatar in every workspace (canManage=%s)", async (canManage) => {
+  await act(async () => {
+    render(<ProjectsDashboard projects={[project]} selectedProjectId={project.id} canManage={canManage} />);
+  });
+  for (const view of ["Tasks", "Plan", "Roadmap", "Risks"]) {
+    fireEvent.click(screen.getByRole("button", { name: view }));
+    const avatar = screen.getByRole("button", { name: "Edit project image and overview" });
+    expect(avatar).toHaveAttribute("aria-haspopup", "dialog");
+    fireEvent.click(avatar);
+    expect(screen.getByRole("dialog", { name: "Edit Project Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "External Link" })).toHaveProperty("disabled", !canManage);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Edit Project Overview" })).not.toBeInTheDocument();
+    expect(avatar).toHaveFocus();
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+  fireEvent.click(screen.getByRole("button", { name: "More project actions" }));
+  expect(within(screen.getByRole("group", { name: "More project actions" })).queryByRole("button", { name: /overview/i })).not.toBeInTheDocument();
+});
+
+it("closes the overview when switching projects and supports an initial-only avatar", () => {
+  const { rerender } = render(<ProjectEditor project={{ ...project, avatarUrl: "" }} />);
+  const avatar = screen.getByRole("button", { name: "Edit project image and overview" });
+  expect(avatar).toHaveTextContent("L");
+  fireEvent.click(avatar);
+  expect(screen.getByRole("dialog", { name: "Edit Project Overview" })).toBeInTheDocument();
+  rerender(<ProjectEditor project={{ ...project, id: "another-project" }} />);
+  expect(screen.queryByRole("dialog", { name: "Edit Project Overview" })).not.toBeInTheDocument();
 });

@@ -1936,6 +1936,13 @@ html[data-theme="dark"] .inline-editor {
   flex-shrink: 0;
   font-size: 22px;
   font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+.dashboard-project-avatar:focus-visible {
+  outline: 2px solid var(--color-primary, #1a73e8);
+  outline-offset: 3px;
 }
 
 .dashboard-project-header-details {

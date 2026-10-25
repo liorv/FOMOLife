@@ -66,27 +66,35 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
     <div className={styles.sequence}>
       <table className={styles.table} aria-label="Milestones">
         <thead><tr><th scope="col">Milestone</th><th scope="col">Dependent tasks</th>{canManage && <th scope="col"><span className={styles.srOnly}>Actions</span></th>}</tr></thead>
-        <tbody>{milestones.map(milestone => <tr key={milestone.id}>
+        <tbody>{milestones.map(milestone => {
+          const addTaskButton = canManage && <button type="button" className={styles.addEventDependency}
+            aria-label={`Add task to ${milestone.label}`} title={`Add task to ${milestone.label}`}
+            onClick={event => onSelectDependency(milestone.id, event.currentTarget)}>
+            <span aria-hidden="true">+</span>
+          </button>;
+          return <tr key={milestone.id}>
           <td>{canManage ? <input key={milestone.label} aria-label={`Milestone name: ${milestone.label}`} defaultValue={milestone.label}
             className={styles.eventInput} onBlur={event => rename(event.target.value, label => {
               if (label !== milestone.label) onMilestonesChange(milestones.map(item => item.id === milestone.id ? { ...item, label } : item));
             })} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /> : milestone.label}</td>
-          <td><ul className={styles.links}>{milestone.taskIds.map(id => <li key={id} className={styles.relationship}>
+          <td><ul className={styles.links}>{milestone.taskIds.map((id, index) => <li key={index === milestone.taskIds.length - 1 ? 'last-task' : `task:${id}`} className={`${styles.relationship} ${styles.milestoneDependency}`}>
             <span className={styles.taskName}>
               {tasks.find(task => task.id === id)?.done && <CompletedTaskIcon />}
               <span>{tasks.find(task => task.id === id)?.text ?? 'Deleted task'}</span>
             </span>
             {canManage && milestone.taskIds.length > 1 && <button type="button" aria-label={`Remove ${tasks.find(task => task.id === id)?.text ?? 'deleted task'} from ${milestone.label}`}
               onClick={() => onMilestonesChange(milestones.map(item => item.id === milestone.id ? { ...item, taskIds: item.taskIds.filter(taskId => taskId !== id) } : item))}>&times;</button>}
-          </li>)}</ul>
-            {canManage && <button type="button" className={styles.addEventDependency}
-              onClick={event => onSelectDependency(milestone.id, event.currentTarget)}>Add task to {milestone.label}</button>}
+            {index === milestone.taskIds.length - 1 && addTaskButton}
+          </li>)}
+            {!milestone.taskIds.length && canManage && <li className={styles.relationship}>{addTaskButton}</li>}
+          </ul>
           </td>
           {canManage && <td className={styles.actions}><button type="button" aria-label={`Delete milestone ${milestone.label}`}
             onClick={() => onMilestonesChange(milestones.filter(item => item.id !== milestone.id))}>
             <span className="material-icons" aria-hidden="true">close</span>
           </button></td>}
-        </tr>)}
+        </tr>;
+        })}
           {!milestones.length && <tr><td colSpan={canManage ? 3 : 2}><p className={styles.empty}>No milestones.</p></td></tr>}
         </tbody>
       </table>

@@ -47,8 +47,12 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   const initialProjectId = searchParams.get("projectId") || null;
   const targetSubprojectId = searchParams.get('subprojectId');
   const requestedView = searchParams.get('view');
-  const workspaceView: WorkspaceView = requestedView === 'plan' || requestedView === 'roadmap' || requestedView === 'risks'
+  const urlWorkspaceView: WorkspaceView = requestedView === 'plan' || requestedView === 'roadmap' || requestedView === 'risks'
     ? requestedView : 'tasks';
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>(urlWorkspaceView);
+  useEffect(() => {
+    setWorkspaceView(urlWorkspaceView);
+  }, [initialProjectId, urlWorkspaceView]);
   const apiClient = useMemo(
     () => createProjectsApiClient("", { uid: embeddedUid }),
     [embeddedUid],
@@ -137,6 +141,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
 
   const navigateProject = useCallback((id: string | null, view: WorkspaceView = 'tasks', subprojectId: string | null = null) => {
     setEditingProjectId(id);
+    setWorkspaceView(view);
     setNotificationTaskId(null);
     setActiveThread(null);
     const params = new URLSearchParams(searchParams.toString());
