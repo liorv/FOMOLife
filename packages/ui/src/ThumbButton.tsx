@@ -97,7 +97,6 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
     </button>
     {isRoadmap && expanded && createPortal(<div ref={menuRef} id="roadmap-fab-actions" className={styles.actions} role="group" aria-label="Roadmap actions">
       {[
-        { label: 'Add Milestone', icon: 'star', event: 'roadmap-add-milestone' },
         { label: 'Add Deadline', icon: 'flag', event: 'roadmap-add-deadline' },
       ].map(action => <button key={action.event} type="button" className={styles.action} aria-label={action.label} title={action.label}
         onClick={() => {

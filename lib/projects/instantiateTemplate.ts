@@ -47,6 +47,7 @@ export function instantiateTemplate(template: ProjectItem, text: string): Projec
     ...(template.milestones ? { milestones: template.milestones.map(milestone => ({
       ...milestone, id: generateId(),
       taskIds: milestone.taskIds.map(id => remap({ kind: 'task', id }).id),
+      ...(milestone.sectionIds ? { sectionIds: milestone.sectionIds.map(id => remap({ kind: 'section', id }).id) } : {}),
     })) } : {}),
     ...(template.deadlines ? { deadlines: template.deadlines.map(deadline => ({ ...deadline, id: generateId() })) } : {}),
     ...(template.planningLinks ? { planningLinks: template.planningLinks.map(link => ({

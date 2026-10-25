@@ -2,9 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Contact, ProjectDeadline, ProjectItem, ProjectMilestone, ProjectTask } from '@myorg/types';
+import type { Contact, ProjectDeadline, ProjectItem, ProjectTask } from '@myorg/types';
 import { CheckeredFlag, TaskModal } from '@myorg/ui';
-import { generateId } from '@myorg/utils';
 import { buildRoadmap, getRoadmapLanes, type RoadmapEntry } from '@/lib/projects/roadmap';
 import { getPlanNodes, linkKey, validatePlanLinks, type PlanLink } from '@/lib/projects/planning';
 import { updateProjectTask } from '@/lib/projects/taskUpdates';
@@ -13,7 +12,7 @@ import styles from './ProjectPlan.module.css';
 import { usePlanLinks } from './usePlanLinks';
 import PlanSaveStatus from './PlanSaveStatus';
 import RoadmapEventTables from './RoadmapEventTables';
-import { isRoadmapDate } from '@/lib/projects/roadmapEvents';
+import { getMilestoneTaskIds, isRoadmapDate } from '@/lib/projects/roadmapEvents';
 
 type Props = {
   project: ProjectItem;
@@ -48,12 +47,11 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const { links, saveState, save: saveLink, dismissError: dismissSaveError } = usePlanLinks({ projectId: project.id, initialLinks, onSaveLink, onLinksSaved });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
-  const [milestones, setMilestones] = useState(project.milestones ?? []);
+  const milestones = project.milestones ?? [];
   const [deadlines, setDeadlines] = useState(project.deadlines ?? []);
-  const [milestoneSelection, setMilestoneSelection] = useState<{ id: string | null } | null>(null);
   const [addingDeadline, setAddingDeadline] = useState(false);
   const canEditEvents = canManage && !!onApplyChange;
-  const pickingTask = selecting || !!milestoneSelection;
+  const pickingTask = selecting;
   const [editing, setEditing] = useState<{ taskId: string; lane: string } | null>(null);
   const [error, setError] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
@@ -61,17 +59,8 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const startMilestone = useCallback((trigger?: HTMLButtonElement) => {
-    triggerRef.current = trigger ?? document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]');
-    setSelecting(false);
-    setEditing(null);
-    setAddingDeadline(false);
-    setMilestoneSelection({ id: null });
-    setError('');
-  }, []);
   const startDeadline = useCallback(() => {
     setSelecting(false);
-    setMilestoneSelection(null);
     setAddingDeadline(true);
     setError('');
   }, []);
@@ -89,21 +78,17 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
     setSubprojects(project.subprojects);
     subprojectsRef.current = project.subprojects;
   }, [project.subprojects]);
-  useEffect(() => { setMilestones(project.milestones ?? []); }, [project.milestones]);
   useEffect(() => { setDeadlines(project.deadlines ?? []); }, [project.deadlines]);
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: canEditEvents }));
     if (!canEditEvents) return;
-    const addMilestone = () => startMilestone();
     const addDeadline = () => startDeadline();
-    window.addEventListener('roadmap-add-milestone', addMilestone);
     window.addEventListener('roadmap-add-deadline', addDeadline);
     return () => {
-      window.removeEventListener('roadmap-add-milestone', addMilestone);
       window.removeEventListener('roadmap-add-deadline', addDeadline);
       window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: false }));
     };
-  }, [canEditEvents, startMilestone, startDeadline]);
+  }, [canEditEvents, startDeadline]);
   const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
   const nodes = useMemo(() => getPlanNodes(planningProject), [planningProject]);
   const roadmap = useMemo(() => buildRoadmap(planningProject, links), [planningProject, links]);
@@ -120,27 +105,10 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
     if (pickingTask) promptRef.current?.focus();
   }, [pickingTask]);
 
-  function saveMilestones(items: ProjectMilestone[]) {
-    if (!canEditEvents) return;
-    setMilestones(items);
-    onApplyChange?.({ milestones: items });
-  }
   function saveDeadlines(items: ProjectDeadline[]) {
     if (!canEditEvents) return;
     setDeadlines(items);
     onApplyChange?.({ deadlines: items });
-  }
-  function chooseMilestoneTask(task: ProjectTask) {
-    if (!milestoneSelection || !canEditEvents) return;
-    const milestone = milestones.find(item => item.id === milestoneSelection.id);
-    if (milestoneSelection.id && !milestone) { setError('This milestone no longer exists. Cancel and try again.'); return; }
-    if (milestone?.taskIds.includes(task.id)) { setError('This task is already linked to the milestone. Choose a different task.'); return; }
-    saveMilestones(milestone
-      ? milestones.map(item => item.id === milestone.id ? { ...item, taskIds: [...item.taskIds, task.id] } : item)
-      : [...milestones, { id: generateId(), label: task.text, taskIds: [task.id] }]);
-    setMilestoneSelection(null);
-    setError('');
-    triggerRef.current?.focus();
   }
 
   function editTask(task: ProjectTask) {
@@ -155,7 +123,6 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
 
   function cancelSelection() {
     setSelecting(false);
-    setMilestoneSelection(null);
     setError('');
     triggerRef.current?.focus();
   }
@@ -173,7 +140,6 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   }
   function chooseBar(task: ProjectTask, trigger: HTMLButtonElement) {
     if (!canManage) return;
-    if (milestoneSelection) { chooseMilestoneTask(task); return; }
     if (selecting) { addDependency(task); return; }
     triggerRef.current = trigger;
     setSelectedId(task.id);
@@ -208,7 +174,8 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const date = (day: number) => new Date(origin + day * 86400000).toISOString().slice(0, 10);
   const completion = Math.max(0, ...remaining.map(entry => entry.end));
   const milestoneMarkers = roadmap.error ? [] : milestones.flatMap(milestone => {
-    const entries = milestone.taskIds.map(id => roadmap.entries.find(entry => entry.task.id === id));
+    const taskIds = getMilestoneTaskIds(milestone, subprojects);
+    const entries = taskIds?.map(id => roadmap.entries.find(entry => entry.task.id === id)) ?? [];
     if (!entries.length || entries.some(entry => !entry)) return [];
     return [{ id: milestone.id, label: milestone.label, day: Math.max(...entries.map(entry => entry!.end)), kind: 'milestone' as const }];
   });
@@ -246,13 +213,6 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
     {selecting && selectedTask && <div className={styles.selection}>
       <p ref={promptRef} tabIndex={-1}>Select what {selectedTask.text} depends on</p>
       <button type="button" onClick={cancelSelection}>Cancel</button>
-    </div>}
-    {milestoneSelection && <div className={styles.selection}>
-      <p ref={promptRef} tabIndex={-1}>{milestoneSelection.id
-        ? `Select another task for ${milestones.find(item => item.id === milestoneSelection.id)?.label ?? 'milestone'}`
-        : 'Select a task for the new milestone'}</p>
-      <button type="button" onClick={cancelSelection}>Cancel</button>
-      {!remaining.length && <p>Add an incomplete task in Tasks before selecting a milestone dependency.</p>}
     </div>}
     {error && !roadmap.error && <p role="alert" className={styles.error}>{error}</p>}
     <PlanSaveStatus state={saveState} onDismiss={dismissSaveError} />
@@ -323,7 +283,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                         {canManage
                           ? <button type="button" className={barClass}
                             style={barStyle}
-                            aria-label={milestoneSelection ? `Select milestone task: ${label}` : selecting ? `Select prerequisite: ${label}` : label}
+                            aria-label={selecting ? `Select prerequisite: ${label}` : label}
                             aria-pressed={selectedId === task.id}
                             title={selecting ? `${selectedTask?.text} depends on ${task.text}` : `${task.text} · ${date(start)} – ${date(end)}${estimated ? ' · Estimated: 1 day' : ''}${task.dueDate ? ` · Due ${task.dueDate.slice(0, 10)}` : ''}`}
                             onClick={event => chooseBar(task, event.currentTarget)}>
@@ -364,16 +324,10 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
           </div>
         </div>
       </>}
-    <RoadmapEventTables milestones={milestones} deadlines={deadlines} tasks={tasks} canManage={canEditEvents}
+    <RoadmapEventTables show="deadlines" milestones={milestones} deadlines={deadlines} tasks={tasks} canManage={canEditEvents}
       addingDeadline={addingDeadline} onCloseDeadline={() => setAddingDeadline(false)}
-      onAddMilestone={startMilestone} onAddDeadline={startDeadline}
-      onMilestonesChange={saveMilestones} onDeadlinesChange={saveDeadlines}
-      onSelectDependency={(id, trigger) => {
-        triggerRef.current = trigger;
-        setSelecting(false);
-        setMilestoneSelection({ id });
-        setError('');
-        scrollRef.current?.scrollIntoView?.({ block: 'nearest' });
-      }} />
+      onAddMilestone={() => {}} onAddDeadline={startDeadline}
+      onMilestonesChange={() => {}} onDeadlinesChange={saveDeadlines}
+      onSelectDependency={() => {}} />
   </section>;
 }

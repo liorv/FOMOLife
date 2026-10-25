@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useId, useRef, useState } from 'react';
-import type { ProjectDeadline, ProjectMilestone, ProjectTask } from '@myorg/types';
+import type { ProjectDeadline, ProjectMilestone, ProjectTask, ProjectSubproject } from '@myorg/types';
 import { CheckeredFlag, ModalOverlay } from '@myorg/ui';
 import { generateId } from '@myorg/utils';
 import { isRoadmapDate } from '@/lib/projects/roadmapEvents';
@@ -12,6 +12,8 @@ type Props = {
   milestones: ProjectMilestone[];
   deadlines: ProjectDeadline[];
   tasks: ProjectTask[];
+  sections?: ProjectSubproject[];
+  show?: 'milestones' | 'deadlines';
   canManage: boolean;
   addingDeadline: boolean;
   onCloseDeadline: () => void;
@@ -22,7 +24,7 @@ type Props = {
   onSelectDependency: (milestoneId: string, trigger: HTMLButtonElement) => void;
 };
 
-export default function RoadmapEventTables({ milestones, deadlines, tasks, canManage, addingDeadline,
+export default function RoadmapEventTables({ milestones, deadlines, tasks, sections = [], show, canManage, addingDeadline,
   onCloseDeadline, onAddMilestone, onAddDeadline, onMilestonesChange, onDeadlinesChange, onSelectDependency }: Props) {
   const [clearing, setClearing] = useState<'Milestones' | 'Deadlines' | null>(null);
   const [error, setError] = useState('');
@@ -51,7 +53,7 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
 
   return <>
     {error && !open && <p role="alert" className={styles.error}>{error}</p>}
-    <div className={styles.tableHeading}>
+    {show !== 'deadlines' && <><div className={styles.tableHeading}>
       <h3 className={styles.sectionHeading}>Milestones</h3>
       {canManage && <div className={styles.tableActions}>
         <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`}
@@ -65,28 +67,38 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
     </div>
     <div className={styles.sequence}>
       <table className={styles.table} aria-label="Milestones">
-        <thead><tr><th scope="col">Milestone</th><th scope="col">Dependent tasks</th>{canManage && <th scope="col"><span className={styles.srOnly}>Actions</span></th>}</tr></thead>
+        <thead><tr><th scope="col">Milestone</th><th scope="col">Depends on</th>{canManage && <th scope="col"><span className={styles.srOnly}>Actions</span></th>}</tr></thead>
         <tbody>{milestones.map(milestone => {
+          const dependencies = [
+            ...milestone.taskIds.map(id => ({ id, kind: 'task' as const,
+              text: tasks.find(task => task.id === id)?.text ?? 'Deleted task',
+              done: tasks.find(task => task.id === id)?.done })),
+            ...(milestone.sectionIds ?? []).map(id => ({ id, kind: 'section' as const,
+              text: sections.find(section => section.id === id)?.text ?? 'Deleted section', done: false })),
+          ];
           const addTaskButton = canManage && <button type="button" className={styles.addEventDependency}
-            aria-label={`Add task to ${milestone.label}`} title={`Add task to ${milestone.label}`}
+            aria-label={`Add dependency to ${milestone.label}`} title={`Add dependency to ${milestone.label}`}
             onClick={event => onSelectDependency(milestone.id, event.currentTarget)}>
-            <span aria-hidden="true">+</span>
+            <span className="material-icons" aria-hidden="true">add</span>
           </button>;
           return <tr key={milestone.id}>
           <td>{canManage ? <input key={milestone.label} aria-label={`Milestone name: ${milestone.label}`} defaultValue={milestone.label}
             className={styles.eventInput} onBlur={event => rename(event.target.value, label => {
               if (label !== milestone.label) onMilestonesChange(milestones.map(item => item.id === milestone.id ? { ...item, label } : item));
             })} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} /> : milestone.label}</td>
-          <td><ul className={styles.links}>{milestone.taskIds.map((id, index) => <li key={index === milestone.taskIds.length - 1 ? 'last-task' : `task:${id}`} className={`${styles.relationship} ${styles.milestoneDependency}`}>
+          <td><ul className={styles.links}>{dependencies.map((dependency, index) => <li key={index === dependencies.length - 1 ? 'last-task' : `${dependency.kind}:${dependency.id}`} className={`${styles.relationship} ${styles.milestoneDependency}`}>
             <span className={styles.taskName}>
-              {tasks.find(task => task.id === id)?.done && <CompletedTaskIcon />}
-              <span>{tasks.find(task => task.id === id)?.text ?? 'Deleted task'}</span>
+              {dependency.done && <CompletedTaskIcon />}
+              <span>{dependency.text}{dependency.kind === 'section' && ' (section)'}</span>
             </span>
-            {canManage && milestone.taskIds.length > 1 && <button type="button" aria-label={`Remove ${tasks.find(task => task.id === id)?.text ?? 'deleted task'} from ${milestone.label}`}
-              onClick={() => onMilestonesChange(milestones.map(item => item.id === milestone.id ? { ...item, taskIds: item.taskIds.filter(taskId => taskId !== id) } : item))}>&times;</button>}
-            {index === milestone.taskIds.length - 1 && addTaskButton}
+            {canManage && dependencies.length > 1 && <button type="button" aria-label={`Remove ${dependency.text} from ${milestone.label}`}
+              onClick={() => onMilestonesChange(milestones.map(item => item.id === milestone.id
+                ? dependency.kind === 'task' ? { ...item, taskIds: item.taskIds.filter(id => id !== dependency.id) }
+                  : { ...item, sectionIds: (item.sectionIds ?? []).filter(id => id !== dependency.id) }
+                : item))}>&times;</button>}
+            {index === dependencies.length - 1 && addTaskButton}
           </li>)}
-            {!milestone.taskIds.length && canManage && <li className={styles.relationship}>{addTaskButton}</li>}
+            {!dependencies.length && canManage && <li className={styles.relationship}>{addTaskButton}</li>}
           </ul>
           </td>
           {canManage && <td className={styles.actions}><button type="button" aria-label={`Delete milestone ${milestone.label}`}
@@ -98,8 +110,8 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
           {!milestones.length && <tr><td colSpan={canManage ? 3 : 2}><p className={styles.empty}>No milestones.</p></td></tr>}
         </tbody>
       </table>
-    </div>
-    <div className={styles.tableHeading}>
+    </div></>}
+    {show !== 'milestones' && <><div className={styles.tableHeading}>
       <h3 className={styles.sectionHeading}>Deadlines</h3>
       {canManage && <div className={styles.tableActions}>
         <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`}
@@ -133,7 +145,7 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
           {!deadlines.length && <tr><td colSpan={canManage ? 3 : 2}><p className={styles.empty}>No deadlines.</p></td></tr>}
         </tbody>
       </table>
-    </div>
+    </div></>}
     <ModalOverlay open={open && canManage} onClose={close} ariaLabelledby={titleId} contentClassName={styles.clearDialog}>
       <div ref={dialogRef} onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); close(); }

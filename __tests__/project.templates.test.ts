@@ -124,7 +124,7 @@ it('copies risks into templates with fresh independent risk and mitigation ident
 });
 
 it('persists roadmap milestones and deadlines through create, patch, reload and clear', async () => {
-  const milestones = [{ id: 'm', label: 'Brief ready', taskIds: ['original-task'] }];
+  const milestones = [{ id: 'm', label: 'Brief ready', taskIds: ['original-task'], sectionIds: ['original-sub'] }];
   const deadlines = [{ id: 'd', label: 'Launch', date: '2026-12-15' }];
   const created = await POST(request('POST', { ...definition, milestones, deadlines }));
   expect(created.status).toBe(201);
@@ -144,6 +144,7 @@ it('rejects malformed roadmap metadata on both creation and update', async () =>
   for (const patch of [
     { milestones: [{ id: 'm', label: '', taskIds: ['original-task'] }] },
     { milestones: [{ id: 'm', label: 'Ready', taskIds: [] }] },
+    { milestones: [{ id: 'm', label: 'Ready', taskIds: [], sectionIds: ['original-sub', 'original-sub'] }] },
     { deadlines: [{ id: 'd', label: 'Launch', date: '2026-02-30' }] },
   ]) {
     expect((await POST(request('POST', { ...definition, ...patch }))).status).toBe(400);
@@ -154,14 +155,16 @@ it('rejects malformed roadmap metadata on both creation and update', async () =>
 it('remaps milestone dependencies and gives copied roadmap events fresh identities', async () => {
   const template: ProjectItem = await (await POST(request('POST', {
     ...definition, isTemplate: true,
-    milestones: [{ id: 'm', label: 'Brief ready', taskIds: ['original-task'] }],
+    milestones: [{ id: 'm', label: 'Brief ready', taskIds: ['original-task'], sectionIds: ['original-sub'] }],
     deadlines: [{ id: 'd', label: 'Launch', date: '2026-12-15' }],
   }))).json();
   const response = await POST(request('POST', { text: 'Copied roadmap', templateId: template.id }));
   expect(response.status).toBe(201);
   const copy: ProjectItem = await response.json();
   const task = copy.subprojects.flatMap(section => section.tasks)[0]!;
-  expect(copy.milestones).toEqual([{ id: expect.any(String), label: 'Brief ready', taskIds: [task.id] }]);
+  const section = copy.subprojects.find(section => section.text === 'Preparation')!;
+  expect(copy.milestones).toEqual([{ id: expect.any(String), label: 'Brief ready', taskIds: [task.id], sectionIds: [section.id] }]);
+  expect(section.id).not.toBe('original-sub');
   expect(copy.milestones![0]!.id).not.toBe('m');
   expect(copy.deadlines![0]).toMatchObject({ label: 'Launch', date: '2026-12-15' });
   expect(copy.deadlines![0]!.id).not.toBe('d');
@@ -171,6 +174,17 @@ it('reports deleted milestone tasks before instantiating a template', async () =
   const template: ProjectItem = await (await POST(request('POST', {
     ...definition, isTemplate: true,
     milestones: [{ id: 'm', label: 'Brief ready', taskIds: ['original-task'] }],
+  }))).json();
+  await PATCH(request('PATCH', { id: template.id, patch: { subprojects: [] } }));
+  const response = await POST(request('POST', { text: 'Copy', templateId: template.id }));
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ error: expect.stringContaining('Repair milestone dependencies') });
+});
+
+it('reports deleted milestone sections before instantiating a template', async () => {
+  const template: ProjectItem = await (await POST(request('POST', {
+    ...definition, isTemplate: true,
+    milestones: [{ id: 'm', label: 'Section ready', taskIds: [], sectionIds: ['original-sub'] }],
   }))).json();
   await PATCH(request('PATCH', { id: template.id, patch: { subprojects: [] } }));
   const response = await POST(request('POST', { text: 'Copy', templateId: template.id }));

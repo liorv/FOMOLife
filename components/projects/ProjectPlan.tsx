@@ -4,7 +4,9 @@ import CompletedTaskIcon from './CompletedTaskIcon';
 
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { ProjectItem, ProjectTask } from '@myorg/types';
+import type { ProjectItem, ProjectMilestone, ProjectTask } from '@myorg/types';
+import { generateId } from '@myorg/utils';
+import RoadmapEventTables from './RoadmapEventTables';
 import { ModalOverlay, TaskModal } from '@myorg/ui';
 import {
   getLinkWarning, getPlanLayers, getPlanNodes, getSectionSequence, isRequirement, linkKey, planKey,
@@ -43,6 +45,8 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const [selectedKey, setSelectedKey] = useState('');
   const [selecting, setSelecting] = useState(false);
   const [selectingDependent, setSelectingDependent] = useState(false);
+  const [milestones, setMilestones] = useState(project.milestones ?? []);
+  const [milestoneSelection, setMilestoneSelection] = useState<{ id: string | null } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
@@ -83,6 +87,9 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const name = (key: string) => byKey.get(key)?.text ?? 'Deleted item';
 
   useEffect(() => {
+    setMilestones(project.milestones ?? []);
+  }, [project.milestones]);
+  useEffect(() => {
     window.dispatchEvent(new CustomEvent('project-plan-active', { detail: canManage }));
     if (!canManage) return;
     const addDependency = () => {
@@ -90,6 +97,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
       setEditingTaskId(null);
       setGraphTarget(null);
       setSelectedKey('');
+      setMilestoneSelection(null);
       setSelectingDependent(true);
       setSelecting(true);
       setError('');
@@ -208,6 +216,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   }
 
   function cancelSelection() {
+    setMilestoneSelection(null);
     setSelecting(false);
     setSelectingDependent(false);
     setSelectedKey('');
@@ -215,6 +224,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   }
 
   function startSelection(node: PlanNode, trigger: HTMLButtonElement) {
+    setMilestoneSelection(null);
     addRef.current = trigger;
     setGraphTarget(null);
     setSelectedKey(node.key);
@@ -233,6 +243,12 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
 
   const candidateError = (node: PlanNode): string | null => {
     if (!selecting) return null;
+    if (milestoneSelection) {
+      const milestone = milestones.find(item => item.id === milestoneSelection.id);
+      if (milestoneSelection.id && !milestone) return 'This milestone no longer exists. Cancel and try again.';
+      const ids = node.ref.kind === 'task' ? milestone?.taskIds : milestone?.sectionIds;
+      return ids?.includes(node.ref.id) ? 'Already linked.' : null;
+    }
     if (selectingDependent) return node.ref.kind === 'task' ? null : 'Select a task to add a dependency.';
     if (!selected) return 'The selected item no longer exists. Cancel and choose another item.';
     const link: PlanLink = { dependent: selected.ref, prerequisite: node.ref };
@@ -256,17 +272,47 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     if (selecting) {
       const reason = candidateError(node);
       if (reason) { setError(reason); return; }
+      if (milestoneSelection) {
+        const milestone = milestones.find(item => item.id === milestoneSelection.id);
+        const dependency = node.ref.kind === 'task' ? { taskIds: [...(milestone?.taskIds ?? []), node.ref.id] }
+          : { sectionIds: [...(milestone?.sectionIds ?? []), node.ref.id] };
+        saveMilestones(milestone
+          ? milestones.map(item => item.id === milestone.id ? { ...item, ...dependency } : item)
+          : [...milestones, { id: generateId(), label: node.text, taskIds: [], ...dependency }]);
+        cancelSelection();
+        return;
+      }
       if (selectingDependent) {
         setSelectedKey(node.key);
         setSelectingDependent(false);
         setError('');
         return;
       }
+
       if (selected) mutate('add', { prerequisite: node.ref, dependent: selected.ref });
       return;
     }
     setSelectedKey(node.key);
     setError('');
+  }
+
+  function saveMilestones(items: ProjectMilestone[]) {
+    if (!canManage || !onApplyChange) return;
+    setMilestones(items);
+    onApplyChange({ milestones: items });
+  }
+
+  function startMilestone(id: string | null, trigger: HTMLButtonElement) {
+    if (!canManage || !onApplyChange) return;
+    addRef.current = trigger;
+    setEditingTaskId(null);
+    setGraphTarget(null);
+    setSelectedKey('');
+    setSelectingDependent(false);
+    setMilestoneSelection({ id });
+    setSelecting(true);
+    setError('');
+    tableRef.current?.scrollIntoView?.({ block: 'nearest' });
   }
 
   function nodeCard(node: PlanNode) {
@@ -348,7 +394,8 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
       {actionsContainer ? createPortal(graphActions, actionsContainer) : graphActions}
       {selecting && <div className={styles.selection}>
         <p ref={promptRef} tabIndex={-1}>
-          {selectingDependent ? 'Select a task to add a dependency.' : 'Select what it depends on'}
+          {milestoneSelection ? 'Select a task or section in the Dependency Table for the milestone'
+            : selectingDependent ? 'Select a task to add a dependency.' : 'Select what it depends on'}
         </p>
         <button type="button" onClick={cancelSelection}>Cancel</button>
       </div>}
@@ -469,6 +516,11 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
         </table>}
         {missingLinks.length > 0 && <section aria-label="Missing items"><h3>Missing items</h3>{dependencyList(missingLinks)}</section>}
       </div>
+      <RoadmapEventTables show="milestones" milestones={milestones} deadlines={[]} tasks={tasks} sections={subprojects}
+        canManage={canManage && !!onApplyChange} addingDeadline={false} onCloseDeadline={() => {}}
+        onAddMilestone={trigger => startMilestone(null, trigger)} onAddDeadline={() => {}}
+        onMilestonesChange={saveMilestones} onDeadlinesChange={() => {}}
+        onSelectDependency={startMilestone} />
     </section>
   );
 }

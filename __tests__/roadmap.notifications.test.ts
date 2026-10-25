@@ -111,6 +111,20 @@ it('allows milestone alerts to be disabled without consuming the achievement', a
   expect(await scanRoadmapNotifications(userId, [project], now)).toBe(1);
 });
 
+it('requires all current section tasks to finish before notifying and rejects deleted sections', async () => {
+  const project: ProjectItem = { ...base, milestones: [
+    { id: 'm', label: 'Section complete', taskIds: [], sectionIds: ['s'] },
+    { id: 'deleted', label: 'Missing section', taskIds: ['t'], sectionIds: ['missing'] },
+  ] };
+  expect(await scanRoadmapNotifications(userId, [project], now)).toBe(0);
+  project.subprojects = [{ ...base.subprojects[0]!, tasks: [{ ...task, done: true }] }];
+  expect(await scanRoadmapNotifications(userId, [project], now)).toBe(1);
+  project.subprojects[0]!.tasks.push({ ...task, id: 'new' });
+  expect(await scanRoadmapNotifications(userId, [project], now)).toBe(0);
+  project.subprojects[0]!.tasks[1]!.done = true;
+  expect(await scanRoadmapNotifications(userId, [project], now)).toBe(1);
+});
+
 it('does not send again after reopening and recompleting the same milestone', async () => {
   const project = { ...base, milestones: [{ id: 'm', label: 'Ship', taskIds: ['t'] }],
     subprojects: [{ ...base.subprojects[0]!, tasks: [{ ...task, done: true }] }] };

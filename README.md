@@ -84,19 +84,20 @@ Risks are saved with tasks, included in project exports/imports and templates,
 and move or are deleted with their task. Read-only projects show risks without
 editing controls.
 
-In a project's Roadmap view, the navbar's upward chevron expands Add Milestone
-(star with a plus) and Add Deadline (black-and-white checkered flag with a plus).
+In a project's Roadmap view, the navbar's upward chevron expands Add Deadline
+(black-and-white checkered flag with a plus).
 Tasks with unmitigated risks have a red-outlined bar with a small red exclamation
 icon inside its right edge in both roadmap groupings. Clicking the icon opens
 Risks with Unmitigated selected.
 The chevron points down while expanded. Hover or focus a FAB to
-see its label. Add Milestone asks you to select a task by clicking its roadmap
-bar, without opening a separate task list. The Milestones table
-and Deadlines table each have an Add button at the top right beside Clear,
-using the same flows as the navbar FABs. The Milestones table
-below the roadmap lets you rename milestones and add or remove task dependencies.
-Use the **+** immediately to the right of the last dependent task to add another
-task to that milestone by selecting its roadmap bar.
+see its label. The Milestones table is in **Plan**, immediately below the
+Dependency Table, with **Add Milestone** and **Clear Milestones** above it.
+Add Milestone starts the same selection flow used for task/section dependencies:
+click a task or section in the Dependency Table to create a milestone.
+Use the **+** after its last dependency to select another task or section.
+Section dependencies include all current tasks in that section, including tasks
+added later. Rename milestones and remove dependencies in the Milestones table.
+The Deadlines table stays in Roadmap, with its Add and Clear controls.
 A yellow star marks the latest forecast finish among each milestone's linked
 tasks, with its name below. Deleted dependencies are labeled in the table and
 must be replaced or removed before that milestone can be plotted.

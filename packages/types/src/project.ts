@@ -97,6 +97,7 @@ export interface ProjectMilestone {
   id: string;
   label: string;
   taskIds: string[];
+  sectionIds?: string[];
 }
 
 export interface ProjectDeadline {

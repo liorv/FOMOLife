@@ -3,7 +3,7 @@ import 'server-only';
 import { createStorageProvider } from '@myorg/storage';
 import { withKeyedLock } from '@myorg/utils';
 import { getTaskNotificationSettings } from '../../server/notificationSettings';
-import { isRoadmapDate } from '../roadmapEvents';
+import { getMilestoneTaskIds, isRoadmapDate } from '../roadmapEvents';
 import { appendProjectNotification } from './projectCommentsStore';
 import type { ProjectNotification } from './projectCommentsStore';
 import type { ProjectItem } from './projectsStore';
@@ -88,8 +88,10 @@ export async function scanRoadmapNotifications(
       if (!settings.events.milestonesAchieved) continue;
       const tasks = new Map(project.subprojects.flatMap(section => section.tasks).map(task => [task.id, task]));
       for (const milestone of project.milestones ?? []) {
-        if (!milestone.taskIds.length || !milestone.taskIds.every(id => tasks.get(id)?.done === true)) continue;
-        const key = JSON.stringify([project.id, milestone.id, [...milestone.taskIds].sort()]);
+        const taskIds = getMilestoneTaskIds(milestone, project.subprojects);
+        if (!taskIds?.length || !taskIds.every(id => tasks.get(id)?.done === true)) continue;
+        const key = JSON.stringify([project.id, milestone.id, [...taskIds].sort(),
+          ...(milestone.sectionIds?.length ? [[...milestone.sectionIds].sort()] : [])]);
         await emit(project, `${key}:achieved`, 'milestone_achieved', 'Milestone achieved',
           `"${milestone.label}" achieved in ${project.text}: all linked tasks are complete.`);
       }

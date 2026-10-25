@@ -65,8 +65,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Repair the template plan before creating a project: ${planError}` }, { status: 400 });
     }
     const taskIds = new Set(template.subprojects.flatMap(section => section.tasks.map(task => task.id)));
-    if (template.milestones?.some(milestone => milestone.taskIds.some(id => !taskIds.has(id)))) {
-      return NextResponse.json({ error: 'Repair milestone dependencies referencing deleted tasks before using this template.' }, { status: 400 });
+    const sectionIds = new Set(template.subprojects.map(section => section.id));
+    if (template.milestones?.some(milestone => milestone.taskIds.some(id => !taskIds.has(id))
+      || milestone.sectionIds?.some(id => !sectionIds.has(id)))) {
+      return NextResponse.json({ error: 'Repair milestone dependencies referencing deleted tasks or sections before using this template.' }, { status: 400 });
     }
     body = instantiateTemplate(template, body.text.trim());
   }
