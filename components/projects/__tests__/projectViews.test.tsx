@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import ProjectsDashboard from "../ProjectsDashboard";
+import { validateProjectImportJson } from "@/lib/projects/importProject";
 
 beforeEach(() => {
   localStorage.removeItem("project-swipe-actions-hint-dismissed");
@@ -38,6 +39,72 @@ it("opens the optional Plan view and returns to the unchanged task editor", () =
   expect(tasks).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("group", { name: "Project tools" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Open AI assistant" })).toBeInTheDocument();
+});
+
+it("opens Risks as a peer stage and saves task risks through the project editor", () => {
+  const apply = jest.fn();
+  const projects = [{
+    id: "p", text: "Release", color: "#1976D2",
+    subprojects: [{ id: "s", text: "Launch", tasks: [
+      { id: "a", text: "Approve", done: false, favorite: false, dueDate: null, people: [] },
+    ] }],
+  }];
+  const { rerender } = render(<ProjectsDashboard selectedProjectId="p" projects={projects} onApplyChange={apply} />);
+  const views = within(screen.getByRole("group", { name: "Project workspace view" }));
+  fireEvent.click(views.getByRole("button", { name: "Risks" }));
+  expect(views.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("table", { name: "Risk Management" })).toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "Project tools" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /^Add risk for Approve/ }));
+  fireEvent.change(screen.getByLabelText("Risk name"), { target: { value: "Delay" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save risk" }));
+  const update = apply.mock.calls.at(-1)!;
+  expect(update[0]).toBe("p");
+  expect(update[1].subprojects[0].tasks[0].risks).toEqual([
+    { id: expect.any(String), name: "Delay", description: "", mitigations: [] },
+  ]);
+  rerender(<ProjectsDashboard selectedProjectId="p" projects={[{ ...projects[0]!, ...update[1] }]} onApplyChange={apply} />);
+  fireEvent.click(views.getByRole("button", { name: "Tasks" }));
+  expect(screen.queryByRole("table", { name: "Risk Management" })).not.toBeInTheDocument();
+  fireEvent.click(views.getByRole("button", { name: "Risks" }));
+  expect(screen.getByText("Delay")).toBeInTheDocument();
+  expect(screen.getByText("Unmitigated", { exact: true })).toBeInTheDocument();
+});
+
+it("round-trips risks and mitigations through JSON export/import without exporting their IDs", () => {
+  const createUrl = URL.createObjectURL;
+  const revokeUrl = URL.revokeObjectURL;
+  URL.createObjectURL = jest.fn(() => "blob:project-export");
+  URL.revokeObjectURL = jest.fn();
+  jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  const NativeBlob = global.Blob;
+  const blob = jest.spyOn(global, "Blob").mockImplementation((parts, options) => new NativeBlob(parts, options));
+  try {
+    render(<ProjectsDashboard selectedProjectId="p" projects={[{
+      id: "p", text: "Release", color: "#1976D2",
+      subprojects: [{ id: "s", text: "Launch", tasks: [{
+        id: "a", text: "Approve", done: false, favorite: false, dueDate: null, people: [],
+        risks: [{ id: "r", name: "Delay", description: "Lead time", mitigations: [{ id: "m", text: "Reserve stock" }] }],
+      }] }],
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "More project actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export JSON" }));
+    const json = String(blob.mock.calls.at(-1)![0]![0]);
+    const exported = JSON.parse(json);
+    expect(exported.sub_projects[0].tasks[0].risks).toEqual([
+      { name: "Delay", description: "Lead time", mitigations: [{ text: "Reserve stock" }] },
+    ]);
+    const imported = validateProjectImportJson(json);
+    expect(imported.ok).toBe(true);
+    expect(imported.data!.subprojects[0]!.tasks[0]!.risks).toEqual([
+      { id: expect.any(String), name: "Delay", description: "Lead time", mitigations: [{ id: expect.any(String), text: "Reserve stock" }] },
+    ]);
+  } finally {
+    if (createUrl) URL.createObjectURL = createUrl;
+    else Reflect.deleteProperty(URL, "createObjectURL");
+    if (revokeUrl) URL.revokeObjectURL = revokeUrl;
+    else Reflect.deleteProperty(URL, "revokeObjectURL");
+  }
 });
 
 it("places Material graph actions in the Plan header instead of members and Invite", () => {
@@ -88,7 +155,7 @@ it("shows Roadmap as a peer tab with the shared project header and no embedded r
   }];
   const { rerender } = render(<ProjectsDashboard selectedProjectId="p" projects={projects} />);
   const views = within(screen.getByRole("group", { name: "Project workspace view" }));
-  expect(views.getAllByRole("button")).toHaveLength(3);
+  expect(views.getAllByRole("button")).toHaveLength(4);
   fireEvent.click(views.getByRole("button", { name: "Plan" }));
   expect(screen.queryByRole("region", { name: "Roadmap" })).not.toBeInTheDocument();
   fireEvent.click(views.getByRole("button", { name: "Roadmap" }));

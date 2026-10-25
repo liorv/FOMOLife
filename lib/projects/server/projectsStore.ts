@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createStorageProvider } from '@myorg/storage';
 import type { PlanLink } from '@/lib/projects/planning';
-import type { ProjectMilestone, ProjectDeadline } from '@myorg/types';
+import type { ProjectMilestone, ProjectDeadline, ProjectRisk } from '@myorg/types';
 
 const storage = createStorageProvider();
 
@@ -24,6 +24,7 @@ export interface ProjectTask {
   dueDate: string | null;
   favorite: boolean;
   description?: string;
+  risks?: ProjectRisk[];
   people: ProjectTaskPerson[];
   createdAt?: string;
   completedAt?: string | null;

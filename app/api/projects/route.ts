@@ -9,6 +9,7 @@ import { isValidExternalUrl } from '@myorg/utils';
 import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
 import { getPlanNodes, parsePlanLinks, validatePlanLinks } from '@/lib/projects/planning';
 import { validateRoadmapEvents } from '@/lib/projects/roadmapEvents';
+import { validateTaskRisks } from '@/lib/projects/risks';
 
 export async function GET(_request: Request) {
   const session = await getFrameworkSession();
@@ -91,6 +92,8 @@ export async function POST(request: Request) {
 
   const roadmapError = validateRoadmapEvents(body);
   if (roadmapError) return NextResponse.json({ error: roadmapError }, { status: 400 });
+  const riskError = validateTaskRisks(body.subprojects);
+  if (riskError) return NextResponse.json({ error: riskError }, { status: 400 });
 
   // Seed the creator as the first member so membership is always explicit
   const creatorMember = {
@@ -132,6 +135,8 @@ export async function PATCH(request: Request) {
   if ('planningLinks' in body.patch) delete body.patch.planningLinks;
   const roadmapError = validateRoadmapEvents(body.patch);
   if (roadmapError) return NextResponse.json({ error: roadmapError }, { status: 400 });
+  const riskError = validateTaskRisks(body.patch.subprojects);
+  if (riskError) return NextResponse.json({ error: riskError }, { status: 400 });
   if (body.patch.isTemplate !== undefined && typeof body.patch.isTemplate !== 'boolean') {
     return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
   }

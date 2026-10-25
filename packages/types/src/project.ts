@@ -14,6 +14,16 @@ export interface ProjectTaskPerson {
 }
 
 /**
+ * A task risk is unmitigated until at least one mitigation is recorded.
+ */
+export interface ProjectRisk {
+  id: string;
+  name: string;
+  description: string;
+  mitigations: { id: string; text: string }[];
+}
+
+/**
  * ProjectTask - Task within a project or subproject
  */
 export interface ProjectTask {
@@ -35,6 +45,7 @@ export interface ProjectTask {
   starred?: boolean;
   /** Extended description/notes for the task */
   description?: string;
+  risks?: ProjectRisk[];
   /** People assigned to this task */
   people: ProjectTaskPerson[];
   effort?: number | null;

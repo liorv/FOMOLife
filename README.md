@@ -36,6 +36,16 @@ In a project's Plan view, the navbar's Add dependency button asks you to select
 a task, then select what it depends on. Cancel or Escape exits without saving.
 The existing graph and table dependency actions remain available.
 
+In a project's Risks stage, the Risk Management table uses the Plan table's
+section/task layout. Add one or more risks to each task, with a name, description,
+and any number of text mitigations. Edit a risk to rename it, update its
+description, or add, change, and remove mitigations. A risk without mitigations
+is Unmitigated; adding a mitigation makes it Mitigated, and removing the last one
+returns it to Unmitigated. Cancel discards the current risk draft.
+Risks are saved with tasks, included in project exports/imports and templates,
+and move or are deleted with their task. Read-only projects show risks without
+editing controls.
+
 In a project's Roadmap view, the navbar's upward chevron expands Add Milestone
 (star with a plus) and Add Deadline (black-and-white checkered flag with a plus).
 The chevron points down while expanded. Hover or focus a FAB to

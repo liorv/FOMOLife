@@ -8,6 +8,7 @@ import type {
   ProjectItem,
   ProjectSubproject,
   ProjectTask,
+  ProjectRisk,
 } from "@myorg/types";
 import { ProjectTile, ProjectLink, EmptyState } from "@myorg/ui";
 // JavaScript components imported for now; they'll be migrated later
@@ -22,6 +23,7 @@ import { TemplateLibrary, TemplateDialog, type TemplateAction } from "./ProjectT
 import templateStyles from "./ProjectTemplates.module.css";
 import ProjectPlan from "./ProjectPlan";
 import ProjectRoadmap from "./ProjectRoadmap";
+import ProjectRisks from "./ProjectRisks";
 import type { PlanLink } from "@/lib/projects/planning";
 
 // Helper function to convert hex color to RGB string
@@ -34,8 +36,8 @@ function hexToRgb(hex: string | undefined): string {
 
 // ─── Main dashboard component ─────────────────────────────────────────────────
 
-type WorkspaceView = 'tasks' | 'plan' | 'roadmap';
-const WORKSPACE_ORDER: WorkspaceView[] = ['tasks', 'plan', 'roadmap'];
+type WorkspaceView = 'tasks' | 'plan' | 'roadmap' | 'risks';
+const WORKSPACE_ORDER: WorkspaceView[] = ['tasks', 'plan', 'roadmap', 'risks'];
 
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
@@ -127,12 +129,13 @@ export default function ProjectsDashboard({
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
-  const [workspace, setWorkspace] = useState<{ projectId: string; view: 'plan' | 'roadmap' } | null>(null);
+  const [workspace, setWorkspace] = useState<{ projectId: string; view: Exclude<WorkspaceView, 'tasks'> } | null>(null);
   const [planActionsContainer, setPlanActionsContainer] = useState<HTMLDivElement | null>(null);
   const showingPlan = workspace?.projectId === selectedProject?.id && workspace?.view === 'plan';
   const showingRoadmap = workspace?.projectId === selectedProject?.id && workspace?.view === 'roadmap';
-  const showingTasks = !showingPlan && !showingRoadmap;
-  const workspaceView: WorkspaceView = showingPlan ? 'plan' : showingRoadmap ? 'roadmap' : 'tasks';
+  const showingRisks = workspace?.projectId === selectedProject?.id && workspace?.view === 'risks';
+  const showingTasks = !showingPlan && !showingRoadmap && !showingRisks;
+  const workspaceView: WorkspaceView = showingPlan ? 'plan' : showingRoadmap ? 'roadmap' : showingRisks ? 'risks' : 'tasks';
   const [workspaceDirection, setWorkspaceDirection] = useState<'forward' | 'backward' | 'none'>('none');
   const switchWorkspace = (view: WorkspaceView) => {
     if (!selectedProject || view === workspaceView) return;
@@ -393,6 +396,7 @@ export default function ProjectsDashboard({
                 <button type="button" className={templateStyles.segment} aria-pressed={showingTasks} onClick={() => switchWorkspace('tasks')}>Tasks</button>
                 <button type="button" className={templateStyles.segment} aria-pressed={showingPlan} onClick={() => switchWorkspace('plan')}>Plan</button>
                 <button type="button" className={templateStyles.segment} aria-pressed={showingRoadmap} onClick={() => switchWorkspace('roadmap')}>Roadmap</button>
+                <button type="button" className={templateStyles.segment} aria-pressed={showingRisks} onClick={() => switchWorkspace('risks')}>Risks</button>
               </div>
             </div>
             {/* Project editor (subprojects + tasks) */}
@@ -410,6 +414,10 @@ export default function ProjectsDashboard({
                   actionsContainer={planActionsContainer}
                   {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                   {...(onPlanMutation ? { onSaveLink: (action: 'add' | 'remove', link: PlanLink) => onPlanMutation(selectedProject.id, action, link) } : {})}
+                />
+              ) : showingRisks ? (
+                <ProjectRisks key={selectedProject.id} project={selectedProject} canManage={canManage}
+                  {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                 />
               ) : undefined}
               workspaceView={workspaceView}
@@ -1077,6 +1085,10 @@ function buildProjectExport(proj: ProjectItem | any, people: any[] = []) {
         dueDate: t.dueDate ?? null,
         done: !!t.done,
         favorite: (t as any).favorite ?? null,
+        ...(t.risks ? { risks: t.risks.map((risk: ProjectRisk) => ({
+          name: risk.name, description: risk.description,
+          mitigations: risk.mitigations.map(mitigation => ({ text: mitigation.text })),
+        })) } : {}),
         people: ((t as any).people ?? []).map((p: any) => ({ name: p?.name ?? String(p) })),
       }))
     })),

@@ -19,6 +19,10 @@ export function instantiateTemplate(template: ProjectItem, text: string): Projec
         return {
           ...definition, id: taskId, done: false, dueDate: null,
           recurrenceAnchorDate: null, people: [],
+          ...(task.risks ? { risks: task.risks.map(risk => ({
+            ...risk, id: generateId(),
+            mitigations: risk.mitigations.map(mitigation => ({ ...mitigation, id: generateId() })),
+          })) } : {}),
         };
       }),
     };

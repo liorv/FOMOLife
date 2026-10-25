@@ -15,7 +15,7 @@
  *   every subproject/task.
  */
 import { generateId } from "@myorg/utils";
-import type { ProjectSubproject, ProjectTask, ProjectTaskPerson, TaskRecurrence } from "@myorg/types";
+import type { ProjectSubproject, ProjectTask, ProjectTaskPerson, ProjectRisk, TaskRecurrence } from "@myorg/types";
 
 export interface ValidatedImportProject {
   text: string;
@@ -116,7 +116,33 @@ function sanitizeTask(raw: unknown): ProjectTask | null {
     favorite: sanitizeBoolean(obj.favorite),
     people: sanitizePeople(obj.people),
     effort: sanitizeEffort(obj.effort),
+    ...(obj.risks !== undefined ? { risks: sanitizeRisks(obj.risks) } : {}),
   };
+}
+
+function sanitizeRisks(value: unknown): ProjectRisk[] {
+  if (!Array.isArray(value)) throw new Error("Task risks must be an array.");
+  return value.map(raw => {
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.mitigations) ||
+      typeof raw.description !== "string") {
+      throw new Error("Each risk needs a name, a description, and a mitigation list.");
+    }
+    const name = sanitizeText(raw.name, MAX_NAME_LENGTH);
+    if (!name) throw new Error("Each risk needs a non-empty name.");
+    return {
+      id: generateId(),
+      name,
+      description: sanitizeText(raw.description, MAX_LONG_TEXT_LENGTH) ?? "",
+      mitigations: raw.mitigations.map((item: unknown) => {
+        const text = sanitizeText(
+          item && typeof item === "object" && "text" in item ? item.text : undefined,
+          MAX_LONG_TEXT_LENGTH,
+        );
+        if (!text) throw new Error("Each mitigation needs non-empty text.");
+        return { id: generateId(), text };
+      }),
+    };
+  });
 }
 
 function sanitizeSubproject(raw: unknown): ProjectSubproject | null {
@@ -167,9 +193,14 @@ export function validateProjectImportJson(raw: string): ImportValidationResult {
   }
 
   const rawSubprojects = Array.isArray(obj.sub_projects) ? obj.sub_projects.slice(0, MAX_SUBPROJECTS) : [];
-  const subprojects = rawSubprojects
-    .map(sanitizeSubproject)
-    .filter((s): s is ProjectSubproject => s !== null);
+  let subprojects: ProjectSubproject[];
+  try {
+    subprojects = rawSubprojects
+      .map(sanitizeSubproject)
+      .filter((s): s is ProjectSubproject => s !== null);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Invalid task risks." };
+  }
 
   const metadata = obj.metadata && typeof obj.metadata === "object" && !Array.isArray(obj.metadata)
     ? (obj.metadata as Record<string, unknown>)

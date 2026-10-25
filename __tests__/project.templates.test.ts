@@ -62,6 +62,67 @@ beforeEach(() => {
   });
 });
 
+it('persists task risks through create, update, reload and removal', async () => {
+  const risk = { id: 'r', name: 'Delay', description: 'Vendor lead time', mitigations: [] };
+  const input = { ...definition, subprojects: [{
+    ...definition.subprojects[0]!, tasks: [{ ...definition.subprojects[0]!.tasks[0]!, risks: [risk] }],
+  }] };
+  const response = await POST(request('POST', input));
+  expect(response.status).toBe(201);
+  const created: ProjectItem = await response.json();
+  expect(created.subprojects.flatMap(section => section.tasks)[0]!.risks).toEqual([risk]);
+  const subprojects = created.subprojects.map(section => ({ ...section, tasks: section.tasks.map(task => ({
+    ...task, risks: [{ ...risk, mitigations: [{ id: 'm', text: 'Reserve stock' }] }],
+  })) }));
+  const patched = await PATCH(request('PATCH', { id: created.id, patch: { subprojects } }));
+  expect(patched.status).toBe(200);
+  expect((await patched.json()).subprojects).toEqual(subprojects);
+  mockLoad.mockResolvedValue(mockSave.mock.calls.at(-1)![1]);
+  const reloaded = (await getOrInitUserProjects(`risk-reload-${userId}`))[0]!;
+  expect(reloaded.subprojects.flatMap(section => section.tasks)[0]!.risks).toEqual([
+    { ...risk, mitigations: [{ id: 'm', text: 'Reserve stock' }] },
+  ]);
+  const cleared = await PATCH(request('PATCH', {
+    id: created.id, patch: { subprojects: subprojects.map(section => ({
+      ...section, tasks: section.tasks.map(task => ({ ...task, risks: [] })),
+    })) },
+  }));
+  expect(cleared.status).toBe(200);
+  expect((await cleared.json()).subprojects.flatMap((section: ProjectItem['subprojects'][number]) => section.tasks)[0].risks).toEqual([]);
+});
+
+it('rejects malformed risks and mitigations on both create and update', async () => {
+  const created: ProjectItem = await (await POST(request('POST', definition))).json();
+  const valid = { id: 'r', name: 'Delay', description: '', mitigations: [] };
+  for (const risks of [
+    null, {}, [null], [{ ...valid, name: '  ' }], [{ ...valid, description: null }],
+    [{ ...valid, mitigations: null }], [valid, valid],
+    [{ ...valid, mitigations: [{ id: 'm', text: ' ' }] }],
+    [{ ...valid, mitigations: [{ id: 'm', text: 'First' }, { id: 'm', text: 'Second' }] }],
+  ]) {
+    const subprojects = [{ ...definition.subprojects[0]!, tasks: [{ ...definition.subprojects[0]!.tasks[0]!, risks }] }];
+    expect((await POST(request('POST', { ...definition, subprojects }))).status).toBe(400);
+    expect((await PATCH(request('PATCH', { id: created.id, patch: { subprojects } }))).status).toBe(400);
+  }
+});
+
+it('copies risks into templates with fresh independent risk and mitigation identities', () => {
+  const template: ProjectItem = {
+    id: 'p', text: 'Template', color: '#1976D2',
+    subprojects: [{ id: 's', text: 'Work', tasks: [{
+      id: 't', text: 'Order', done: false, favorite: false, dueDate: null, people: [],
+      risks: [{ id: 'r', name: 'Delay', description: 'Lead time', mitigations: [{ id: 'm', text: 'Reserve stock' }] }],
+    }] }],
+  };
+  const copy = instantiateTemplate(template, 'Copy');
+  const risk = copy.subprojects![0]!.tasks[0]!.risks![0]!;
+  expect(risk).toMatchObject({ name: 'Delay', description: 'Lead time', mitigations: [{ text: 'Reserve stock' }] });
+  expect(risk.id).not.toBe('r');
+  expect(risk.mitigations[0]!.id).not.toBe('m');
+  risk.mitigations[0]!.text = 'Changed';
+  expect(template.subprojects[0]!.tasks[0]!.risks![0]!.mitigations[0]!.text).toBe('Reserve stock');
+});
+
 it('persists roadmap milestones and deadlines through create, patch, reload and clear', async () => {
   const milestones = [{ id: 'm', label: 'Brief ready', taskIds: ['original-task'] }];
   const deadlines = [{ id: 'd', label: 'Launch', date: '2026-12-15' }];
