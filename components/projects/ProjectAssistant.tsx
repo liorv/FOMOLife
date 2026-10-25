@@ -31,7 +31,7 @@ const ChangePreview = ({ modified, original }: { modified: any, original: any })
           marginBottom: '4px',
           fontWeight: '500'
         }}>
-          📋 New list: "{s.title}" ({s.tasks?.length || 0} tasks)
+          📋 New list: &quot;{s.title}&quot; ({s.tasks?.length || 0} tasks)
         </div>
         <div style={{
           border: '1px solid #e0e0e0',
@@ -123,7 +123,7 @@ const ChangePreview = ({ modified, original }: { modified: any, original: any })
             marginBottom: '4px',
             fontWeight: '500'
           }}>
-            ➕ Add {newTasks.length} task{newTasks.length > 1 ? 's' : ''} to "{ms.title}":
+            ➕ Add {newTasks.length} task{newTasks.length > 1 ? 's' : ''} to &quot;{ms.title}&quot;:
           </div>
           <div style={{
             border: '1px solid #e0e0e0',
@@ -1051,7 +1051,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                           } else if (action.type === 'copy_text') {
                             const txt = action.payload?.text || action.label || '';
                             if (txt) {
-                              try { navigator.clipboard.writeText(txt); } catch {}
+                              try { navigator.clipboard.writeText(txt); } catch { /* Clipboard access can be denied; the confirmation is still shown. */ }
                               setMessages((mm) => [...mm, { id: `sys-${Date.now()}`, role: 'system', text: `Copied text to clipboard.` }]);
                             }
                           } else if (action.type === 'suggestion') {
@@ -1085,7 +1085,7 @@ export default function ProjectAssistant({ projectExport, onClose, onApplyChange
                               // fallback: copy the suggestion text to clipboard
                               const txt = action.payload?.text || action.label || '';
                               if (txt) {
-                                try { navigator.clipboard.writeText(txt); } catch {}
+                                try { navigator.clipboard.writeText(txt); } catch { /* Clipboard access can be denied; the confirmation is still shown. */ }
                                 setMessages((mm) => [...mm, { id: `sys-${Date.now()}`, role: 'system', text: `Copied suggestion text to clipboard.` }]);
                               } else {
                                 setMessages((mm) => [...mm, { id: `sys-${Date.now()}`, role: 'system', text: `Suggestion received.` }]);

@@ -30,9 +30,7 @@ it("opens the optional Plan view and returns to the unchanged task editor", () =
   fireEvent.click(within(views).getByRole("button", { name: "Plan" }));
   expect(screen.getByRole("region", { name: "Release project plan" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")).toBe(projectHeader);
-  const back = screen.getByRole("button", { name: "Back to projects" });
-  expect(views.nextElementSibling).toBe(back);
-  expect(projectHeader).not.toContainElement(back);
+  expect(screen.queryByRole("button", { name: "Back to projects" })).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "Project tools" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Open AI assistant" })).not.toBeInTheDocument();
   fireEvent.click(tasks);
@@ -233,6 +231,27 @@ it("switches between card, list, and compact project layouts", () => {
   fireEvent.click(hint.querySelector("button")!);
   expect(screen.queryByText("Swipe left for actions")).not.toBeInTheDocument();
   expect(localStorage.getItem("project-swipe-actions-hint-dismissed")).toBe("1");
+});
+
+it("slides the projects page content in from the side matching the selected switcher", () => {
+  render(
+    <ProjectsDashboard
+      projects={[{ id: "p1", text: "Project", color: "#1976D2", subprojects: [] }]}
+    />,
+  );
+  const view = () => document.querySelector(".projects-home-view")!;
+
+  expect(view()).toHaveClass("project-editor-workspace--none");
+  fireEvent.click(screen.getByRole("button", { name: "Compact view" }));
+  expect(view()).toHaveAttribute("data-home-view", "compact");
+  expect(view()).toHaveClass("project-editor-workspace--forward");
+  fireEvent.click(screen.getByRole("button", { name: "List view" }));
+  expect(view()).toHaveClass("project-editor-workspace--backward");
+  fireEvent.click(screen.getByRole("button", { name: /Templates \(0\)/ }));
+  expect(view()).toHaveAttribute("data-home-view", "templates");
+  expect(view()).toHaveClass("project-editor-workspace--forward");
+  fireEvent.click(screen.getByRole("button", { name: /Projects$/ }));
+  expect(view()).toHaveClass("project-editor-workspace--backward");
 });
 
 it("restores the previously selected project layout", () => {

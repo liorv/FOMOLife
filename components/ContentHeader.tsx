@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReleaseNotes from './ReleaseNotes';
 import homeStyles from './HomePage.module.css';
 import headerStyles from './ContentHeader.module.css';
@@ -8,12 +8,48 @@ import DismissibleHint from './DismissibleHint';
 
 type Props = {
   title: string;
+  /** When set, the title becomes a button that navigates back with this handler and the header stays pinned while scrolling. */
+  onBack?: () => void;
+  backLabel?: string;
 };
 
-export default function ContentHeader({ title }: Props) {
+const HEIGHT_VAR = '--content-header-height';
+
+export default function ContentHeader({ title, onBack, backLabel }: Props) {
+  const headerRef = useRef<HTMLDivElement>(null);
+  const sticky = Boolean(onBack);
+
+  // Publish the pinned header's height so sticky content below it (e.g. the project tile) can stack underneath.
+  useEffect(() => {
+    const header = headerRef.current;
+    const container = header?.parentElement;
+    if (!sticky || !header || !container) return;
+    const update = () => container.style.setProperty(HEIGHT_VAR, `${header.offsetHeight}px`);
+    update();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(header);
+    return () => {
+      observer?.disconnect();
+      container.style.removeProperty(HEIGHT_VAR);
+    };
+  }, [sticky]);
+
   return (
-    <div className={headerStyles.header}>
-      <h1 className={homeStyles.title}>{title}</h1>
+    <div ref={headerRef} className={`${headerStyles.header}${sticky ? ` ${headerStyles.sticky}` : ''}`}>
+      {onBack ? (
+        <button
+          type="button"
+          className={`${homeStyles.title} ${headerStyles.backTitle}`}
+          onClick={onBack}
+          aria-label={backLabel ?? `Back to ${title}`}
+          title={backLabel ?? `Back to ${title}`}
+        >
+          <span className={`material-icons ${headerStyles.backIcon}`} aria-hidden="true">arrow_back</span>
+          <span>{title}</span>
+        </button>
+      ) : (
+        <h1 className={homeStyles.title}>{title}</h1>
+      )}
       <DismissibleHint
         storageKey="swipe-nav-hint-dismissed"
         lines={['swipe 2', 'navigate']}

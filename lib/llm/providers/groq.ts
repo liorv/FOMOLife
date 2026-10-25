@@ -104,8 +104,8 @@ When editing an existing task, YOU MUST provide its exact existing \`taskId\` fr
       s.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
 
     const tryParse = (s: string) => {
-      try { return JSON.parse(s); } catch (_) {}
-      try { return JSON.parse(fixUnquotedKeys(s)); } catch (_) {}
+      try { return JSON.parse(s); } catch { /* Retry after normalizing keys. */ }
+      try { return JSON.parse(fixUnquotedKeys(s)); } catch { /* Not parseable JSON. */ }
       return null;
     };
 

@@ -88,7 +88,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
     try {
       const created = await contactsClient.createContact({ name });
       setPeople((prev) => (prev.find((p) => p.name === created.name) ? prev : [...prev, created]));
-      try { localStorage.setItem('fomo:contactsUpdated', Date.now().toString()); } catch {}
+      try { localStorage.setItem('fomo:contactsUpdated', Date.now().toString()); } catch { /* Storage may be unavailable; cross-tab sync is best effort. */ }
       return created;
     } catch (err) {
       console.warn('[Projects] failed to create person', err);
@@ -290,7 +290,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
           // once per project instead of on every page load.
           const ICON_CACHE_KEY = 'fomo:projectIcons';
           let localIconCache: Record<string, string> = {};
-          try { localIconCache = JSON.parse(localStorage.getItem(ICON_CACHE_KEY) || '{}'); } catch {}
+          try { localIconCache = JSON.parse(localStorage.getItem(ICON_CACHE_KEY) || '{}'); } catch { /* Fall back to an empty icon cache. */ }
 
           const projectsWithIcons = loadedProjects.map((p) => {
             if (p.avatarUrl) return p;
@@ -310,7 +310,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
           if (newlyAssigned.length > 0) {
             const updatedCache = { ...localIconCache };
             newlyAssigned.forEach((p) => { updatedCache[p.id] = p.avatarUrl!; });
-            try { localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(updatedCache)); } catch {}
+            try { localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(updatedCache)); } catch { /* Icon caching is best effort. */ }
             newlyAssigned.forEach((p) => {
               apiClient.updateProject(p.id, { avatarUrl: p.avatarUrl! }).catch(() => {});
             });
@@ -573,7 +573,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     if (!newText || !newText.trim()) return;
     try {
       await apiUpdateProject(projectId, { text: newText.trim() });
-    } catch (_) {}
+    } catch {
+      // Rename failures leave the previous title in place.
+    }
   };
 
   const handleProjectColorChange = async (
@@ -809,7 +811,9 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
         try {
           const errBody = await res.json();
           if (errBody?.error) message = errBody.error;
-        } catch {}
+        } catch {
+          // Non-JSON error responses use the default message.
+        }
         throw new Error(message);
       }
       const updated = await res.json();
@@ -847,9 +851,26 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     .filter(Boolean)
     .join(" ");
 
+  const selectProject = (id: string | null) => {
+    setEditingProjectId(id);
+    if (id === null) {
+      setNotificationTaskId(null);
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.delete('q');
+      nextParams.delete('projectId');
+      nextParams.delete('taskId');
+      router.replace(`${pathname}?${nextParams.toString()}`);
+    }
+  };
+
+  const showProjectEditor = Boolean(editingProjectId) && projects.some((p) => p.id === editingProjectId);
+
   return (
     <div style={style}>
-      <ContentHeader title="Projects" />
+      <ContentHeader
+        title="Projects"
+        {...(showProjectEditor ? { onBack: () => selectProject(null), backLabel: "Back to projects" } : {})}
+      />
       <div className={panelClassName}>
 
           {!canManage ? (
@@ -897,17 +918,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               people={people}
               selectedProjectId={editingProjectId}
               selectedTaskId={notificationTaskId}
-              onSelectProject={(id: string | null) => {
-                setEditingProjectId(id);
-                if (id === null) {
-                  setNotificationTaskId(null);
-                  const nextParams = new URLSearchParams(searchParams.toString());
-                  nextParams.delete('q');
-                  nextParams.delete('projectId');
-                  nextParams.delete('taskId');
-                  router.replace(`${pathname}?${nextParams.toString()}`);
-                }
-              }}
+              onSelectProject={selectProject}
               onApplyChange={handleProjectApplyChange}
               onAddSubproject={handleAddSubproject}
               newlyAddedSubprojectId={newlyAddedSubprojectId}

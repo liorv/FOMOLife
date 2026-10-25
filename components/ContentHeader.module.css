@@ -27,3 +27,90 @@
   justify-content: center;
   padding-bottom: 4px;
 }
+
+/* Pinned header (frosted, iOS-style) shown while a child view such as the project editor is open. */
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 11001;
+  background: color-mix(in srgb, var(--color-bg, #f1f3f4) 82%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  backdrop-filter: saturate(180%) blur(14px);
+}
+
+/* Title rendered as a Material 3 filled button that returns to the parent page. */
+.header .backTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  min-height: 48px;
+  padding: 0.2em 0.8em 0.2em 0.45em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary, #1a73e8);
+  color: #fff;
+  font-family: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px #0000004d, 0 1px 3px 1px #00000026;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1), transform 120ms ease;
+}
+
+/* Material state layer. */
+.header .backTitle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.header .backTitle:hover {
+  box-shadow: 0 1px 2px #0000004d, 0 2px 6px 2px #00000026;
+}
+
+.header .backTitle:hover::before {
+  opacity: 0.08;
+}
+
+.header .backTitle:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px #0000004d, 0 1px 3px 1px #00000026;
+}
+
+.header .backTitle:active::before {
+  opacity: 0.12;
+}
+
+.header .backTitle:focus-visible {
+  outline: 3px solid var(--color-primary, #1a73e8);
+  outline-offset: 3px;
+}
+
+:global(html[data-theme="dark"]) .header .backTitle {
+  color: #0b1d36;
+}
+
+.backIcon {
+  position: relative;
+  font-size: 1em;
+  color: inherit;
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.header .backTitle:hover .backIcon {
+  transform: translateX(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header .backTitle,
+  .header .backTitle::before,
+  .backIcon {
+    transition: none;
+  }
+}

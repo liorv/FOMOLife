@@ -79,6 +79,7 @@ interface ProjectsDashboardProps {
 }
 
 type ProjectView = "cards" | "list" | "compact";
+const PROJECT_VIEW_ORDER: ProjectView[] = ["cards", "list", "compact"];
 const PROJECT_VIEW_STORAGE_KEY = "fomo:projects:view";
 
 function isProjectView(value: string | null): value is ProjectView {
@@ -161,7 +162,15 @@ export default function ProjectsDashboard({
     }
   }, []);
 
+  const [homeDirection, setHomeDirection] = useState<'forward' | 'backward' | 'none'>('none');
+  const selectHomeSection = (templates: boolean) => {
+    if (templates === showTemplates) return;
+    setHomeDirection(templates ? 'forward' : 'backward');
+    setShowTemplates(templates);
+  };
   const selectProjectView = (view: ProjectView) => {
+    if (view === projectView) return;
+    setHomeDirection(PROJECT_VIEW_ORDER.indexOf(view) > PROJECT_VIEW_ORDER.indexOf(projectView) ? 'forward' : 'backward');
     setProjectView(view);
     try {
       localStorage.setItem(PROJECT_VIEW_STORAGE_KEY, view);
@@ -365,11 +374,6 @@ export default function ProjectsDashboard({
     onSelectProject?.(id);
   };
 
-  // Navigate back (deselect project — useful on mobile)
-  const handleBack = () => {
-    onSelectProject?.(null);
-  };
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -379,21 +383,17 @@ export default function ProjectsDashboard({
         <div className="dashboard-body">
           <div className="dashboard-content">
             <div className={`${templateStyles.toolbar} ${templateStyles.workspaceToolbar}`}>
-              <div className={templateStyles.tabs} role="group" aria-label="Project workspace view">
-                <button type="button" className={templateStyles.tab} aria-pressed={showingTasks} onClick={() => switchWorkspace('tasks')}>Tasks</button>
-                <button type="button" className={templateStyles.tab} aria-pressed={showingPlan} onClick={() => switchWorkspace('plan')}>Plan</button>
-                <button type="button" className={templateStyles.tab} aria-pressed={showingRoadmap} onClick={() => switchWorkspace('roadmap')}>Roadmap</button>
-              </div>
-              <button
-                type="button"
-                className={templateStyles.backButton}
-                onClick={handleBack}
-                title="Back to projects"
-                aria-label="Back to projects"
+              <div
+                className={templateStyles.segmented}
+                role="group"
+                aria-label="Project workspace view"
+                style={{ '--segment-count': WORKSPACE_ORDER.length, '--segment-index': WORKSPACE_ORDER.indexOf(workspaceView) } as React.CSSProperties}
               >
-                <span className="material-icons" aria-hidden="true">arrow_back</span>
-                <span>Projects</span>
-              </button>
+                <span className={templateStyles.segmentThumb} aria-hidden="true" />
+                <button type="button" className={templateStyles.segment} aria-pressed={showingTasks} onClick={() => switchWorkspace('tasks')}>Tasks</button>
+                <button type="button" className={templateStyles.segment} aria-pressed={showingPlan} onClick={() => switchWorkspace('plan')}>Plan</button>
+                <button type="button" className={templateStyles.segment} aria-pressed={showingRoadmap} onClick={() => switchWorkspace('roadmap')}>Roadmap</button>
+              </div>
             </div>
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
@@ -663,20 +663,32 @@ export default function ProjectsDashboard({
         /* ── Home: watermark + direct grid ── */
         <>
           <div className={templateStyles.toolbar}>
-            <div className={templateStyles.tabs} role="group" aria-label="Project views">
-              <button type="button" className={templateStyles.tab} aria-pressed={!showTemplates} onClick={() => setShowTemplates(false)}>
+            <div
+              className={`${templateStyles.segmented} ${templateStyles.segmentedHome}`}
+              role="group"
+              aria-label="Project views"
+              style={{ '--segment-count': 2, '--segment-index': showTemplates ? 1 : 0 } as React.CSSProperties}
+            >
+              <span className={templateStyles.segmentThumb} aria-hidden="true" />
+              <button type="button" className={templateStyles.segment} aria-pressed={!showTemplates} onClick={() => selectHomeSection(false)}>
                 <span className="material-icons" aria-hidden="true">folder_open</span>Projects
               </button>
-              <button type="button" className={templateStyles.tab} aria-pressed={showTemplates} onClick={() => setShowTemplates(true)}>
+              <button type="button" className={templateStyles.segment} aria-pressed={showTemplates} onClick={() => selectHomeSection(true)}>
                 <span className="material-icons" aria-hidden="true">dashboard_customize</span>Templates ({templates.length})
               </button>
             </div>
             <div className={templateStyles.toolbarActions}>
               {!showTemplates && (
-                <div className={templateStyles.viewSwitcher} role="group" aria-label="Project layout">
+                <div
+                  className={`${templateStyles.segmented} ${templateStyles.segmentedIcons}`}
+                  role="group"
+                  aria-label="Project layout"
+                  style={{ '--segment-count': PROJECT_VIEW_ORDER.length, '--segment-index': PROJECT_VIEW_ORDER.indexOf(projectView) } as React.CSSProperties}
+                >
+                  <span className={templateStyles.segmentThumb} aria-hidden="true" />
                   <button
                     type="button"
-                    className={templateStyles.viewButton}
+                    className={templateStyles.segment}
                     aria-label="Cards view"
                     title="Cards view"
                     aria-pressed={projectView === "cards"}
@@ -686,7 +698,7 @@ export default function ProjectsDashboard({
                   </button>
                   <button
                     type="button"
-                    className={templateStyles.viewButton}
+                    className={templateStyles.segment}
                     aria-label="List view"
                     title="List view"
                     aria-pressed={projectView === "list"}
@@ -696,7 +708,7 @@ export default function ProjectsDashboard({
                   </button>
                   <button
                     type="button"
-                    className={templateStyles.viewButton}
+                    className={templateStyles.segment}
                     aria-label="Compact view"
                     title="Compact view"
                     aria-pressed={projectView === "compact"}
@@ -717,6 +729,11 @@ export default function ProjectsDashboard({
           {/* Home watermark removed */}
 
           {/* Combined search results (projects + tasks) */}
+          <div
+            key={showTemplates ? 'templates' : `projects-${projectView}`}
+            className={`projects-home-view project-editor-workspace--${homeDirection}`}
+            data-home-view={showTemplates ? 'templates' : projectView}
+          >
           {showTemplates ? (
             <TemplateLibrary templates={templates} onEdit={handleSelectProject} onUse={onUseTemplate ? project => setTemplateAction({ kind: 'use', project }) : undefined} />
           ) : searchResults !== null ? (
@@ -960,6 +977,7 @@ export default function ProjectsDashboard({
               </>
             )
           )}
+          </div>
         </>
       )}
 

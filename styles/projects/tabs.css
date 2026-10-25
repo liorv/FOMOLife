@@ -1861,7 +1861,7 @@ html[data-theme="dark"] .inline-editor {
   padding: 20px 24px 16px;
   background: var(--color-surface, #fff);
   position: sticky;
-  top: 0;
+  top: var(--content-header-height, 0px);
   z-index: 11000;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -1886,7 +1886,7 @@ html[data-theme="dark"] .inline-editor {
 .dashboard-project-header--tile .dashboard-project-title-row {
   box-sizing: border-box;
   padding: 10px 16px 0;
-  background: var(--color-bg, #f8fafc);
+  background: transparent;
 }
 
 .dashboard-project-header-modern {

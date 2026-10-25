@@ -157,7 +157,7 @@ function AcceptInvitePageInner() {
             </div>
           </div>
           <p className="invite-message">
-            This person wants to connect with you. Review their profile above and click "Request Linkage" to send a connection request.
+            This person wants to connect with you. Review their profile above and click &quot;Request Linkage&quot; to send a connection request.
           </p>
           <div className="invite-actions">
             <button

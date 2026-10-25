@@ -118,7 +118,9 @@ export default function ContactsPage({ canManage, currentUserId = '', currentUse
             setActiveInvite(null);
             localStorage.removeItem(storeKey);
           }
-        } catch (e) {}
+        } catch {
+          // Ignore unreadable stored invites; the current invite state is kept.
+        }
       } else {
         setActiveInvite(null);
       }

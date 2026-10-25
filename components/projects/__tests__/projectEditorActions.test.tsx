@@ -57,7 +57,7 @@ it("does not count completed-task visibility as an active task filter", async ()
   expect(screen.queryByText("Filter (1)")).not.toBeInTheDocument();
 });
 
-it("shows the project-tile-style header with a breadcrumb back action", async () => {
+it("shows the project-tile-style header without a separate back action", async () => {
   const onSelectProject = jest.fn();
   await act(async () => {
     render(
@@ -83,8 +83,8 @@ it("shows the project-tile-style header with a breadcrumb back action", async ()
   expect(projectHeader).not.toContainElement(screen.getByRole("button", { name: "Filter tasks" }));
   expect(screen.queryByRole("button", { name: "Edit project image and overview" })).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "Back button layout preview" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Back to projects" }));
-  expect(onSelectProject).toHaveBeenCalledWith(null);
+  expect(screen.queryByRole("button", { name: "Back to projects" })).not.toBeInTheDocument();
+  expect(onSelectProject).not.toHaveBeenCalled();
 });
 
 it("offers restoration rather than completion for archived projects", () => {

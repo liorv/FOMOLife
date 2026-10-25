@@ -9,11 +9,11 @@ export default function TermsPage() {
       <p>
         These terms describe general rules for using this application. By using
         the service you agree to comply with applicable laws and not to misuse
-        the service or attempt to access other users' accounts or data.
+        the service or attempt to access other users&apos; accounts or data.
       </p>
 
       <p>
-        The service is provided "as is" and may change over time. To the extent
+        The service is provided &quot;as is&quot; and may change over time. To the extent
         permitted by law, the application owner disclaims warranties and limits
         liability where allowed. This page is a brief, informative summary and
         not a substitute for legal advice.

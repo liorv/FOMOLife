@@ -1145,6 +1145,11 @@
   animation: workspaceSlideFromRight 260ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
 }
 
+.projects-home-view {
+  width: 100%;
+  min-width: 0;
+}
+
 .project-editor-workspace--backward {
   animation: workspaceSlideFromLeft 260ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
 }
