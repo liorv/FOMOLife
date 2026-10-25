@@ -13,6 +13,7 @@ import { usePlanLinks } from './usePlanLinks';
 import PlanSaveStatus from './PlanSaveStatus';
 import RoadmapEventTables from './RoadmapEventTables';
 import { getMilestoneTaskIds, isRoadmapDate } from '@/lib/projects/roadmapEvents';
+import ProjectViewHelp from './ProjectViewHelp';
 
 type Props = {
   project: ProjectItem;
@@ -80,15 +81,11 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   }, [project.subprojects]);
   useEffect(() => { setDeadlines(project.deadlines ?? []); }, [project.deadlines]);
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: canEditEvents }));
-    if (!canEditEvents) return;
-    const addDeadline = () => startDeadline();
-    window.addEventListener('roadmap-add-deadline', addDeadline);
+    window.dispatchEvent(new CustomEvent('project-view-active', { detail: 'roadmap' }));
     return () => {
-      window.removeEventListener('roadmap-add-deadline', addDeadline);
-      window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: false }));
+      window.dispatchEvent(new CustomEvent('project-view-active', { detail: null }));
     };
-  }, [canEditEvents, startDeadline]);
+  }, []);
   const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
   const nodes = useMemo(() => getPlanNodes(planningProject), [planningProject]);
   const roadmap = useMemo(() => buildRoadmap(planningProject, links), [planningProject, links]);
@@ -329,5 +326,6 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       onAddMilestone={() => {}} onAddDeadline={startDeadline}
       onMilestonesChange={() => {}} onDeadlinesChange={saveDeadlines}
       onSelectDependency={() => {}} />
+    <ProjectViewHelp view="roadmap" />
   </section>;
 }

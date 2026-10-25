@@ -1,7 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import styles from './ThumbButton.module.css';
-import { CheckeredFlag } from './CheckeredFlag';
 
 export interface ThumbButtonProps {
   ariaLabel?: string;
@@ -13,44 +10,17 @@ export interface ThumbButtonProps {
 export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, activeTab }: ThumbButtonProps) {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [roadmapOpen, setRoadmapOpen] = useState(false);
-  const [planOpen, setPlanOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [activeProjectView, setActiveProjectView] = useState<string | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const isRoadmap = activeTab === 'projects' && roadmapOpen;
-  const isPlan = activeTab === 'projects' && planOpen;
+  const isProjectHelp = activeTab === 'projects' && ['risks', 'plan', 'roadmap'].includes(activeProjectView ?? '');
 
   useEffect(() => {
-    const change = (event: Event) => {
-      setRoadmapOpen((event as CustomEvent<boolean>).detail);
-      setExpanded(false);
-    };
-    window.addEventListener('project-roadmap-active', change);
-    const changePlan = (event: Event) => setPlanOpen((event as CustomEvent<boolean>).detail);
-    window.addEventListener('project-plan-active', changePlan);
+    const change = (event: Event) => setActiveProjectView((event as CustomEvent<string | null>).detail);
+    window.addEventListener('project-view-active', change);
     return () => {
-      window.removeEventListener('project-roadmap-active', change);
-      window.removeEventListener('project-plan-active', changePlan);
+      window.removeEventListener('project-view-active', change);
     };
   }, []);
-  useEffect(() => { setExpanded(false); }, [activeTab]);
-  useEffect(() => {
-    if (!expanded) return;
-    menuRef.current?.querySelector('button')?.focus();
-    const close = (event: PointerEvent) => {
-      if (event.target instanceof Node && !menuRef.current?.contains(event.target) && !buttonRef.current?.contains(event.target)) setExpanded(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { setExpanded(false); buttonRef.current?.focus(); }
-    };
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', escape);
-    };
-  }, [expanded]);
 
   useEffect(() => {
     const openAssistant = () => setAssistantOpen(true);
@@ -73,7 +43,9 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
 
   let iconName = 'add';
   if (activeTab === 'projects') {
-    if (assistantOpen) {
+    if (isProjectHelp) {
+      iconName = 'help_outline';
+    } else if (assistantOpen) {
       iconName = 'auto_awesome'; // AI Assistant
     } else if (editorOpen) {
       iconName = 'post_add'; // Add sub project when project editor is open
@@ -84,31 +56,19 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
     iconName = 'add'; // +
   }
 
-  if (isRoadmap) iconName = expanded ? 'expand_more' : 'expand_less';
-  else if (isPlan) iconName = 'add_link';
+  const projectHelpLabel = activeProjectView === 'risks' ? 'Risk Management help'
+    : activeProjectView === 'plan' ? 'Plan help' : 'Roadmap help';
 
-  return <>
-    <button ref={buttonRef} type="button" className={className} aria-label={isRoadmap ? 'Roadmap actions' : isPlan ? 'Add dependency' : ariaLabel}
-      aria-expanded={isRoadmap ? expanded : undefined} aria-controls={isRoadmap && expanded ? 'roadmap-fab-actions' : undefined}
-      onClick={isRoadmap ? () => setExpanded(value => !value) : isPlan ? () => window.dispatchEvent(new Event('plan-add-dependency')) : onClick}>
+  return <button ref={buttonRef} type="button" className={className}
+      aria-label={isProjectHelp ? projectHelpLabel : ariaLabel}
+      onClick={isProjectHelp
+        ? () => {
+          buttonRef.current?.focus();
+          window.dispatchEvent(new CustomEvent('open-project-view-help', { detail: activeProjectView }));
+        }
+        : onClick}>
       <span className="tabs-thumb-fab" aria-hidden="true">
         <span className="material-icons tab-icon">{iconName}</span>
       </span>
-    </button>
-    {isRoadmap && expanded && createPortal(<div ref={menuRef} id="roadmap-fab-actions" className={styles.actions} role="group" aria-label="Roadmap actions">
-      {[
-        { label: 'Add Deadline', icon: 'flag', event: 'roadmap-add-deadline' },
-      ].map(action => <button key={action.event} type="button" className={styles.action} aria-label={action.label} title={action.label}
-        onClick={() => {
-          setExpanded(false);
-          window.dispatchEvent(new Event(action.event));
-        }}>
-        <span className={styles.glyph} aria-hidden="true">
-          {action.icon === 'flag' ? <CheckeredFlag /> : <span className="material-icons">{action.icon}</span>}
-          <span className={`material-icons ${styles.plus}`}>add</span>
-        </span>
-        <span className={styles.label}>{action.label}</span>
-      </button>)}
-    </div>, document.body)}
-  </>;
+    </button>;
 }

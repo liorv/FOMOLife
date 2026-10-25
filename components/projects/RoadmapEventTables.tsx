@@ -39,7 +39,7 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, secti
     dialogRef.current?.querySelector<HTMLElement>('input, button')?.focus();
     return () => {
       if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
-      else document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]')?.focus();
+      else document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap help"]')?.focus();
       dialogTrigger.current = null;
     };
   }, [open]);

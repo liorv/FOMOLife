@@ -41,11 +41,6 @@ function selectMilestoneDependency(text: string) {
     .getByRole('button', { name: new RegExp(`^Select prerequisite: ${text} \\(`) }));
 }
 
-function fab(label: string) {
-  fireEvent.click(screen.getByRole('button', { name: 'Roadmap actions' }));
-  fireEvent.click(within(screen.getByRole('group', { name: 'Roadmap actions' })).getByRole('button', { name: label }));
-}
-
 function day(offset: number) {
   const now = new Date();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) + offset * 86400000).toISOString().slice(0, 10);
@@ -63,26 +58,22 @@ it.each([true, false])('marks completed milestone tasks with a leading shared ch
   expect(table.getByText('Deleted task')).toBeInTheDocument();
 });
 
-it('keeps deadline creation in the Roadmap FAB and moves milestone creation to Plan', () => {
+it('opens Roadmap documentation from the thumb and keeps milestone creation in Plan', () => {
   const { thumbClick } = setup();
-  const thumb = screen.getByRole('button', { name: 'Roadmap actions' });
-  expect(thumb).toHaveTextContent('expand_less');
-  expect(thumb).toHaveAttribute('aria-expanded', 'false');
+  const thumb = screen.getByRole('button', { name: 'Roadmap help' });
+  expect(thumb).toHaveTextContent('help_outline');
   fireEvent.click(thumb);
   expect(thumbClick).not.toHaveBeenCalled();
-  expect(thumb).toHaveAttribute('aria-expanded', 'true');
-  expect(thumb).toHaveTextContent('expand_more');
-  const actions = within(screen.getByRole('group', { name: 'Roadmap actions' }));
-  expect(actions.queryByRole('button', { name: 'Add Milestone' })).not.toBeInTheDocument();
+  const dialog = screen.getByRole('dialog', { name: 'Project Roadmap' });
+  expect(dialog.parentElement).toHaveClass('overlay');
+  expect(dialog).toHaveTextContent('See the schedule');
+  expect(dialog).toHaveTextContent('Project or person.');
+  expect(dialog).toHaveTextContent('Milestones and deadlines.');
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+  expect(screen.queryByRole('dialog', { name: 'Project Roadmap' })).not.toBeInTheDocument();
   expect(screen.getByRole('region', { name: 'Release project plan' })).toContainElement(screen.getByRole('button', { name: 'Add Milestone' }));
   expect(screen.getByRole('region', { name: 'Roadmap' })).not.toContainElement(screen.getByRole('table', { name: 'Milestones' }));
-  const deadlineFab = actions.getByRole('button', { name: 'Add Deadline' });
-  expect(deadlineFab.querySelector('svg path[fill="#fff"]')).toBeInTheDocument();
-  expect(deadlineFab.querySelector('svg path[fill="#111"]')).toBeInTheDocument();
-  fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('group', { name: 'Roadmap actions' })).not.toBeInTheDocument();
-  expect(thumb).toHaveFocus();
-  expect(thumb).toHaveTextContent('expand_less');
 });
 
 it('creates a named milestone from a roadmap task and saves table renames', () => {
@@ -191,7 +182,7 @@ it('aligns dotted deadline guides to their date markers in both roadmap views', 
 
 it('adds a date-only deadline even without tasks, then edits its date and name', () => {
   const { save } = setup({ ...project, subprojects: [] });
-  fab('Add Deadline');
+  fireEvent.click(screen.getByRole('button', { name: 'Add Deadline' }));
   const dialog = screen.getByRole('dialog', { name: 'Add Deadline' });
   fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Ship' } });
   fireEvent.change(within(dialog).getByLabelText('Date'), { target: { value: day(30) } });
@@ -276,7 +267,7 @@ it('does not plot a milestone with a deleted section, and labels that dependency
 
 it('does not expose mutation controls to read-only users', () => {
   const { save } = setup({ ...project, milestones: [milestone], deadlines: [deadline] }, false);
-  expect(screen.queryByRole('button', { name: 'Roadmap actions' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Roadmap help' })).toBeInTheDocument();
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Clear/ })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Add Milestone' })).not.toBeInTheDocument();

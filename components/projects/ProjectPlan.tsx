@@ -17,6 +17,7 @@ import { updateProjectTask } from '@/lib/projects/taskUpdates';
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { usePlanLinks } from './usePlanLinks';
 import PlanSaveStatus from './PlanSaveStatus';
+import ProjectViewHelp from './ProjectViewHelp';
 
 type Props = {
   project: ProjectItem;
@@ -90,24 +91,11 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     setMilestones(project.milestones ?? []);
   }, [project.milestones]);
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('project-plan-active', { detail: canManage }));
-    if (!canManage) return;
-    const addDependency = () => {
-      addRef.current = document.querySelector<HTMLButtonElement>('button[aria-label="Add dependency"]');
-      setEditingTaskId(null);
-      setGraphTarget(null);
-      setSelectedKey('');
-      setMilestoneSelection(null);
-      setSelectingDependent(true);
-      setSelecting(true);
-      setError('');
-    };
-    window.addEventListener('plan-add-dependency', addDependency);
+    window.dispatchEvent(new CustomEvent('project-view-active', { detail: 'plan' }));
     return () => {
-      window.removeEventListener('plan-add-dependency', addDependency);
-      window.dispatchEvent(new CustomEvent('project-plan-active', { detail: false }));
+      window.dispatchEvent(new CustomEvent('project-view-active', { detail: null }));
     };
-  }, [canManage]);
+  }, []);
 
   useEffect(() => {
     setSubprojects(project.subprojects);
@@ -479,6 +467,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
           </div>
         </div>
       </ModalOverlay>
+      <ProjectViewHelp view="plan" />
       <div className={styles.sequence}>
         {!nodes.length && <p className={styles.empty}>Add tasks or sections in Tasks to start planning.</p>}
         {!!nodes.length && <table ref={tableRef} className={styles.table} aria-label="Project dependencies" tabIndex={-1}>

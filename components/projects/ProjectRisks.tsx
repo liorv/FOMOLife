@@ -12,6 +12,7 @@ import styles from './ProjectPlan.module.css';
 import riskStyles from './ProjectRisks.module.css';
 import templateStyles from './ProjectTemplates.module.css';
 import CompletedTaskIcon from './CompletedTaskIcon';
+import ProjectViewHelp from './ProjectViewHelp';
 
 type Props = {
   project: ProjectItem;
@@ -65,6 +66,13 @@ export default function ProjectRisks({ project, canManage, initialFilter = 'all'
   const tooltipRisk = hoveredRisk ? byId.get(hoveredRisk.taskId)?.risks?.find(risk => risk.id === hoveredRisk.riskId) : undefined;
   const tooltipRect = tooltipVisible ? hoveredRisk?.anchor.getBoundingClientRect() : undefined;
   const people = useMemo(() => getProjectMemberContacts(project.members ?? []), [project.members]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('project-view-active', { detail: 'risks' }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('project-view-active', { detail: null }));
+    };
+  }, []);
 
   useEffect(() => {
     setSubprojects(project.subprojects);
@@ -428,6 +436,7 @@ export default function ProjectRisks({ project, canManage, initialFilter = 'all'
           </form>
         </div>}
       </ModalOverlay>
+      <ProjectViewHelp view="risks" />
     </section>
   );
 }

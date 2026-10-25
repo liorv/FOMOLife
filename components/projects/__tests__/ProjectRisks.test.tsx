@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ProjectItem, ProjectRisk } from '@myorg/types';
 import ProjectRisks from '../ProjectRisks';
+import ThumbButton from '../../../packages/ui/src/ThumbButton';
 
 const risk: ProjectRisk = { id: 'r', name: 'Vendor delay', description: 'Delivery could slip', mitigations: [] };
 const project: ProjectItem = {
@@ -54,6 +55,24 @@ it.each([true, false])('places the shared completion check before task names (ca
     expect(icon.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   }
   expect(within(table.getByText('Preparation').parentElement!).queryByRole('img')).not.toBeInTheDocument();
+});
+
+it('opens Risk Management documentation from the thumb', () => {
+  render(<>
+    <ThumbButton activeTab="projects" />
+    <ProjectRisks project={project} canManage />
+  </>);
+  const thumb = screen.getByRole('button', { name: 'Risk Management help' });
+  expect(thumb).toHaveTextContent('help_outline');
+  fireEvent.click(thumb);
+  const dialog = screen.getByRole('dialog', { name: 'Risk Management' });
+  expect(dialog.parentElement).toHaveClass('overlay');
+  expect(dialog).toHaveTextContent('All · Mitigated · Unmitigated');
+  expect(dialog).toHaveTextContent('Choose a task');
+  expect(dialog).toHaveTextContent('Add a fix');
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+  expect(screen.queryByRole('dialog', { name: 'Risk Management' })).not.toBeInTheDocument();
+  expect(thumb).toHaveFocus();
 });
 
 it('filters individual risks while retaining matching task and section context', () => {

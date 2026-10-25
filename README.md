@@ -47,9 +47,10 @@ Signed-out visitors return to the destination after signing in. Links do not
 grant access: the signed-in user's existing project permissions still apply.
 Deleted or inaccessible targets display an availability message.
 
-In a project's Plan view, the navbar's Add dependency button asks you to select
-a task, then select what it depends on. Cancel or Escape exits without saving.
-The existing graph and table dependency actions remain available.
+In a project's Plan, Roadmap, or Risks view, the navbar thumb opens a help
+dialog explaining the current page and how to use it. The thumb no longer
+starts dependency selection or opens Roadmap actions; dependency and deadline
+controls remain available in their respective pages.
 
 In a project's Risks stage, the Risk Management table uses the Plan table's
 section/task layout. Dependency, risk, and milestone tables use the same small

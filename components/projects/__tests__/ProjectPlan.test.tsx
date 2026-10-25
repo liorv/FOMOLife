@@ -141,51 +141,23 @@ function table() {
   return within(screen.getByRole('table', { name: 'Project dependencies' }));
 }
 
-it('starts a task-first dependency flow from the Plan thumb and restores the normal thumb on exit', async () => {
-  const save = jest.fn().mockResolvedValue([link]);
-  const normalClick = jest.fn();
-  const view = render(<>
-    <ThumbButton activeTab="projects" onClick={normalClick} />
-    <ProjectPlan project={project} canManage onSaveLink={save} />
-  </>);
-  const thumb = screen.getByRole('button', { name: 'Add dependency' });
-  expect(thumb).toHaveTextContent('add_link');
-  fireEvent.click(thumb);
-  expect(normalClick).not.toHaveBeenCalled();
-  expect(screen.getByText('Select a task to add a dependency.', { selector: 'p' })).toHaveFocus();
-  expect(table().getByRole('button', { name: 'Select task: Prepare (section, Section)' })).toHaveAttribute('aria-disabled', 'true');
-  fireEvent.click(table().getByRole('button', { name: 'Select task: Publish (task, Prepare)' }));
-  expect(screen.getByText('Select what it depends on')).toHaveFocus();
-  expect(save).not.toHaveBeenCalled();
-  fireEvent.click(table().getByRole('button', { name: 'Select prerequisite: Get approval (task, Prepare)' }));
-  await waitFor(() => expect(save).toHaveBeenCalledWith('add', link));
-  expect(thumb).toHaveFocus();
-  view.rerender(<ThumbButton activeTab="projects" onClick={normalClick} />);
-  expect(screen.getByRole('button', { name: 'Thumb' })).toHaveTextContent('add');
-});
-
-it('cancels the Plan thumb flow at either step without saving', () => {
-  const save = jest.fn();
+it('opens Plan documentation from the thumb instead of starting a dependency flow', () => {
   render(<>
     <ThumbButton activeTab="projects" />
-    <ProjectPlan project={project} canManage onSaveLink={save} />
+    <ProjectPlan project={project} canManage />
   </>);
-  const thumb = screen.getByRole('button', { name: 'Add dependency' });
+  const thumb = screen.getByRole('button', { name: 'Plan help' });
+  expect(thumb).toHaveTextContent('help_outline');
   fireEvent.click(thumb);
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(thumb).toHaveFocus();
+  const dialog = screen.getByRole('dialog', { name: 'Project Plan' });
+  expect(dialog.parentElement).toHaveClass('overlay');
+  expect(dialog).toHaveTextContent('Choose a task');
+  expect(dialog).toHaveTextContent('Connect tasks');
+  expect(dialog).toHaveTextContent('Prerequisites come first.');
   expect(screen.queryByText('Select a task to add a dependency.')).not.toBeInTheDocument();
-  fireEvent.click(thumb);
-  fireEvent.click(table().getByRole('button', { name: 'Select task: Publish (task, Prepare)' }));
-  fireEvent.keyDown(screen.getByRole('region', { name: 'Release project plan' }), { key: 'Escape' });
+  fireEvent.keyDown(within(dialog).getByRole('button', { name: 'Close' }), { key: 'Escape' });
+  expect(screen.queryByRole('dialog', { name: 'Project Plan' })).not.toBeInTheDocument();
   expect(thumb).toHaveFocus();
-  expect(save).not.toHaveBeenCalled();
-});
-
-it('keeps the normal thumb for read-only Plan views', () => {
-  render(<><ThumbButton activeTab="projects" /><ProjectPlan project={project} canManage={false} /></>);
-  expect(screen.getByRole('button', { name: 'Thumb' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Add dependency' })).not.toBeInTheDocument();
 });
 
 it('shows a dense section/task table without steps, an inspector, or advanced filters', () => {
