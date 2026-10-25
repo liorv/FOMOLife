@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Contact, ProjectItem, ProjectTask } from '@myorg/types';
-import { TaskModal } from '@myorg/ui';
+import type { Contact, ProjectDeadline, ProjectItem, ProjectMilestone, ProjectTask } from '@myorg/types';
+import { CheckeredFlag, TaskModal } from '@myorg/ui';
+import { generateId } from '@myorg/utils';
 import { buildRoadmap, getRoadmapLanes, type RoadmapEntry } from '@/lib/projects/roadmap';
 import { getPlanNodes, linkKey, validatePlanLinks, type PlanLink } from '@/lib/projects/planning';
 import { updateProjectTask } from '@/lib/projects/taskUpdates';
@@ -11,6 +12,8 @@ import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import styles from './ProjectPlan.module.css';
 import { usePlanLinks } from './usePlanLinks';
 import PlanSaveStatus from './PlanSaveStatus';
+import RoadmapEventTables from './RoadmapEventTables';
+import { isRoadmapDate } from '@/lib/projects/roadmapEvents';
 
 type Props = {
   project: ProjectItem;
@@ -44,6 +47,12 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const { links, saveState, save: saveLink, dismissError: dismissSaveError } = usePlanLinks({ projectId: project.id, initialLinks, onSaveLink, onLinksSaved });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
+  const [milestones, setMilestones] = useState(project.milestones ?? []);
+  const [deadlines, setDeadlines] = useState(project.deadlines ?? []);
+  const [milestoneSelection, setMilestoneSelection] = useState<{ id: string | null } | null>(null);
+  const [addingDeadline, setAddingDeadline] = useState(false);
+  const canEditEvents = canManage && !!onApplyChange;
+  const pickingTask = selecting || !!milestoneSelection;
   const [editing, setEditing] = useState<{ taskId: string; lane: string } | null>(null);
   const [error, setError] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
@@ -65,6 +74,32 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
     setSubprojects(project.subprojects);
     subprojectsRef.current = project.subprojects;
   }, [project.subprojects]);
+  useEffect(() => { setMilestones(project.milestones ?? []); }, [project.milestones]);
+  useEffect(() => { setDeadlines(project.deadlines ?? []); }, [project.deadlines]);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: canEditEvents }));
+    if (!canEditEvents) return;
+    const addMilestone = () => {
+      setSelecting(false);
+      setEditing(null);
+      setAddingDeadline(false);
+      setMilestoneSelection({ id: null });
+      setError('');
+    };
+    const addDeadline = () => {
+      setSelecting(false);
+      setMilestoneSelection(null);
+      setAddingDeadline(true);
+      setError('');
+    };
+    window.addEventListener('roadmap-add-milestone', addMilestone);
+    window.addEventListener('roadmap-add-deadline', addDeadline);
+    return () => {
+      window.removeEventListener('roadmap-add-milestone', addMilestone);
+      window.removeEventListener('roadmap-add-deadline', addDeadline);
+      window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: false }));
+    };
+  }, [canEditEvents]);
   const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
   const nodes = useMemo(() => getPlanNodes(planningProject), [planningProject]);
   const roadmap = useMemo(() => buildRoadmap(planningProject, links), [planningProject, links]);
@@ -78,8 +113,32 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
     editorRef.current?.scrollIntoView?.({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
   }, [editing]);
   useEffect(() => {
-    if (selecting) promptRef.current?.focus();
-  }, [selecting]);
+    if (pickingTask) promptRef.current?.focus();
+  }, [pickingTask]);
+
+  function saveMilestones(items: ProjectMilestone[]) {
+    if (!canEditEvents) return;
+    setMilestones(items);
+    onApplyChange?.({ milestones: items });
+  }
+  function saveDeadlines(items: ProjectDeadline[]) {
+    if (!canEditEvents) return;
+    setDeadlines(items);
+    onApplyChange?.({ deadlines: items });
+  }
+  function chooseMilestoneTask(task: ProjectTask) {
+    if (!milestoneSelection || !canEditEvents) return;
+    const milestone = milestones.find(item => item.id === milestoneSelection.id);
+    if (milestoneSelection.id && !milestone) { setError('This milestone no longer exists. Cancel and try again.'); return; }
+    if (milestone?.taskIds.includes(task.id)) { setError('This task is already linked to the milestone. Choose a different task.'); return; }
+    saveMilestones(milestone
+      ? milestones.map(item => item.id === milestone.id ? { ...item, taskIds: [...item.taskIds, task.id] } : item)
+      : [...milestones, { id: generateId(), label: task.text, taskIds: [task.id] }]);
+    setMilestoneSelection(null);
+    setError('');
+    if (milestone) triggerRef.current?.focus();
+    else document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]')?.focus();
+  }
 
   function editTask(task: ProjectTask) {
     if (!canManage || !onApplyChange) return;
@@ -93,8 +152,10 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
 
   function cancelSelection() {
     setSelecting(false);
+    setMilestoneSelection(null);
     setError('');
-    triggerRef.current?.focus();
+    if (milestoneSelection?.id === null) document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]')?.focus();
+    else triggerRef.current?.focus();
   }
 
   function addDependency(prerequisite: ProjectTask) {
@@ -110,13 +171,14 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   }
   function chooseBar(task: ProjectTask, trigger: HTMLButtonElement) {
     if (!canManage) return;
+    if (milestoneSelection) { chooseMilestoneTask(task); return; }
     if (selecting) { addDependency(task); return; }
     triggerRef.current = trigger;
     setSelectedId(task.id);
     setError('');
   }
 
-  const actions = canManage && selectedTask && !selecting ? (
+  const actions = canManage && selectedTask && !pickingTask ? (
     <div className={styles.graphActions} role="group" aria-label="Selected roadmap task">
       <span className={styles.actionLabel}>{selectedTask.text}</span>
       {onApplyChange && <button type="button" onClick={() => {
@@ -143,7 +205,17 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const origin = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
   const date = (day: number) => new Date(origin + day * 86400000).toISOString().slice(0, 10);
   const completion = Math.max(0, ...remaining.map(entry => entry.end));
-  const days = Math.max(1, completion);
+  const milestoneMarkers = roadmap.error ? [] : milestones.flatMap(milestone => {
+    const entries = milestone.taskIds.map(id => roadmap.entries.find(entry => entry.task.id === id));
+    if (!entries.length || entries.some(entry => !entry)) return [];
+    return [{ id: milestone.id, label: milestone.label, day: Math.max(...entries.map(entry => entry!.end)), kind: 'milestone' as const }];
+  });
+  const markers = [...milestoneMarkers, ...deadlines.filter(deadline => isRoadmapDate(deadline.date)).map(deadline => ({
+    id: deadline.id, label: deadline.label, day: (Date.parse(deadline.date) - origin) / 86400000, kind: 'deadline' as const,
+  }))];
+  const firstDay = Math.min(0, ...markers.map(marker => marker.day));
+  const days = Math.max(1, completion, ...markers.map(marker => marker.day)) - firstDay;
+  const position = (day: number) => `${(day - firstDay) / days * 100}%`;
   const durations = remaining.map(entry => entry.end - entry.start).filter(duration => duration > 0);
   const width = Math.max(560, days * 48 / Math.min(1, ...durations));
   const ticks = Math.max(1, Math.min(8, Math.floor(days)));
@@ -156,7 +228,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
 
   return <section className={`${styles.plan} ${styles.roadmap}`} aria-label="Roadmap" onKeyDown={event => {
     if (event.key !== 'Escape' || editing) return;
-    if (selecting) { event.stopPropagation(); cancelSelection(); }
+    if (pickingTask) { event.stopPropagation(); cancelSelection(); }
     else if (selectedId) { event.stopPropagation(); setSelectedId(null); triggerRef.current?.focus(); }
   }}>
     {actionsContainer ? createPortal(actions, actionsContainer) : actions}
@@ -173,23 +245,46 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       <p ref={promptRef} tabIndex={-1}>Select what {selectedTask.text} depends on</p>
       <button type="button" onClick={cancelSelection}>Cancel</button>
     </div>}
+    {milestoneSelection && <div className={styles.selection}>
+      <p ref={promptRef} tabIndex={-1}>{milestoneSelection.id
+        ? `Select another task for ${milestones.find(item => item.id === milestoneSelection.id)?.label ?? 'milestone'}`
+        : 'Select a task for the new milestone'}</p>
+      <button type="button" onClick={cancelSelection}>Cancel</button>
+      <div className={styles.milestoneTaskPicker} role="group" aria-label="Milestone task selection">
+        {tasks.map(task => <button key={task.id} type="button" onClick={() => chooseMilestoneTask(task)}
+          disabled={!!milestones.find(item => item.id === milestoneSelection.id)?.taskIds.includes(task.id)}>
+          {task.text}{task.done ? ' (completed)' : ''}
+        </button>)}
+        {!tasks.length && <p>Add a task in Tasks before creating a milestone.</p>}
+      </div>
+    </div>}
     {error && !roadmap.error && <p role="alert" className={styles.error}>{error}</p>}
     <PlanSaveStatus state={saveState} onDismiss={dismissSaveError} />
-    {roadmap.error ? <p role="alert" className={styles.error}>{roadmap.error}</p> : !remaining.length
+    {roadmap.error && <p role="alert" className={styles.error}>{roadmap.error}</p>}
+    {!roadmap.error && !remaining.length && !markers.length
       ? <p className={styles.empty}>No remaining tasks.</p>
-      : <>
+      : (!roadmap.error || markers.length > 0) && <>
         <p className={styles.roadmapCaption}>Forecast from {date(0)} · Effort in calendar days · Unsized tasks estimated at 1 day{view === 'person' && ' · Grouped by assignee; project forecast dates unchanged'}</p>
         <div className={styles.roadmapScroll} ref={scrollRef} data-tab-swipe-ignore="true">
-          <div style={{ minWidth: width + 100 }}>
+          <div style={{ minWidth: width + (markers.length ? 200 : 100), paddingLeft: markers.length ? 96 : 0 }}>
             <div className={styles.roadmapRow}>
               <div className={styles.dateAxis} style={{ width }}>
                 {Array.from({ length: ticks + 1 }, (_, index) => {
-                  const offset = index * days / ticks;
+                  const offset = firstDay + index * days / ticks;
                   return <span key={index} style={{ left: `${index / ticks * 100}%` }}>{date(offset)}</span>;
                 })}
               </div>
             </div>
-            {groups.map(group => <React.Fragment key={group.name ?? 'project'}>
+            {markers.map(marker => <div key={`${marker.kind}:${marker.id}`} className={styles.roadmapRow}>
+              <div className={styles.roadmapTrack} style={{ width, height: 62, backgroundSize: `${100 / ticks}% 100%` }}>
+                <div className={`${styles.eventMarker} ${marker.kind === 'milestone' ? styles.milestoneMarker : ''}`}
+                  style={{ left: position(marker.day) }} role="img" aria-label={`${marker.kind === 'milestone' ? 'Milestone' : 'Deadline'}: ${marker.label}, ${date(marker.day)}`}>
+                  {marker.kind === 'milestone' ? <span className="material-icons" aria-hidden="true">star</span> : <CheckeredFlag />}
+                  <span className={styles.eventMarkerLabel}>{marker.label}</span>
+                </div>
+              </div>
+            </div>)}
+            {!roadmap.error && groups.map(group => <React.Fragment key={group.name ?? 'project'}>
               {group.name && <h3 className={styles.personHeading}>{group.name}</h3>}
               {group.lanes.map((lane, index) => {
                 let previousStart = -Infinity;
@@ -220,13 +315,13 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                         </span>;
                       })}</span>;
                       const barStyle = { backgroundColor: color, borderColor: color, color: readableTextColor(color), minWidth: 36 + task.people.length * 18 };
-                      const barClass = `${styles.roadmapBar} ${estimated ? styles.estimatedBar : ''} ${selectedId === task.id && canManage ? styles.selectedBar : ''} ${selecting ? styles.pickableBar : ''}`;
+                      const barClass = `${styles.roadmapBar} ${estimated ? styles.estimatedBar : ''} ${selectedId === task.id && canManage ? styles.selectedBar : ''} ${pickingTask ? styles.pickableBar : ''}`;
                       return <div key={task.id} className={styles.roadmapItem}
-                        style={{ left: `${start / days * 100}%`, width: `${(end - start) / days * 100}%`, top: itemLevel * 56 }}>
+                        style={{ left: position(start), width: `${(end - start) / days * 100}%`, top: itemLevel * 56 }}>
                         {canManage
                           ? <button type="button" className={barClass}
                             style={barStyle}
-                            aria-label={selecting ? `Select prerequisite: ${label}` : label}
+                            aria-label={milestoneSelection ? `Select milestone task: ${label}` : selecting ? `Select prerequisite: ${label}` : label}
                             aria-pressed={selectedId === task.id}
                             title={selecting ? `${selectedTask?.text} depends on ${task.text}` : `${task.text} · ${date(start)} – ${date(end)}${estimated ? ' · Estimated: 1 day' : ''}${task.dueDate ? ` · Due ${task.dueDate.slice(0, 10)}` : ''}`}
                             onClick={event => chooseBar(task, event.currentTarget)}>
@@ -256,5 +351,15 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
           </div>
         </div>
       </>}
+    <RoadmapEventTables milestones={milestones} deadlines={deadlines} tasks={tasks} canManage={canEditEvents}
+      addingDeadline={addingDeadline} onCloseDeadline={() => setAddingDeadline(false)}
+      onMilestonesChange={saveMilestones} onDeadlinesChange={saveDeadlines}
+      onSelectDependency={(id, trigger) => {
+        triggerRef.current = trigger;
+        setSelecting(false);
+        setMilestoneSelection({ id });
+        setError('');
+        scrollRef.current?.scrollIntoView?.({ block: 'nearest' });
+      }} />
   </section>;
 }

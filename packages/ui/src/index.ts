@@ -4,6 +4,7 @@ export { UiButton } from "./ui-button";
 export type { UiButtonProps } from "./ui-button";
 
 export { Icon } from "./icon";
+export { CheckeredFlag } from './CheckeredFlag';
 export type { IconProps } from "./icon";
 
 export { EmptyState, LoadingSpinner, ErrorMessage } from "./empty-state";

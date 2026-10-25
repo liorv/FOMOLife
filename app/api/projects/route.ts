@@ -8,6 +8,7 @@ import type { ProjectCreateInput, ProjectUpdateInput } from '@myorg/types';
 import { isValidExternalUrl } from '@myorg/utils';
 import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
 import { getPlanNodes, parsePlanLinks, validatePlanLinks } from '@/lib/projects/planning';
+import { validateRoadmapEvents } from '@/lib/projects/roadmapEvents';
 
 export async function GET(_request: Request) {
   const session = await getFrameworkSession();
@@ -62,6 +63,10 @@ export async function POST(request: Request) {
     if (template.planningLinks?.length && planError) {
       return NextResponse.json({ error: `Repair the template plan before creating a project: ${planError}` }, { status: 400 });
     }
+    const taskIds = new Set(template.subprojects.flatMap(section => section.tasks.map(task => task.id)));
+    if (template.milestones?.some(milestone => milestone.taskIds.some(id => !taskIds.has(id)))) {
+      return NextResponse.json({ error: 'Repair milestone dependencies referencing deleted tasks before using this template.' }, { status: 400 });
+    }
     body = instantiateTemplate(template, body.text.trim());
   }
   if (body.planningLinks !== undefined) {
@@ -84,6 +89,9 @@ export async function POST(request: Request) {
     body.externalUrl = body.externalUrl.trim();
   }
 
+  const roadmapError = validateRoadmapEvents(body);
+  if (roadmapError) return NextResponse.json({ error: roadmapError }, { status: 400 });
+
   // Seed the creator as the first member so membership is always explicit
   const creatorMember = {
     userId: session.userId,
@@ -100,6 +108,8 @@ export async function POST(request: Request) {
     ...(typeof body.order === 'number' ? { order: body.order } : {}),
     ...(Array.isArray(body.subprojects) ? { subprojects: body.subprojects } : {}),
     ...(body.planningLinks ? { planningLinks: body.planningLinks } : {}),
+    ...(body.milestones ? { milestones: body.milestones } : {}),
+    ...(body.deadlines ? { deadlines: body.deadlines } : {}),
     ...(body.goal ? { goal: body.goal } : {}),
     ...(body.description ? { description: body.description } : {}),
     ...(body.externalUrl ? { externalUrl: body.externalUrl } : {}),
@@ -120,6 +130,8 @@ export async function PATCH(request: Request) {
   }
   // Plans have their own validated endpoint; legacy editor snapshots cannot overwrite them.
   if ('planningLinks' in body.patch) delete body.patch.planningLinks;
+  const roadmapError = validateRoadmapEvents(body.patch);
+  if (roadmapError) return NextResponse.json({ error: roadmapError }, { status: 400 });
   if (body.patch.isTemplate !== undefined && typeof body.patch.isTemplate !== 'boolean') {
     return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
   }

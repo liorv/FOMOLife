@@ -39,6 +39,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   });
   const [selectedKey, setSelectedKey] = useState('');
   const [selecting, setSelecting] = useState(false);
+  const [selectingDependent, setSelectingDependent] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
@@ -76,6 +77,25 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const mapWidth = Math.max(180, layers.length * (mapNodeWidth + mapColumnGap) - mapColumnGap + 24);
   const mapHeight = Math.max(68, Math.max(0, ...layers.map(layer => layer.length)) * (mapNodeHeight + mapRowGap) - mapRowGap + 24);
   const name = (key: string) => byKey.get(key)?.text ?? 'Deleted item';
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('project-plan-active', { detail: canManage }));
+    if (!canManage) return;
+    const addDependency = () => {
+      addRef.current = document.querySelector<HTMLButtonElement>('button[aria-label="Add dependency"]');
+      setEditingTaskId(null);
+      setGraphTarget(null);
+      setSelectedKey('');
+      setSelectingDependent(true);
+      setSelecting(true);
+      setError('');
+    };
+    window.addEventListener('plan-add-dependency', addDependency);
+    return () => {
+      window.removeEventListener('plan-add-dependency', addDependency);
+      window.dispatchEvent(new CustomEvent('project-plan-active', { detail: false }));
+    };
+  }, [canManage]);
 
   useEffect(() => {
     setSubprojects(project.subprojects);
@@ -136,7 +156,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     if (selecting) promptRef.current?.focus();
     else if (selectionActiveRef.current) addRef.current?.focus();
     selectionActiveRef.current = !!selecting;
-  }, [selecting]);
+  }, [selecting, selectingDependent]);
   useEffect(() => {
     if (!confirmClear) return;
     const trigger = clearButtonRef.current;
@@ -150,6 +170,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     setGraphTarget(null);
     setSelectedKey('');
     setSelecting(false);
+    setSelectingDependent(false);
     setError('');
     links.forEach(link => {
       void saveLink('remove', link, 'Dependencies cleared.');
@@ -158,6 +179,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
 
   function cancelSelection() {
     setSelecting(false);
+    setSelectingDependent(false);
     setSelectedKey('');
     setError('');
   }
@@ -167,6 +189,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     setGraphTarget(null);
     setSelectedKey(node.key);
     setSelecting(true);
+    setSelectingDependent(false);
     setError('');
   }
 
@@ -180,6 +203,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
 
   const candidateError = (node: PlanNode): string | null => {
     if (!selecting) return null;
+    if (selectingDependent) return node.ref.kind === 'task' ? null : 'Select a task to add a dependency.';
     if (!selected) return 'The selected item no longer exists. Cancel and choose another item.';
     const link: PlanLink = { dependent: selected.ref, prerequisite: node.ref };
     if (existingLinks.has(linkKey(link))) return 'Already linked.';
@@ -202,6 +226,12 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     if (selecting) {
       const reason = candidateError(node);
       if (reason) { setError(reason); return; }
+      if (selectingDependent) {
+        setSelectedKey(node.key);
+        setSelectingDependent(false);
+        setError('');
+        return;
+      }
       if (selected) mutate('add', { prerequisite: node.ref, dependent: selected.ref });
       return;
     }
@@ -211,7 +241,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
 
   function nodeCard(node: PlanNode) {
     const reason = candidateError(node);
-    const action = selecting ? 'Select prerequisite' : 'Inspect';
+    const action = selectingDependent ? 'Select task' : selecting ? 'Select prerequisite' : 'Inspect';
     return (
       <button
         type="button"
@@ -290,7 +320,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
       {actionsContainer ? createPortal(graphActions, actionsContainer) : graphActions}
       {selecting && <div className={styles.selection}>
         <p ref={promptRef} tabIndex={-1}>
-          Select what it depends on
+          {selectingDependent ? 'Select a task to add a dependency.' : 'Select what it depends on'}
         </p>
         <button type="button" onClick={cancelSelection}>Cancel</button>
       </div>}

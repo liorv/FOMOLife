@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createStorageProvider } from '@myorg/storage';
 import type { PlanLink } from '@/lib/projects/planning';
+import type { ProjectMilestone, ProjectDeadline } from '@myorg/types';
 
 const storage = createStorageProvider();
 
@@ -47,6 +48,8 @@ export interface ProjectItem {
   color: string;
   subprojects: ProjectSubproject[];
   planningLinks?: PlanLink[];
+  milestones?: ProjectMilestone[];
+  deadlines?: ProjectDeadline[];
   progress?: number;
   order?: number;
   goal?: string;
@@ -227,7 +230,7 @@ export async function listProjects(userId: string): Promise<ProjectItem[]> {
 
 export async function createProject(
   userId: string,
-  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'isTemplate' | 'color' | 'subprojects' | 'planningLinks' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
+  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'isTemplate' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
 ): Promise<ProjectItem> {
   const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
@@ -238,6 +241,8 @@ export async function createProject(
     color: input.color ?? nextColor,
     subprojects: timestampTasks(input.subprojects ?? []),
     ...(input.planningLinks ? { planningLinks: input.planningLinks } : {}),
+    ...(input.milestones ? { milestones: input.milestones } : {}),
+    ...(input.deadlines ? { deadlines: input.deadlines } : {}),
     creatorId: userId,
     members: input.members ?? [],
     ...(input.isTemplate !== undefined ? { isTemplate: input.isTemplate } : {}),
@@ -261,7 +266,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'isTemplate' | 'text' | 'color' | 'subprojects' | 'planningLinks' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
+  patch: Partial<Pick<ProjectItem, 'isTemplate' | 'text' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
   const next = current.map((item) => {

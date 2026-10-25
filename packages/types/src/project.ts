@@ -82,6 +82,19 @@ export interface ProjectMember {
   role?: string;
 }
 
+export interface ProjectMilestone {
+  id: string;
+  label: string;
+  taskIds: string[];
+}
+
+export interface ProjectDeadline {
+  id: string;
+  label: string;
+  /** Calendar date, YYYY-MM-DD; independent of task scheduling. */
+  date: string;
+}
+
 /**
  * ProjectItem - Core project entity
  */
@@ -101,6 +114,8 @@ export interface ProjectItem {
     prerequisite: { kind: 'task' | 'section'; id: string };
     dependent: { kind: 'task' | 'section'; id: string };
   }[];
+  milestones?: ProjectMilestone[];
+  deadlines?: ProjectDeadline[];
   /** Progress percentage (0-100) */
   progress?: number;
   /** Sort order */
@@ -149,6 +164,8 @@ export interface ProjectCreateInput {
   order?: number;
   subprojects?: ProjectSubproject[];
   planningLinks?: NonNullable<ProjectItem['planningLinks']>;
+  milestones?: ProjectMilestone[];
+  deadlines?: ProjectDeadline[];
   goal?: string;
   description?: string;
   externalUrl?: string;
@@ -166,6 +183,8 @@ export interface ProjectCreateInput {
  * ProjectUpdateInput - Input for updating an existing project
  */
 export interface ProjectUpdateInput {
+  milestones?: ProjectMilestone[];
+  deadlines?: ProjectDeadline[];
   text?: string;
   isTemplate?: boolean;
   color?: string;
