@@ -55,9 +55,10 @@ it("opens Risks as a peer stage and saves task risks through the project editor"
   expect(views.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("table", { name: "Risk Management" })).toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "Project tools" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /^Add risk for Approve/ }));
-  fireEvent.change(screen.getByLabelText("Risk name"), { target: { value: "Delay" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save risk" }));
+  fireEvent.click(screen.getByRole("row", { name: "Select row: Approve" }));
+  const riskInput = screen.getByRole("textbox", { name: "New risk for Approve" });
+  fireEvent.change(riskInput, { target: { value: "Delay" } });
+  fireEvent.submit(riskInput.closest("form")!);
   const update = apply.mock.calls.at(-1)!;
   expect(update[0]).toBe("p");
   expect(update[1].subprojects[0].tasks[0].risks).toEqual([
@@ -68,7 +69,7 @@ it("opens Risks as a peer stage and saves task risks through the project editor"
   expect(screen.queryByRole("table", { name: "Risk Management" })).not.toBeInTheDocument();
   fireEvent.click(views.getByRole("button", { name: "Risks" }));
   expect(screen.getByText("Delay")).toBeInTheDocument();
-  expect(screen.getByText("Unmitigated", { exact: true })).toBeInTheDocument();
+  expect(within(screen.getByRole("table", { name: "Risk Management" })).getByText("Unmitigated", { exact: true })).toBeInTheDocument();
 });
 
 it("round-trips risks and mitigations through JSON export/import without exporting their IDs", () => {

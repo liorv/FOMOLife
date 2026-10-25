@@ -1,14 +1,33 @@
-.risks { list-style: none; padding: 0; margin: 0; }
-.risk { padding: 8px 0; }
-.risk + .risk { border-top: 1px solid var(--plan-border); }
+.header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+.header h3 { margin: 0; }
+.header select { padding: 4px 8px; border: 1px solid var(--plan-border); border-radius: 6px; background: var(--plan-surface); color: inherit; font: inherit; }
+.table th:first-child { width: 34%; }
+.table thead th:nth-child(2), .table thead th:nth-child(3) { width: 33%; }
+.table tbody td { padding: 6px; vertical-align: top; }
 .riskHeading { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.mitigated, .unmitigated { border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 500; }
-.mitigated { background: #e6f4ea; color: #137333; }
-.unmitigated { background: #fce8e6; color: #a50e0e; }
-.description { margin: 6px 0; white-space: pre-wrap; }
+.riskCell { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.riskName { min-width: 0; overflow-wrap: anywhere; }
+.mitigated, .unmitigated { font-size: 11px; opacity: 0.7; }
+.mitigations { margin: 0; padding-left: 18px; white-space: pre-wrap; }
 .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.risk button, .editor button { border: 1px solid var(--plan-border); border-radius: 16px; padding: 4px 10px; background: var(--plan-surface); }
-.editor { padding: 16px; background: var(--plan-surface); }
+.editor button { border: 1px solid var(--plan-border); border-radius: 16px; padding: 3px 8px; background: var(--plan-surface); }
+.table td.riskUnmitigated { background: #fce8e6; }
+.table td.riskMitigated { background: #e6f4ea; }
+.quickAdd { margin-top: 4px; }
+.table .addRiskRow { background: var(--plan-surface); }
+.addRiskRow .quickAdd { margin-top: 0; }
+.quickAdd input { width: 100%; box-sizing: border-box; min-width: 0; border: 0; border-bottom: 1px solid var(--plan-border); padding: 4px 2px; background: transparent; color: inherit; font: inherit; }
+.tag { display: inline-flex; align-items: baseline; max-width: 100%; border-radius: 12px; background: #e3f2fd; color: #15385f; }
+.tag button { min-width: 0; padding: 2px 6px; border: 0; border-radius: 12px; background: transparent; color: inherit; text-align: left; overflow-wrap: anywhere; }
+.tag button:hover { background: #7771ce18; }
+.selectableRow { cursor: pointer; }
+.selectableRow:hover { background: #7771ce0a; }
+.mitigationBullet { display: inline-flex; align-items: baseline; gap: 4px; max-width: 100%; }
+.mitigationBullet > span { min-width: 0; overflow-wrap: anywhere; }
+.mitigationBullet .removeMitigation { flex-shrink: 0; min-width: 22px; min-height: 22px; border: 0; border-radius: 10px; padding: 0 3px; background: transparent; }
+.removeMitigation:hover { background: #7771ce18; }
+.editor { width: min(520px, calc(100vw - 32px)); box-sizing: border-box; padding: 24px; border-radius: 16px; background: var(--plan-surface); }
+.editor h3 { margin: 0 0 16px; }
 .editor form { display: grid; gap: 12px; }
 .editor label { display: grid; gap: 4px; min-width: 0; }
 .editor input, .editor textarea { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid var(--plan-border); border-radius: 6px; padding: 8px; background: var(--plan-surface); color: inherit; font: inherit; }
@@ -16,3 +35,7 @@
 .editor fieldset { min-width: 0; border: 1px solid var(--plan-border); border-radius: 8px; padding: 12px; }
 .mitigation { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .mitigation label { flex: 1 1 180px; }
+.inlineEditor { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; white-space: normal; }
+.inlineEditor input { flex: 1 1 120px; min-width: 0; width: 100%; padding: 6px; border: 1px solid var(--plan-border); border-radius: 6px; background: var(--plan-surface); color: inherit; font: inherit; }
+.inlineEditor button { border: 1px solid var(--plan-border); border-radius: 12px; padding: 4px 8px; background: var(--plan-surface); }
+.tooltip { position: fixed; z-index: 2000; box-sizing: border-box; width: max-content; max-width: min(280px, calc(100vw - 16px)); max-height: 90px; overflow: auto; padding: 8px 12px; border-radius: 6px; background: #323232; color: #fff; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 2px 8px #0003; }

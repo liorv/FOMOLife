@@ -38,8 +38,29 @@ The existing graph and table dependency actions remain available.
 
 In a project's Risks stage, the Risk Management table uses the Plan table's
 section/task layout. Add one or more risks to each task, with a name, description,
-and any number of text mitigations. Edit a risk to rename it, update its
-description, or add, change, and remove mitigations. A risk without mitigations
+and any number of text mitigations. The filter beside Risk Management defaults
+to All; choose Mitigated or Unmitigated to show only matching risks and their
+tasks and sections. Tasks without risks appear only under All. Filtering does
+not change saved risks. Unselected rows display plain text without
+tags or risk/mitigation buttons. Hover a risk name for two seconds
+to show its description (also available on keyboard focus). Click a task or risk
+row (or focus it and press Enter/Space) to turn its risks and mitigations into
+clickable edit tags with removal Xs. A name field below the task's last risk and
+a mitigation field in the selected risk's mitigation column save on Enter.
+The new-risk field has its own neutral row below existing risks; when the task
+has no risks, it replaces No Risks in the existing row instead. Entry prompts
+read "What is the risk?" and "How will we mitigate the risk?" with no add buttons.
+Clicking or tabbing out of an add field discards its draft.
+Unmitigated risks have a light red background; mitigated risks have light green.
+Clicking outside restores plain text and discards an
+unsaved inline mitigation draft; the risk modal remains usable while open.
+Clicking a task name opens only its task editor.
+Rows have no persistent add buttons or extra action rows.
+The Add Risk modal contains only the name and description. Mitigations appear in
+a separate column aligned with each risk; each bullet has an X to remove it.
+The selected row's Add mitigation action opens an inline bullet editor. Enter or Save mitigation saves
+the bullet, and Escape or Cancel discards it. The existing-risk editor lets you rename the risk,
+update its description, or add, change, and remove mitigations. A risk without mitigations
 is Unmitigated; adding a mitigation makes it Mitigated, and removing the last one
 returns it to Unmitigated. Cancel discards the current risk draft.
 Risks are saved with tasks, included in project exports/imports and templates,

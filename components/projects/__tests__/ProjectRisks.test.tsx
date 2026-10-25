@@ -1,129 +1,309 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ProjectItem, ProjectRisk } from '@myorg/types';
 import ProjectRisks from '../ProjectRisks';
 
-const risk: ProjectRisk = {
-  id: 'risk', name: 'Vendor delay', description: 'Delivery could slip', mitigations: [],
-};
+const risk: ProjectRisk = { id: 'r', name: 'Vendor delay', description: 'Delivery could slip', mitigations: [] };
 const project: ProjectItem = {
   id: 'p', text: 'Launch', color: '#1976D2',
-  subprojects: [{
-    id: 's', text: 'Preparation', tasks: [
-      { id: 'a', text: 'Order parts', done: false, favorite: false, dueDate: null, people: [], description: 'Keep notes', risks: [risk] },
-      { id: 'b', text: 'Ship', done: true, favorite: true, dueDate: '2026-12-01', people: [] },
-    ],
-  }],
+  subprojects: [{ id: 's', text: 'Preparation', tasks: [
+    { id: 'a', text: 'Order parts', description: 'Notes', done: false, favorite: false, dueDate: null, people: [], risks: [risk] },
+    { id: 'b', text: 'Ship', done: true, favorite: true, dueDate: null, people: [] },
+  ] }],
 };
 
-function setup(initial = project) {
+function setup(risks: ProjectRisk[] = [risk]) {
   const change = jest.fn();
-  render(<ProjectRisks project={initial} canManage onApplyChange={change} />);
-  const savedTask = () => {
-    const update: Partial<ProjectItem> = change.mock.calls.at(-1)![0];
-    return update.subprojects![0]!.tasks[0]!;
+  const initial = { ...project, subprojects: [{ ...project.subprojects[0]!, tasks: [
+    { ...project.subprojects[0]!.tasks[0]!, risks }, project.subprojects[0]!.tasks[1]!,
+  ] }] };
+  const rendered = render(<ProjectRisks project={initial} canManage onApplyChange={change} />);
+  return {
+    ...rendered, change,
+    savedTask: () => (change.mock.calls.at(-1)![0] as Partial<ProjectItem>).subprojects![0]!.tasks[0]!,
   };
-  return { change, savedTask };
 }
 
-it('uses the dependency section/task layout and only adds risks to tasks', () => {
-  setup();
-  const table = within(screen.getByRole('table', { name: 'Risk Management' }));
-  expect(table.getByText('Preparation')).toBeInTheDocument();
-  expect(table.getByRole('button', { name: 'Order parts' })).toBeInTheDocument();
-  expect(table.getAllByRole('button', { name: /^Add risk for/ })).toHaveLength(2);
-  expect(table.queryByRole('button', { name: /^Add risk for Preparation/ })).not.toBeInTheDocument();
-  expect(table.getByLabelText('Completed')).toBeInTheDocument();
-  expect(table.getByText('Unmitigated', { exact: true })).toBeInTheDocument();
+function select() {
+  fireEvent.click(screen.getByRole('row', { name: 'Select row: Order parts / Vendor delay' }));
+}
+
+function addRisk(name: string) {
+  const input = screen.getByRole('textbox', { name: 'New risk for Order parts' });
+  fireEvent.change(input, { target: { value: name } });
+  fireEvent.submit(input.closest('form')!);
+}
+
+function addMitigation(text: string) {
+  const input = screen.getByRole('textbox', { name: 'New mitigation for Vendor delay' });
+  fireEvent.change(input, { target: { value: text } });
+  fireEvent.submit(input.closest('form')!);
+}
+
+it('filters individual risks while retaining matching task and section context', () => {
+  const { change } = setup([risk, { ...risk, id: 'r2', name: 'Damage', mitigations: [{ id: 'm', text: 'Protective packaging' }] }]);
+  const filter = screen.getByRole('combobox', { name: 'Filter risks' });
+  expect(filter).toHaveValue('all');
+  expect(within(filter).getAllByRole('option').map(option => option.textContent)).toEqual(['All', 'Mitigated', 'Unmitigated']);
+  fireEvent.change(filter, { target: { value: 'mitigated' } });
+  expect(screen.getByText('Damage')).toBeInTheDocument();
+  expect(screen.getByText('Protective packaging')).toBeInTheDocument();
+  expect(screen.queryByText('Vendor delay')).not.toBeInTheDocument();
+  expect(screen.queryByText('Ship')).not.toBeInTheDocument();
+  expect(screen.getByText('Preparation')).toBeInTheDocument();
+  expect(screen.getByRole('rowheader', { name: 'Order parts' })).toHaveAttribute('rowspan', '1');
+  fireEvent.change(filter, { target: { value: 'unmitigated' } });
+  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
+  expect(screen.queryByText('Damage')).not.toBeInTheDocument();
+  expect(screen.queryByText('Protective packaging')).not.toBeInTheDocument();
+  fireEvent.change(filter, { target: { value: 'all' } });
+  expect(screen.getByText('Damage')).toBeInTheDocument();
+  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
+  expect(screen.getByText('Ship')).toBeInTheDocument();
+  expect(change).not.toHaveBeenCalled();
 });
 
-it('adds multiple risks without changing task metadata or other tasks', () => {
+it('shows an empty state and hides sections without matching risks', () => {
+  setup();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Filter risks' }), { target: { value: 'mitigated' } });
+  expect(screen.getByText('No risks match this filter.')).toBeInTheDocument();
+  expect(screen.queryByText('Preparation')).not.toBeInTheDocument();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Filter risks' }), { target: { value: 'all' } });
+  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
+});
+
+it('discards inline drafts and selection when the filter changes', () => {
+  const { change } = setup();
+  select();
+  fireEvent.change(screen.getByRole('textbox', { name: 'New risk for Order parts' }), { target: { value: 'Discard' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Filter risks' }), { target: { value: 'unmitigated' } });
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  select();
+  expect(screen.getByRole('textbox', { name: 'New risk for Order parts' })).toHaveValue('');
+  expect(change).not.toHaveBeenCalled();
+});
+
+it('reapplies the filter after mitigation changes without losing hidden risks', () => {
+  const { savedTask } = setup();
+  const filter = screen.getByRole('combobox', { name: 'Filter risks' });
+  fireEvent.change(filter, { target: { value: 'unmitigated' } });
+  select();
+  addMitigation('Backup supplier');
+  expect(screen.getByText('No risks match this filter.')).toBeInTheDocument();
+  expect(savedTask().risks![0]!.mitigations).toEqual([{ id: expect.any(String), text: 'Backup supplier' }]);
+  fireEvent.change(filter, { target: { value: 'mitigated' } });
+  select();
+  fireEvent.click(screen.getByRole('button', { name: 'Remove mitigation: Backup supplier (Vendor delay)' }));
+  expect(screen.getByText('No risks match this filter.')).toBeInTheDocument();
+  expect(savedTask().risks).toEqual([risk]);
+  fireEvent.change(filter, { target: { value: 'all' } });
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
+});
+
+it('allows filtering in read-only projects without exposing editing controls', () => {
+  render(<ProjectRisks project={project} canManage={false} />);
+  const filter = screen.getByRole('combobox', { name: 'Filter risks' });
+  fireEvent.change(filter, { target: { value: 'unmitigated' } });
+  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
+  expect(screen.queryByText('Ship')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
+it('keeps unselected rows plain and shows text entry fields only after selection', () => {
+  setup();
+  const table = screen.getByRole('table', { name: 'Risk Management' });
+  expect(within(table).getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Task / Section', 'Risks', 'Mitigations']);
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /risk|mitigation/i })).not.toBeInTheDocument();
+  select();
+  expect(screen.getByRole('textbox', { name: 'New risk for Order parts' })).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'New mitigation for Vendor delay' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Add risk|Add mitigation/ })).not.toBeInTheDocument();
+});
+
+it('adds a trimmed risk with Enter submission without changing other task data', () => {
   const { savedTask, change } = setup();
-  fireEvent.click(screen.getByRole('button', { name: /^Add risk for Order parts/ }));
-  expect(screen.getByLabelText('Risk name')).toHaveFocus();
-  expect(screen.getByRole('button', { name: 'Save risk' })).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Risk name'), { target: { value: '  Missing approval  ' } });
-  fireEvent.change(screen.getByLabelText('Description'), { target: { value: '  Sign-off may slip  ' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Save risk' }));
+  select();
+  addRisk('  Approval delay  ');
   expect(savedTask()).toMatchObject({ ...project.subprojects[0]!.tasks[0], risks: [
-    risk, { id: expect.any(String), name: 'Missing approval', description: 'Sign-off may slip', mitigations: [] },
+    risk, { id: expect.any(String), name: 'Approval delay', description: '', mitigations: [] },
   ] });
   expect(change.mock.calls.at(-1)![0].subprojects[0].tasks[1]).toEqual(project.subprojects[0]!.tasks[1]);
-  expect(screen.getAllByText('Unmitigated', { exact: true })).toHaveLength(2);
+  expect(screen.getByRole('textbox', { name: 'New risk for Order parts' })).toHaveValue('');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-it('adds, edits, and removes mitigations and derives status from the saved list', () => {
-  const { savedTask } = setup();
-  fireEvent.click(screen.getByRole('button', { name: 'Edit risk Vendor delay' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add mitigation' }));
-  expect(screen.getByRole('button', { name: 'Save risk' })).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Mitigation 1'), { target: { value: '  Backup supplier  ' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Add mitigation' }));
-  fireEvent.change(screen.getByLabelText('Mitigation 2'), { target: { value: 'Order early' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Save risk' }));
-  expect(screen.getByText('Mitigated', { exact: true })).toBeInTheDocument();
-  expect(savedTask().risks![0]!.mitigations.map(item => item.text)).toEqual(['Backup supplier', 'Order early']);
-  const mitigationId = savedTask().risks![0]!.mitigations[0]!.id;
-  fireEvent.click(screen.getByRole('button', { name: 'Edit risk Vendor delay' }));
-  fireEvent.change(screen.getByLabelText('Risk name'), { target: { value: 'Delivery delay' } });
-  fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'New description' } });
-  fireEvent.change(screen.getByLabelText('Mitigation 1'), { target: { value: 'Confirmed backup' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Remove mitigation 2' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Save risk' }));
-  expect(savedTask().risks![0]).toEqual({
-    id: risk.id, name: 'Delivery delay', description: 'New description',
-    mitigations: [{ id: mitigationId, text: 'Confirmed backup' }],
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Edit risk Delivery delay' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Remove mitigation 1' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Save risk' }));
-  expect(savedTask().risks![0]!.mitigations).toEqual([]);
-  expect(screen.getByText('Unmitigated', { exact: true })).toBeInTheDocument();
-  expect(screen.queryByText('Mitigated', { exact: true })).not.toBeInTheDocument();
+it('puts a single risk field below the last risk even when an earlier row is selected', () => {
+  setup([risk, { ...risk, id: 'r2', name: 'Damage' }]);
+  select();
+  const input = screen.getByRole('textbox', { name: 'New risk for Order parts' });
+  const lastRiskRow = screen.getByText('Damage').closest('tr')!;
+  const inputRow = screen.getByRole('row', { name: 'New risk row for Order parts' });
+  expect(lastRiskRow).not.toContainElement(input);
+  expect(lastRiskRow.nextElementSibling).toBe(inputRow);
+  expect(inputRow).toContainElement(input);
+  expect(inputRow).toHaveClass('addRiskRow');
+  expect(input.closest('td')).not.toHaveClass('riskUnmitigated');
+  expect(input.closest('td')).not.toHaveClass('riskMitigated');
+  expect(screen.getByRole('rowheader', { name: 'Order parts' })).toHaveAttribute('rowspan', '3');
+  fireEvent.click(input);
+  fireEvent.change(input, { target: { value: 'New risk' } });
+  fireEvent.submit(input.closest('form')!);
+  expect(screen.getByText('New risk')).toBeInTheDocument();
+  expect(screen.getAllByRole('textbox', { name: 'New risk for Order parts' })).toHaveLength(1);
 });
 
-it('cancels additions and edits without saving and removes a risk independently', () => {
-  const { change, savedTask } = setup();
-  fireEvent.click(screen.getByRole('button', { name: /^Add risk for Order parts/ }));
-  fireEvent.change(screen.getByLabelText('Risk name'), { target: { value: 'Draft' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Edit risk Vendor delay' }));
-  fireEvent.change(screen.getByLabelText('Risk name'), { target: { value: 'Discarded' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Add mitigation' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+it('adds risks to tasks with no risks using keyboard selection', () => {
+  setup();
+  const row = screen.getByRole('row', { name: 'Select row: Ship' });
+  fireEvent.keyDown(row, { key: 'Enter' });
+  const input = screen.getByRole('textbox', { name: 'New risk for Ship' });
+  expect(row).toContainElement(input);
+  expect(within(row).queryByText('No Risks')).not.toBeInTheDocument();
+  expect(screen.queryByRole('row', { name: 'New risk row for Ship' })).not.toBeInTheDocument();
+  fireEvent.change(input, { target: { value: 'Shipping damage' } });
+  fireEvent.submit(input.closest('form')!);
+  expect(screen.getByText('Shipping damage')).toBeInTheDocument();
+});
+
+it('uses question prompts for risk and mitigation entry', () => {
+  setup();
+  select();
+  expect(screen.getByRole('textbox', { name: 'New risk for Order parts' })).toHaveAttribute('placeholder', 'What is the risk?');
+  expect(screen.getByRole('textbox', { name: 'New mitigation for Vendor delay' })).toHaveAttribute('placeholder', 'How will we mitigate the risk?');
+});
+
+it('cancels new risk and mitigation text on blur or Escape without saving', () => {
+  const { change } = setup();
+  select();
+  const name = screen.getByRole('textbox', { name: 'New risk for Order parts' });
+  fireEvent.change(name, { target: { value: 'Discard' } });
+  fireEvent.blur(name);
+  expect(name).toHaveValue('');
+  fireEvent.change(name, { target: { value: 'Discard again' } });
+  name.focus();
+  fireEvent.keyDown(name, { key: 'Escape' });
+  expect(name).toHaveValue('');
+  const mitigation = screen.getByRole('textbox', { name: 'New mitigation for Vendor delay' });
+  fireEvent.change(mitigation, { target: { value: 'Discard bullet' } });
+  fireEvent.blur(mitigation);
+  expect(mitigation).toHaveValue('');
   expect(change).not.toHaveBeenCalled();
-  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
+});
+
+it('appends multiple trimmed mitigation bullets and updates status and background', () => {
+  const { savedTask } = setup();
+  expect(screen.getByText('Vendor delay').closest('td')).toHaveClass('riskUnmitigated');
+  select();
+  addMitigation('  Backup supplier  ');
+  addMitigation('Order early');
+  expect(savedTask().risks![0]!.mitigations.map(item => item.text)).toEqual(['Backup supplier', 'Order early']);
+  expect(within(screen.getByRole('table', { name: 'Risk Management' })).getByText('Mitigated', { exact: true })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Edit risk Vendor delay' }).closest('td')).toHaveClass('riskMitigated');
+  expect(screen.getByRole('textbox', { name: 'New mitigation for Vendor delay' })).toHaveValue('');
+});
+
+it('reports blank quick-add submissions without saving', () => {
+  const { change } = setup();
+  select();
+  addRisk('   ');
+  expect(screen.getByRole('alert')).toHaveTextContent('Enter a risk name');
+  addMitigation('   ');
+  expect(screen.getByRole('alert')).toHaveTextContent('Enter mitigation text');
+  expect(change).not.toHaveBeenCalled();
+});
+
+it('edits existing mitigation tags inline without changing identities', () => {
+  const { savedTask } = setup([{ ...risk, mitigations: [{ id: 'm', text: 'Backup' }] }]);
+  select();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit mitigation: Backup (Vendor delay)' }));
+  const input = screen.getByRole('textbox', { name: 'Edit mitigation for Vendor delay' });
+  expect(input).toHaveFocus();
+  fireEvent.change(input, { target: { value: 'Confirmed backup' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save mitigation' }));
+  expect(savedTask().risks![0]!.mitigations).toEqual([{ id: 'm', text: 'Confirmed backup' }]);
+});
+
+it('removes the last mitigation with X and restores red unmitigated highlighting', () => {
+  const { savedTask } = setup([{ ...risk, mitigations: [{ id: 'm', text: 'Backup' }] }]);
+  expect(screen.getByText('Vendor delay').closest('td')).toHaveClass('riskMitigated');
+  select();
+  fireEvent.click(screen.getByRole('button', { name: 'Remove mitigation: Backup (Vendor delay)' }));
+  expect(savedTask().risks![0]!.mitigations).toEqual([]);
+  expect(within(screen.getByRole('table', { name: 'Risk Management' })).getByText('Unmitigated', { exact: true })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Edit risk Vendor delay' }).closest('td')).toHaveClass('riskUnmitigated');
+});
+
+it('keeps the existing risk modal editable and preserves selection when closing it', () => {
+  const { savedTask } = setup();
+  select();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit risk Vendor delay' }));
+  expect(screen.getByRole('dialog', { name: 'Edit risk for Order parts' })).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Updated description' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save risk' }));
+  expect(savedTask().risks![0]!.description).toBe('Updated description');
+  expect(screen.getByRole('textbox', { name: 'New risk for Order parts' })).toBeInTheDocument();
+});
+
+it('removes risks through selected tags', () => {
+  const { savedTask } = setup();
+  select();
   fireEvent.click(screen.getByRole('button', { name: 'Remove risk Vendor delay' }));
   expect(savedTask().risks).toEqual([]);
-  expect(screen.queryByText('Vendor delay')).not.toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'New risk for Order parts' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('heading', { name: 'Risk Management' }));
+  expect(within(screen.getByRole('row', { name: 'Select row: Order parts' })).getByText('No Risks')).toBeInTheDocument();
 });
 
-it('disables whitespace-only names and mitigations', () => {
+it('returns to plain text on outside click without saving drafts', () => {
   const { change } = setup();
-  fireEvent.click(screen.getByRole('button', { name: /^Add risk for Ship/ }));
-  fireEvent.change(screen.getByLabelText('Risk name'), { target: { value: '   ' } });
-  expect(screen.getByRole('button', { name: 'Save risk' })).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Risk name'), { target: { value: 'Damage' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Add mitigation' }));
-  fireEvent.change(screen.getByLabelText('Mitigation 1'), { target: { value: '   ' } });
-  expect(screen.getByRole('button', { name: 'Save risk' })).toBeDisabled();
+  select();
+  fireEvent.change(screen.getByRole('textbox', { name: 'New risk for Order parts' }), { target: { value: 'Discard' } });
+  fireEvent.click(screen.getByRole('heading', { name: 'Risk Management' }));
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /risk|mitigation/i })).not.toBeInTheDocument();
   expect(change).not.toHaveBeenCalled();
 });
 
-it('shows saved risks read-only and synchronizes incoming task data', () => {
+it('task-name clicks open only the task editor', () => {
+  setup();
+  select();
+  fireEvent.click(screen.getByRole('button', { name: 'Order parts' }));
+  expect(screen.getByRole('region', { name: 'Edit Order parts' })).toBeInTheDocument();
+  expect(screen.queryByRole('textbox', { name: 'New risk for Order parts' })).not.toBeInTheDocument();
+});
+
+it('shows descriptions after exactly two seconds and cancels on leaving', () => {
+  jest.useFakeTimers();
+  try {
+    setup();
+    const name = screen.getByText('Vendor delay');
+    fireEvent.mouseEnter(name);
+    act(() => jest.advanceTimersByTime(1999));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(1));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(risk.description);
+    fireEvent.mouseLeave(name);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it('supports read-only risks and incoming changes', () => {
   const { rerender } = render(<ProjectRisks project={project} canManage={false} />);
-  expect(screen.getByText('Vendor delay')).toBeInTheDocument();
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
-  const updated = { ...project, subprojects: [{
-    ...project.subprojects[0]!, tasks: [{ ...project.subprojects[0]!.tasks[0]!, risks: [{
-      ...risk, mitigations: [{ id: 'm', text: 'Reserve stock' }],
-    }] }],
-  }] };
-  rerender(<ProjectRisks project={updated} canManage={false} />);
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  rerender(<ProjectRisks canManage={false} project={{ ...project, subprojects: [{
+    ...project.subprojects[0]!, tasks: [{ ...project.subprojects[0]!.tasks[0]!, risks: [
+      { ...risk, mitigations: [{ id: 'm', text: 'Reserve stock' }] },
+    ] }],
+  }] }} />);
   expect(screen.getByText('Reserve stock')).toBeInTheDocument();
-  expect(screen.getByText('Mitigated', { exact: true })).toBeInTheDocument();
+  expect(screen.getByText('Vendor delay').closest('td')).toHaveClass('riskMitigated');
 });
 
 it('shows an empty state for projects without sections', () => {
-  setup({ ...project, subprojects: [] });
+  render(<ProjectRisks project={{ ...project, subprojects: [] }} canManage />);
   expect(screen.getByText('Add tasks or sections in Tasks to start managing risks.')).toBeInTheDocument();
 });
