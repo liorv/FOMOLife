@@ -39,15 +39,18 @@ The existing graph and table dependency actions remain available.
 In a project's Roadmap view, the navbar's upward chevron expands Add Milestone
 (star with a plus) and Add Deadline (black-and-white checkered flag with a plus).
 The chevron points down while expanded. Hover or focus a FAB to
-see its label. Add Milestone asks you to select a task, using the roadmap bars
-or the task picker (which also includes completed tasks). The Milestones table
+see its label. Add Milestone asks you to select a task by clicking its roadmap
+bar, without opening a separate task list. The Milestones table
+and Deadlines table each have an Add button at the top right beside Clear,
+using the same flows as the navbar FABs. The Milestones table
 below the roadmap lets you rename milestones and add or remove task dependencies.
 A yellow star marks the latest forecast finish among each milestone's linked
 tasks, with its name below. Deleted dependencies are labeled in the table and
 must be replaced or removed before that milestone can be plotted.
 
 Add Deadline asks for a name and a calendar date, without linking a task.
-Deadlines appear as labeled checkered flags on the timeline and in an editable Deadlines
+Deadlines appear as labeled checkered flags with black dotted vertical date
+lines through the roadmap, and in an editable Deadlines
 table. The timeline includes deadlines before today or beyond the task forecast.
 Milestones and deadlines are saved with the project. Clear Milestones and Clear
 Deadlines have blue backgrounds, sit above their respective tables, and ask for confirmation; neither

@@ -28,7 +28,7 @@ function setup(value = project, canManage = true) {
 
 function fab(label: string) {
   fireEvent.click(screen.getByRole('button', { name: 'Roadmap actions' }));
-  fireEvent.click(screen.getByRole('button', { name: label }));
+  fireEvent.click(within(screen.getByRole('group', { name: 'Roadmap actions' })).getByRole('button', { name: label }));
 }
 
 function day(offset: number) {
@@ -45,14 +45,15 @@ it('uses a chevron to expand two labeled FABs without invoking the normal thumb 
   expect(thumbClick).not.toHaveBeenCalled();
   expect(thumb).toHaveAttribute('aria-expanded', 'true');
   expect(thumb).toHaveTextContent('expand_more');
-  const addMilestone = screen.getByRole('button', { name: 'Add Milestone' });
+  const actions = within(screen.getByRole('group', { name: 'Roadmap actions' }));
+  const addMilestone = actions.getByRole('button', { name: 'Add Milestone' });
   expect(addMilestone).toHaveAttribute('title', 'Add Milestone');
   expect(addMilestone).toHaveTextContent('star');
-  const deadlineFab = screen.getByRole('button', { name: 'Add Deadline' });
+  const deadlineFab = actions.getByRole('button', { name: 'Add Deadline' });
   expect(deadlineFab.querySelector('svg path[fill="#fff"]')).toBeInTheDocument();
   expect(deadlineFab.querySelector('svg path[fill="#111"]')).toBeInTheDocument();
   fireEvent.keyDown(document, { key: 'Escape' });
-  expect(screen.queryByRole('button', { name: 'Add Deadline' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Roadmap actions' })).not.toBeInTheDocument();
   expect(thumb).toHaveFocus();
   expect(thumb).toHaveTextContent('expand_less');
 });
@@ -61,6 +62,8 @@ it('creates a named milestone from a roadmap task and saves table renames', () =
   const { save } = setup();
   fab('Add Milestone');
   expect(screen.getByText('Select a task for the new milestone')).toHaveFocus();
+  expect(screen.queryByRole('group', { name: 'Milestone task selection' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /^Select milestone task: Approve:/ }));
   expect(save).toHaveBeenLastCalledWith({ milestones: [{ id: expect.any(String), label: 'Approve', taskIds: ['a'] }] });
   expect(screen.getByRole('img', { name: `Milestone: Approve, ${day(2)}` })).toHaveTextContent('star');
@@ -71,27 +74,66 @@ it('creates a named milestone from a roadmap task and saves table renames', () =
   expect(screen.getByRole('img', { name: `Milestone: Ready to launch, ${day(2)}` })).toBeInTheDocument();
 });
 
+it('starts milestone selection from the table Add button and restores focus after selection', () => {
+  const { save } = setup();
+  const add = screen.getByRole('button', { name: 'Add Milestone' });
+  fireEvent.click(add);
+  expect(screen.getByText('Select a task for the new milestone')).toHaveFocus();
+  fireEvent.click(screen.getByRole('button', { name: /^Select milestone task: Approve:/ }));
+  expect(save).toHaveBeenCalledWith({ milestones: [{ id: expect.any(String), label: 'Approve', taskIds: ['a'] }] });
+  expect(add).toHaveFocus();
+});
+
+it('opens deadline entry from the table Add button and restores focus on cancel', () => {
+  setup();
+  const add = screen.getByRole('button', { name: 'Add Deadline' });
+  fireEvent.click(add);
+  const dialog = screen.getByRole('dialog', { name: 'Add Deadline' });
+  expect(within(dialog).getByLabelText('Name')).toHaveFocus();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  expect(add).toHaveFocus();
+});
+
 it('adds multiple dependencies and moves the milestone to the latest task finish', () => {
   const { save } = setup({ ...project, milestones: [milestone] });
   fireEvent.click(screen.getByRole('button', { name: 'Add task to Launch ready' }));
-  const picker = screen.getByRole('group', { name: 'Milestone task selection' });
-  expect(within(picker).getByRole('button', { name: 'Approve' })).toBeDisabled();
-  fireEvent.click(within(picker).getByRole('button', { name: 'Publish' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Select milestone task: Approve:/ }));
+  expect(screen.getByRole('alert')).toHaveTextContent('already linked');
+  expect(save).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: /^Select milestone task: Publish:/ }));
   expect(save).toHaveBeenLastCalledWith({ milestones: [{ ...milestone, taskIds: ['a', 'b'] }] });
   expect(screen.getByRole('img', { name: `Milestone: Launch ready, ${day(5)}` })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Remove Publish from Launch ready' }));
   expect(save).toHaveBeenLastCalledWith({ milestones: [milestone] });
 });
 
-it('supports completed tasks in the picker and cancels without saving', () => {
+it('cancels milestone selection without saving or offering a separate task picker', () => {
   const { save } = setup();
   fab('Add Milestone');
   fireEvent.keyDown(screen.getByRole('region', { name: 'Roadmap' }), { key: 'Escape' });
   expect(save).not.toHaveBeenCalled();
   fab('Add Milestone');
-  fireEvent.click(screen.getByRole('button', { name: 'Completed work (completed)' }));
-  expect(save).toHaveBeenCalledWith({ milestones: [{ id: expect.any(String), label: 'Completed work', taskIds: ['c'] }] });
-  expect(screen.getByRole('img', { name: `Milestone: Completed work, ${day(0)}` })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Completed work (completed)' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(save).not.toHaveBeenCalled();
+});
+
+it('aligns dotted deadline guides to their date markers in both roadmap views', () => {
+  const { container } = setup({ ...project, milestones: [milestone], deadlines: [
+    { ...deadline, date: day(3) }, { id: 'd2', label: 'Earlier date', date: day(-2) },
+  ] });
+  const verify = () => {
+    const lines = container.querySelectorAll<HTMLElement>('.deadlineLine');
+    expect(lines).toHaveLength(2);
+    ['Launch date', 'Earlier date'].forEach((label, index) => {
+      const marker = screen.getByRole('img', { name: new RegExp(`^Deadline: ${label},`) });
+      expect(lines[index]!.style.left).toBe(marker.style.left);
+    });
+    expect(container.querySelector('.deadlineGuides')).toHaveAttribute('aria-hidden', 'true');
+  };
+  verify();
+  fireEvent.click(screen.getByRole('button', { name: 'By person' }));
+  verify();
 });
 
 it('adds a date-only deadline even without tasks, then edits its date and name', () => {
@@ -141,6 +183,8 @@ it('does not expose mutation controls to read-only users', () => {
   expect(screen.queryByRole('button', { name: 'Roadmap actions' })).not.toBeInTheDocument();
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Clear/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Add Milestone' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Add Deadline' })).not.toBeInTheDocument();
   act(() => window.dispatchEvent(new Event('roadmap-add-milestone')));
   expect(screen.queryByText('Select a task for the new milestone')).not.toBeInTheDocument();
   expect(save).not.toHaveBeenCalled();

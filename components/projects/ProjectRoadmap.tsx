@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Contact, ProjectDeadline, ProjectItem, ProjectMilestone, ProjectTask } from '@myorg/types';
 import { CheckeredFlag, TaskModal } from '@myorg/ui';
@@ -60,6 +60,20 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const startMilestone = useCallback((trigger?: HTMLButtonElement) => {
+    triggerRef.current = trigger ?? document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]');
+    setSelecting(false);
+    setEditing(null);
+    setAddingDeadline(false);
+    setMilestoneSelection({ id: null });
+    setError('');
+  }, []);
+  const startDeadline = useCallback(() => {
+    setSelecting(false);
+    setMilestoneSelection(null);
+    setAddingDeadline(true);
+    setError('');
+  }, []);
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!editing || !scroller) return;
@@ -79,19 +93,8 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: canEditEvents }));
     if (!canEditEvents) return;
-    const addMilestone = () => {
-      setSelecting(false);
-      setEditing(null);
-      setAddingDeadline(false);
-      setMilestoneSelection({ id: null });
-      setError('');
-    };
-    const addDeadline = () => {
-      setSelecting(false);
-      setMilestoneSelection(null);
-      setAddingDeadline(true);
-      setError('');
-    };
+    const addMilestone = () => startMilestone();
+    const addDeadline = () => startDeadline();
     window.addEventListener('roadmap-add-milestone', addMilestone);
     window.addEventListener('roadmap-add-deadline', addDeadline);
     return () => {
@@ -99,7 +102,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       window.removeEventListener('roadmap-add-deadline', addDeadline);
       window.dispatchEvent(new CustomEvent('project-roadmap-active', { detail: false }));
     };
-  }, [canEditEvents]);
+  }, [canEditEvents, startMilestone, startDeadline]);
   const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
   const nodes = useMemo(() => getPlanNodes(planningProject), [planningProject]);
   const roadmap = useMemo(() => buildRoadmap(planningProject, links), [planningProject, links]);
@@ -136,8 +139,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       : [...milestones, { id: generateId(), label: task.text, taskIds: [task.id] }]);
     setMilestoneSelection(null);
     setError('');
-    if (milestone) triggerRef.current?.focus();
-    else document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]')?.focus();
+    triggerRef.current?.focus();
   }
 
   function editTask(task: ProjectTask) {
@@ -154,8 +156,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
     setSelecting(false);
     setMilestoneSelection(null);
     setError('');
-    if (milestoneSelection?.id === null) document.querySelector<HTMLButtonElement>('button[aria-label="Roadmap actions"]')?.focus();
-    else triggerRef.current?.focus();
+    triggerRef.current?.focus();
   }
 
   function addDependency(prerequisite: ProjectTask) {
@@ -250,13 +251,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
         ? `Select another task for ${milestones.find(item => item.id === milestoneSelection.id)?.label ?? 'milestone'}`
         : 'Select a task for the new milestone'}</p>
       <button type="button" onClick={cancelSelection}>Cancel</button>
-      <div className={styles.milestoneTaskPicker} role="group" aria-label="Milestone task selection">
-        {tasks.map(task => <button key={task.id} type="button" onClick={() => chooseMilestoneTask(task)}
-          disabled={!!milestones.find(item => item.id === milestoneSelection.id)?.taskIds.includes(task.id)}>
-          {task.text}{task.done ? ' (completed)' : ''}
-        </button>)}
-        {!tasks.length && <p>Add a task in Tasks before creating a milestone.</p>}
-      </div>
+      {!remaining.length && <p>Add an incomplete task in Tasks before selecting a milestone dependency.</p>}
     </div>}
     {error && !roadmap.error && <p role="alert" className={styles.error}>{error}</p>}
     <PlanSaveStatus state={saveState} onDismiss={dismissSaveError} />
@@ -266,7 +261,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       : (!roadmap.error || markers.length > 0) && <>
         <p className={styles.roadmapCaption}>Forecast from {date(0)} · Effort in calendar days · Unsized tasks estimated at 1 day{view === 'person' && ' · Grouped by assignee; project forecast dates unchanged'}</p>
         <div className={styles.roadmapScroll} ref={scrollRef} data-tab-swipe-ignore="true">
-          <div style={{ minWidth: width + (markers.length ? 200 : 100), paddingLeft: markers.length ? 96 : 0 }}>
+          <div className={styles.roadmapCanvas} style={{ minWidth: width + (markers.length ? 200 : 100), paddingLeft: markers.length ? 96 : 0 }}>
             <div className={styles.roadmapRow}>
               <div className={styles.dateAxis} style={{ width }}>
                 {Array.from({ length: ticks + 1 }, (_, index) => {
@@ -274,6 +269,10 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                   return <span key={index} style={{ left: `${index / ticks * 100}%` }}>{date(offset)}</span>;
                 })}
               </div>
+            </div>
+            <div className={styles.deadlineGuides} style={{ left: markers.length ? 96 : 0, width }} aria-hidden="true">
+              {markers.filter(marker => marker.kind === 'deadline').map(marker => <div key={marker.id}
+                className={styles.deadlineLine} style={{ left: position(marker.day) }} />)}
             </div>
             {markers.map(marker => <div key={`${marker.kind}:${marker.id}`} className={styles.roadmapRow}>
               <div className={styles.roadmapTrack} style={{ width, height: 62, backgroundSize: `${100 / ticks}% 100%` }}>
@@ -353,6 +352,7 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
       </>}
     <RoadmapEventTables milestones={milestones} deadlines={deadlines} tasks={tasks} canManage={canEditEvents}
       addingDeadline={addingDeadline} onCloseDeadline={() => setAddingDeadline(false)}
+      onAddMilestone={startMilestone} onAddDeadline={startDeadline}
       onMilestonesChange={saveMilestones} onDeadlinesChange={saveDeadlines}
       onSelectDependency={(id, trigger) => {
         triggerRef.current = trigger;

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from 'react';
 import type { ProjectDeadline, ProjectMilestone, ProjectTask } from '@myorg/types';
-import { ModalOverlay } from '@myorg/ui';
+import { CheckeredFlag, ModalOverlay } from '@myorg/ui';
 import { generateId } from '@myorg/utils';
 import { isRoadmapDate } from '@/lib/projects/roadmapEvents';
 import styles from './ProjectPlan.module.css';
@@ -14,13 +14,15 @@ type Props = {
   canManage: boolean;
   addingDeadline: boolean;
   onCloseDeadline: () => void;
+  onAddMilestone: (trigger: HTMLButtonElement) => void;
+  onAddDeadline: () => void;
   onMilestonesChange: (items: ProjectMilestone[]) => void;
   onDeadlinesChange: (items: ProjectDeadline[]) => void;
   onSelectDependency: (milestoneId: string, trigger: HTMLButtonElement) => void;
 };
 
 export default function RoadmapEventTables({ milestones, deadlines, tasks, canManage, addingDeadline,
-  onCloseDeadline, onMilestonesChange, onDeadlinesChange, onSelectDependency }: Props) {
+  onCloseDeadline, onAddMilestone, onAddDeadline, onMilestonesChange, onDeadlinesChange, onSelectDependency }: Props) {
   const [clearing, setClearing] = useState<'Milestones' | 'Deadlines' | null>(null);
   const [error, setError] = useState('');
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -50,10 +52,15 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
     {error && !open && <p role="alert" className={styles.error}>{error}</p>}
     <div className={styles.tableHeading}>
       <h3 className={styles.sectionHeading}>Milestones</h3>
-      {canManage && <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`} disabled={!milestones.length}
+      {canManage && <div className={styles.tableActions}>
+        <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`}
+          onClick={event => onAddMilestone(event.currentTarget)}>
+          <span className="material-icons" aria-hidden="true">star</span>Add Milestone
+        </button>
+        <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`} disabled={!milestones.length}
         onClick={event => { dialogTrigger.current = event.currentTarget; setClearing('Milestones'); }}>
         <span className="material-icons" aria-hidden="true">clear_all</span>Clear Milestones
-      </button>}
+      </button></div>}
     </div>
     <div className={styles.sequence}>
       <table className={styles.table} aria-label="Milestones">
@@ -82,10 +89,15 @@ export default function RoadmapEventTables({ milestones, deadlines, tasks, canMa
     </div>
     <div className={styles.tableHeading}>
       <h3 className={styles.sectionHeading}>Deadlines</h3>
-      {canManage && <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`} disabled={!deadlines.length}
+      {canManage && <div className={styles.tableActions}>
+        <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`}
+          onClick={event => { dialogTrigger.current = event.currentTarget; onAddDeadline(); }}>
+          <CheckeredFlag />Add Deadline
+        </button>
+        <button type="button" className={`${styles.clearButton} ${styles.roadmapClearButton}`} disabled={!deadlines.length}
         onClick={event => { dialogTrigger.current = event.currentTarget; setClearing('Deadlines'); }}>
         <span className="material-icons" aria-hidden="true">clear_all</span>Clear Deadlines
-      </button>}
+      </button></div>}
     </div>
     <div className={styles.sequence}>
       <table className={styles.table} aria-label="Deadlines">

@@ -106,6 +106,8 @@
 .edge[aria-pressed="true"] > path:last-child, .edge:focus-visible > path:last-child { stroke-width: 2.5px; filter: drop-shadow(0 0 3px var(--color-accent, #d32998)); }
 .tableHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .tableHeading .sectionHeading { margin: 0; }
+.tableActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
+.tableActions svg { width: 18px; height: 18px; }
 .clearButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 16px; border: 0; border-radius: 20px; background: var(--color-accent, #d32998); color: #fff; font: inherit; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px #0003; }
 .plan .clearButton { color: #fff; }
 .clearButton.roadmapClearButton { background: #1565c0; }
@@ -144,6 +146,9 @@
 .roadmap h3 :global(.material-icons) { font-size: 20px; color: #1565c0; }
 .roadmapCaption { font-size: 11px; color: #526178; margin: 8px 0; }
 .roadmapScroll { overflow: auto; max-height: 480px; }
+.roadmapCanvas { position: relative; }
+.deadlineGuides { position: absolute; top: 36px; bottom: 0; pointer-events: none; z-index: 1; }
+.deadlineLine { position: absolute; top: 0; bottom: 0; border-left: 2px dotted #000; transform: translateX(-1px); }
 .roadmapRow { display: flex; align-items: center; min-height: 36px; border-bottom: 1px solid var(--plan-border); }
 .roadmapLabel { position: absolute; top: 34px; left: 0; width: max-content; max-width: 180px; box-sizing: border-box; padding-right: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .effortLabel { margin-left: 6px; color: #526178; font-size: 11px; }
@@ -169,14 +174,13 @@ button.pickableBar.selectedBar { cursor: not-allowed; }
 .assignees .assignee + .assignee { margin-left: -4px; }
 .assignee { display: inline-flex; flex-shrink: 0; box-sizing: border-box; width: 20px; height: 20px; border-radius: 50%; background-color: #455a64; background-size: cover; background-position: center; color: #fff; align-items: center; justify-content: center; font-size: 9px; border: 1px solid #fff; }
 .empty { padding: 16px 8px; text-align: center; font-size: 13px; }
-.eventMarker { position: absolute; top: 3px; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); min-width: 28px; }
+.eventMarker { position: absolute; top: 3px; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); min-width: 28px; z-index: 2; }
 .eventMarker > :global(.material-icons) { font-size: 30px; }
 .milestoneMarker > :global(.material-icons) { color: #ffca28; filter: drop-shadow(0 1px 1px #705000); }
 .eventMarkerLabel { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--color-text, #263047); }
 .eventInput { box-sizing: border-box; width: 100%; min-height: 36px; border: 1px solid var(--plan-border); border-radius: 4px; padding: 4px 6px; font: inherit; color: inherit; background: var(--plan-surface); }
 .eventField { display: grid; gap: 6px; margin: 16px 0; }
 .eventField input { min-height: 36px; padding: 4px 8px; font: inherit; }
-.milestoneTaskPicker { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; max-height: 180px; overflow: auto; }
 .addEventDependency { min-height: 36px; margin: 4px 0; border: 1px solid var(--plan-border); border-radius: 16px; background: var(--plan-surface); padding: 4px 8px; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
