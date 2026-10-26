@@ -10,6 +10,7 @@ import { instantiateTemplate } from '@/lib/projects/instantiateTemplate';
 import { getPlanNodes, parsePlanLinks, validatePlanLinks } from '@/lib/projects/planning';
 import { validateRoadmapEvents } from '@/lib/projects/roadmapEvents';
 import { validateTaskRisks } from '@/lib/projects/risks';
+import { applyTaskStatusUpdate, buildProjectStatus, getStatusUpdateTaskId, isActiveStatus, validateStatusUpdate, validateTaskStatuses } from '@/lib/projects/status';
 
 export async function GET(_request: Request) {
   const session = await getFrameworkSession();
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
   if (roadmapError) return NextResponse.json({ error: roadmapError }, { status: 400 });
   const riskError = validateTaskRisks(body.subprojects);
   if (riskError) return NextResponse.json({ error: riskError }, { status: 400 });
+  const statusError = validateTaskStatuses(body.subprojects);
+  if (statusError) return NextResponse.json({ error: statusError }, { status: 400 });
 
   // Seed the creator as the first member so membership is always explicit
   const creatorMember = {
@@ -135,6 +138,16 @@ export async function PATCH(request: Request) {
   }
   // Plans have their own validated endpoint; legacy editor snapshots cannot overwrite them.
   if ('planningLinks' in body.patch) delete body.patch.planningLinks;
+  // History is generated from persisted task state, never accepted from editor snapshots.
+  if ('statusHistory' in body.patch) delete body.patch.statusHistory;
+  const statusError = validateTaskStatuses(body.patch.subprojects);
+  if (statusError) return NextResponse.json({ error: statusError }, { status: 400 });
+  if (body.patch.recordStatusUpdate !== undefined && typeof body.patch.recordStatusUpdate !== 'boolean') {
+    return NextResponse.json({ error: 'recordStatusUpdate must be a boolean' }, { status: 400 });
+  }
+  const reportingError = validateStatusUpdate(body.patch);
+  if (reportingError) return NextResponse.json({ error: reportingError }, { status: 400 });
+  const reportingTaskId = getStatusUpdateTaskId(body.patch);
   const roadmapError = validateRoadmapEvents(body.patch);
   if (roadmapError) return NextResponse.json({ error: roadmapError }, { status: 400 });
   const riskError = validateTaskRisks(body.patch.subprojects);
@@ -150,6 +163,42 @@ export async function PATCH(request: Request) {
   }
 
   const ownerUserId = await resolveProjectOwner(body.id, session.userId);
+  let statusProject;
+  if (reportingTaskId || body.patch.recordStatusUpdate === true) {
+    const project = (await listProjects(session.userId)).find(project =>
+      project.id === body.id && (!project.members?.length || project.members.some(member => member.userId === session.userId)),
+    );
+    if (!project) return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
+    statusProject = project;
+    if (reportingTaskId) {
+      const task = project.subprojects.flatMap(section => section.tasks).find(task => task.id === reportingTaskId);
+      if (!task) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
+      if (body.patch.taskScheduleUpdate || body.patch.taskDelayUpdate) {
+        const report = buildProjectStatus(project).tasks.find(task => task.id === reportingTaskId)!;
+        if (!report.eligible || !isActiveStatus(report.status)) {
+          return NextResponse.json({ error: 'Only active tasks with complete prerequisites can report schedule health.' }, { status: 400 });
+        }
+      }
+      const note = body.patch.taskStatusNote;
+      if (note?.action === 'remove' &&
+        !task.statusUpdates?.some(update => update.id === note.updateId)) {
+        return NextResponse.json({ error: 'Task update not found' }, { status: 404 });
+      }
+      const reportingPatch = body.patch;
+      body.patch.subprojects = project.subprojects.map(section => ({
+        ...section,
+        tasks: section.tasks.map(task => applyTaskStatusUpdate(task, reportingPatch)),
+      }));
+    }
+  }
+  const recordStatusUpdate = body.patch.recordStatusUpdate === true || reportingTaskId !== undefined;
+  delete body.patch.taskStatusUpdate;
+  delete body.patch.taskScheduleUpdate;
+  delete body.patch.taskDelayUpdate;
+  delete body.patch.taskStatusNote;
+  delete body.patch.recordStatusUpdate;
 
   // Before saving, detect tasks that are newly completed or newly assigned so we can notify members
   let newlyCompletedTasks: Array<{ id: string; text: string }> = [];
@@ -157,8 +206,7 @@ export async function PATCH(request: Request) {
   const nonMemberAssignees = new Set<string>();
   if (Array.isArray(body.patch.subprojects)) {
     try {
-      const existing = await listProjects(ownerUserId);
-      const currentProject = existing.find((p) => p.id === body.id);
+      const currentProject = statusProject ?? (await listProjects(ownerUserId)).find((p) => p.id === body.id);
       if (currentProject && !(body.patch.isTemplate ?? currentProject.isTemplate)) {
         const memberNames = new Set((currentProject.members ?? []).map((m) => m.name.toLowerCase()));
         // Build maps of taskId → done / assignee names from the CURRENT persisted state
@@ -206,7 +254,17 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const updated = await updateProject(ownerUserId, body.id, body.patch);
+  let updated;
+  try {
+    updated = await updateProject(ownerUserId, body.id, body.patch, {
+      updatedBy: session.userId, record: recordStatusUpdate,
+      ...(reportingTaskId ? { taskId: reportingTaskId } : {}),
+    });
+  } catch (error) {
+    if (!recordStatusUpdate) throw error;
+    console.error('Failed to save project update:', error);
+    return NextResponse.json({ error: 'Unable to save the project update. Please retry.' }, { status: 500 });
+  }
   if (!updated) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }

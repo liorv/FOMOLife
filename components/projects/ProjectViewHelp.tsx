@@ -4,13 +4,23 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { ModalOverlay } from '@myorg/ui';
 import styles from './ProjectViewHelp.module.css';
 
-type ProjectView = 'risks' | 'plan' | 'roadmap';
+type ProjectView = 'risks' | 'plan' | 'roadmap' | 'status';
 
 const helpContent: Record<ProjectView, {
   title: string;
   icon: string;
   steps: { icon: string; title: string; description: string }[];
 }> = {
+  status: {
+    title: 'Project Status',
+    icon: 'fact_check',
+    steps: [
+      { icon: 'filter_alt', title: 'Review ready work', description: 'Completed tasks and tasks with no incomplete task prerequisites.' },
+      { icon: 'edit', title: 'Update status', description: 'Set work status and active-task schedule health. Behind is inherited by unfinished dependent tasks.' },
+      { icon: 'event', title: 'Forecast delivery', description: 'Effort is remaining calendar days. Enter delay days for Behind tasks to forecast the earliest finish and check project deadlines.' },
+      { icon: 'history', title: 'Compare dates', description: 'Select a task row to add text updates on Enter or remove them. Daily snapshots preserve statuses and notes; select a date to review it.' },
+    ],
+  },
   risks: {
     title: 'Risk Management',
     icon: 'warning',

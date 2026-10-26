@@ -234,7 +234,7 @@ it("shows Roadmap as a peer tab with the shared project header and no embedded r
   }];
   const { rerender } = render(<ProjectsDashboard selectedProjectId="p" projects={projects} />);
   const views = within(screen.getByRole("group", { name: "Project workspace view" }));
-  expect(views.getAllByRole("button")).toHaveLength(4);
+  expect(views.getAllByRole("button")).toHaveLength(5);
   fireEvent.click(views.getByRole("button", { name: "Plan" }));
   expect(screen.queryByRole("region", { name: "Roadmap" })).not.toBeInTheDocument();
   fireEvent.click(views.getByRole("button", { name: "Roadmap" }));

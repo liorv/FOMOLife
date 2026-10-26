@@ -47,7 +47,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
   const initialProjectId = searchParams.get("projectId") || null;
   const targetSubprojectId = searchParams.get('subprojectId');
   const requestedView = searchParams.get('view');
-  const urlWorkspaceView: WorkspaceView = requestedView === 'plan' || requestedView === 'roadmap' || requestedView === 'risks'
+  const urlWorkspaceView: WorkspaceView = requestedView === 'plan' || requestedView === 'roadmap' || requestedView === 'risks' || requestedView === 'status'
     ? requestedView : 'tasks';
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>(urlWorkspaceView);
   useEffect(() => {
@@ -892,7 +892,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
     ? 'This project is no longer available or you do not have access to it.'
     : linkedProject && targetSubprojectId && !linkedProject.subprojects.some(sub => sub.id === targetSubprojectId)
       ? 'This project section is no longer available.'
-      : requestedView && !['tasks', 'plan', 'roadmap', 'risks'].includes(requestedView)
+      : requestedView && !['tasks', 'plan', 'roadmap', 'risks', 'status'].includes(requestedView)
         ? 'This project view is not available.'
         : null;
 
@@ -960,6 +960,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               selectedSubprojectId={targetSubprojectId}
               onSelectSubproject={(id) => navigateProject(editingProjectId, 'tasks', id)}
               onSelectProject={selectProject}
+              onStatusUpdate={(projectId, patch) => apiUpdateProject(projectId, {}, () => apiClient.updateProject(projectId, patch))}
               onApplyChange={handleProjectApplyChange}
               onAddSubproject={handleAddSubproject}
               newlyAddedSubprojectId={newlyAddedSubprojectId}

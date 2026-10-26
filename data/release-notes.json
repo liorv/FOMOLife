@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "October 2026 Status Update",
+      "date": "October 25, 2026",
+      "changes": [
+        "New Status tab: review completed and ready-to-start tasks by section, with clear Not Started, In Progress, Blocked, and Complete controls.",
+        "Track schedule health with a responsive On track / Behind sliding switch. Behind work highlights affected dependent tasks, while the project overview keeps overall schedule health clear.",
+        "Forecast the earliest project finish using remaining effort as calendar days. Enter delay days for active Behind tasks and see whether the forecast misses any project deadlines.",
+        "Add task update bullets directly in Status. Press Enter to save and immediately start the next bullet, without waiting for earlier updates to finish saving.",
+        "Status changes automatically save a daily snapshot of every task, its status, schedule health, and notes. Expand a date to compare task and note changes with the previous recorded day.",
+        "A refreshed Material-style layout brings crisp icons, red Behind indicators, and wrapping task history without a separate horizontal scrollbar."
+      ]
+    },
+    {
       "version": "October 2026 Update",
       "date": "October 22, 2026",
       "changes": [

@@ -2,8 +2,9 @@ import 'server-only';
 
 import { createStorageProvider } from '@myorg/storage';
 import type { PlanLink } from '@/lib/projects/planning';
-import type { ProjectMilestone, ProjectDeadline, ProjectRisk } from '@myorg/types';
+import type { ProjectMilestone, ProjectDeadline, ProjectRisk, ProjectTaskStatus, ProjectStatusSnapshot, ProjectScheduleHealth, ProjectTaskStatusNote, TaskRecurrence } from '@myorg/types';
 import { notifyRoadmapMembers } from './roadmapNotifications';
+import { getTaskStatus, getScheduleHealth, recordProjectStatus } from '../status';
 
 const storage = createStorageProvider();
 
@@ -22,6 +23,13 @@ export interface ProjectTask {
   id: string;
   text: string;
   done: boolean;
+  status?: ProjectTaskStatus;
+  scheduleHealth?: ProjectScheduleHealth | null;
+  statusUpdates?: ProjectTaskStatusNote[];
+  delayDays?: number;
+  effort?: number | null;
+  recurrence?: TaskRecurrence | null;
+  recurrenceAnchorDate?: string | null;
   dueDate: string | null;
   favorite: boolean;
   description?: string;
@@ -52,6 +60,7 @@ export interface ProjectItem {
   planningLinks?: PlanLink[];
   milestones?: ProjectMilestone[];
   deadlines?: ProjectDeadline[];
+  statusHistory?: ProjectStatusSnapshot[];
   progress?: number;
   order?: number;
   goal?: string;
@@ -127,7 +136,7 @@ function ensureProjectLevelTasks(project: ProjectItem): ProjectItem {
 
 
 
-function timestampTasks(subprojects: ProjectSubproject[], previous: ProjectSubproject[] = []): ProjectSubproject[] {
+function timestampTasks(subprojects: ProjectSubproject[], previous: ProjectSubproject[] = [], statusTaskId?: string): ProjectSubproject[] {
   const previousTasks = new Map(previous.flatMap(subproject => subproject.tasks).map(task => [task.id, task]));
   const now = new Date().toISOString();
   return subprojects.map(subproject => ({
@@ -142,6 +151,17 @@ function timestampTasks(subprojects: ProjectSubproject[], previous: ProjectSubpr
         completedAt = task.done ? now : null;
       }
       const updated = { ...task };
+      const nextOccurrence = !!task.recurrence && existing && task.dueDate !== existing.dueDate &&
+        task.status === 'not_started' && task.scheduleHealth == null && !task.statusUpdates?.length;
+      // Full editor snapshots must not overwrite a newer, targeted status update.
+      const source = existing && task.id !== statusTaskId && !nextOccurrence ? existing : task;
+      const status = source.status;
+      updated.status = getTaskStatus({ done: task.done, status });
+      updated.scheduleHealth = getScheduleHealth({ ...updated, scheduleHealth: source.scheduleHealth ?? null });
+      if (source.statusUpdates !== undefined) updated.statusUpdates = source.statusUpdates;
+      else delete updated.statusUpdates;
+      if (source.delayDays !== undefined) updated.delayDays = source.delayDays;
+      else delete updated.delayDays;
       if (createdAt !== undefined) updated.createdAt = createdAt;
       else delete updated.createdAt;
       if (completedAt !== undefined) updated.completedAt = completedAt;
@@ -269,8 +289,10 @@ export async function updateProject(
   userId: string,
   id: string,
   patch: Partial<Pick<ProjectItem, 'isTemplate' | 'text' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
+  statusUpdate?: { updatedBy: string; record?: boolean; taskId?: string },
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);
+  let reportingOnly = statusUpdate?.record === true && Object.keys(patch).length === 0;
   const next = current.map((item) => {
     if (item.id !== id) return item;
     const updated = { ...item, ...patch };
@@ -279,7 +301,30 @@ export async function updateProject(
       updated.archivedAt = null;
     }
     if (patch.subprojects) {
-      updated.subprojects = timestampTasks(patch.subprojects, item.subprojects);
+      updated.subprojects = timestampTasks(patch.subprojects, item.subprojects, statusUpdate?.taskId);
+    }
+    if (statusUpdate?.taskId && Object.keys(patch).every(key => key === 'subprojects')) {
+      const previousTasks = new Map(item.subprojects.flatMap(section => section.tasks).map(task => [task.id, task]));
+      reportingOnly = updated.subprojects.flatMap(section => section.tasks)
+        .every(task => previousTasks.get(task.id)?.done === task.done && previousTasks.get(task.id)?.dueDate === task.dueDate);
+    }
+    const previousTasks = new Map(item.subprojects.flatMap(section => section.tasks).map(task => [task.id, task]));
+    const previousSections = new Map(item.subprojects.map(section => [section.id, section]));
+    const statusChanged = updated.subprojects.flatMap(section => section.tasks).length !== previousTasks.size ||
+      updated.subprojects.some(section => section.text !== previousSections.get(section.id)?.text ||
+        section.tasks.some(task => !previousSections.get(section.id)?.tasks.some(previous => previous.id === task.id))) ||
+      updated.subprojects.flatMap(section => section.tasks)
+      .some(task => {
+        const previous = previousTasks.get(task.id);
+        return !previous || (previous.text !== task.text || previous.recurrence !== task.recurrence ||
+          getTaskStatus(previous) !== getTaskStatus(task) ||
+          getScheduleHealth(previous) !== getScheduleHealth(task) ||
+          previous.effort !== task.effort || previous.delayDays !== task.delayDays ||
+          JSON.stringify(previous.statusUpdates ?? []) !== JSON.stringify(task.statusUpdates ?? []));
+      });
+    const forecastChanged = patch.planningLinks !== undefined || patch.deadlines !== undefined || patch.dueDate !== undefined;
+    if (statusChanged || forecastChanged || statusUpdate?.record) {
+      updated.statusHistory = recordProjectStatus(ensureProjectLevelTasks(updated), statusUpdate?.updatedBy ?? userId);
     }
     return ensureProjectLevelTasks(updated);
   });
@@ -287,7 +332,7 @@ export async function updateProject(
   const persisted = (await storage.load(userId).catch(() => null)) ?? { tasks: [], people: [] };
   await storage.save(userId, { ...persisted, projects: next.map((item) => ensureProjectLevelTasks(item)) });
   projectsByUser.set(userId, next);
-  if (updated) {
+  if (updated && !reportingOnly) {
     await notifyRoadmapMembers(updated, userId).catch(error => {
       console.error('Failed to deliver project Roadmap notifications:', error);
     });

@@ -1,4 +1,4 @@
-import type { TaskRecurrence } from '@myorg/types';
+import type { ProjectTaskStatus, ProjectScheduleHealth, ProjectTaskStatusNote, TaskRecurrence } from '@myorg/types';
 
 type RecurringTask = {
   id: string;
@@ -8,6 +8,10 @@ type RecurringTask = {
   recurrenceAnchorDate?: string | null;
   createdAt?: string;
   completedAt?: string | null;
+  status?: ProjectTaskStatus;
+  scheduleHealth?: ProjectScheduleHealth | null;
+  statusUpdates?: ProjectTaskStatusNote[];
+  delayDays?: number;
 };
 
 function localDateKey(date: Date): string {
@@ -59,6 +63,10 @@ export function advanceRecurringTask<T extends RecurringTask>(
   return {
     ...task,
     done: false,
+    ...(task.status !== undefined ? { status: 'not_started' as const } : {}),
+    ...(task.scheduleHealth !== undefined ? { scheduleHealth: null } : {}),
+    ...(task.statusUpdates !== undefined ? { statusUpdates: [] } : {}),
+    ...(task.delayDays !== undefined ? { delayDays: 0 } : {}),
     dueDate: getNextTaskDueDate(task.dueDate, task.recurrence, completedAt, task.recurrenceAnchorDate),
     recurrenceAnchorDate: task.recurrenceAnchorDate ?? task.dueDate ?? localDateKey(completedAt),
     completedAt: null,

@@ -23,6 +23,48 @@ export interface ProjectRisk {
   mitigations: { id: string; text: string }[];
 }
 
+export type ProjectTaskStatus = 'not_started' | 'on_track' | 'blocked' | 'in_progress' | 'complete';
+/** on_track in ProjectTaskStatus is retained only for legacy reports. */
+export type ProjectScheduleHealth = 'on_track' | 'behind';
+export interface ProjectTaskStatusNote { id: string; text: string }
+
+export interface ProjectStatusSnapshot {
+  /** Calendar date in UTC; one snapshot per project per date. */
+  date: string;
+  updatedAt: string;
+  updatedBy: string;
+  projectName: string;
+  status: ProjectTaskStatus;
+  scheduleHealth?: ProjectScheduleHealth | null;
+  forecast?: {
+    earliestFinish: string | null;
+    delayDays: number;
+    missingEffort: number;
+    error: string | null;
+    deadlines: { label: string; date: string; daysLate: number }[];
+  };
+  summary: string;
+  tasks: {
+    id: string;
+    text: string;
+    sectionId: string;
+    section: string;
+    status: ProjectTaskStatus;
+    eligible: boolean;
+    scheduleHealth?: ProjectScheduleHealth | null;
+    inheritedBehind?: boolean;
+    statusUpdates?: ProjectTaskStatusNote[];
+    delayDays?: number;
+  }[];
+  impact: {
+    blockedTasks: { id: string; text: string }[];
+    behindTasks?: { id: string; text: string }[];
+    downstreamTasks: { id: string; text: string }[];
+    milestones: { id: string; label: string }[];
+    deadlines: { id: string; label: string; date: string }[];
+  };
+}
+
 /**
  * ProjectTask - Task within a project or subproject
  */
@@ -33,6 +75,10 @@ export interface ProjectTask {
   text: string;
   /** Whether the task is completed */
   done: boolean;
+  status?: ProjectTaskStatus;
+  scheduleHealth?: ProjectScheduleHealth | null;
+  statusUpdates?: ProjectTaskStatusNote[];
+  delayDays?: number;
   /** Due date in ISO 8601 format, or null if not set */
   dueDate: string | null;
   /** Repeat cadence; completing the task creates its next occurrence */
@@ -128,6 +174,7 @@ export interface ProjectItem {
   }[];
   milestones?: ProjectMilestone[];
   deadlines?: ProjectDeadline[];
+  statusHistory?: ProjectStatusSnapshot[];
   /** Progress percentage (0-100) */
   progress?: number;
   /** Sort order */
@@ -195,6 +242,14 @@ export interface ProjectCreateInput {
  * ProjectUpdateInput - Input for updating an existing project
  */
 export interface ProjectUpdateInput {
+  taskStatusUpdate?: { taskId: string; status: ProjectTaskStatus };
+  taskScheduleUpdate?: { taskId: string; health: ProjectScheduleHealth };
+  taskDelayUpdate?: { taskId: string; days: number };
+  taskStatusNote?: { taskId: string } & (
+    { action: 'add'; update: ProjectTaskStatusNote } |
+    { action: 'remove'; updateId: string }
+  );
+  recordStatusUpdate?: boolean;
   milestones?: ProjectMilestone[];
   deadlines?: ProjectDeadline[];
   text?: string;

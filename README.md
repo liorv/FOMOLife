@@ -34,11 +34,11 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ### Shareable project URLs
 
-Opening a project or selecting Tasks, Plan, Roadmap, or Risks updates the browser
+Opening a project or selecting Tasks, Plan, Roadmap, Risks, or Status updates the browser
 URL. Copy the address to share the same view with another project member:
 
 - `/?tab=projects&projectId=<id>` opens Tasks.
-- `/?tab=projects&projectId=<id>&view=plan` opens Plan (also `roadmap` or `risks`).
+- `/?tab=projects&projectId=<id>&view=plan` opens Plan (also `roadmap`, `risks`, or `status`).
 - `/?tab=projects&projectId=<id>&subprojectId=<section-id>` expands and scrolls
   to a task section.
 
@@ -47,10 +47,105 @@ Signed-out visitors return to the destination after signing in. Links do not
 grant access: the signed-in user's existing project permissions still apply.
 Deleted or inaccessible targets display an availability message.
 
-In a project's Plan, Roadmap, or Risks view, the navbar thumb opens a help
+In a project's Plan, Roadmap, Risks, or Status view, the navbar thumb opens a help
 dialog explaining the current page and how to use it. The thumb no longer
 starts dependency selection or opens Roadmap actions; dependency and deadline
 controls remain available in their respective pages.
+
+The Status view groups completed and ready-to-start tasks by section. Only explicit
+task-to-task prerequisites control eligibility; section planning hints do not.
+Work states are Not Started, Blocked, In Progress, and Complete, with colored SVG
+icon badges (not rasterized icon fonts). Complete synchronizes with task completion everywhere; choosing another
+status reopens a completed task. Completing recurring work advances its next occurrence
+as usual and resets its status to Not Started. New projects instantiated from templates
+do not inherit task statuses, schedule health, update bullets, or status history.
+
+Schedule health is separate from work state: active (In Progress or Blocked),
+ready-to-start tasks can report On track or Behind. New active tasks default to
+On track. Legacy On track work statuses are interpreted as In Progress + On track.
+The schedule control is an animated sliding switch: Behind on the left, On track
+on the right (the default). Click or press Space/Enter to toggle, or use Left/Right
+to choose a side. Reduced-motion preferences disable the slide animation.
+Behind propagates through explicit task requirements to all unfinished dependent
+tasks without changing their work status. The inherited flag is calculated, never
+saved as the dependent's own assessment; it clears when upstream work recovers or
+is completed. Completed work stops propagation; section hints do not propagate health.
+Future tasks cannot manually report health. The project summary and projected impact
+include inherited delays even when those future tasks are hidden by the ready-work filter.
+
+Select a task row (or use Enter/Space) to add text-only update bullets in the Updates
+column, just like risk mitigations: Enter saves, X removes, and blur/Escape discards
+the unsaved draft. Unselected, read-only, and historical rows show plain text.
+Updates have no individual status or timestamp; each daily snapshot preserves the
+task's current notes, status, and effective health together. Notes and schedule health
+are exported/imported with tasks; new template instances and recurring occurrences
+start with no reporting notes or health.
+
+The overall report includes every project task: all complete means Complete; otherwise
+it shows Behind when work is blocked, reported behind, or forecast past a project deadline.
+Started projects without those issues show On track; untouched projects show Not started.
+Reported blockers and delays flag downstream tasks and milestones through task requirements.
+Finish and deadline estimates use remaining effort and explicitly entered delays, as described below.
+
+Each task status/completion change saves a server-generated snapshot with all task
+and section labels, statuses, eligibility, overall status, impact, updater, and time.
+Today's snapshot updates automatically whenever reporting data changes. Status history has one row per
+UTC date: another update on that date replaces the row without modifying earlier dates.
+Select a date to examine its read-only report. History is stored with the project using
+the existing storage provider; no separate database migration is required.
+Expand a date's Task history to see every task (including tasks waiting on prerequisites),
+its section, work state, effective schedule health, and full note list. Changes are
+compared with the previous recorded snapshot: status/health transitions, added/removed
+tasks, renamed/moved tasks, and added/edited/removed notes. Removed tasks retain their
+last recorded state. First-snapshot notes are only known to exist by that date; legacy
+snapshots without notes are labeled as such, not treated as empty. This remains daily
+history, not an event log: same-day changes are consolidated, so intermediate changes
+or notes added and removed within the same date cannot be reconstructed.
+Task statuses are included in JSON exports/imports (history is not imported into
+another project). API clients change an existing task's reporting status through
+`taskStatusUpdate: { taskId, status }`, `taskScheduleUpdate: { taskId, health }`,
+`taskDelayUpdate: { taskId, days }`, or
+`taskStatusNote: { taskId, action: 'add', update: { id, text } }` / `{ taskId,
+action: 'remove', updateId }`. Send one reporting action per request. Ordinary full-task
+saves preserve the latest reporting status, health, delay days, and notes while still synchronizing completion. This prevents stale editor
+snapshots from overwriting newer status reports.
+Status changes update the task, project summary, and impact immediately while saving.
+Work-state changes and removals are disabled for a task while saving; schedule
+switches and new bullet entry remain responsive. Failed writes show
+an error and roll back the failed change. History is displayed only after persistence
+succeeds. Reporting-only updates skip Roadmap notification scans; completion changes
+still deliver task and milestone notifications.
+
+The Status overview shows one headline, completed/total task counts, and a short list
+of blocked or behind tasks. Dependent work is collapsed under an affected-task count;
+the forecast shows earliest finish and deadline comparisons. Schedule switches
+remain interactive while saving: changes are applied immediately and persisted in order.
+Update entry stays focused and empty after Enter, ready for the next bullet without
+waiting for the previous save. Pending bullets are kept in order and failed writes
+roll back only the failed change.
+
+Status uses Material-style tonal cards, rounded table surfaces, and colored status chips.
+The completion bar remains only in the project header, not duplicated in Status.
+Selected rows and keyboard focus remain visible;
+dark mode and reduced-motion preferences are supported. Tables scroll horizontally
+on smaller screens without compressing task controls.
+
+The overall live report and dated history show schedule health (On track / Behind),
+not the project's work-state badge. Not started and Complete remain distinct endpoints.
+Behind uses red rather than orange. Task-history tables wrap within the page and
+stack their cells on narrow screens instead of requiring horizontal scrolling.
+
+Status forecasting interprets existing effort as remaining calendar days from the
+snapshot's UTC date. Explicit task prerequisites determine the critical path;
+independent tasks run in parallel, completed tasks take no time, recurring work is
+excluded, and section planning hints are ignored. Report active-task delay days
+under the Behind switch. Delays extend that task's duration; the project added delay
+is the difference between critical-path finishes with and without reported delays,
+not the sum across parallel tasks. Switching to On track excludes that task's delay.
+The report compares the earliest finish with every project deadline and shows days
+late. Missing effort or invalid prerequisite graphs leave the finish unestimated.
+These are optimistic forecasts, not capacity-aware commitments: update effort as
+remaining work changes. Each snapshot freezes its forecast and delay inputs.
 
 In a project's Risks stage, the Risk Management table uses the Plan table's
 section/task layout. Dependency, risk, and milestone tables use the same small

@@ -13,7 +13,7 @@ export function instantiateTemplate(template: ProjectItem, text: string): Projec
       collapsed: false,
       owners: [],
       tasks: subproject.tasks.map(task => {
-        const { createdAt, completedAt, ...definition } = task;
+        const { createdAt, completedAt, status, scheduleHealth, statusUpdates, delayDays, ...definition } = task;
         const taskId = generateId();
         ids.set(planKey({ kind: 'task', id: task.id }), taskId);
         return {

@@ -16,7 +16,7 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
   const [taskActionsOpen, setTaskActionsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const isProjectHelp = activeTab === 'projects' && ['risks', 'plan', 'roadmap'].includes(activeProjectView ?? '');
+  const isProjectHelp = activeTab === 'projects' && ['risks', 'plan', 'roadmap', 'status'].includes(activeProjectView ?? '');
   const isProjectTasks = activeTab === 'projects' && activeProjectView === 'tasks';
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function ThumbButton({ ariaLabel = 'Thumb', className, onClick, a
   if (isProjectTasks) iconName = taskActionsOpen ? 'expand_more' : 'expand_less';
 
   const projectHelpLabel = activeProjectView === 'risks' ? 'Risk Management help'
-    : activeProjectView === 'plan' ? 'Plan help' : 'Roadmap help';
+    : activeProjectView === 'plan' ? 'Plan help' : activeProjectView === 'status' ? 'Status help' : 'Roadmap help';
 
   return <>
     <button ref={buttonRef} type="button" className={className}

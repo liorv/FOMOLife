@@ -88,13 +88,21 @@ it('writes a stable encoded project URL and removes stale search and notificatio
   expect(mockPush).not.toHaveBeenCalled();
 });
 
-it.each(['tasks', 'plan', 'roadmap', 'risks'] as const)('restores the %s view from a shared URL', async view => {
+it.each(['tasks', 'plan', 'roadmap', 'risks', 'status'] as const)('restores the %s view from a shared URL', async view => {
   mockSearchParams.set('projectId', mockProject.id);
   mockSearchParams.set('view', view);
   await openPage();
   expect(mockDashboardProps.selectedProjectId).toBe(mockProject.id);
   expect(mockDashboardProps.selectedWorkspaceView).toBe(view);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(mockPush).not.toHaveBeenCalled();
+});
+
+it('reports unsupported workspace views without rejecting supported views', async () => {
+  mockSearchParams.set('projectId', mockProject.id);
+  mockSearchParams.set('view', 'unknown');
+  await openPage();
+  expect(screen.getByRole('alert')).toHaveTextContent('This project view is not available.');
 });
 
 it('updates workspace and section URLs without waiting for a server navigation', async () => {
@@ -121,7 +129,7 @@ it('selects each workspace immediately even before Next.js synchronizes the URL'
   mockSearchParams.set('projectId', mockProject.id);
   await openPage();
   historyPush.mockImplementation(() => {});
-  for (const view of ['plan', 'roadmap', 'risks', 'tasks'] as const) {
+  for (const view of ['plan', 'roadmap', 'risks', 'status', 'tasks'] as const) {
     act(() => mockDashboardProps.onWorkspaceChange?.(view));
     expect(mockSearchParams.get('view')).toBeNull();
     expect(mockDashboardProps.selectedWorkspaceView).toBe(view);

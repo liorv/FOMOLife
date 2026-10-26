@@ -16,6 +16,7 @@
  */
 import { generateId } from "@myorg/utils";
 import type { ProjectSubproject, ProjectTask, ProjectTaskPerson, ProjectRisk, TaskRecurrence } from "@myorg/types";
+import { getTaskStatus, isScheduleHealth, isTaskStatus } from './status';
 
 export interface ValidatedImportProject {
   text: string;
@@ -106,10 +107,27 @@ function sanitizeTask(raw: unknown): ProjectTask | null {
   const text = sanitizeText(obj.description ?? obj.text, MAX_TASK_TEXT_LENGTH);
   if (!text) return null;
   const recurrence = sanitizeRecurrence(obj.recurrence);
+  const status = obj.status;
+  if (status !== undefined && !isTaskStatus(status)) throw new Error("Invalid task status.");
+  if (obj.delayDays !== undefined && (typeof obj.delayDays !== 'number' || !Number.isFinite(obj.delayDays) || obj.delayDays < 0 || obj.delayDays > 36500)) throw new Error("Invalid delay days.");
+  if (obj.scheduleHealth !== undefined && obj.scheduleHealth !== null && !isScheduleHealth(obj.scheduleHealth)) throw new Error("Invalid schedule health.");
+  let statusUpdates: ProjectTask['statusUpdates'];
+  if (obj.statusUpdates !== undefined) {
+    if (!Array.isArray(obj.statusUpdates)) throw new Error("Task updates must be an array.");
+    statusUpdates = obj.statusUpdates.map((note: unknown) => {
+      const text = sanitizeText(note && typeof note === 'object' && 'text' in note ? note.text : undefined, MAX_LONG_TEXT_LENGTH);
+      if (!text) throw new Error("Each task update needs non-empty text.");
+      return { id: generateId(), text };
+    });
+  }
   return {
     id: generateId(),
     text,
     done: sanitizeBoolean(obj.done),
+    ...(status !== undefined ? { status: getTaskStatus({ done: sanitizeBoolean(obj.done), status }) } : {}),
+    ...(isScheduleHealth(obj.scheduleHealth) ? { scheduleHealth: obj.scheduleHealth } : {}),
+    ...(statusUpdates ? { statusUpdates } : {}),
+    ...(typeof obj.delayDays === 'number' ? { delayDays: obj.delayDays } : {}),
     dueDate: sanitizeDate(obj.dueDate) ?? null,
     ...(recurrence ? { recurrence } : {}),
     ...(recurrence && sanitizeDate(obj.recurrenceAnchorDate) ? { recurrenceAnchorDate: sanitizeDate(obj.recurrenceAnchorDate) as string } : {}),
