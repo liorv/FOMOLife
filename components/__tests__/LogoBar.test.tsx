@@ -21,6 +21,7 @@ describe('LogoBar', () => {
     expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Notification settings' })).not.toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'About' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Logout'));
     expect(logout).toHaveBeenCalled();
   });

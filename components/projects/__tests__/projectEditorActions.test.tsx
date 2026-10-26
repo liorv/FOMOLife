@@ -40,6 +40,15 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+it("does not send the independently saved management setting in task editor snapshots", () => {
+  const apply = jest.fn();
+  render(<ProjectEditor project={{ ...project, projectManagementEnabled: true }} onApplyChange={apply} />);
+  fireEvent.click(screen.getByText("Planning"));
+  expect(apply).toHaveBeenCalled();
+  expect(apply.mock.calls.at(-1)![0]).not.toHaveProperty("projectManagementEnabled");
+  expect(apply.mock.calls.at(-1)![0].subprojects[0].collapsed).toBe(true);
+});
+
 it("does not count completed-task visibility as an active task filter", async () => {
   await act(async () => {
     render(
@@ -373,9 +382,10 @@ it("expires the leave confirmation and resets it after closing the overview", ()
 
 it.each([true, false])("opens the overview from the project avatar in every workspace (canManage=%s)", async (canManage) => {
   await act(async () => {
-    render(<ProjectsDashboard projects={[project]} selectedProjectId={project.id} canManage={canManage} />);
+    render(<ProjectsDashboard projects={[{ ...project, projectManagementEnabled: true }]} selectedProjectId={project.id} canManage={canManage} />);
   });
   for (const view of ["Tasks", "Plan", "Roadmap", "Risks"]) {
+    if (view === "Plan") fireEvent.click(screen.getByRole("button", { name: "Manage" }));
     fireEvent.click(screen.getByRole("button", { name: view }));
     const avatar = screen.getByRole("button", { name: "Edit project image and overview" });
     expect(avatar).toHaveAttribute("aria-haspopup", "dialog");

@@ -141,6 +141,12 @@ export function NotificationBell({ userId }: { userId?: string }) {
       )}
       {currentUserId && settingsUserId === currentUserId && createPortal(
         <NotificationSettingsModal
+          onEnableNotifications={async () => {
+            const status = await ensurePushSubscription(true);
+            if (status === 'blocked') return 'Notifications are enabled in the bell, but browser notifications are blocked. Allow notifications in your browser or device settings; browsers cannot ask again after a denial.';
+            if (status === 'unsupported') return 'Notifications are enabled in the bell. Device notifications require a supported browser over HTTPS or an installed Home Screen app on iPhone/iPad.';
+            if (status === 'disabled') return 'Notifications are enabled in the bell, but browser permission was not granted. Enable device notifications in Browser & mobile when ready.';
+          }}
           onClose={() => setSettingsUserId(null)}
           deviceControls={<PushNotificationSettings />}
         />,

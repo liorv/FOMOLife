@@ -53,6 +53,9 @@ export async function POST(request: Request) {
   if (body.isTemplate !== undefined && typeof body.isTemplate !== 'boolean') {
     return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
   }
+  if (body.projectManagementEnabled !== undefined && typeof body.projectManagementEnabled !== 'boolean') {
+    return NextResponse.json({ error: 'projectManagementEnabled must be a boolean' }, { status: 400 });
+  }
   if (body.templateId !== undefined) {
     if (typeof body.templateId !== 'string' || !body.templateId.trim() || body.isTemplate === true) {
       return NextResponse.json({ error: 'A valid templateId is required to create a project from a template' }, { status: 400 });
@@ -110,6 +113,7 @@ export async function POST(request: Request) {
   const created = await createProject(session.userId, {
     text: body.text.trim(),
     members: [creatorMember],
+    ...(body.projectManagementEnabled !== undefined ? { projectManagementEnabled: body.projectManagementEnabled } : {}),
     ...(body.isTemplate !== undefined ? { isTemplate: body.isTemplate } : {}),
     ...(body.color ? { color: body.color } : {}),
     ...(typeof body.progress === 'number' ? { progress: body.progress } : {}),
@@ -154,6 +158,9 @@ export async function PATCH(request: Request) {
   if (riskError) return NextResponse.json({ error: riskError }, { status: 400 });
   if (body.patch.isTemplate !== undefined && typeof body.patch.isTemplate !== 'boolean') {
     return NextResponse.json({ error: 'isTemplate must be a boolean' }, { status: 400 });
+  }
+  if (body.patch.projectManagementEnabled !== undefined && typeof body.patch.projectManagementEnabled !== 'boolean') {
+    return NextResponse.json({ error: 'projectManagementEnabled must be a boolean' }, { status: 400 });
   }
   if (body.patch.externalUrl !== undefined) {
     if (typeof body.patch.externalUrl !== 'string' || (body.patch.externalUrl.trim() && !isValidExternalUrl(body.patch.externalUrl))) {

@@ -33,6 +33,8 @@ export interface NotificationEventSettings {
 
 /** Per-user preferences shared by the notification bell and device push. */
 export interface TaskNotificationSettings {
+  /** Master switch overriding all notification types; absent legacy values default to true. */
+  enabled?: boolean;
   /** Reminder timing for project and Roadmap deadlines; defaults to one day. */
   deadlineNotifyBefore?: TaskNotifyBefore;
   /** Settings for tasks the user created/owns. */

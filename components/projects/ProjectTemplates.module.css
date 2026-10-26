@@ -32,6 +32,78 @@
   flex-wrap: nowrap;
 }
 
+.managementToggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-secondary, #5f6368);
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.managementNavigation {
+  padding: 0 20px;
+}
+
+.managementNavigation .segmented {
+  max-width: 420px;
+}
+
+.managementToggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.managementSwitch {
+  width: 36px;
+  height: 22px;
+  padding: 3px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--color-text-secondary, #5f6368);
+}
+
+.managementSwitch::after {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 160ms ease;
+}
+
+.managementToggle input:checked + .managementSwitch {
+  background: var(--color-primary, #1a73e8);
+}
+
+.managementToggle input:checked + .managementSwitch::after {
+  transform: translateX(14px);
+}
+
+.managementToggle input:focus-visible + .managementSwitch {
+  outline: 2px solid var(--color-primary, #1a73e8);
+  outline-offset: 3px;
+}
+
+.managementToggle:has(input:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .managementSwitch::after {
+    transition: none;
+  }
+}
+
 /* iOS-style segmented control with a sliding thumb and Material 3 state layers. */
 .segmented {
   --segment-track: #7676801f;

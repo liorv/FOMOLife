@@ -32,6 +32,15 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ## Task editing
 
+### Optional project management
+
+Projects start with Tasks only. Enable **Project management** using the switch in
+the Tasks action bar beneath the project header tile. This per-project setting is
+saved for all project members. **Manage** then groups **Plan**, **Roadmap**,
+**Risks**, and **Status** as subsections. Return to Tasks to disable the switch;
+disabling hides Manage without deleting its data. Read-only users cannot change
+the setting. Projects created from templates inherit the template's setting.
+
 ### Shareable project URLs
 
 Opening a project or selecting Tasks, Plan, Roadmap, Risks, or Status updates the browser
@@ -46,6 +55,7 @@ Links use stable IDs, survive reloads, and support browser Back/Forward.
 Signed-out visitors return to the destination after signing in. Links do not
 grant access: the signed-in user's existing project permissions still apply.
 Deleted or inaccessible targets display an availability message.
+Management links open Tasks instead when project management is disabled.
 
 In a project's Plan, Roadmap, Risks, or Status view, the navbar thumb opens a help
 dialog explaining the current page and how to use it. The thumb no longer
@@ -545,7 +555,7 @@ Notes:
   browser retrieves the public key at runtime; a separate build-time public key
   is not required.
 - Open the notification bell, select the **Notification settings** gear in the
-  panel header, then expand **Browser & mobile**,
+  panel header, then select the **Browser & mobile** tab,
   select **Enable on this device**, and allow notifications. Repeat in each desktop browser and installed
   mobile app. **Send test** checks delivery to registered devices.
 - On iPhone/iPad, use iOS/iPadOS 16.4 or later, add the app to the Home Screen,
@@ -567,9 +577,24 @@ Notes:
   feedback comments, and feedback status changes, alongside due-date reminders.
   Preferences save automatically per account and apply to both the bell and
   device push. All categories remain enabled by default for existing users.
+  Sections appear as tabs on the left, retaining their names and icons; the
+  selected tab's options appear on the right. Each notification-type tab has an
+  **All notifications** switch that updates only that section in one save.
+  When some options are off, the switch enables all of them; when all are on,
+  it disables them. Reminder timing is preserved, except legacy Off timings
+  become one day before when enabled. **Browser & mobile** remains a device-setup
+  tab without a notification-type bulk switch.
+  The **Enable notifications** master switch overrides every section, hides all
+  bell notifications (including contact requests), and stops device push and
+  scheduled reminders when off. Section choices and existing history are preserved.
+  Re-enabling requests browser permission from the user's click and registers
+  this device again. Browsers do not show another prompt after a grant or denial;
+  blocked permission must be changed in browser/OS settings. Bell notifications
+  can still be enabled if device notifications are blocked or unsupported.
   Disabled categories are hidden from the bell and its unread count immediately;
   existing stored notifications reappear if re-enabled. Activity notifications
-  skipped while disabled are not backfilled. Contact requests are unaffected.
+  skipped while disabled are not backfilled. Section switches do not affect contact
+  requests; the master switch hides their bell entries without deleting the requests.
 
 Cross-app URL vars (set where relevant):
 - `NEXT_PUBLIC_CONTACTS_APP_URL`

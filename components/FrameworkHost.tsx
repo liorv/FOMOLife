@@ -177,7 +177,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
       setPageLoading(false);
     }
   }, []);
-  const [aboutInfo, setAboutInfo] = useState<{ versions: Record<string, string>; dbSource: string }>({ versions: {}, dbSource: 'Loading...' });
   const [searchPlaceholder, setSearchPlaceholder] = useState<string | null>(null);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
@@ -271,17 +270,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
   useEffect(() => {
     setSearchPlaceholder(null);
   }, [activeTab]);
-
-  // Fetch about info
-  useEffect(() => {
-    fetch('/api/about')
-      .then(res => res.json())
-      .then(setAboutInfo)
-      .catch(err => {
-        console.error('Failed to fetch about info:', err);
-        setAboutInfo({ versions: {}, dbSource: 'Error loading data' });
-      });
-  }, []);
 
   const handleSwitchUsers = async () => {
     try {
@@ -424,7 +412,6 @@ export default function FrameworkHost({ appName: _appName, userId, userName, use
         onDevSwitchUsers={handleDevSwitchUsers}
         className="logobar-top"
         rightContent={<NotificationBell userId={userId} />}
-        {...(aboutInfo ? { aboutInfo } : {})}
         {...(handleInstall ? { onInstall: handleInstall } : {})}
       />
       <div className="tab-viewport">

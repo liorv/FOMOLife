@@ -7,6 +7,7 @@ import styles from './NotificationSettingsModal.module.css';
 interface NotificationSettingsModalProps {
   onClose: () => void;
   deviceControls?: React.ReactNode;
+  onEnableNotifications?: () => Promise<string | void>;
 }
 
 const DEFAULT_SETTINGS: TaskNotificationSettings = {
@@ -81,15 +82,27 @@ function NotificationSwitch({
   );
 }
 
-export function NotificationSettingsModal({ onClose, deviceControls }: NotificationSettingsModalProps) {
+export function NotificationSettingsModal({ onClose, deviceControls, onEnableNotifications }: NotificationSettingsModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const tabsId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState(EVENT_GROUPS[0]!.title);
   const [settings, setSettings] = useState<TaskNotificationSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
+  const [permissionMessage, setPermissionMessage] = useState('');
+  const notificationsEnabled = settings.enabled !== false;
+  const optionsDisabled = saving || loadFailed || !notificationsEnabled;
+  const tabs = [
+    ...EVENT_GROUPS.map(({ title, icon }) => ({ title, icon })),
+    { title: 'Due-date reminders', icon: 'schedule' },
+    ...(deviceControls ? [{ title: 'Browser & mobile', icon: 'devices' }] : []),
+  ];
+  const allRemindersEnabled = settings.createdByMe.enabled && settings.createdByMe.notifyBefore !== 'off'
+    && settings.assignedToMe.enabled && settings.assignedToMe.notifyBefore !== 'off';
 
   useEffect(() => {
     const previousFocus = document.activeElement;
@@ -143,6 +156,25 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
     }
   };
 
+  const toggleNotifications = async () => {
+    setPermissionMessage('');
+    if (notificationsEnabled) {
+      await persist({ ...settings, enabled: false });
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      // Start permission requests directly from the user's gesture, before any network save.
+      const message = await onEnableNotifications?.();
+      if (message) setPermissionMessage(message);
+      await persist({ ...settings, enabled: true });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not enable notifications. Please try again.');
+      setSaving(false);
+    }
+  };
+
   const updateCategory = (
     category: 'createdByMe' | 'assignedToMe',
     patch: Partial<TaskNotificationSettings['createdByMe']>,
@@ -159,7 +191,7 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
           className={styles.timing}
           aria-label={`${title} reminder timing`}
           value={cat.notifyBefore}
-          disabled={!cat.enabled || saving || loadFailed}
+          disabled={!cat.enabled || optionsDisabled}
           onChange={(event) => {
             const option = NOTIFY_BEFORE_OPTIONS.find((item) => item.value === event.target.value);
             if (option) updateCategory(category, { notifyBefore: option.value });
@@ -175,8 +207,11 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
         <NotificationSwitch
           label={`Toggle ${title.toLowerCase()} reminders`}
           checked={cat.enabled}
-          disabled={saving || loadFailed}
-          onChange={() => updateCategory(category, { enabled: !cat.enabled })}
+          disabled={optionsDisabled}
+          onChange={() => updateCategory(category, {
+            enabled: !cat.enabled,
+            ...(!cat.enabled && cat.notifyBefore === 'off' ? { notifyBefore: '1d' } : {}),
+          })}
         />
       </div>
     );
@@ -238,15 +273,67 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
               Loading preferences...
             </p>
           ) : (
-            <div className={styles.settingsGrid}>
-              {EVENT_GROUPS.map((group) => (
-                <section key={group.title} className={styles.section} aria-label={group.title}>
+            <>
+            <label className={`${styles.row} ${styles.masterRow}`}>
+              <span>Enable notifications</span>
+              <NotificationSwitch label="Enable notifications" checked={notificationsEnabled}
+                disabled={saving || loadFailed} onChange={() => void toggleNotifications()} />
+            </label>
+            {!notificationsEnabled && <p className={styles.hint}>
+              All notifications are off. Your section preferences are preserved and ignored until you enable notifications.
+            </p>}
+            {permissionMessage && <p className={styles.hint} role="status">{permissionMessage}</p>}
+            <div className={styles.settingsLayout}>
+              <div className={styles.tabs} role="tablist" aria-label="Notification sections" aria-orientation="vertical">
+                {tabs.map((tab, index) => (
+                  <button key={tab.title} type="button" role="tab"
+                    id={`${tabsId}-tab-${index}`} aria-controls={`${tabsId}-panel-${index}`}
+                    aria-selected={activeTab === tab.title} tabIndex={activeTab === tab.title ? 0 : -1}
+                    className={styles.tab} onClick={() => setActiveTab(tab.title)}
+                    onKeyDown={event => {
+                      let nextIndex: number;
+                      if (event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length;
+                      else if (event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length;
+                      else if (event.key === 'Home') nextIndex = 0;
+                      else if (event.key === 'End') nextIndex = tabs.length - 1;
+                      else return;
+                      event.preventDefault();
+                      setActiveTab(tabs[nextIndex]!.title);
+                      document.getElementById(`${tabsId}-tab-${nextIndex}`)?.focus();
+                    }}>
+                    <span className="material-icons" aria-hidden="true">{tab.icon}</span>
+                    <span>{tab.title}</span>
+                  </button>
+                ))}
+              </div>
+              <div className={styles.panels}>
+              {EVENT_GROUPS.map((group, index) => {
+                const allEnabled = group.events.every(({ key }) => settings.events?.[key] ?? true)
+                  && (index !== 0 || settings.deadlineNotifyBefore !== 'off');
+                return (
+                <section key={group.title} className={styles.section} role="tabpanel"
+                  id={`${tabsId}-panel-${index}`} aria-labelledby={`${tabsId}-tab-${index}`}
+                  hidden={activeTab !== group.title}>
                   <h3>
                     <span className="material-icons" aria-hidden="true">
                       {group.icon}
                     </span>
                     {group.title}
                   </h3>
+                  <label className={`${styles.row} ${styles.bulkRow}`}>
+                    <span>All notifications</span>
+                    <NotificationSwitch label={`${group.title}: all notifications`} checked={allEnabled}
+                      disabled={optionsDisabled}
+                      onChange={() => {
+                        const events = { ...settings.events };
+                        group.events.forEach(({ key }) => { events[key] = !allEnabled; });
+                        void persist({
+                          ...settings, events,
+                          ...(index === 0 && !allEnabled && settings.deadlineNotifyBefore === 'off'
+                            ? { deadlineNotifyBefore: '1d' } : {}),
+                        });
+                      }} />
+                  </label>
                   <div className={styles.eventGrid}>
                     {group.events.map(({ key, title }) => (
                       <label key={key} className={styles.row}>
@@ -254,7 +341,7 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
                         <NotificationSwitch
                           label={title}
                           checked={settings.events?.[key] ?? true}
-                          disabled={saving || loadFailed}
+                          disabled={optionsDisabled}
                           onChange={() =>
                             void persist({
                               ...settings,
@@ -272,7 +359,7 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
                         className={styles.timing}
                         aria-label="Deadline reminder timing"
                         value={settings.deadlineNotifyBefore ?? '1d'}
-                        disabled={saving || loadFailed || settings.events?.deadlinesApproaching === false}
+                        disabled={optionsDisabled || settings.events?.deadlinesApproaching === false}
                         onChange={event => {
                           const option = NOTIFY_BEFORE_OPTIONS.find(item => item.value === event.target.value);
                           if (option) void persist({ ...settings, deadlineNotifyBefore: option.value });
@@ -286,35 +373,53 @@ export function NotificationSettingsModal({ onClose, deviceControls }: Notificat
                     </label>
                   )}
                 </section>
-              ))}
-              <section className={`${styles.section} ${styles.reminders}`} aria-label="Due-date reminders">
+                );
+              })}
+              <section className={styles.section} role="tabpanel"
+                id={`${tabsId}-panel-${EVENT_GROUPS.length}`} aria-labelledby={`${tabsId}-tab-${EVENT_GROUPS.length}`}
+                hidden={activeTab !== 'Due-date reminders'}>
                 <h3>
                   <span className="material-icons" aria-hidden="true">
                     schedule
                   </span>
                   Due-date reminders
                 </h3>
+                <label className={`${styles.row} ${styles.bulkRow}`}>
+                  <span>All notifications</span>
+                  <NotificationSwitch label="Due-date reminders: all notifications"
+                    checked={allRemindersEnabled}
+                    disabled={optionsDisabled}
+                    onChange={() => {
+                      const enabled = !allRemindersEnabled;
+                      void persist({
+                        ...settings,
+                        createdByMe: { ...settings.createdByMe, enabled,
+                          ...(enabled && settings.createdByMe.notifyBefore === 'off' ? { notifyBefore: '1d' } : {}) },
+                        assignedToMe: { ...settings.assignedToMe, enabled,
+                          ...(enabled && settings.assignedToMe.notifyBefore === 'off' ? { notifyBefore: '1d' } : {}) },
+                      });
+                    }} />
+                </label>
                 {renderCategory('createdByMe', 'Tasks I created')}
                 {renderCategory('assignedToMe', 'Tasks assigned to me')}
               </section>
-              <p className={`${styles.hint} ${styles.fullWidth}`}>
+              {deviceControls && (
+                <section className={styles.section} role="tabpanel"
+                  id={`${tabsId}-panel-${EVENT_GROUPS.length + 1}`} aria-labelledby={`${tabsId}-tab-${EVENT_GROUPS.length + 1}`}
+                  hidden={activeTab !== 'Browser & mobile'}>
+                  <h3><span className="material-icons" aria-hidden="true">devices</span>Browser &amp; mobile</h3>
+                  <fieldset className={styles.deviceControls} disabled={optionsDisabled}>
+                    <legend className={styles.deviceLegend}>Device notification setup</legend>
+                    {deviceControls}
+                  </fieldset>
+                </section>
+              )}
+              {activeTab !== 'Browser & mobile' && <p className={styles.hint}>
                 Turning a type off also hides its existing notifications.
-              </p>
+              </p>}
+              </div>
             </div>
-          )}
-          {deviceControls && (
-            <details className={styles.device}>
-              <summary>
-                <span className="material-icons" aria-hidden="true">
-                  devices
-                </span>
-                Browser &amp; mobile
-                <span className={`material-icons ${styles.chevron}`} aria-hidden="true">
-                  expand_more
-                </span>
-              </summary>
-              <div className={styles.deviceControls}>{deviceControls}</div>
-            </details>
+            </>
           )}
         </div>
         <footer className={styles.footer}>

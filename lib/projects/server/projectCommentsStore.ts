@@ -219,7 +219,8 @@ function notificationEvent(userId: string, notif: ProjectNotification): keyof No
 
 export async function listProjectNotifications(userId: string): Promise<ProjectNotification[]> {
   const notifs = await loadNotifications(userId);
-  const { events } = await getTaskNotificationSettings(userId);
+  const { enabled, events } = await getTaskNotificationSettings(userId);
+  if (!enabled) return [];
   return notifs.filter((n) => events[notificationEvent(userId, n)])
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }

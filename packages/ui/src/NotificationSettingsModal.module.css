@@ -73,10 +73,55 @@
   scrollbar-color: var(--notification-border) var(--color-surface, #fff);
 }
 
-.settingsGrid {
+.settingsLayout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 24px;
+  grid-template-columns: minmax(140px, 2fr) minmax(0, 3fr);
+  gap: 20px;
+  min-height: 300px;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px 8px 0;
+  border-right: 1px solid var(--notification-border);
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--notification-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab :global(.material-icons) {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.tab:hover,
+.tab[aria-selected="true"] {
+  background: color-mix(in srgb, var(--notification-primary) 10%, transparent);
+  color: var(--notification-primary);
+}
+
+.tab[aria-selected="true"] {
+  font-weight: 600;
+}
+
+.panels {
+  min-width: 0;
 }
 
 .section {
@@ -84,20 +129,21 @@
   padding: 8px 0;
 }
 
-.reminders {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 24px;
-  grid-column: 1 / -1;
-  border-top: 1px solid var(--notification-border);
+.section[hidden] {
+  display: none;
 }
 
-.reminders h3 {
-  grid-column: 1 / -1;
+.bulkRow {
+  border-bottom: 1px solid var(--notification-border);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  font-weight: 600;
 }
 
-.fullWidth {
-  grid-column: 1 / -1;
+.masterRow {
+  border-bottom: 1px solid var(--notification-border);
+  padding: 4px 0 12px;
+  font-weight: 600;
 }
 
 .section h3 {
@@ -112,8 +158,7 @@
   letter-spacing: 0.02em;
 }
 
-.section h3 :global(.material-icons),
-.device :global(.material-icons) {
+.section h3 :global(.material-icons) {
   font-size: 18px;
 }
 
@@ -191,8 +236,7 @@
 
 .switch input:focus-visible + .track,
 .dialog button:focus-visible,
-.dialog select:focus-visible,
-.device summary:focus-visible {
+.dialog select:focus-visible {
   outline: 2px solid var(--notification-primary);
   outline-offset: 3px;
 }
@@ -258,38 +302,18 @@
   line-height: 1.5;
 }
 
-.device {
-  border-top: 1px solid var(--notification-border);
-}
-
-.device summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  list-style: none;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.device summary::-webkit-details-marker {
-  display: none;
-}
-
-.chevron {
-  margin-left: auto;
-}
-
-.device[open] .chevron {
-  transform: rotate(180deg);
-}
-
 .deviceControls {
   padding: 4px 0 12px;
   color: var(--notification-muted);
   font-size: 0.78rem;
   line-height: 1.5;
+  margin: 0;
+  min-width: 0;
+  border: 0;
+}
+
+.deviceLegend {
+  font-size: 0.75rem;
 }
 
 .deviceControls p {
@@ -351,18 +375,21 @@
 }
 
 @media (max-width: 560px) {
-  .settingsGrid {
-    grid-template-columns: minmax(0, 1fr);
+  .settingsLayout {
+    grid-template-columns: minmax(100px, 2fr) minmax(0, 3fr);
+    gap: 12px;
   }
 
-  .eventGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 16px;
+  .tabs {
+    padding-right: 8px;
   }
 
-  .section + .section {
-    border-top: 1px solid var(--notification-border);
+  .tab {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px;
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
   }
 
   .row {
@@ -384,10 +411,6 @@
 
   .footer {
     padding-inline: 20px;
-  }
-
-  .reminders {
-    column-gap: 16px;
   }
 
   .reminderRow {

@@ -31,6 +31,7 @@ export async function scanRoadmapNotifications(
       Array.isArray(persisted?.sent) ? persisted.sent.filter((key): key is string => typeof key === 'string') : [],
     );
     const settings = await getTaskNotificationSettings(userId);
+    if (!settings.enabled) return 0;
     const today = Date.parse(now.toISOString().slice(0, 10));
     const timing = settings.deadlineNotifyBefore;
     const beforeDays = timing === '7d' ? 7 : timing === '0d' ? 0 : timing === 'off' ? null : 1;

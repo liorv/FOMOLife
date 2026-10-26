@@ -70,6 +70,7 @@ async function appendNotification(userId: string, notif: TaskDueNotification): P
 export async function listTaskDueNotifications(userId: string): Promise<TaskDueNotification[]> {
   const notifs = await loadNotifications(userId);
   const settings = await getTaskNotificationSettings(userId);
+  if (!settings.enabled) return [];
   return notifs.filter((n) => {
     const category = n.source === 'created' ? settings.createdByMe : settings.assignedToMe;
     return category.enabled && category.notifyBefore !== 'off';
@@ -262,6 +263,7 @@ export async function runTaskDueNotificationsJob(): Promise<{ usersScanned: numb
     if (candidates.length === 0) continue;
 
     const settings = await getTaskNotificationSettings(userId);
+    if (!settings.enabled) continue;
     await withStateLock(userId, async (state) => {
       const sentSet = new Set(state.sent);
       for (const candidate of candidates) {

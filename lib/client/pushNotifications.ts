@@ -26,7 +26,7 @@ export function getPushPermissionStatus(): PushStatus {
 export async function ensurePushSubscription(requestPermission = false): Promise<PushStatus> {
   const status = getPushPermissionStatus();
   if (status === 'unsupported' || status === 'blocked') return status;
-  if (Notification.permission !== 'granted') {
+  if (requestPermission || Notification.permission !== 'granted') {
     if (!requestPermission) return 'disabled';
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return permission === 'denied' ? 'blocked' : 'disabled';

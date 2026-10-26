@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import ProjectEditor from "../ProjectEditor";
 import ProjectsDashboard from "../ProjectsDashboard";
 import { validateProjectImportJson } from "@/lib/projects/importProject";
@@ -15,10 +15,114 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+it("defaults to tasks only and places the management switch in the action bar beneath the header", () => {
+  render(<ProjectsDashboard selectedProjectId="p" onProjectManagementChange={jest.fn()} projects={[
+    { id: "p", text: "Release", color: "#1976D2", subprojects: [] },
+  ]} />);
+  const toggle = screen.getByRole("switch", { name: "Enable project management" });
+  expect(toggle).not.toBeChecked();
+  const tools = screen.getByRole("group", { name: "Project tools" });
+  expect(tools).toContainElement(toggle);
+  const header = screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")!;
+  expect(header.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Manage" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Plan" })).not.toBeInTheDocument();
+});
+
+it("saves enabling and disabling management without changing its data, and restores the saved setting on remount", async () => {
+  const project = {
+    id: "p", text: "Release", color: "#1976D2", subprojects: [],
+    deadlines: [{ id: "d", label: "Launch", date: "2026-12-01" }],
+  };
+  const enabled = { ...project, projectManagementEnabled: true };
+  const disabled = { ...project, projectManagementEnabled: false };
+  const save = jest.fn().mockResolvedValueOnce(enabled).mockResolvedValueOnce(disabled);
+  const props = { selectedProjectId: "p", onProjectManagementChange: save };
+  const page = render(<ProjectsDashboard {...props} projects={[project]} />);
+  fireEvent.click(screen.getByRole("switch", { name: "Enable project management" }));
+  expect(screen.getByRole("switch")).toBeDisabled();
+  await waitFor(() => expect(screen.getByRole("switch")).not.toBeDisabled());
+  expect(save).toHaveBeenLastCalledWith("p", true);
+  page.rerender(<ProjectsDashboard {...props} projects={[enabled]} />);
+  expect(screen.getByRole("switch")).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Manage" }));
+  expect(screen.getByRole("navigation", { name: "Manage" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+  fireEvent.click(screen.getByRole("switch"));
+  await waitFor(() => expect(screen.getByRole("switch")).not.toBeDisabled());
+  expect(save).toHaveBeenLastCalledWith("p", false);
+  page.rerender(<ProjectsDashboard {...props} projects={[disabled]} />);
+  expect(screen.queryByRole("button", { name: "Manage" })).not.toBeInTheDocument();
+  expect(disabled.deadlines).toEqual(project.deadlines);
+  page.unmount();
+  render(<ProjectsDashboard {...props} projects={[enabled]} />);
+  expect(screen.getByRole("switch")).toBeChecked();
+  expect(screen.getByRole("button", { name: "Manage" })).toBeInTheDocument();
+});
+
+it("surfaces a management save failure and allows retrying without changing the setting", async () => {
+  const save = jest.fn().mockRejectedValue(new Error("Storage unavailable"));
+  render(<ProjectsDashboard selectedProjectId="p" onProjectManagementChange={save} projects={[
+    { id: "p", text: "Release", color: "#1976D2", subprojects: [] },
+  ]} />);
+  fireEvent.click(screen.getByRole("switch"));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Storage unavailable");
+  expect(screen.getByRole("switch")).not.toBeChecked();
+  expect(screen.getByRole("switch")).not.toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Manage" })).not.toBeInTheDocument();
+});
+
+it("keeps pending management saves isolated when switching projects", async () => {
+  let resolveFirst!: () => void;
+  let resolveSecond!: () => void;
+  const projects = [
+    { id: "p", text: "Release", color: "#1976D2", subprojects: [] },
+    { id: "p2", text: "Other", color: "#1976D2", subprojects: [] },
+  ];
+  const save = jest.fn()
+    .mockImplementationOnce(() => new Promise<void>(resolve => { resolveFirst = resolve; }))
+    .mockImplementationOnce(() => new Promise<void>(resolve => { resolveSecond = resolve; }));
+  const page = render(<ProjectsDashboard projects={projects} selectedProjectId="p" onProjectManagementChange={save} />);
+  fireEvent.click(screen.getByRole("switch"));
+  page.rerender(<ProjectsDashboard projects={projects} selectedProjectId="p2" onProjectManagementChange={save} />);
+  expect(screen.getByRole("switch")).not.toBeDisabled();
+  fireEvent.click(screen.getByRole("switch"));
+  await act(async () => resolveFirst());
+  expect(screen.getByRole("switch")).toBeDisabled();
+  await act(async () => resolveSecond());
+  expect(screen.getByRole("switch")).not.toBeDisabled();
+});
+
+it("gates management deep links and read-only changes per project", () => {
+  const onWorkspaceChange = jest.fn();
+  const save = jest.fn();
+  const props = {
+    selectedWorkspaceView: "risks" as const,
+    onWorkspaceChange, onProjectManagementChange: save, canManage: false,
+    projects: [
+      { id: "p", text: "Release", color: "#1976D2", subprojects: [] },
+      { id: "managed", text: "Managed", color: "#1976D2", subprojects: [], projectManagementEnabled: true },
+    ],
+  };
+  const page = render(<ProjectsDashboard {...props} selectedProjectId="p" />);
+  expect(onWorkspaceChange).toHaveBeenCalledWith("tasks");
+  expect(screen.queryByRole("navigation", { name: "Manage" })).not.toBeInTheDocument();
+  expect(screen.getByRole("switch")).toBeDisabled();
+  fireEvent.click(screen.getByRole("switch"));
+  expect(save).not.toHaveBeenCalled();
+  page.rerender(<ProjectsDashboard {...props} selectedProjectId="managed" />);
+  expect(screen.getByRole("button", { name: "Manage" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+  page.rerender(<ProjectsDashboard {...props} selectedProjectId="managed" selectedWorkspaceView="tasks" />);
+  expect(screen.getByRole("switch")).toBeChecked();
+  expect(screen.getByRole("switch")).toBeDisabled();
+});
+
 it("renders URL-controlled workspace changes and reports user navigation", () => {
   const onWorkspaceChange = jest.fn();
   const props = {
-    projects: [{ id: "p", text: "Release", color: "#1976D2", subprojects: [] }],
+    projects: [{ id: "p", text: "Release", color: "#1976D2", subprojects: [], projectManagementEnabled: true }],
     selectedProjectId: "p",
     onWorkspaceChange,
   };
@@ -69,7 +173,7 @@ it("expands a linked section when fresh data adds it after a cached project rend
 it("opens the optional Plan view and returns to the unchanged task editor", () => {
   render(
     <ProjectsDashboard
-      projects={[{ id: "p", text: "Release", color: "#1976D2", subprojects: [] }]}
+      projects={[{ id: "p", text: "Release", color: "#1976D2", subprojects: [], projectManagementEnabled: true }]}
       selectedProjectId="p"
     />,
   );
@@ -80,7 +184,11 @@ it("opens the optional Plan view and returns to the unchanged task editor", () =
   expect(within(projectHeader as HTMLElement).getByRole("progressbar", { name: "Release progress" })).toBeInTheDocument();
   expect(tasks).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByRole("region", { name: "Release project plan" })).not.toBeInTheDocument();
-  fireEvent.click(within(views).getByRole("button", { name: "Plan" }));
+  expect(within(views).getAllByRole("button")).toHaveLength(2);
+  expect(screen.queryByRole("group", { name: "Manage sections" })).not.toBeInTheDocument();
+  fireEvent.click(within(views).getByRole("button", { name: "Manage" }));
+  expect(within(screen.getByRole("navigation", { name: "Manage" })).getAllByRole("button").map(button => button.textContent))
+    .toEqual(["Plan", "Roadmap", "Risks", "Status"]);
   expect(screen.getByRole("region", { name: "Release project plan" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")).toBe(projectHeader);
   expect(screen.queryByRole("button", { name: "Back to projects" })).not.toBeInTheDocument();
@@ -93,18 +201,19 @@ it("opens the optional Plan view and returns to the unchanged task editor", () =
   expect(screen.getByRole("button", { name: "Open AI assistant" })).toBeInTheDocument();
 });
 
-it("opens Risks as a peer stage and saves task risks through the project editor", () => {
+it("opens Risks under Manage and saves task risks through the project editor", () => {
   const apply = jest.fn();
   const projects = [{
-    id: "p", text: "Release", color: "#1976D2",
+    id: "p", text: "Release", color: "#1976D2", projectManagementEnabled: true,
     subprojects: [{ id: "s", text: "Launch", tasks: [
       { id: "a", text: "Approve", done: false, favorite: false, dueDate: null, people: [] },
     ] }],
   }];
   const { rerender } = render(<ProjectsDashboard selectedProjectId="p" projects={projects} onApplyChange={apply} />);
   const views = within(screen.getByRole("group", { name: "Project workspace view" }));
-  fireEvent.click(views.getByRole("button", { name: "Risks" }));
-  expect(views.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(views.getByRole("button", { name: "Manage" }));
+  fireEvent.click(screen.getByRole("button", { name: "Risks" }));
+  expect(screen.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("table", { name: "Risk Management" })).toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "Project tools" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("row", { name: "Select row: Approve" }));
@@ -119,14 +228,15 @@ it("opens Risks as a peer stage and saves task risks through the project editor"
   rerender(<ProjectsDashboard selectedProjectId="p" projects={[{ ...projects[0]!, ...update[1] }]} onApplyChange={apply} />);
   fireEvent.click(views.getByRole("button", { name: "Tasks" }));
   expect(screen.queryByRole("table", { name: "Risk Management" })).not.toBeInTheDocument();
-  fireEvent.click(views.getByRole("button", { name: "Risks" }));
+  fireEvent.click(views.getByRole("button", { name: "Manage" }));
+  fireEvent.click(screen.getByRole("button", { name: "Risks" }));
   expect(screen.getByText("Delay")).toBeInTheDocument();
   expect(within(screen.getByRole("table", { name: "Risk Management" })).getByText("Unmitigated", { exact: true })).toBeInTheDocument();
 });
 
 it("opens unmitigated risks from a roadmap warning, including in read-only projects", () => {
   render(<ProjectsDashboard selectedProjectId="p" projects={[{
-    id: "p", text: "Release", color: "#1976D2",
+    id: "p", text: "Release", color: "#1976D2", projectManagementEnabled: true,
     subprojects: [{ id: "s", text: "Launch", tasks: [{
       id: "a", text: "Approve", done: false, favorite: false, dueDate: null, people: [],
       risks: [
@@ -136,17 +246,18 @@ it("opens unmitigated risks from a roadmap warning, including in read-only proje
     }] }],
   }]} />);
   const views = within(screen.getByRole("group", { name: "Project workspace view" }));
-  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
+  fireEvent.click(views.getByRole("button", { name: "Manage" }));
+  fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
   fireEvent.click(screen.getByRole("button", { name: "View unmitigated risks for Approve" }));
-  expect(views.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Risks" })).toHaveAttribute("aria-pressed", "true");
   const filters = within(screen.getByRole("group", { name: "Filter risks" }));
   expect(filters.getByRole("button", { name: "Unmitigated" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByText("Delay")).toBeInTheDocument();
   expect(screen.queryByText("Damage")).not.toBeInTheDocument();
   fireEvent.click(filters.getByRole("button", { name: "All" }));
   expect(screen.getByText("Damage")).toBeInTheDocument();
-  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
-  fireEvent.click(views.getByRole("button", { name: "Risks" }));
+  fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
+  fireEvent.click(screen.getByRole("button", { name: "Risks" }));
   expect(within(screen.getByRole("group", { name: "Filter risks" })).getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -191,7 +302,7 @@ it("places Material graph actions in the Plan header instead of members and Invi
     <ProjectsDashboard
       selectedProjectId="p"
       projects={[{
-        id: "p", text: "Release", color: "#1976D2",
+        id: "p", text: "Release", color: "#1976D2", projectManagementEnabled: true,
         subprojects: [{ id: "s", text: "Launch", tasks: [
           { id: "a", text: "Approve", done: false, favorite: false, dueDate: null, people: [] },
           { id: "b", text: "Publish", done: false, favorite: false, dueDate: null, people: [] },
@@ -201,7 +312,7 @@ it("places Material graph actions in the Plan header instead of members and Invi
     />,
   );
   expect(screen.getByRole("button", { name: "Invite to project" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Plan" }));
+  fireEvent.click(screen.getByRole("button", { name: "Manage" }));
   expect(screen.queryByRole("button", { name: "Invite to project" })).not.toBeInTheDocument();
   expect(document.querySelector(".project-members-bar")).not.toBeInTheDocument();
   const header = screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")!;
@@ -225,22 +336,22 @@ it("places Material graph actions in the Plan header instead of members and Invi
   expect(screen.getByRole("button", { name: "Invite to project" })).toBeInTheDocument();
 });
 
-it("shows Roadmap as a peer tab with the shared project header and no embedded roadmap in Plan", () => {
+it("shows Roadmap under Manage with the shared project header and no embedded roadmap in Plan", () => {
   const projects = [{
-    id: "p", text: "Release", color: "#1976D2",
+    id: "p", text: "Release", color: "#1976D2", projectManagementEnabled: true,
     subprojects: [{ id: "s", text: "Launch", tasks: [
       { id: "a", text: "Approve", done: false, effort: 3, favorite: false, dueDate: null, people: [] },
     ] }],
   }];
   const { rerender } = render(<ProjectsDashboard selectedProjectId="p" projects={projects} />);
   const views = within(screen.getByRole("group", { name: "Project workspace view" }));
-  expect(views.getAllByRole("button")).toHaveLength(5);
-  fireEvent.click(views.getByRole("button", { name: "Plan" }));
+  expect(views.getAllByRole("button")).toHaveLength(2);
+  fireEvent.click(views.getByRole("button", { name: "Manage" }));
   expect(screen.queryByRole("region", { name: "Roadmap" })).not.toBeInTheDocument();
-  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
-  expect(views.getByRole("button", { name: "Roadmap" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
+  expect(screen.getByRole("button", { name: "Roadmap" })).toHaveAttribute("aria-pressed", "true");
   expect(views.getByRole("button", { name: "Tasks" })).toHaveAttribute("aria-pressed", "false");
-  expect(views.getByRole("button", { name: "Plan" })).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("button", { name: "Plan" })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")).toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Roadmap" })).toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Release project plan" })).not.toBeInTheDocument();
@@ -253,7 +364,7 @@ it("shows Roadmap as a peer tab with the shared project header and no embedded r
 
 it("slides workspace content in the tab direction while keeping the header outside the animation", () => {
   render(<ProjectsDashboard selectedProjectId="p" projects={[{
-    id: "p", text: "Release", color: "#1976D2",
+    id: "p", text: "Release", color: "#1976D2", projectManagementEnabled: true,
     subprojects: [{ id: "s", text: "Launch", tasks: [
       { id: "a", text: "Approve", done: false, effort: 1, favorite: false, dueDate: null, people: [] },
     ] }],
@@ -264,15 +375,16 @@ it("slides workspace content in the tab direction while keeping the header outsi
   expect(workspace()).toHaveClass("project-editor-workspace--none");
   expect(workspace()).toContainElement(screen.getByRole("group", { name: "Project tools" }));
   expect(workspace()).not.toContainElement(header as HTMLElement);
-  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
+  fireEvent.click(views.getByRole("button", { name: "Manage" }));
+  fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
   expect(workspace()).toHaveClass("project-editor-workspace--forward");
   expect(workspace()).toHaveAttribute("data-workspace-view", "roadmap");
   expect(workspace()).toContainElement(screen.getByRole("region", { name: "Roadmap" }));
   expect(workspace()).not.toContainElement(header as HTMLElement);
-  fireEvent.click(views.getByRole("button", { name: "Plan" }));
+  fireEvent.click(screen.getByRole("button", { name: "Plan" }));
   expect(workspace()).toHaveClass("project-editor-workspace--backward");
   expect(workspace()).toContainElement(screen.getByRole("region", { name: "Release project plan" }));
-  fireEvent.click(views.getByRole("button", { name: "Roadmap" }));
+  fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
   expect(workspace()).toHaveClass("project-editor-workspace--forward");
   fireEvent.click(views.getByRole("button", { name: "Tasks" }));
   expect(workspace()).toHaveClass("project-editor-workspace--backward");
@@ -281,11 +393,12 @@ it("slides workspace content in the tab direction while keeping the header outsi
 
 it("shows Roadmap task actions in the project header", () => {
   render(<ProjectsDashboard selectedProjectId="p" onApplyChange={jest.fn()} projects={[{
-    id: "p", text: "Release", color: "#1976D2",
+    id: "p", text: "Release", color: "#1976D2", projectManagementEnabled: true,
     subprojects: [{ id: "s", text: "Launch", tasks: [
       { id: "a", text: "Approve", done: false, effort: 1, favorite: false, dueDate: null, people: [] },
     ] }],
   }]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Manage" }));
   fireEvent.click(screen.getByRole("button", { name: "Roadmap" }));
   fireEvent.click(screen.getByRole("button", { name: /^Approve:/ }));
   const header = screen.getByRole("heading", { name: "Release" }).closest(".dashboard-project-header")!;

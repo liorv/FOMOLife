@@ -159,8 +159,9 @@ export function NotificationDropdown({
     try {
       const response: PendingRequestsResponse = await apiClient.getPendingRequests();
       if (version !== loadVersions.current.contacts) return;
-      setPendingRequests(response.requests);
-      onRequestsUpdate(response.requests.length);
+      const visibleRequests = response.notificationsEnabled === false ? [] : response.requests;
+      setPendingRequests(visibleRequests);
+      onRequestsUpdate(visibleRequests.length);
       setLoadError('contacts', false);
     } catch (error) {
       if (version !== loadVersions.current.contacts) return;

@@ -39,9 +39,11 @@ function hexToRgb(hex: string | undefined): string {
 
 export type WorkspaceView = 'tasks' | 'plan' | 'roadmap' | 'risks' | 'status';
 const WORKSPACE_ORDER: WorkspaceView[] = ['tasks', 'plan', 'roadmap', 'risks', 'status'];
+const MANAGEMENT_VIEWS = ['plan', 'roadmap', 'risks', 'status'] as const;
 
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
+  onProjectManagementChange?: (projectId: string, enabled: boolean) => Promise<ProjectItem>;
   canManage?: boolean;
   onPlanMutation?: (projectId: string, action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
   onPlanBatchMutation?: (projectId: string, links: PlanLink[]) => Promise<PlanLink[]>;
@@ -96,6 +98,7 @@ function isProjectView(value: string | null): value is ProjectView {
 }
 
 export default function ProjectsDashboard({
+  onProjectManagementChange,
   canManage = true,
   onPlanMutation,
   onPlanBatchMutation,
@@ -142,9 +145,13 @@ export default function ProjectsDashboard({
 }: ProjectsDashboardProps) {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
+  const managementEnabled = selectedProject?.projectManagementEnabled === true;
+  const [managementSaves, setManagementSaves] = useState<Record<string, { saving: boolean; error?: string }>>({});
+  const managementSave = selectedProject ? managementSaves[selectedProject.id] : undefined;
   const [workspace, setWorkspace] = useState<{ projectId: string; view: Exclude<WorkspaceView, 'tasks'>; riskFilter?: 'unmitigated' } | null>(null);
   const [planActionsContainer, setPlanActionsContainer] = useState<HTMLDivElement | null>(null);
-  const activeView = selectedWorkspaceView ?? (workspace?.projectId === selectedProject?.id ? workspace?.view : 'tasks');
+  const requestedView = selectedWorkspaceView ?? (workspace?.projectId === selectedProject?.id ? workspace?.view : 'tasks');
+  const activeView = managementEnabled ? requestedView : 'tasks';
   const showingPlan = activeView === 'plan';
   const showingRoadmap = activeView === 'roadmap';
   const showingRisks = activeView === 'risks';
@@ -162,6 +169,25 @@ export default function ProjectsDashboard({
     setWorkspace(null);
     setWorkspaceDirection('none');
   }, [selectedProjectId, selectedTaskId]);
+  useEffect(() => {
+    if (selectedProject && !managementEnabled && requestedView !== 'tasks') {
+      setWorkspace(null);
+      onWorkspaceChange?.('tasks');
+    }
+  }, [selectedProject, managementEnabled, requestedView, onWorkspaceChange]);
+  const toggleManagement = async () => {
+    if (!selectedProject || !canManage || !onProjectManagementChange || managementSave?.saving) return;
+    const projectId = selectedProject.id;
+    setManagementSaves(current => ({ ...current, [projectId]: { saving: true } }));
+    try {
+      await onProjectManagementChange(projectId, !managementEnabled);
+      setManagementSaves(current => ({ ...current, [projectId]: { saving: false } }));
+    } catch (error) {
+      setManagementSaves(current => ({
+        ...current, [projectId]: { saving: false, error: error instanceof Error ? error.message : 'Unable to save project management settings. Please retry.' },
+      }));
+    }
+  };
   const taskFilterCount = filters.filter((filter) => filter !== 'hide_completed').length;
 
   const [showFilters, setShowFilters] = useState(false);
@@ -408,21 +434,18 @@ export default function ProjectsDashboard({
         /* ── Main body: full-width content for selected project ── */
         <div className="dashboard-body">
           <div className="dashboard-content">
-            <div className={`${templateStyles.toolbar} ${templateStyles.workspaceToolbar}`}>
+            {managementEnabled && <div className={`${templateStyles.toolbar} ${templateStyles.workspaceToolbar}`}>
               <div
                 className={templateStyles.segmented}
                 role="group"
                 aria-label="Project workspace view"
-                style={{ '--segment-count': WORKSPACE_ORDER.length, '--segment-index': WORKSPACE_ORDER.indexOf(workspaceView) } as React.CSSProperties}
+                style={{ '--segment-count': 2, '--segment-index': showingTasks ? 0 : 1 } as React.CSSProperties}
               >
                 <span className={templateStyles.segmentThumb} aria-hidden="true" />
                 <button type="button" className={templateStyles.segment} aria-pressed={showingTasks} onClick={() => switchWorkspace('tasks')}>Tasks</button>
-                <button type="button" className={templateStyles.segment} aria-pressed={showingPlan} onClick={() => switchWorkspace('plan')}>Plan</button>
-                <button type="button" className={templateStyles.segment} aria-pressed={showingRoadmap} onClick={() => switchWorkspace('roadmap')}>Roadmap</button>
-                <button type="button" className={templateStyles.segment} aria-pressed={showingRisks} onClick={() => switchWorkspace('risks')}>Risks</button>
-                <button type="button" className={templateStyles.segment} aria-pressed={showingStatus} onClick={() => switchWorkspace('status')}>Status</button>
+                <button type="button" className={templateStyles.segment} aria-pressed={!showingTasks} onClick={() => { if (showingTasks) switchWorkspace('plan'); }}>Manage</button>
               </div>
-            </div>
+            </div>}
             {/* Project editor (subprojects + tasks) */}
             <ProjectEditor
               canManage={canManage}
@@ -454,6 +477,35 @@ export default function ProjectsDashboard({
               ) : undefined}
               workspaceView={workspaceView}
               workspaceDirection={workspaceDirection}
+              taskManagementToggle={
+                <>
+                  <label className={templateStyles.managementToggle}>
+                    <input type="checkbox" role="switch" aria-label="Enable project management"
+                      checked={managementEnabled}
+                      disabled={!canManage || !onProjectManagementChange || managementSave?.saving}
+                      onChange={() => void toggleManagement()} />
+                    <span className={templateStyles.managementSwitch} aria-hidden="true" />
+                    <span>Project management</span>
+                  </label>
+                  {managementSave?.error && (
+                    <span role="alert">{managementSave.error}</span>
+                  )}
+                </>
+              }
+              workspaceNavigation={!showingTasks && (
+                <nav aria-label="Manage" className={templateStyles.managementNavigation}>
+                  <div className={templateStyles.segmented} role="group" aria-label="Manage sections"
+                    style={{ '--segment-count': MANAGEMENT_VIEWS.length, '--segment-index': WORKSPACE_ORDER.indexOf(workspaceView) - 1 } as React.CSSProperties}>
+                    <span className={templateStyles.segmentThumb} aria-hidden="true" />
+                    {MANAGEMENT_VIEWS.map(view => (
+                      <button key={view} type="button" className={templateStyles.segment}
+                        aria-pressed={workspaceView === view} onClick={() => switchWorkspace(view)}>
+                        {view.charAt(0).toUpperCase() + view.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </nav>
+              )}
               dashboardProjectHeaderTop={(membersBar, overviewButton) => (
                 <div
                   className="dashboard-project-header-modern"

@@ -157,6 +157,8 @@ export interface ProjectDeadline {
  * ProjectItem - Core project entity
  */
 export interface ProjectItem {
+  /** Opt-in access to the Manage workspace; disabling preserves management data. */
+  projectManagementEnabled?: boolean;
   /** Unique identifier for the project */
   id: string;
   /** Recorded creation time; absent for legacy projects */
@@ -214,6 +216,7 @@ export interface ProjectItem {
  * ProjectCreateInput - Input for creating a new project
  */
 export interface ProjectCreateInput {
+  projectManagementEnabled?: boolean;
   text: string;
   isTemplate?: boolean;
   /** Accessible template to instantiate; its content is copied server-side */
@@ -242,6 +245,7 @@ export interface ProjectCreateInput {
  * ProjectUpdateInput - Input for updating an existing project
  */
 export interface ProjectUpdateInput {
+  projectManagementEnabled?: boolean;
   taskStatusUpdate?: { taskId: string; status: ProjectTaskStatus };
   taskScheduleUpdate?: { taskId: string; health: ProjectScheduleHealth };
   taskDelayUpdate?: { taskId: string; days: number };

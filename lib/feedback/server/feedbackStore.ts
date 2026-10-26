@@ -371,7 +371,8 @@ async function appendNotification(userId: string, notif: FeedbackNotification): 
 /** Returns all notifications for a user, newest first. */
 export async function listNotifications(userId: string): Promise<FeedbackNotification[]> {
   const notifs = await loadNotifications(userId);
-  const { events } = await getTaskNotificationSettings(userId);
+  const { enabled, events } = await getTaskNotificationSettings(userId);
+  if (!enabled) return [];
   return notifs.filter((n) => events[n.type === 'feedback_status' ? 'feedbackStatusChanges' : 'feedbackComments']).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );

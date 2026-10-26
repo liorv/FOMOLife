@@ -52,6 +52,7 @@ export interface ProjectSubproject {
 }
 
 export interface ProjectItem {
+  projectManagementEnabled?: boolean;
   id: string;
   createdAt?: string;
   text: string;
@@ -252,7 +253,7 @@ export async function listProjects(userId: string): Promise<ProjectItem[]> {
 
 export async function createProject(
   userId: string,
-  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'isTemplate' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
+  input: Pick<ProjectItem, 'text'> & Partial<Pick<ProjectItem, 'projectManagementEnabled' | 'isTemplate' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members'>>,
 ): Promise<ProjectItem> {
   const current = await getOrInitUserProjects(userId);
   const nextColor = pickColor(current.length);
@@ -267,6 +268,7 @@ export async function createProject(
     ...(input.deadlines ? { deadlines: input.deadlines } : {}),
     creatorId: userId,
     members: input.members ?? [],
+    ...(input.projectManagementEnabled !== undefined ? { projectManagementEnabled: input.projectManagementEnabled } : {}),
     ...(input.isTemplate !== undefined ? { isTemplate: input.isTemplate } : {}),
     ...(typeof input.progress === 'number' ? { progress: input.progress } : {}),
     ...(typeof input.order === 'number' ? { order: input.order } : {}),
@@ -288,7 +290,7 @@ export async function createProject(
 export async function updateProject(
   userId: string,
   id: string,
-  patch: Partial<Pick<ProjectItem, 'isTemplate' | 'text' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
+  patch: Partial<Pick<ProjectItem, 'projectManagementEnabled' | 'isTemplate' | 'text' | 'color' | 'subprojects' | 'planningLinks' | 'milestones' | 'deadlines' | 'progress' | 'order' | 'goal' | 'description' | 'externalUrl' | 'dueDate' | 'aiInstructions' | 'avatarUrl' | 'members' | 'preferences' | 'archived' | 'archivedAt'>>,
   statusUpdate?: { updatedBy: string; record?: boolean; taskId?: string },
 ): Promise<ProjectItem | null> {
   const current = await getOrInitUserProjects(userId);

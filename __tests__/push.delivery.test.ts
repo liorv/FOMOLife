@@ -62,6 +62,12 @@ describe('push delivery and diagnostics', () => {
     }
   });
 
+  it('suppresses every device delivery when the account master switch is off', async () => {
+    mockLoad.mockResolvedValue({ settings: { enabled: false } });
+    expect(await sendPushToUser('owner', { title: 'Disabled', body: 'No delivery' })).toEqual({ sent: 0, failed: 0 });
+    expect(webpush.sendNotification).not.toHaveBeenCalled();
+  });
+
   it('links a test notification to Home, never the analytics dashboard', async () => {
     expect((await POST()).status).toBe(200);
     for (const [, payload] of jest.mocked(webpush.sendNotification).mock.calls) {

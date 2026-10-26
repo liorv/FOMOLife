@@ -57,6 +57,7 @@ describe('notification setup controls', () => {
       } }) })
       .mockResolvedValueOnce({ ok: false });
     render(<NotificationSettingsModal onClose={() => {}} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Due-date reminders' }));
     const toggle = await screen.findByRole('switch', { name: 'Toggle tasks i created reminders' });
     fireEvent.click(toggle);
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not save');

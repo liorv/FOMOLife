@@ -17,6 +17,7 @@ const mockProject: ProjectItem = {
   subprojects: [{ id: 'section / one', text: 'Launch', collapsed: true, tasks: [] }],
 };
 const mockListProjects = jest.fn();
+const mockUpdateProject = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
@@ -24,7 +25,7 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }));
 jest.mock('@myorg/api-client', () => ({
-  createProjectsApiClient: () => ({ listProjects: mockListProjects }),
+  createProjectsApiClient: () => ({ listProjects: mockListProjects, updateProject: mockUpdateProject }),
   createContactsApiClient: () => ({ listContacts: async () => [] }),
   createTasksApiClient: () => ({ listTasks: async () => [] }),
 }));
@@ -96,6 +97,18 @@ it.each(['tasks', 'plan', 'roadmap', 'risks', 'status'] as const)('restores the 
   expect(mockDashboardProps.selectedWorkspaceView).toBe(view);
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(mockPush).not.toHaveBeenCalled();
+});
+
+it('saves the management toggle as a targeted patch and updates the project from the server response', async () => {
+  mockSearchParams.set('projectId', mockProject.id);
+  const saved = { ...mockProject, projectManagementEnabled: true };
+  mockUpdateProject.mockResolvedValue(saved);
+  await openPage();
+  await act(async () => {
+    await mockDashboardProps.onProjectManagementChange?.(mockProject.id, true);
+  });
+  expect(mockUpdateProject).toHaveBeenCalledWith(mockProject.id, { projectManagementEnabled: true });
+  expect(mockDashboardProps.projects).toEqual([saved]);
 });
 
 it('reports unsupported workspace views without rejecting supported views', async () => {

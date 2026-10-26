@@ -217,6 +217,8 @@ export interface ContactsListResponse {
  */
 export interface PendingRequestsResponse {
   requests: PendingRequest[];
+  /** Whether pending requests should appear in the notification bell. */
+  notificationsEnabled?: boolean;
 }
 
 /**

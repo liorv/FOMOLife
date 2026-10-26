@@ -4,6 +4,7 @@ import webpush from 'web-push';
 import { createStorageProvider } from '@myorg/storage';
 import type { PersistedUserData } from '@myorg/storage';
 import { withKeyedLock } from '@myorg/utils';
+import { getTaskNotificationSettings } from './notificationSettings';
 
 const storage = createStorageProvider();
 const SUBS_KEY_PREFIX = '__push_subs__';
@@ -75,6 +76,7 @@ export async function removePushSubscription(userId: string, endpoint: string): 
 
 /** Sends a web push notification to every device the user has subscribed on, pruning dead subscriptions. */
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
+  if (!(await getTaskNotificationSettings(userId)).enabled) return { sent: 0, failed: 0 };
   if (!ensureConfigured()) throw new Error('Web push is not configured: VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required.');
   const subs = await loadSubscriptions(userId);
   if (subs.length === 0) return { sent: 0, failed: 0 };

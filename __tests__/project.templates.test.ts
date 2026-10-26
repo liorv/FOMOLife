@@ -62,6 +62,48 @@ beforeEach(() => {
   });
 });
 
+it('persists project management toggles across cold loads without removing management data', async () => {
+  const deadlines = [{ id: 'd', label: 'Launch', date: '2026-12-15' }];
+  const created: ProjectItem = await (await POST(request('POST', {
+    ...definition, projectManagementEnabled: true, deadlines,
+  }))).json();
+  expect(created.projectManagementEnabled).toBe(true);
+  const disabled = await PATCH(request('PATCH', {
+    id: created.id, patch: { projectManagementEnabled: false },
+  }));
+  expect(disabled.status).toBe(200);
+  expect(await disabled.json()).toMatchObject({ projectManagementEnabled: false, deadlines });
+  mockLoad.mockResolvedValue(mockSave.mock.calls.at(-1)![1]);
+  const reloaded = (await getOrInitUserProjects(`management-reload-${userId}`))[0]!;
+  expect(reloaded.projectManagementEnabled).toBe(false);
+  expect(reloaded.deadlines).toEqual(deadlines);
+  expect(reloaded.subprojects).toEqual(created.subprojects);
+  const enabled = await PATCH(request('PATCH', {
+    id: created.id, patch: { projectManagementEnabled: true },
+  }));
+  expect(await enabled.json()).toMatchObject({ projectManagementEnabled: true, deadlines });
+});
+
+it('rejects invalid project management settings on creation and update', async () => {
+  const created: ProjectItem = await (await POST(request('POST', definition))).json();
+  expect(created.projectManagementEnabled).toBeUndefined();
+  for (const value of [null, 'true', 1, {}, []]) {
+    expect((await POST(request('POST', { ...definition, projectManagementEnabled: value }))).status).toBe(400);
+    expect((await PATCH(request('PATCH', {
+      id: created.id, patch: { projectManagementEnabled: value },
+    }))).status).toBe(400);
+  }
+});
+
+it.each([true, false])('inherits a template project management setting of %s', async enabled => {
+  const template: ProjectItem = await (await POST(request('POST', {
+    ...definition, isTemplate: true, projectManagementEnabled: enabled,
+  }))).json();
+  const copy = await POST(request('POST', { text: 'Copy', templateId: template.id }));
+  expect(copy.status).toBe(201);
+  expect((await copy.json()).projectManagementEnabled).toBe(enabled);
+});
+
 it('persists task risks through create, update, reload and removal', async () => {
   const risk = { id: 'r', name: 'Delay', description: 'Vendor lead time', mitigations: [] };
   const input = { ...definition, subprojects: [{

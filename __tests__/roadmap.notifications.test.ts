@@ -66,6 +66,19 @@ it('uses the next UTC day for missed alerts, not the start of the due date', asy
   expect((await listProjectNotifications(userId))[0]?.type).toBe('deadline_missed');
 });
 
+it('does not send or consume deadline and milestone alerts while the master switch is off', async () => {
+  const project = { ...base, dueDate: '2026-10-25',
+    subprojects: [{ ...base.subprojects[0]!, tasks: [{ ...task, done: true }] }],
+    milestones: [{ id: 'm', label: 'Ready', taskIds: ['t'] }],
+  };
+  await saveTaskNotificationSettings(userId, { ...preferences, enabled: false });
+  expect(await scanRoadmapNotifications(userId, [project], now)).toBe(0);
+  expect(sendPushToUser).not.toHaveBeenCalled();
+  expect(mockRows.has(`__roadmap_notif_state__${userId}`)).toBe(false);
+  await saveTaskNotificationSettings(userId, { ...preferences, enabled: true });
+  expect(await scanRoadmapNotifications(userId, [project], now)).toBe(2);
+});
+
 it.each([
   ['7d', '2026-11-01', 1], ['1d', '2026-10-27', 0],
   ['0d', '2026-10-26', 0], ['0d', '2026-10-25', 1], ['off', '2026-10-25', 0],

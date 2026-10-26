@@ -961,6 +961,7 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               onSelectSubproject={(id) => navigateProject(editingProjectId, 'tasks', id)}
               onSelectProject={selectProject}
               onStatusUpdate={(projectId, patch) => apiUpdateProject(projectId, {}, () => apiClient.updateProject(projectId, patch))}
+              onProjectManagementChange={(projectId, enabled) => apiUpdateProject(projectId, { projectManagementEnabled: enabled })}
               onApplyChange={handleProjectApplyChange}
               onAddSubproject={handleAddSubproject}
               newlyAddedSubprojectId={newlyAddedSubprojectId}

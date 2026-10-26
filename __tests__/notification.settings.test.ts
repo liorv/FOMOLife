@@ -10,6 +10,12 @@ jest.mock('@/lib/server/frameworkAuth', () => ({
   getFrameworkSession: jest.fn().mockResolvedValue({ isAuthenticated: true, userId: 'settings-user' }),
 }));
 jest.mock('@/lib/server/webPush', () => ({ sendPushToUser: jest.fn().mockResolvedValue({ sent: 1, failed: 0 }) }));
+jest.mock('@/lib/contacts/server/contactsStore', () => ({
+  getPendingRequests: jest.fn().mockResolvedValue([{
+    id: 'request', requestedAt: '2026-10-25T12:00:00Z',
+    requesterProfile: { fullName: 'Contact', email: 'contact@example.test', oauthProvider: 'google' },
+  }]),
+}));
 
 import type { PersistedUserData } from '@myorg/storage';
 import type { NotificationEventSettings } from '@myorg/types';
@@ -20,6 +26,7 @@ import { createTask, updateTask } from '@/lib/tasks/server/tasksStore';
 import { sendPushToUser } from '@/lib/server/webPush';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { GET, PUT } from '@/app/api/tasks/notification-settings/route';
+import { GET as getPendingContacts } from '@/app/api/contacts/pending/route';
 
 const mockRows = new Map<string, PersistedUserData>();
 const reminders = {
@@ -42,6 +49,65 @@ it('defaults old settings to enabled and preserves event choices when an older c
   await saveTaskNotificationSettings('legacy', { ...reminders, events: { ownTaskCompletions: false } });
   await saveTaskNotificationSettings('legacy', reminders);
   expect((await getTaskNotificationSettings('legacy')).events.ownTaskCompletions).toBe(false);
+});
+
+it('persists the master switch without erasing individual choices, including older-client saves', async () => {
+  expect((await getTaskNotificationSettings('master')).enabled).toBe(true);
+  const settings = { ...reminders, enabled: false, events: { taskComments: false } };
+  await saveTaskNotificationSettings('master', settings);
+  await saveTaskNotificationSettings('master', reminders);
+  expect(await getTaskNotificationSettings('master')).toMatchObject(settings);
+  await saveTaskNotificationSettings('master', { ...reminders, enabled: true });
+  expect(await getTaskNotificationSettings('master')).toMatchObject({ enabled: true, events: { taskComments: false } });
+});
+
+it('overrides all activity preferences before storing and pushing, and hides existing history until re-enabled', async () => {
+  const user = 'master-history';
+  await notifyTaskCompleted({ ...completion, completedByUserId: user, memberIds: [] });
+  const feedback = await createFeedback(user, 'Author', { type: 'feature', title: 'Feature', description: 'Test' });
+  await addComment(feedback.id, 'actor', 'Actor', 'Existing');
+  expect((await listNotifications(user)).length).toBe(1);
+  await saveTaskNotificationSettings(user, { ...reminders, enabled: false });
+  jest.mocked(sendPushToUser).mockClear();
+  expect(await listProjectNotifications(user)).toEqual([]);
+  expect(await listNotifications(user)).toEqual([]);
+  expect(await getProjectNotifUnreadCount(user)).toBe(0);
+  await notifyTaskCompleted({ ...completion, completedByUserId: user, memberIds: [] });
+  await notifyTaskAssigned({ projectId: 'p', projectTitle: 'P', taskId: 't', taskTitle: 'T',
+    assignedByUserId: 'actor', assignedByName: 'Actor', assigneeIds: [user] });
+  await addThreadComment({ threadId: 'thread', threadTitle: 'Thread', projectId: 'p',
+    memberIds: [user], authorId: 'actor', authorName: 'Actor', text: 'New' });
+  await addComment(feedback.id, 'actor', 'Actor', 'Suppressed');
+  await markFeedbackComplete('actor', feedback.id, true, 'Actor');
+  const personal = await createTask(user, { text: 'Personal' });
+  await updateTask(user, personal.id, { done: true });
+  expect(sendPushToUser).not.toHaveBeenCalled();
+  await saveTaskNotificationSettings(user, { ...reminders, enabled: true });
+  expect((await listProjectNotifications(user)).length).toBe(1);
+  expect((await listNotifications(user)).length).toBe(1);
+});
+
+it.each([false, true])('persists the master enabled=%s through the settings API', async enabled => {
+  expect((await PUT(new Request('http://localhost/api/tasks/notification-settings', {
+    method: 'PUT', body: JSON.stringify({ ...reminders, enabled }),
+  }))).status).toBe(200);
+  expect((await (await GET()).json()).settings.enabled).toBe(enabled);
+});
+
+it('hides contact bell entries without deleting or hiding the underlying pending contact requests', async () => {
+  await saveTaskNotificationSettings('settings-user', { ...reminders, enabled: false });
+  const response = await getPendingContacts(new Request('http://localhost/api/contacts/pending'));
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body.notificationsEnabled).toBe(false);
+  expect(body.requests).toEqual([expect.objectContaining({ id: 'request' })]);
+});
+
+it.each([null, 'false', 0, {}])('rejects invalid master notification preferences %j', async enabled => {
+  expect((await PUT(new Request('http://localhost/api/tasks/notification-settings', {
+    method: 'PUT', body: JSON.stringify({ ...reminders, enabled }),
+  }))).status).toBe(400);
+  expect(mockRows.size).toBe(0);
 });
 
 it('suppresses self-completions for personal and project tasks without suppressing other members', async () => {

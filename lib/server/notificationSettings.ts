@@ -21,6 +21,7 @@ export const DEFAULT_NOTIFICATION_EVENTS: NotificationEventSettings = {
 };
 
 export const DEFAULT_TASK_NOTIFICATION_SETTINGS: TaskNotificationSettings = {
+  enabled: true,
   deadlineNotifyBefore: '1d',
   createdByMe: { enabled: true, notifyBefore: '1d' },
   assignedToMe: { enabled: true, notifyBefore: '1d' },
@@ -31,6 +32,7 @@ export async function getTaskNotificationSettings(userId: string) {
   const persisted = await storage.load(`${SETTINGS_KEY_PREFIX}${userId}`);
   const settings = persisted?.settings as TaskNotificationSettings | undefined;
   return {
+    enabled: settings?.enabled ?? true,
     deadlineNotifyBefore: settings?.deadlineNotifyBefore ?? '1d',
     createdByMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.createdByMe, ...settings?.createdByMe },
     assignedToMe: { ...DEFAULT_TASK_NOTIFICATION_SETTINGS.assignedToMe, ...settings?.assignedToMe },
@@ -48,5 +50,6 @@ export async function saveTaskNotificationSettings(userId: string, settings: Tas
 }
 
 export async function isNotificationEnabled(userId: string, event: keyof NotificationEventSettings): Promise<boolean> {
-  return (await getTaskNotificationSettings(userId)).events[event];
+  const settings = await getTaskNotificationSettings(userId);
+  return settings.enabled && settings.events[event];
 }

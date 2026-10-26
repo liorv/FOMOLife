@@ -58,6 +58,13 @@ describe('device push setup', () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
+  it('re-requests permission from an explicit enable action even if permission was previously granted', async () => {
+    const pending = ensurePushSubscription(true);
+    expect(mockPermission).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(await pending).toBe('enabled');
+  });
+
   it('replaces a subscription when its server key has changed', async () => {
     const unsubscribe = jest.fn().mockResolvedValue(true);
     mockGetSubscription.mockResolvedValue({

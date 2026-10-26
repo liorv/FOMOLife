@@ -5,6 +5,7 @@ import type { PendingRequestsResponse } from '@myorg/types';
 
 const mockPush = jest.fn();
 const mockGetPendingRequests = jest.fn(async (): Promise<PendingRequestsResponse> => ({ requests: [] }));
+const mockEnsurePushSubscription = jest.fn().mockResolvedValue('enabled');
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
@@ -14,7 +15,7 @@ jest.mock('@myorg/api-client', () => ({
   }),
 }));
 jest.mock('@/lib/client/pushNotifications', () => ({
-  ensurePushSubscription: async () => 'enabled',
+  ensurePushSubscription: (...args: unknown[]) => mockEnsurePushSubscription(...args),
   getPushPermissionStatus: () => 'enabled',
 }));
 jest.mock('@/lib/client/contactsCache', () => ({
@@ -59,6 +60,43 @@ describe('notification badge synchronization', () => {
     mockGetPendingRequests.mockReset().mockResolvedValue({ requests: [] });
     global.fetch = originalFetch;
     jest.restoreAllMocks();
+    mockEnsurePushSubscription.mockReset().mockResolvedValue('enabled');
+  });
+
+  it('requests browser permissions when the master switch is enabled', async () => {
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => String(input).includes('notification-settings')
+      ? { ok: true, json: async () => ({ settings: {
+        enabled: false,
+        createdByMe: { enabled: true, notifyBefore: '1d' },
+        assignedToMe: { enabled: true, notifyBefore: '1d' },
+      } }) } as Response
+      : response(0));
+    render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
+    const master = await screen.findByRole('switch', { name: 'Enable notifications' });
+    expect(master).not.toBeChecked();
+    fireEvent.click(master);
+    expect(mockEnsurePushSubscription).toHaveBeenLastCalledWith(true);
+    await waitFor(() => expect(master).toBeChecked());
+  });
+
+  it('hides pending contact requests and their badge while notifications are disabled', async () => {
+    global.fetch = jest.fn(async () => response(0));
+    const request = {
+      id: 'request', requestedAt: '2026-10-25T12:00:00Z',
+      requesterProfile: { fullName: 'Contact requester', email: 'contact@example.test', oauthProvider: 'google' },
+    };
+    mockGetPendingRequests.mockResolvedValue({ requests: [request], notificationsEnabled: false });
+    const { container } = render(<NotificationBell userId="user" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await screen.findByText(/all caught up/);
+    expect(screen.queryByText('Contact requester')).not.toBeInTheDocument();
+    expect(container.querySelector('.framework-bell-badge')).toBeNull();
+    mockGetPendingRequests.mockResolvedValue({ requests: [request], notificationsEnabled: true });
+    act(() => { window.dispatchEvent(new Event('notification-settings-updated')); });
+    expect(await screen.findByText('Contact requester')).toBeVisible();
+    expect(container.querySelector('.framework-bell-badge')).toHaveTextContent('1');
   });
 
   it('opens settings from the panel gear, preserves device controls, and restores focus to the bell', async () => {
@@ -75,8 +113,7 @@ describe('notification badge synchronization', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Notification settings' }));
     expect(bell).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('dialog', { name: 'Notification settings' })).toBeVisible();
-    await screen.findByRole('switch', { name: 'Tasks I complete' });
-    fireEvent.click(screen.getByText('Browser & mobile'));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Browser & mobile' }));
     expect(await screen.findByRole('button', { name: 'Refresh registration' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Send test' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));

@@ -80,6 +80,24 @@ describe('daily task reminders', () => {
     expect((await runTaskDueNotificationsJob()).notified).toBe(0);
   });
 
+  it('suppresses reminder creation and hides existing reminders while the master switch is off', async () => {
+    await runTaskDueNotificationsJob();
+    expect((await listTaskDueNotifications('owner')).length).toBe(1);
+    const [existing] = await listTaskDueNotifications('owner');
+    await rescheduleTaskNotification('owner', existing!.id, 'day');
+    const categories = {
+      createdByMe: { enabled: true, notifyBefore: '1d' as const },
+      assignedToMe: { enabled: true, notifyBefore: '1d' as const },
+    };
+    await saveTaskNotificationSettings('owner', { ...categories, enabled: false });
+    jest.advanceTimersByTime(60_001);
+    expect((await runTaskDueNotificationsJob()).notified).toBe(0);
+    expect(await listTaskDueNotifications('owner')).toEqual([]);
+    expect(sendPushToUser).toHaveBeenCalledTimes(1);
+    await saveTaskNotificationSettings('owner', { ...categories, enabled: true });
+    expect((await runTaskDueNotificationsJob()).notified).toBe(1);
+  });
+
   it('hides existing reminders and suppresses snoozed delivery after disabling a category', async () => {
     await runTaskDueNotificationsJob();
     const [notification] = await listTaskDueNotifications('owner');

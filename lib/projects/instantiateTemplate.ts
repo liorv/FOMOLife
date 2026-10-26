@@ -36,6 +36,7 @@ export function instantiateTemplate(template: ProjectItem, text: string): Projec
     text,
     color: template.color,
     isTemplate: false,
+    ...(template.projectManagementEnabled !== undefined ? { projectManagementEnabled: template.projectManagementEnabled } : {}),
     progress: 0,
     dueDate: null,
     ...(template.goal ? { goal: template.goal } : {}),

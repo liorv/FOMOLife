@@ -41,6 +41,8 @@ interface ProjectEditorProps {
   workspaceView?: string;
   workspaceDirection?: 'forward' | 'backward' | 'none';
   taskToolbar?: React.ReactNode;
+  taskManagementToggle?: React.ReactNode;
+  workspaceNavigation?: React.ReactNode;
   taskFilterPanel?: React.ReactNode;
   projectActions?: React.ReactNode;
   onToggleFilter?: (filter: string | null) => void;
@@ -94,6 +96,8 @@ export default function ProjectEditor({
   workspaceView = 'tasks',
   workspaceDirection = 'none',
   taskToolbar,
+  taskManagementToggle,
+  workspaceNavigation,
   taskFilterPanel,
   projectActions,
   onToggleFilter,
@@ -238,7 +242,11 @@ export default function ProjectEditor({
 
 
   // safe call wrappers for optional callbacks
-  const safeOnApplyChange = onApplyChange ?? (() => {});
+  const safeOnApplyChange = (updated: Partial<ProjectItem>) => {
+    // Management is saved separately; editor snapshots may contain a stale setting.
+    const { projectManagementEnabled, ...editorUpdate } = updated;
+    onApplyChange?.(editorUpdate);
+  };
   const safeOnCreatePerson = onCreatePerson ?? (() => {});
   const safeOnOpenPeople = onOpenPeople ?? (() => {});
   const safeOnClearNewSubproject = onClearNewSubproject ?? (() => {});
@@ -1147,6 +1155,7 @@ export default function ProjectEditor({
           <span>{panel === 'view' ? 'View' : 'More'}</span>
         </button>
       ))}
+      {taskManagementToggle}
     </div>
   );
 
@@ -1281,6 +1290,7 @@ export default function ProjectEditor({
         className={`project-editor-workspace project-editor-workspace--${workspaceDirection}`}
         data-workspace-view={workspaceView}
       >
+      {workspaceNavigation}
       {dashboardProjectHeaderTop && !workspaceContent && (
         <div className="project-editor-actions-area">
           {projectTools}
