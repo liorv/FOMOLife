@@ -47,6 +47,9 @@ a selector for its visible tasks.
 
 Use **Due date** to set or clear a date on the selection, or **Assign** to add a
 project member without replacing existing assignees or adding duplicates.
+**Mark complete** completes selected unfinished tasks without reopening already
+completed tasks. Recurring tasks advance to their next occurrence, matching
+single-task completion; the next occurrence remains unfinished.
 Changing a recurring task's due date also resets its recurrence anchor, matching
 single-task editing. Each action requires an explicit Apply button and saves all
 selected tasks in one project update. The list changes only after a successful

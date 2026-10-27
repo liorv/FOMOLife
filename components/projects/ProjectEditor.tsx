@@ -301,10 +301,17 @@ export default function ProjectEditor({
     const current = localRef.current;
     const count = current.subprojects.flatMap(section => section.tasks)
       .filter(task => selectedTaskIds.has(task.id)).length;
+    const completedAt = new Date();
     const subprojects = current.subprojects.map(section => ({
       ...section,
       tasks: section.tasks.map(task => {
         if (!selectedTaskIds.has(task.id)) return task;
+        if ('complete' in change) {
+          if (task.done) return task;
+          const completed = { ...task, done: true };
+          return advanceRecurringTask(completed, completedAt)
+            ?? { ...completed, completedAt: completedAt.toISOString() };
+        }
         if ('dueDate' in change) {
           return {
             ...task,

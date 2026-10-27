@@ -2,7 +2,7 @@ import React, { useId, useState } from 'react';
 import type { Contact } from '@myorg/types';
 import styles from './BulkTaskToolbar.module.css';
 
-export type BulkTaskChange = { dueDate: string | null } | { person: Contact };
+export type BulkTaskChange = { dueDate: string | null } | { person: Contact } | { complete: true };
 
 interface Props {
   count: number;
@@ -58,6 +58,11 @@ export default function BulkTaskToolbar({ count, people, saving, error, onApply,
               onClick={() => setPanel(panel === 'person' ? null : 'person')}>
               <span className="material-icons" aria-hidden="true">person_add</span>
               Assign
+            </button>
+            <button type="button" className={styles.tonalButton} disabled={!count}
+              onClick={() => void onApply({ complete: true })}>
+              <span className="material-icons" aria-hidden="true">task_alt</span>
+              Mark complete
             </button>
           </div>
         {panel === 'date' && count > 0 && (

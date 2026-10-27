@@ -237,6 +237,7 @@ it('separates selection controls from actions on selected tasks', () => {
   expect(actions.queryByRole('button', { name: 'Select all visible' })).not.toBeInTheDocument();
   expect(actions.getByRole('button', { name: 'Due date' })).toBeDisabled();
   expect(actions.getByRole('button', { name: 'Assign' })).toBeDisabled();
+  expect(actions.getByRole('button', { name: 'Mark complete' })).toBeDisabled();
   select('a');
   fireEvent.click(actions.getByRole('button', { name: 'Due date' }));
   const dateAction = actions.getByRole('button', { name: 'Due date' });
@@ -245,4 +246,47 @@ it('separates selection controls from actions on selected tasks', () => {
     .toContainElement(actions.getByLabelText('Due date for selected tasks'));
   expect(selection.queryByLabelText('Due date for selected tasks')).not.toBeInTheDocument();
   expect(actions.getByRole('button', { name: 'Set date on 1 task' })).toBeDisabled();
+});
+
+it('marks selected unfinished tasks complete in one save without reopening completed tasks', async () => {
+  const original = project();
+  const completed = original.subprojects[0]!.tasks.find(item => item.id === 'done')!;
+  completed.completedAt = '2026-01-01T12:00:00.000Z';
+  const save = jest.fn(async (subprojects: ProjectSubproject[]) => ({ ...original, subprojects }));
+  render(<ProjectEditor project={original} onBulkTaskUpdate={save} />);
+  start();
+  select('b');
+  select('c');
+  select('done');
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mark complete' })));
+  expect(save).toHaveBeenCalledTimes(1);
+  const tasks = savedTasks(save);
+  expect(tasks.find(item => item.id === 'b')).toMatchObject({
+    done: true, completedAt: expect.any(String), people: [{ name: 'alex' }],
+  });
+  expect(tasks.find(item => item.id === 'c')).toMatchObject({
+    done: true, completedAt: tasks.find(item => item.id === 'b')!.completedAt,
+  });
+  expect(tasks.find(item => item.id === 'done')).toEqual(completed);
+  expect(tasks.find(item => item.id === 'a')).toEqual(original.subprojects[0]!.tasks[0]);
+  expect(screen.getByRole('status')).toHaveTextContent('Updated 3 tasks.');
+});
+
+it('advances selected recurring tasks once and resets their reporting for the next occurrence', async () => {
+  const original = project();
+  original.subprojects[0]!.tasks[0] = task('a', {
+    dueDate: '2026-01-31', recurrence: 'monthly', recurrenceAnchorDate: '2026-01-31',
+    status: 'in_progress', scheduleHealth: 'behind', delayDays: 3,
+    statusUpdates: [{ id: 'note', text: 'Previous occurrence update' }],
+  });
+  const save = jest.fn(async (subprojects: ProjectSubproject[]) => ({ ...original, subprojects }));
+  render(<ProjectEditor project={original} onBulkTaskUpdate={save} />);
+  start();
+  select('a');
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mark complete' })));
+  expect(save).toHaveBeenCalledTimes(1);
+  expect(savedTasks(save).find(item => item.id === 'a')).toMatchObject({
+    done: false, dueDate: '2026-02-28', recurrenceAnchorDate: '2026-01-31',
+    completedAt: null, status: 'not_started', scheduleHealth: null, delayDays: 0, statusUpdates: [],
+  });
 });
