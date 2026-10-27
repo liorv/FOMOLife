@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "October 2026 Bulk Task Actions",
+      "date": "October 27, 2026",
+      "changes": [
+        "Edit multiple tasks at once: in a project's Tasks view, open More > Edit multiple tasks, then select rows across sections.",
+        "Selected tasks use a tinted background and colored edge instead of completion checkboxes. Select all visible tasks or an entire section, and choose Done or press Escape to leave selection mode.",
+        "A Material-style panel separates selection controls from actions. Set or clear due dates, add a project member without replacing existing assignees, or mark selected tasks complete in one save.",
+        "Recurring tasks keep their usual behavior: changing a due date resets the recurrence anchor, and marking complete advances to the next occurrence. Already-completed tasks stay complete.",
+        "Successful bulk edits show a dismissible snackbar. If a save fails, your tasks stay unchanged and your selection remains available to retry."
+      ]
+    },
+    {
       "version": "October 2026 Status Update",
       "date": "October 25, 2026",
       "changes": [
