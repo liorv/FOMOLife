@@ -13,6 +13,10 @@ function getVisibleTasks(tasks: ProjectTask[] = [], taskFilters: TaskFilter[] = 
 }
 
 interface SubprojectEditorProps {
+  selectionMode?: boolean;
+  selectedTaskIds?: ReadonlySet<string>;
+  onSelectTask?: (taskId: string) => void;
+  onSelectTasks?: (taskIds: string[], selected: boolean) => void;
   sub: ProjectSubproject;
   project: ProjectItem;
   editorTaskId?: string | null;
@@ -55,6 +59,10 @@ interface SubprojectEditorProps {
 }
 
 export default function SubprojectEditor({
+  selectionMode = false,
+  selectedTaskIds,
+  onSelectTask,
+  onSelectTasks,
   sub,
   project,
   editorTaskId,
@@ -182,7 +190,7 @@ export default function SubprojectEditor({
     <div
       data-subproject-id={sub.id}
       className={`${wrapperClass} ${isDragging ? 'subproject-tile--dragging' : ''} ${isDragOverSubprojectTile ? 'subproject-tile--drag-over' : ''}`}
-      draggable
+      draggable={!selectionMode}
       onDragStart={handleSubDragStart}
       onDragOver={handleSubDragOver}
       onDrop={handleSubDrop}
@@ -217,9 +225,21 @@ export default function SubprojectEditor({
       />
       {!collapsed && <div className="subproject-body">
         <div className="subproject-tasks">
+          {selectionMode && sortedTasks.length > 0 && (
+            <button type="button" className="task-section-selection"
+              aria-label={`Select visible tasks in ${sub.text}`}
+              aria-pressed={sortedTasks.every(task => selectedTaskIds?.has(task.id))}
+              onClick={() => onSelectTasks?.(sortedTasks.map(task => task.id),
+                !sortedTasks.every(task => selectedTaskIds?.has(task.id)))}>
+              {sortedTasks.every(task => selectedTaskIds?.has(task.id)) ? 'Deselect section' : 'Select section'}
+            </button>
+          )}
           <ul className="item-list">
             <TaskList
               {...{
+                selectionMode,
+                selectedTaskIds,
+                onSelectTask,
                 items: sortedTasks as any,
                 type: "tasks",
                 editorTaskId: editorTaskId ?? null,
@@ -249,7 +269,7 @@ export default function SubprojectEditor({
             />
           </ul>
           {/* add-bar appears as last row when expanded; handles its own state */}
-          <div className="add-bar-wrapper" ref={addBarRef}>
+          {!selectionMode && <div className="add-bar-wrapper" ref={addBarRef}>
             <AddBar
               id={`subproject-add-tasks-input-${sub.id}`}
               type="tasks"
@@ -262,7 +282,7 @@ export default function SubprojectEditor({
                 }
               }}
             />
-          </div>
+          </div>}
         </div>
       </div>}
     </div>

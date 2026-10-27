@@ -104,16 +104,6 @@
 .history th:first-child { width: auto; }
 .history small { display: block; margin-top: 6px; color: var(--status-muted); font-size: 11px; }
 .history .badge { margin: 0 4px 4px 0; }
-.history > tbody > tr > td[colspan] { padding: 0 16px 12px; }
-.taskHistory > summary { cursor: pointer; padding: 10px 0; font-weight: 500; color: var(--status-primary); }
-.taskHistory[open] { padding-bottom: 8px; }
-.taskHistoryTable { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 12px; background: var(--status-container); }
-.taskHistoryTable th { font-weight: 400; }
-.taskHistoryTable thead th { width: 25% !important; }
-.taskHistoryTable tbody td { vertical-align: top !important; }
-.taskHistoryTable .badge { margin: 0 4px 4px 0; }
-.noteChange { display: block; margin-top: 4px; color: var(--status-green-text); font-size: 11px; font-weight: 500; }
-.removedNotes { margin-top: 12px; color: var(--status-red-text); }
 .historical { padding: 12px 16px; margin-bottom: 16px; border-radius: 12px; background: var(--status-blue-bg); color: var(--status-blue-text); }
 .saving { margin: 0 0 12px; color: var(--status-muted); font-size: 12px; }
 .error { padding: 12px 16px; margin-bottom: 16px; border-radius: 12px; background: var(--status-red-bg); color: var(--status-red-text); }
@@ -138,9 +128,6 @@
 
 @media (max-width: 600px) {
   .historyContainer .history th, .historyContainer .history td { padding: 8px; }
-  .taskHistoryTable, .taskHistoryTable thead, .taskHistoryTable tbody, .taskHistoryTable tr, .taskHistoryTable th, .taskHistoryTable td { display: block; width: auto !important; }
-  .taskHistoryTable thead { display: none; }
-  .taskHistoryTable tbody tr { padding: 8px 0; border-bottom: 1px solid var(--status-border); }
   .page { padding: 8px 0 24px; }
   .title { font-size: 20px; }
   .heading { gap: 12px; margin-bottom: 16px; }

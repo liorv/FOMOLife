@@ -23,6 +23,20 @@ export function linkKey(link: PlanLink): string {
   return JSON.stringify([planKey(link.prerequisite), planKey(link.dependent)]);
 }
 
+export function getTaskPlanLinks(links: PlanLink[], taskId: string): PlanLink[] {
+  return links.filter(link =>
+    (link.prerequisite.kind === 'task' && link.prerequisite.id === taskId) ||
+    (link.dependent.kind === 'task' && link.dependent.id === taskId),
+  );
+}
+
+export function removeTaskPlanLinks(links: PlanLink[], taskId: string): PlanLink[] {
+  return links.filter(link =>
+    !((link.prerequisite.kind === 'task' && link.prerequisite.id === taskId) ||
+      (link.dependent.kind === 'task' && link.dependent.id === taskId)),
+  );
+}
+
 export function getSectionSequence(section: ProjectSubproject, links: PlanLink[]) {
   const ordered = sortSectionTasks(section.tasks, section.sortMode);
   const tasks = ordered.filter(task => !task.recurrence);

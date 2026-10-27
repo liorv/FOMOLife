@@ -145,7 +145,7 @@ export default function ProjectsPage({ canManage, currentUserId = '', currentUse
     setNotificationTaskId(null);
     setActiveThread(null);
     const params = new URLSearchParams(searchParams.toString());
-    for (const key of ['q', 'projectId', 'view', 'subprojectId', 'taskId', 'threadId', 'feedbackId']) params.delete(key);
+    for (const key of ['q', 'projectId', 'view', 'subprojectId', 'taskId', 'taskAction', 'threadId', 'feedbackId']) params.delete(key);
     params.set('tab', 'projects');
     if (id) {
       params.set('projectId', id);
@@ -951,10 +951,13 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
                 if (!saved.planningLinks) throw new Error('The server returned an invalid plan. Reload the project before retrying.');
                 return saved.planningLinks;
               }}
+              onCreateDependencyTask={(projectId, dependentTaskId, task) =>
+                apiUpdateProject(projectId, {}, () => apiClient.createDependencyTask(projectId, dependentTaskId, task))}
               projects={projects}
               people={people}
               selectedProjectId={editingProjectId}
               selectedTaskId={notificationTaskId}
+              locateTaskOnly={searchParams.get('taskAction') === 'locate'}
               selectedWorkspaceView={workspaceView}
               onWorkspaceChange={(view) => navigateProject(editingProjectId, view)}
               selectedSubprojectId={targetSubprojectId}
@@ -963,6 +966,10 @@ const [pendingDeleteProjectId, setPendingDeleteProjectId] = useState<
               onStatusUpdate={(projectId, patch) => apiUpdateProject(projectId, {}, () => apiClient.updateProject(projectId, patch))}
               onProjectManagementChange={(projectId, enabled) => apiUpdateProject(projectId, { projectManagementEnabled: enabled })}
               onApplyChange={handleProjectApplyChange}
+              onBulkTaskUpdate={async (projectId, subprojects) => {
+                if (!canManage) throw new Error('You do not have permission to edit tasks.');
+                return apiUpdateProject(projectId, { subprojects });
+              }}
               onAddSubproject={handleAddSubproject}
               newlyAddedSubprojectId={newlyAddedSubprojectId}
               onClearNewSubproject={() => setNewlyAddedSubprojectId(null)}

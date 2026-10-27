@@ -39,7 +39,6 @@ export default function ProjectRisks({ project, canManage, initialFilter = 'all'
   const [editor, setEditor] = useState<{ taskId: string; risk: ProjectRisk; isNew: boolean } | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const editorRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [mitigationDraft, setMitigationDraft] = useState<{ taskId: string; riskId: string; text: string; mitigationId?: string } | null>(null);
@@ -78,10 +77,6 @@ export default function ProjectRisks({ project, canManage, initialFilter = 'all'
     setSubprojects(project.subprojects);
     latest.current = project.subprojects;
   }, [project.subprojects]);
-
-  useEffect(() => {
-    editorRef.current?.querySelector<HTMLInputElement>('input')?.focus();
-  }, [editingTaskId]);
 
   useEffect(() => {
     if (!editingRiskId || !canManage) return;
@@ -357,14 +352,9 @@ export default function ProjectRisks({ project, canManage, initialFilter = 'all'
                 {extraRiskRow && <tr className={riskStyles.addRiskRow} aria-label={`New risk row for ${task.text}`}>
                   <td>{riskInput(task)}</td><td />
                 </tr>}
-                {canManage && task && editingTask?.id === task.id && <tr><td colSpan={3}>
-                  <div ref={editorRef} className={styles.taskEditor} role="region" aria-label={`Edit ${task.text}`}>
-                    <TaskModal task={editingTask} inline allPeople={people}
-                      onUpdateTask={updated => editTask(task.id, current => ({ ...current, ...updated }))}
-                      onSave={() => setEditingTaskId(null)} onClose={() => setEditingTaskId(null)} />
-                    <button type="button" className={styles.closeEditor} onClick={() => setEditingTaskId(null)}>Done</button>
-                  </div>
-                </td></tr>}
+                {canManage && task && editingTask?.id === task.id && <TaskModal task={editingTask} allPeople={people}
+                  onUpdateTask={updated => editTask(task.id, current => ({ ...current, ...updated }))}
+                  onSave={() => setEditingTaskId(null)} onClose={() => setEditingTaskId(null)} />}
               </tbody>;
             })}
           </table>

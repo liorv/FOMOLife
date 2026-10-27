@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import type { ProjectItem } from '@myorg/types';
+import type { ProjectItem, ProjectTask } from '@myorg/types';
 import ProjectPlan from '../ProjectPlan';
 import ProjectRoadmap from '../ProjectRoadmap';
 import ThumbButton from '../../../packages/ui/src/ThumbButton';
@@ -20,6 +20,130 @@ const project: ProjectItem = {
 };
 
 afterEach(() => jest.restoreAllMocks());
+
+describe('creating a new prerequisite', () => {
+  function openCreation() {
+    const trigger = screen.getByRole('button', { name: 'Create dependency task for Publish (task, Prepare)' });
+    fireEvent.click(trigger);
+    return trigger;
+  }
+
+  it('uses the add-task icon and creates and links a task without changing the existing-link flow', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      expect(body.action).toBe('create-task');
+      expect(body.dependentTaskId).toBe('b');
+      const response = Response.json({
+        ...project,
+        subprojects: project.subprojects.map(section => section.id === 'prepare'
+          ? { ...section, tasks: [...section.tasks, body.task] } : section),
+        planningLinks: [{ prerequisite: { kind: 'task', id: body.task.id }, dependent: { kind: 'task', id: 'b' } }],
+      });
+      Object.defineProperty(response, 'ok', { value: true });
+      return response;
+    });
+    render(<ProjectPlan project={project} canManage />);
+    const trigger = openCreation();
+    expect(trigger).toHaveTextContent('add_task');
+    const dialog = screen.getByRole('dialog', { name: 'Create dependency task' });
+    expect(dialog).toHaveTextContent('Publish will depend on this new task, in the same section.');
+    expect(screen.getByRole('textbox', { name: 'Task title' })).toHaveFocus();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Task title' }), { target: { value: 'Draft announcement' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create dependency task' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on Draft announcement' })).toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent('Dependency task created. Saved.');
+    expect(screen.getByRole('button', { name: 'Add dependency for Publish (task, Prepare)' })).toBeInTheDocument();
+  });
+
+  it.each(['Cancel', 'Escape'])('discards the draft with %s without saving', action => {
+    const create = jest.fn();
+    render(<ProjectPlan project={project} canManage onCreateDependencyTask={create} />);
+    const trigger = openCreation();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Task title' }), { target: { value: 'Discard me' } });
+    if (action === 'Cancel') fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    else fireEvent.keyDown(screen.getByRole('textbox', { name: 'Task title' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.queryByText('Discard me')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('validates blank names and recurring prerequisites before saving', () => {
+    const create = jest.fn();
+    render(<ProjectPlan project={project} canManage onCreateDependencyTask={create} />);
+    openCreation();
+    fireEvent.click(screen.getByRole('button', { name: 'Create dependency task' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a task name');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Task title' }), { target: { value: 'Weekly' } });
+    fireEvent.change(screen.getByLabelText('Repeat'), { target: { value: 'weekly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create dependency task' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Recurring tasks cannot');
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('keeps the draft and reports save errors without adding a task or link', async () => {
+    const create = jest.fn().mockRejectedValue(new Error('Offline'));
+    render(<ProjectPlan project={project} canManage onCreateDependencyTask={create} />);
+    openCreation();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Task title' }), { target: { value: 'Retry me' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create dependency task' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Offline'));
+    expect(screen.getByRole('textbox', { name: 'Task title' })).toHaveValue('Retry me');
+    expect(screen.queryByRole('button', { name: /Inspect: Retry me/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Remove dependency:/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create dependency task' })).toBeEnabled();
+  });
+
+  it('prevents duplicate submissions while saving and keeps the new task after receiving the saved project', async () => {
+    let resolve!: (saved: ProjectItem) => void;
+    const create = jest.fn((_dependentTaskId: string, _task: ProjectTask) => new Promise<ProjectItem>(done => { resolve = done; }));
+    const { rerender } = render(<ProjectPlan project={project} canManage onCreateDependencyTask={create} />);
+    openCreation();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Task title' }), { target: { value: 'New task' } });
+    const submit = screen.getByRole('button', { name: 'Create dependency task' });
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Task title' }), { key: 'Enter', ctrlKey: true });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Creating...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    const task = create.mock.calls[0]![1];
+    const saved: ProjectItem = {
+      ...project,
+      subprojects: project.subprojects.map(section => section.id === 'prepare' ? { ...section, tasks: [...section.tasks, task] } : section),
+      planningLinks: [{ prerequisite: { kind: 'task', id: task.id }, dependent: { kind: 'task', id: 'b' } }],
+    };
+    await act(async () => { resolve(saved); });
+    rerender(<ProjectPlan project={saved} canManage onCreateDependencyTask={create} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove dependency: Publish depends on New task' })).toBeInTheDocument();
+  });
+
+  it('traps keyboard focus within the creation dialog', () => {
+    render(<ProjectPlan project={project} canManage />);
+    openCreation();
+    const first = screen.getByRole('button', { name: 'Close task editor' });
+    const last = screen.getByRole('button', { name: 'Create dependency task' });
+    first.focus();
+    fireEvent.keyDown(first, { key: 'Tab', shiftKey: true });
+    expect(last).toHaveFocus();
+    last.focus();
+    fireEvent.keyDown(last, { key: 'Tab' });
+    expect(first).toHaveFocus();
+  });
+
+  it('disables creation for recurring tasks and hides it for read-only users', () => {
+    const { rerender } = render(<ProjectPlan project={project} canManage />);
+    expect(screen.getByRole('button', { name: 'Create dependency task for Weekly review (task, Prepare)' })).toBeDisabled();
+    expect(screen.getAllByText('New task').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Create dependency task for Prepare (section, Section)' })).not.toBeInTheDocument();
+    rerender(<ProjectPlan project={project} canManage={false} />);
+    expect(screen.queryByRole('button', { name: /^Create dependency task for/ })).not.toBeInTheDocument();
+  });
+});
 
 describe('linking a section in order', () => {
   afterEach(() => jest.clearAllMocks());
@@ -679,13 +803,12 @@ it('zooms with the wheel only inside the graph, prevents page scrolling, and cla
   expect(screen.queryByText('Reset zoom')).not.toBeInTheDocument();
 });
 
-it('expands the existing editor in the selected task row and persists edits without changing links', () => {
+it('edits the selected task in a dialog and persists edits without changing links', () => {
   const apply = jest.fn();
   render(<ProjectPlan project={{ ...project, planningLinks: [link] }} canManage onApplyChange={apply} />);
   fireEvent.click(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-  const editor = screen.getByRole('region', { name: 'Edit Publish' });
-  expect(editor.closest('tr')?.previousElementSibling).toContainElement(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
+  const editor = screen.getByRole('dialog', { name: 'Edit task' });
   const title = within(editor).getByRole('textbox', { name: 'Task title' });
   expect(title).toHaveFocus();
   fireEvent.change(title, { target: { value: 'Ship release' } });
@@ -697,7 +820,7 @@ it('expands the existing editor in the selected task row and persists edits with
   expect(screen.getByRole('button', { name: 'Remove dependency: Ship release depends on Get approval' })).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Roadmap' })).not.toBeInTheDocument();
   fireEvent.click(within(editor).getByRole('button', { name: 'Done' }));
-  expect(screen.queryByRole('region', { name: 'Edit Ship release' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Edit task' })).not.toBeInTheDocument();
 });
 
 it('offers only project members as owners when editing, never other contacts', () => {
@@ -705,7 +828,7 @@ it('offers only project members as owners when editing, never other contacts', (
   render(<ProjectPlan project={members} canManage onApplyChange={jest.fn()} />);
   fireEvent.click(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-  const editor = screen.getByRole('region', { name: 'Edit Publish' });
+  const editor = screen.getByRole('dialog', { name: 'Edit task' });
   expect(within(editor).getByTitle('Member Mia')).toBeInTheDocument();
   expect(within(editor).queryByTitle('Outside Olly')).not.toBeInTheDocument();
 });
@@ -736,26 +859,12 @@ it('shows forecast bars, dates and assignee photos with an estimated duration la
   expect(roadmap.getByText(/Forecast from \d{4}-\d{2}-\d{2}/)).toBeInTheDocument();
 });
 
-it('scrolls to the expanded task on Edit, including when the editor is already open', () => {
-  const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView');
-  const scroll = jest.fn();
-  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scroll });
-  try {
-    render(<ProjectPlan project={project} canManage onApplyChange={jest.fn()} />);
-    fireEvent.click(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    const editor = screen.getByRole('region', { name: 'Edit Publish' });
-    expect(scroll).toHaveBeenCalledWith({ behavior: 'instant', block: 'start', inline: 'nearest' });
-    expect(scroll.mock.instances[0]).toBe(editor.closest('tr')?.previousElementSibling);
-    expect(within(editor).getByRole('textbox', { name: 'Task title' })).toHaveFocus();
-    scroll.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(scroll).toHaveBeenCalledTimes(1);
-    expect(scroll.mock.instances[0]).toBe(editor.closest('tr')?.previousElementSibling);
-  } finally {
-    if (original) Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', original);
-    else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
-  }
+it('opens task editing in a focused dialog', () => {
+  render(<ProjectPlan project={project} canManage onApplyChange={jest.fn()} />);
+  fireEvent.click(table().getByRole('button', { name: 'Inspect: Publish (task, Prepare)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+  const dialog = screen.getByRole('dialog', { name: 'Edit task' });
+  expect(within(dialog).getByRole('textbox', { name: 'Task title' })).toHaveFocus();
 });
 
 it('removes static graph instructions and provides a hover-only scroll graphic', () => {

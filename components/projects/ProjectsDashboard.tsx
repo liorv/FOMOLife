@@ -25,7 +25,8 @@ import ProjectPlan from "./ProjectPlan";
 import ProjectRoadmap from "./ProjectRoadmap";
 import ProjectRisks from "./ProjectRisks";
 import ProjectStatus from "./ProjectStatus";
-import type { PlanLink } from "@/lib/projects/planning";
+import { getPlanNodes, getTaskPlanLinks, removeTaskPlanLinks, type PlanLink } from "@/lib/projects/planning";
+import TaskDependencyDeleteDialog from "./TaskDependencyDeleteDialog";
 
 // Helper function to convert hex color to RGB string
 function hexToRgb(hex: string | undefined): string {
@@ -43,15 +44,18 @@ const MANAGEMENT_VIEWS = ['plan', 'roadmap', 'risks', 'status'] as const;
 
 // fully typed props for ProjectsDashboard
 interface ProjectsDashboardProps {
+  onBulkTaskUpdate?: (projectId: string, subprojects: ProjectSubproject[]) => Promise<ProjectItem>;
   onProjectManagementChange?: (projectId: string, enabled: boolean) => Promise<ProjectItem>;
   canManage?: boolean;
   onPlanMutation?: (projectId: string, action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
   onPlanBatchMutation?: (projectId: string, links: PlanLink[]) => Promise<PlanLink[]>;
+  onCreateDependencyTask?: (projectId: string, dependentTaskId: string, task: ProjectTask) => Promise<ProjectItem>;
   onStatusUpdate?: (projectId: string, patch: import('@myorg/types').ProjectUpdateInput) => Promise<ProjectItem>;
   projects?: ProjectItem[];
   people?: any[];
   selectedProjectId?: string | null;
   selectedTaskId?: string | null;
+  locateTaskOnly?: boolean;
   selectedWorkspaceView?: WorkspaceView;
   onWorkspaceChange?: (view: WorkspaceView) => void;
   selectedSubprojectId?: string | null;
@@ -98,15 +102,18 @@ function isProjectView(value: string | null): value is ProjectView {
 }
 
 export default function ProjectsDashboard({
+  onBulkTaskUpdate,
   onProjectManagementChange,
   canManage = true,
   onPlanMutation,
   onPlanBatchMutation,
+  onCreateDependencyTask,
   onStatusUpdate,
   projects = [] as ProjectItem[],
   people = [] as any[],
   selectedProjectId,
   selectedTaskId,
+  locateTaskOnly = false,
   selectedWorkspaceView,
   onWorkspaceChange,
   selectedSubprojectId,
@@ -150,6 +157,15 @@ export default function ProjectsDashboard({
   const managementSave = selectedProject ? managementSaves[selectedProject.id] : undefined;
   const [workspace, setWorkspace] = useState<{ projectId: string; view: Exclude<WorkspaceView, 'tasks'>; riskFilter?: 'unmitigated' } | null>(null);
   const [planActionsContainer, setPlanActionsContainer] = useState<HTMLDivElement | null>(null);
+  const [pendingTaskDelete, setPendingTaskDelete] = useState<{
+    projectId: string;
+    subprojectId: string;
+    task: ProjectTask;
+    links: PlanLink[];
+  } | null>(null);
+  const pendingTaskProject = pendingTaskDelete
+    ? projects.find(project => project.id === pendingTaskDelete.projectId)
+    : undefined;
   const requestedView = selectedWorkspaceView ?? (workspace?.projectId === selectedProject?.id ? workspace?.view : 'tasks');
   const activeView = managementEnabled ? requestedView : 'tasks';
   const showingPlan = activeView === 'plan';
@@ -367,8 +383,32 @@ export default function ProjectsDashboard({
     subprojectId: string,
     taskId: string,
   ) => {
+    if (!canManage) return;
+    const task = project.subprojects.find(section => section.id === subprojectId)
+      ?.tasks.find(item => item.id === taskId);
+    if (!task) return;
+    const links = getTaskPlanLinks(project.planningLinks ?? [], taskId);
+    if (links.length) {
+      setPendingTaskDelete({ projectId: project.id, subprojectId, task, links });
+      return;
+    }
     const updatedSubs = deleteProjectTask(project.subprojects || [], subprojectId, taskId);
     onApplyChange?.(project.id, { subprojects: updatedSubs });
+  };
+
+  const confirmTaskDelete = () => {
+    if (!pendingTaskDelete || !canManage) return;
+    const project = projects.find(item => item.id === pendingTaskDelete.projectId);
+    if (!project) {
+      setPendingTaskDelete(null);
+      return;
+    }
+    const updatedSubs = deleteProjectTask(project.subprojects || [], pendingTaskDelete.subprojectId, pendingTaskDelete.task.id);
+    onApplyChange?.(project.id, {
+      subprojects: updatedSubs,
+      planningLinks: removeTaskPlanLinks(project.planningLinks ?? [], pendingTaskDelete.task.id),
+    });
+    setPendingTaskDelete(null);
   };
 
   // Tracks which search-result task rows are expanded or being renamed
@@ -430,6 +470,13 @@ export default function ProjectsDashboard({
 
   return (
     <div className={`projects-dashboard${selectedProject ? " dashboard--has-project" : ""}`}>
+      {pendingTaskDelete && pendingTaskProject && <TaskDependencyDeleteDialog
+        task={pendingTaskDelete.task}
+        links={pendingTaskDelete.links}
+        nodes={getPlanNodes(pendingTaskProject)}
+        onCancel={() => setPendingTaskDelete(null)}
+        onConfirm={confirmTaskDelete}
+      />}
       {selectedProject ? (
         /* ── Main body: full-width content for selected project ── */
         <div className="dashboard-body">
@@ -450,12 +497,14 @@ export default function ProjectsDashboard({
             <ProjectEditor
               canManage={canManage}
               targetTaskId={selectedTaskId ?? null}
+              locateTaskOnly={locateTaskOnly}
               workspaceContent={showingPlan ? (
                 <ProjectPlan key={selectedProject.id} project={selectedProject} canManage={canManage}
                   actionsContainer={planActionsContainer}
                   {...(onApplyChange ? { onApplyChange: (updated: Partial<ProjectItem>) => onApplyChange(selectedProject.id, updated) } : {})}
                   {...(onPlanMutation ? { onSaveLink: (action, link) => onPlanMutation(selectedProject.id, action, link) } : {})}
                   {...(onPlanBatchMutation ? { onSaveLinks: (links: PlanLink[]) => onPlanBatchMutation(selectedProject.id, links) } : {})}
+                  {...(onCreateDependencyTask ? { onCreateDependencyTask: (dependentTaskId, task) => onCreateDependencyTask(selectedProject.id, dependentTaskId, task) } : {})}
                 />
               ) : showingRoadmap ? (
                 <ProjectRoadmap key={selectedProject.id} project={selectedProject} links={selectedProject.planningLinks ?? []} people={people}
@@ -693,6 +742,9 @@ export default function ProjectsDashboard({
               onApplyChange={(updated: Partial<ProjectItem>) =>
                 onApplyChange?.(selectedProject.id, updated)
               }
+              {...(onBulkTaskUpdate ? {
+                onBulkTaskUpdate: (subprojects: ProjectSubproject[]) => onBulkTaskUpdate(selectedProject.id, subprojects),
+              } : {})}
               {...(onArchiveProject && !selectedProject.isTemplate ? {
                 onArchiveToggle: (archived: boolean) => onArchiveProject(selectedProject.id, archived),
               } : {})}

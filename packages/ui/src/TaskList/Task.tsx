@@ -3,6 +3,9 @@ import TaskRow from "./TaskRow";
 import type { ProjectTask } from "@myorg/types";
 
 export interface TaskProps {
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectTask?: (taskId: string) => void;
   item: ProjectTask;
   id: string;
   type: "tasks" | "people" | string;
@@ -25,6 +28,9 @@ export interface TaskProps {
 }
 
 export default function Task({
+  selectionMode = false,
+  selected = false,
+  onSelectTask,
 item,
   id,
   type,
@@ -48,9 +54,14 @@ item,
   return (
     <li
       data-task-id={id}
-      className={`${item.done ? "done" : ""}${type === "tasks" && (editorTaskId ?? null) === id ? " is-editing" : ""}`}
-      draggable={type === "tasks"}
+      className={`${item.done ? "done" : ""}${selected ? " task--selected" : ""}`}
+      draggable={type === "tasks" && !selectionMode}
       onDragStart={(e) => {
+        if (selectionMode) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         // Stop bubbling so the SubprojectEditor wrapper's onDragStart
         // doesn't overwrite dataTransfer with { subprojectId }.
         e.stopPropagation();
@@ -59,17 +70,19 @@ item,
             "application/json",
             JSON.stringify({ taskId: id })
           );
-        } catch (_) {}
+        } catch (error) {
+          console.error("Failed to prepare task drag data:", error);
+        }
         onDragStart && onDragStart(id, e);
       }}
       onDragOver={(e) => {
-        if (type === "tasks") {
+        if (type === "tasks" && !selectionMode) {
           e.preventDefault();
           onDragOver && onDragOver(id, e);
         }
       }}
       onDrop={(e) => {
-        if (type === "tasks") {
+        if (type === "tasks" && !selectionMode) {
           e.preventDefault();
           // Stop bubbling so the SubprojectEditor wrapper's onDrop
           // doesn't also fire and cause a double-move.
@@ -83,6 +96,9 @@ item,
     >
       <div className="task-header">
         <TaskRow
+          selectionMode={selectionMode}
+          selected={selected}
+          {...(onSelectTask ? { onSelectTask } : {})}
           item={item}
           id={id}
           type={type}

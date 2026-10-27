@@ -91,9 +91,9 @@ describe('home overdue panel', () => {
     mockTasksApi.listTasks.mockResolvedValue([task('2026-10-14')]);
     render(<HomePage />);
     await loaded();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Due date/)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Test task', level: 2 })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Edit task' });
+    expect(within(dialog).getByLabelText(/Due date/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Task title')).toHaveValue('Test task');
   });
 
   it('shows the recurring icon to the right of a Home task', async () => {
@@ -329,45 +329,56 @@ describe('home task row actions', () => {
     expect(screen.queryByLabelText(/Due date/)).not.toBeInTheDocument();
   });
 
-  it('navigates from the Open action', async () => {
+  it('navigates from the Go to action without opening an editor', async () => {
     mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
     render(<HomePage />);
     await loaded();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open "Test task"' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Go to "Test task"' }));
 
-    expect(mockPush).toHaveBeenCalledWith('/?tab=tasks&taskId=task');
+    expect(mockPush).toHaveBeenCalledWith('/?tab=tasks&taskId=task&taskAction=locate');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('opens the exact project task without a search query', async () => {
     mockProjectsApi.listProjects.mockResolvedValue([project('2026-10-01')]);
     render(<HomePage />);
     await loaded();
-    fireEvent.click(screen.getByRole('button', { name: 'Open "Test task"' }));
-    expect(mockPush).toHaveBeenCalledWith('/?tab=projects&taskId=task&projectId=project');
+    fireEvent.click(screen.getByRole('button', { name: 'Go to "Test task"' }));
+    expect(mockPush).toHaveBeenCalledWith('/?tab=projects&taskId=task&projectId=project&taskAction=locate');
   });
 
-  it.each(['favorites', 'overdue', 'coming due'])('edits a task inline in %s', async panel => {
+  it('highlights a located personal task without opening its editor', async () => {
+    mockSearchParams = new URLSearchParams('tab=tasks&taskId=task&taskAction=locate');
+    mockTasksApi.listTasks.mockResolvedValue([task('2026-10-01')]);
+    render(<HomePage />);
+    await loaded();
+    const location = screen.getByRole('list', { name: 'Located task' });
+    expect(location.querySelector('.taskHighlighted')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it.each(['favorites', 'overdue', 'coming due'])('edits a task in a dialog in %s', async panel => {
     const item = { ...task(panel === 'overdue' ? '2026-10-01' : '2026-10-14'), favorite: panel === 'favorites' };
     mockTasksApi.listTasks.mockResolvedValue([item]);
-    const { container } = render(<HomePage />);
+    render(<HomePage />);
     await loaded();
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit "Test task"' })[0]!);
-    const editor = screen.getByLabelText(/Due date/);
-    expect(editor.closest('li')).toContainElement(container.querySelector('.swipeItem'));
-    expect(editor.closest('.swipeItem')).toBeNull();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Edit task' });
+    const editor = within(dialog).getByLabelText(/Due date/);
+    expect(dialog.closest('.swipeItem')).toBeNull();
     expect(mockPush).not.toHaveBeenCalled();
     fireEvent.change(editor, { target: { value: '2026-10-15' } });
     await waitFor(() => expect(mockTasksApi.updateTask).toHaveBeenCalledWith('task', expect.objectContaining({ dueDate: '2026-10-15' })));
   });
 
-  it('persists inline edits to the project rather than the global task API', async () => {
+  it('persists dialog edits to the project rather than the global task API', async () => {
     mockProjectsApi.listProjects.mockResolvedValue([project('2026-10-01')]);
     render(<HomePage />);
     await loaded();
     fireEvent.click(screen.getByRole('button', { name: 'Edit "Test task"' }));
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: '2026-10-02' } });
+    const dialog = screen.getByRole('dialog', { name: 'Edit task' });
+    fireEvent.change(within(dialog).getByLabelText(/Due date/), { target: { value: '2026-10-02' } });
     await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalledWith('project', {
       subprojects: [expect.objectContaining({
         tasks: [expect.objectContaining({ id: 'task', dueDate: '2026-10-02' })],
@@ -396,12 +407,13 @@ describe('home task row actions', () => {
     await loaded();
     const card = screen.getByRole('heading', { name: panel }).parentElement!.parentElement!;
     fireEvent.click(within(card).getByRole('button', { name: 'Edit "Test task"' }));
+    const editor = within(screen.getByRole('dialog', { name: 'Edit task' }));
 
-    expect(within(card).getByTitle('Current user')).toBeInTheDocument();
-    const teammate = within(card).getByTitle('Project teammate');
+    expect(editor.getByTitle('Current user')).toBeInTheDocument();
+    const teammate = editor.getByTitle('Project teammate');
     expect(within(teammate).getByAltText('Project teammate')).toHaveAttribute('src', '/teammate.png');
-    expect(within(card).queryByTitle('Unrelated contact')).not.toBeInTheDocument();
-    expect(within(card).queryByText('Invite members to assign owners.')).not.toBeInTheDocument();
+    expect(editor.queryByTitle('Unrelated contact')).not.toBeInTheDocument();
+    expect(editor.queryByText('Invite members to assign owners.')).not.toBeInTheDocument();
 
     fireEvent.click(teammate);
     await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenLastCalledWith('project', {
@@ -409,9 +421,9 @@ describe('home task row actions', () => {
         tasks: [expect.objectContaining({ people: [{ name: 'Project teammate' }] })],
       })],
     }));
-    expect(within(card).getByTitle('Project teammate')).toHaveClass('member-avatar-btn--active');
+    expect(editor.getByTitle('Project teammate')).toHaveClass('member-avatar-btn--active');
 
-    fireEvent.click(within(card).getByTitle('Project teammate'));
+    fireEvent.click(editor.getByTitle('Project teammate'));
     await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenLastCalledWith('project', {
       subprojects: [expect.objectContaining({
         tasks: [expect.objectContaining({ people: [] })],

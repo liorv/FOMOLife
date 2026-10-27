@@ -174,34 +174,29 @@ describe('roadmap task actions', () => {
     expect(screen.queryByText('Select what Approve depends on')).not.toBeInTheDocument();
   });
 
-  it('limits owners to project members and opens a full-width editor', () => {
+  it('limits owners to project members and opens the task dialog', () => {
     const { container } = renderManaged({
       project: { ...project, members: [{ userId: 'u1', name: 'Alex' }] },
       people: [{ id: 'contact', name: 'Outside Olly', status: 'linked' }],
     });
     fireEvent.click(screen.getByRole('button', { name: /^Publish:/ }));
     fireEvent.click(within(container).getByRole('button', { name: 'Edit' }));
-    const editor = screen.getByRole('region', { name: 'Edit Publish' });
+    const editor = screen.getByRole('dialog', { name: 'Edit task' });
     expect(within(editor).getByTitle('Alex')).toBeInTheDocument();
     expect(within(editor).queryByTitle('Outside Olly')).not.toBeInTheDocument();
-    expect(editor.style.marginLeft).toBe('');
-    expect(editor).toHaveClass('roadmapEditor');
   });
-  it('edits the task in place below its bar', () => {
+  it('edits the task from a dialog', () => {
     const { container, onApplyChange } = renderManaged();
     fireEvent.click(screen.getByRole('button', { name: /^Publish:/ }));
     fireEvent.click(within(container).getByRole('button', { name: 'Edit' }));
-    const editor = screen.getByRole('region', { name: 'Edit Publish' });
-    const chain = screen.getByRole('button', { name: /^Publish:/ }).closest('[aria-label^="Dependency chain"]')!;
-    expect(chain.nextElementSibling).toBe(editor);
+    const editor = screen.getByRole('dialog', { name: 'Edit task' });
     const title = within(editor).getByRole('textbox', { name: 'Task title' });
     expect(title).toHaveFocus();
-    expect(editor.scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
     fireEvent.change(title, { target: { value: 'Publish release' } });
     const tasks = onApplyChange.mock.calls.at(-1)![0].subprojects[0].tasks;
     expect(tasks.find((task: { id: string }) => task.id === 'b').text).toBe('Publish release');
-    expect(screen.getByRole('region', { name: 'Edit Publish release' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit task' })).toBeInTheDocument();
     fireEvent.click(within(editor).getByRole('button', { name: 'Done' }));
-    expect(screen.queryByRole('region', { name: /^Edit/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Edit task' })).not.toBeInTheDocument();
   });
 });

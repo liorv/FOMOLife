@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { ProjectTask } from '@myorg/types';
 import { getFrameworkSession } from '@/lib/server/frameworkAuth';
 import { unauthorizedResponse } from '@/lib/server/apiUtils';
 import { listProjects, resolveProjectOwner, updateProject } from '@/lib/projects/server/projectsStore';
@@ -23,6 +24,49 @@ export async function PATCH(request: Request, context: Context) {
   }
   if (!body || typeof body !== 'object' || !('action' in body)) {
     return NextResponse.json({ error: 'A plan action and link are required' }, { status: 400 });
+  }
+  if (body.action === 'create-task') {
+    const task = 'task' in body ? body.task : null;
+    const dependentTaskId = 'dependentTaskId' in body ? body.dependentTaskId : null;
+    if (typeof dependentTaskId !== 'string' || !dependentTaskId.trim() || !task || typeof task !== 'object' ||
+      !('id' in task) || typeof task.id !== 'string' || !task.id.trim() ||
+      !('text' in task) || typeof task.text !== 'string' || !task.text.trim() ||
+      !('dueDate' in task) || (task.dueDate !== null && (typeof task.dueDate !== 'string' || !Number.isFinite(Date.parse(task.dueDate)))) ||
+      !('people' in task) || !Array.isArray(task.people) ||
+      task.people.some(person => !person || typeof person !== 'object' || typeof person.name !== 'string') ||
+      ('effort' in task && task.effort != null && (typeof task.effort !== 'number' || !Number.isFinite(task.effort) || task.effort < 0)) ||
+      ('recurrence' in task && task.recurrence != null)) {
+      return NextResponse.json({ error: 'A valid non-recurring task with a name is required' }, { status: 400 });
+    }
+    const section = project.subprojects.find(item => item.tasks.some(item => item.id === dependentTaskId));
+    if (!section) return NextResponse.json({ error: 'The selected task no longer exists' }, { status: 400 });
+    if (project.subprojects.some(item => item.tasks.some(item => item.id === task.id))) {
+      return NextResponse.json({ error: 'A task with this ID already exists' }, { status: 400 });
+    }
+    const created: ProjectTask = {
+      id: task.id, text: task.text.trim(), done: false, dueDate: task.dueDate,
+      favorite: 'favorite' in task && task.favorite === true,
+      people: task.people.map(person => ({ name: person.name })),
+      effort: 'effort' in task && typeof task.effort === 'number' ? task.effort : null,
+      createdAt: new Date().toISOString(),
+    };
+    const subprojects = project.subprojects.map(item => item.id === section.id
+      ? { ...item, tasks: [...item.tasks, created] } : item);
+    const planningLinks = [...(project.planningLinks ?? []), {
+      prerequisite: { kind: 'task' as const, id: created.id },
+      dependent: { kind: 'task' as const, id: dependentTaskId },
+    }];
+    const error = validatePlanLinks(getPlanNodes({ subprojects }), planningLinks);
+    if (error) return NextResponse.json({ error }, { status: 400 });
+    const owner = await resolveProjectOwner(id, session.userId);
+    try {
+      const updated = await updateProject(owner, id, { subprojects, planningLinks });
+      if (!updated) return NextResponse.json({ error: 'Project no longer exists' }, { status: 404 });
+      return NextResponse.json(updated);
+    } catch (error) {
+      console.error('Failed to create dependency task:', error);
+      return NextResponse.json({ error: 'Unable to create the dependency task. Please retry.' }, { status: 500 });
+    }
   }
   const parsed = body.action === 'add-many'
     ? parsePlanLinks('links' in body ? body.links : null)

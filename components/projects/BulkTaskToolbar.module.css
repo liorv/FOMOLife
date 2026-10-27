@@ -1,0 +1,234 @@
+.bar {
+  --bulk-primary: var(--color-primary, #1a73e8);
+  --bulk-surface: var(--color-surface, #fff);
+  --bulk-text: var(--color-text, #202124);
+  --bulk-muted: var(--color-text-muted, #5f6368);
+  --bulk-outline: var(--color-border, #dadce0);
+  --bulk-tonal: color-mix(in srgb, var(--bulk-primary) 12%, var(--bulk-surface));
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 12px 0;
+  border: 1px solid var(--bulk-outline);
+  border-radius: 24px;
+  background: var(--bulk-surface);
+  color: var(--bulk-text);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 10%);
+}
+
+.controls {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.selection {
+  padding: 20px 24px 12px;
+  border-radius: 24px 24px 0 0;
+  background: var(--bulk-tonal);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.count {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.hint {
+  margin: 8px 0;
+  color: var(--bulk-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.selectionTools,
+.actions,
+.panelActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selectionTools {
+  margin-left: -12px;
+}
+
+.editActions {
+  padding: 20px 24px;
+  border-top: 1px solid var(--bulk-outline);
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  color: var(--bulk-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.textButton,
+.outlinedButton,
+.tonalButton,
+.filledButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 24px;
+  background: transparent;
+  color: var(--bulk-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+
+.textButton {
+  padding-inline: 12px;
+}
+
+.outlinedButton {
+  border-color: var(--bulk-outline);
+}
+
+.tonalButton {
+  background: var(--bulk-tonal);
+  color: var(--bulk-text);
+}
+
+.filledButton {
+  background: var(--bulk-primary);
+  color: #fff;
+}
+
+.bar button:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 100px color-mix(in srgb, var(--bulk-primary) 8%, transparent);
+}
+
+.bar button:focus-visible,
+.dateField input:focus-visible {
+  outline: 2px solid var(--bulk-primary);
+  outline-offset: 3px;
+}
+
+.bar button:disabled,
+.controls:disabled button {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--bulk-outline);
+}
+
+.panel p {
+  margin: 0;
+  color: var(--bulk-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.dateField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 300px);
+}
+
+.dateField label {
+  color: var(--bulk-muted);
+  font-size: 0.875rem;
+}
+
+.dateField input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 1px solid var(--bulk-outline);
+  border-radius: 4px;
+  color: inherit;
+  background: var(--bulk-surface);
+  font: inherit;
+}
+
+.panelActions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.bar > p {
+  margin: 0;
+  padding: 0 24px 20px;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+:global([data-theme="dark"]) .error {
+  color: #fca5a5;
+}
+
+@media (max-width: 640px) {
+  .bar {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--nav-height, 70px) + 10px + env(safe-area-inset-bottom, 0px));
+    max-height: 55dvh;
+    overflow-y: auto;
+  }
+
+  .selection,
+  .editActions {
+    padding: 16px;
+  }
+
+  .panelActions {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar button {
+    transition: none;
+  }
+}

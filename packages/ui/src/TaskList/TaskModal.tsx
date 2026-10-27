@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import type { ProjectTask, ProjectTaskPerson, Contact, TaskRecurrence } from "@myorg/types";
+import ModalOverlay from "../ModalOverlay";
+import styles from "./TaskModal.module.css";
 
 export interface TaskEditorProps {
   task: ProjectTask;
@@ -9,7 +11,12 @@ export interface TaskEditorProps {
   allPeople?: Contact[];
   onOpenPeople?: () => void;
   onCreatePerson?: (person: { name: string }) => Contact | Promise<Contact | void> | void;
-  inline?: boolean;
+  dialogTitle?: string;
+  dialogDescription?: string;
+  beforeFields?: React.ReactNode;
+  footer?: React.ReactNode;
+  disabled?: boolean;
+  closeOnSave?: boolean;
 }
 
 interface PersonEntry {
@@ -19,9 +26,15 @@ interface PersonEntry {
 export default function TaskEditor({
   task,
   onSave,
+  onClose,
   onUpdateTask = () => {},
   allPeople = [],
-  inline = false,
+  dialogTitle = "Edit task",
+  dialogDescription = "Update task details, schedule, and who will complete this task.",
+  beforeFields,
+  footer,
+  disabled = false,
+  closeOnSave = true,
 }: TaskEditorProps) {
   // --- State ---------------------------------------------------------------
 
@@ -30,6 +43,9 @@ export default function TaskEditor({
   const [recurrence, setRecurrence] = useState<TaskRecurrence | "">(task.recurrence || "");
   const [recurrenceAnchorDate, setRecurrenceAnchorDate] = useState(task.recurrenceAnchorDate || task.dueDate || "");
   const [effort, setEffort] = useState<number | null | undefined>(task.effort);
+  const titleInputRef = React.useRef<HTMLInputElement>(null);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const previousFocusRef = React.useRef<HTMLElement | null>(null);
 
   // People assigned to this task – stored simply as [{name}].
   const initialPeople: PersonEntry[] = (task.people || []).map((p) => ({
@@ -88,25 +104,41 @@ export default function TaskEditor({
     if (closeAfter) onSave(updated);
   }, [task, title, people, effort, dueDate, recurrence, recurrenceAnchorDate, onUpdateTask, onSave]);
 
-  // Keyboard shortcuts: Esc → close, Ctrl/Cmd+Enter → save & close
+  const finishAndClose = useCallback(() => {
+    if (closeOnSave) saveToParent(true);
+    onClose();
+  }, [closeOnSave, onClose, saveToParent]);
+
+  const saveAndClose = useCallback(() => {
+    saveToParent(true);
+    if (closeOnSave) onClose();
+  }, [closeOnSave, onClose, saveToParent]);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    titleInputRef.current?.focus();
+    return () => previousFocusRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        saveToParent(true);
+        saveAndClose();
         return;
       }
       if (e.key === "Escape") {
-        saveToParent(true);
+        e.preventDefault();
+        finishAndClose();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [saveToParent]);
+  }, [finishAndClose, saveAndClose]);
 
   // --- Render ---
-
-  const containerClass = inline ? "inline-editor" : "side-editor";
 
   // unique ids for inputs (avoid duplicates when multiple editors are mounted)
   const editorId = React.useId();
@@ -114,20 +146,20 @@ export default function TaskEditor({
   const titleId = `task-title-${task.id || 'editor'}-${editorId}`;
   const recurrenceId = `task-recurrence-${task.id || 'editor'}-${editorId}`;
   const effortId = `task-effort-${task.id || 'editor'}-${editorId}`;
+  const headingId = `task-editor-heading-${task.id || 'editor'}-${editorId}`;
 
-  return (
-    <div className={containerClass}>
-      {!inline && <h2>Edit Task</h2>}
-      <div className="task-editor-fields">
+  const fields = (
+    <div className={styles.fields}>
 
         {/* Task title */}
-        <div className="task-editor-field task-editor-field--title">
-          <label htmlFor={titleId} className="task-editor-label">Task</label>
-          <div className="task-editor-input-wrap">
+        <div className={`${styles.field} ${styles.titleField}`}>
+          <label htmlFor={titleId} className={styles.label}>Task</label>
+          <div className={styles.inputWrap}>
             <input
               id={titleId}
+              ref={titleInputRef}
               type="text"
-              className="task-editor-input"
+              className={styles.input}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -140,18 +172,18 @@ export default function TaskEditor({
         </div>
 
         {/* Effort */}
-        <div className="task-editor-field">
-          <label htmlFor={effortId} className="task-editor-label">
-            <span className="material-icons task-editor-label-icon">schedule</span>
+        <div className={`${styles.field} ${styles.effortField}`}>
+          <label htmlFor={effortId} className={styles.label}>
+            <span className={`material-icons ${styles.labelIcon}`}>schedule</span>
             Effort
           </label>
-          <div className="task-editor-input-wrap">
+          <div className={styles.inputWrap}>
             <input
               id={effortId}
               type="number"
               min="0"
               step="0.5"
-              className="task-editor-input task-editor-input--short"
+              className={`${styles.input} ${styles.shortInput}`}
               value={effort ?? ''}
               placeholder="days"
               onChange={(e) => {
@@ -163,16 +195,42 @@ export default function TaskEditor({
           </div>
         </div>
 
+        {/* Due Date */}
+        <div className={styles.field}>
+          <label htmlFor={dateId} className={styles.label}>
+            <span className={`material-icons ${styles.labelIcon}`}>event</span>
+            Due date
+          </label>
+          <div className={styles.inputWrap}>
+            <input
+              id={dateId}
+              type="date"
+              className={styles.input}
+              value={dueDate}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setDueDate(newValue);
+                if (recurrence) setRecurrenceAnchorDate(newValue);
+                onUpdateTask({
+                  ...task,
+                  dueDate: newValue || null,
+                  ...(recurrence ? { recurrenceAnchorDate: newValue || null } : {}),
+                });
+              }}
+            />
+          </div>
+        </div>
+
         {/* Repeat */}
-        <div className="task-editor-field">
-          <label htmlFor={recurrenceId} className="task-editor-label">
-            <span className="material-icons task-editor-label-icon">repeat</span>
+        <div className={styles.field}>
+          <label htmlFor={recurrenceId} className={styles.label}>
+            <span className={`material-icons ${styles.labelIcon}`}>repeat</span>
             Repeat
           </label>
-          <div className="task-editor-input-wrap">
+          <div className={styles.inputWrap}>
             <select
               id={recurrenceId}
-              className="task-editor-input"
+              className={styles.input}
               value={recurrence}
               aria-label="Repeat"
               onChange={(e) => {
@@ -196,38 +254,13 @@ export default function TaskEditor({
           </div>
         </div>
 
-        {/* Due Date */}
-        <div className="task-editor-field">
-          <label htmlFor={dateId} className="task-editor-label">
-            <span className="material-icons task-editor-label-icon">event</span>
-            Due date
+        {/* Task assignees */}
+        <div className={`${styles.field} ${styles.ownersField}`}>
+          <label className={styles.label}>
+            <span className={`material-icons ${styles.labelIcon}`}>group</span>
+            Assigned to
           </label>
-          <div className="task-editor-input-wrap">
-            <input
-              id={dateId}
-              type="date"
-              className="task-editor-input"
-              value={dueDate}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setDueDate(newValue);
-                if (recurrence) setRecurrenceAnchorDate(newValue);
-                onUpdateTask({
-                  ...task,
-                  dueDate: newValue || null,
-                  ...(recurrence ? { recurrenceAnchorDate: newValue || null } : {}),
-                });
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Owners */}
-        <div className="task-editor-field task-editor-field--owners">
-          <label className="task-editor-label">
-            <span className="material-icons task-editor-label-icon">group</span>
-            Owners
-          </label>
+          <p className={styles.assignmentHint}>Select the person responsible for completing this task.</p>
           {allPeople.length > 0 ? (
             <div className="member-avatar-picker">
               {allPeople.map((p) => {
@@ -271,12 +304,64 @@ export default function TaskEditor({
             </div>
           ) : (
             <p className="people-empty-hint">
-              Invite members to assign owners.
+              Invite members to assign someone to complete this task.
             </p>
           )}
         </div>
 
-      </div>
     </div>
+  );
+
+  return (
+    <ModalOverlay
+      open
+      onClose={finishAndClose}
+      className={styles.overlay}
+      contentClassName={styles.dialog}
+      contentRef={dialogRef}
+      ariaLabelledby={headingId}
+    >
+      <div
+        onKeyDown={event => {
+          if (event.key !== "Tab") return;
+          const controls = dialogRef.current?.querySelectorAll<HTMLElement>(
+            'button:enabled, input:enabled, select:enabled, textarea:enabled',
+          );
+          const first = controls?.[0];
+          const last = controls?.[controls.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          } else if (!first) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <header className={styles.header}>
+          <div>
+            <h2 id={headingId}>{dialogTitle}</h2>
+            <p>{dialogDescription}</p>
+          </div>
+          <button
+            type="button"
+            className={styles.close}
+            aria-label="Close task editor"
+            onClick={finishAndClose}
+          >
+            <span className="material-icons" aria-hidden="true">close</span>
+          </button>
+        </header>
+        <fieldset className={styles.body} disabled={disabled}>
+          {beforeFields}
+          {fields}
+        </fieldset>
+        <footer className={styles.footer}>
+          {footer ?? <button type="button" className={styles.done} onClick={saveAndClose}>Done</button>}
+        </footer>
+      </div>
+    </ModalOverlay>
   );
 }

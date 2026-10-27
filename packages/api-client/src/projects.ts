@@ -1,4 +1,4 @@
-import type { ProjectItem, ProjectCreateInput, ProjectUpdateInput } from '@myorg/types';
+import type { ProjectItem, ProjectCreateInput, ProjectUpdateInput, ProjectTask } from '@myorg/types';
 
 export interface ProjectsApiClient {
   listProjects: () => Promise<ProjectItem[]>;
@@ -6,6 +6,7 @@ export interface ProjectsApiClient {
   updateProject: (id: string, patch: ProjectUpdateInput) => Promise<ProjectItem>;
   updateProjectPlan: (id: string, action: 'add' | 'remove', link: NonNullable<ProjectItem['planningLinks']>[number]) => Promise<ProjectItem>;
   addProjectPlanLinks: (id: string, links: NonNullable<ProjectItem['planningLinks']>) => Promise<ProjectItem>;
+  createDependencyTask: (id: string, dependentTaskId: string, task: ProjectTask) => Promise<ProjectItem>;
   promoteSubproject: (projectId: string, subprojectId: string) => Promise<{ sourceProject: ProjectItem; project: ProjectItem }>;
   deleteProject: (id: string) => Promise<void>;
 }
@@ -71,6 +72,15 @@ export function createProjectsApiClient(baseUrl = '', options: ProjectsApiClient
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'add-many', links }),
+      });
+      return parseResponse<ProjectItem>(response);
+    },
+
+    async createDependencyTask(id, dependentTaskId, task): Promise<ProjectItem> {
+      const response = await fetch(`${baseUrl}/api/projects/${encodeURIComponent(id)}/plan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create-task', dependentTaskId, task }),
       });
       return parseResponse<ProjectItem>(response);
     },

@@ -32,6 +32,34 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ## Task editing
 
+### Bulk task edits
+
+In a project's Tasks view, open **More > Edit multiple tasks** to select rows across
+sections. Completion checkboxes are hidden in this mode. Selected rows have a
+tinted background and colored left edge, not checkmarks; selection never completes
+a task. Click a row, or focus it and press Enter/Space, to toggle selection.
+The contextual panel separates selection controls (count, Select all visible,
+Clear selection, Done) in a tonal header from **Change selected tasks** below.
+Date and assignment actions open their own fields with an explicit save button.
+**Select all visible** includes only tasks currently
+shown by the search/filters and expanded sections. Each expanded section also has
+a selector for its visible tasks.
+
+Use **Due date** to set or clear a date on the selection, or **Assign** to add a
+project member without replacing existing assignees or adding duplicates.
+Changing a recurring task's due date also resets its recurrence anchor, matching
+single-task editing. Each action requires an explicit Apply button and saves all
+selected tasks in one project update. The list changes only after a successful
+save; failures display an error and keep the selection available for retry.
+Successful bulk edits show a Material-style snackbar above the bottom navigation.
+It can be dismissed immediately and closes automatically after six seconds;
+hovering or focusing it pauses dismissal.
+
+Choose **Done** or press Escape to return to normal editing without applying further changes. Changing the
+project, workspace view, search, or filters clears the selection. Read-only users
+cannot enter selection mode. On small screens the action bar sits above the
+bottom navigation.
+
 ### Optional project management
 
 Projects start with Tasks only. Enable **Project management** using the switch in

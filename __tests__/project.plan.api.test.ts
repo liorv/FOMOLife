@@ -136,3 +136,59 @@ describe('atomic dependency additions', () => {
     log.mockRestore();
   });
 });
+
+describe('creating a dependency task', () => {
+  const task = { id: 'new', text: '  New prerequisite  ', done: false, dueDate: '2026-11-02', favorite: false, people: [{ name: 'Member' }], effort: 2 };
+  const body = { action: 'create-task', dependentTaskId: 'b', task };
+  const createdLink: PlanLink = { prerequisite: { kind: 'task', id: 'new' }, dependent: { kind: 'task', id: 'b' } };
+
+  it('creates a prerequisite in the dependent task section and saves both changes once', async () => {
+    project.planningLinks = [link];
+    project.subprojects.push({ id: 'other', text: 'Other', tasks: [] });
+    const response = await PATCH(request(body), context);
+    expect(response.status).toBe(200);
+    expect(updateProject).toHaveBeenCalledTimes(1);
+    expect(project.subprojects[0]!.tasks.at(-1)).toEqual(expect.objectContaining({
+      ...task, text: 'New prerequisite', createdAt: expect.any(String),
+    }));
+    expect(project.subprojects[1]!.tasks).toEqual([]);
+    expect(project.planningLinks).toEqual([link, createdLink]);
+    expect(updateProject).toHaveBeenCalledWith('owner', 'p', {
+      subprojects: project.subprojects, planningLinks: [link, createdLink],
+    });
+  });
+
+  it.each([
+    { ...body, task: null },
+    { ...body, task: { ...task, text: '  ' } },
+    { ...body, task: { ...task, id: 'a' } },
+    { ...body, task: { ...task, people: [null] } },
+    { ...body, task: { ...task, effort: -1 } },
+    { ...body, task: { ...task, dueDate: 'invalid' } },
+    { ...body, task: { ...task, recurrence: 'weekly' } },
+    { ...body, dependentTaskId: 'missing' },
+    { ...body, dependentTaskId: null },
+  ])('rejects invalid creation without saving: %j', async invalid => {
+    expect((await PATCH(request(invalid), context)).status).toBe(400);
+    expect(updateProject).not.toHaveBeenCalled();
+    expect(project.subprojects[0]!.tasks).toHaveLength(2);
+  });
+
+  it('rejects recurring dependents and invalid existing plans before creating anything', async () => {
+    project.subprojects[0]!.tasks[1]!.recurrence = 'weekly';
+    expect((await PATCH(request(body), context)).status).toBe(400);
+    delete project.subprojects[0]!.tasks[1]!.recurrence;
+    project.planningLinks = [{ ...link, prerequisite: { kind: 'task', id: 'missing' } }];
+    expect((await PATCH(request(body), context)).status).toBe(400);
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
+  it('leaves both the task list and links unchanged on persistence failure', async () => {
+    const before = JSON.stringify(project);
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.mocked(updateProject).mockRejectedValue(new Error('Offline'));
+    expect((await PATCH(request(body), context)).status).toBe(500);
+    expect(JSON.stringify(project)).toBe(before);
+    log.mockRestore();
+  });
+});

@@ -62,6 +62,7 @@ function DashboardTaskItem({
   onMarkDone,
   onUpdate,
   allPeople,
+  highlighted = false,
 }: {
   task: DashboardTask;
   icon: string;
@@ -72,6 +73,7 @@ function DashboardTaskItem({
   onMarkDone: (task: DashboardTask) => void;
   onUpdate: (task: DashboardTask, updated: ProjectTask) => void;
   allPeople: Contact[];
+  highlighted?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -82,6 +84,9 @@ function DashboardTaskItem({
   const offsetRef = useRef(0);
   const swipedRef = useRef(false);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (highlighted) rowRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  }, [highlighted]);
 
   const moveTo = (next: number) => {
     offsetRef.current = next;
@@ -187,7 +192,7 @@ function DashboardTaskItem({
     <li>
     <div
       ref={rowRef}
-      className={`${styles.swipeItem} ${actionsOpen ? styles.swipeItemOpen : ''}`}
+      className={`${styles.swipeItem} ${actionsOpen ? styles.swipeItemOpen : ''} ${highlighted ? styles.taskHighlighted : ''}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -230,12 +235,12 @@ function DashboardTaskItem({
         <button
           type="button"
           className={`${styles.rowActionButton} ${styles.rowActionOpen}`}
-          title="Open task"
-          aria-label={`Open "${task.text}"`}
+          title="Go to task"
+          aria-label={`Go to "${task.text}"`}
           onClick={e => { e.stopPropagation(); activate(onOpen); }}
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>arrow_forward</span>
-          <span className={styles.rowActionLabel}>Open</span>
+          <span className={styles.rowActionLabel}>Go to</span>
         </button>
       </div>}
       <div
@@ -286,27 +291,24 @@ function DashboardTaskItem({
       )}
     </div>
     {editing && (
-      <div className={styles.taskEditor}>
-        <TaskModal
-          inline
-          task={{
-            id: task.id,
-            text: task.text,
-            done: task.done,
-            favorite: task.favorite,
-            dueDate: task.dueDate,
-            ...(task.recurrence !== undefined ? { recurrence: task.recurrence } : {}),
-            ...(task.recurrenceAnchorDate !== undefined ? { recurrenceAnchorDate: task.recurrenceAnchorDate } : {}),
-            description: task.description ?? '',
-            people: task.people ?? [],
-            ...(task.effort !== undefined ? { effort: task.effort } : {}),
-          }}
-          allPeople={allPeople}
-          onUpdateTask={updated => onUpdate(task, updated)}
-          onSave={() => setEditing(false)}
-          onClose={() => setEditing(false)}
-        />
-      </div>
+      <TaskModal
+        task={{
+          id: task.id,
+          text: task.text,
+          done: task.done,
+          favorite: task.favorite,
+          dueDate: task.dueDate,
+          ...(task.recurrence !== undefined ? { recurrence: task.recurrence } : {}),
+          ...(task.recurrenceAnchorDate !== undefined ? { recurrenceAnchorDate: task.recurrenceAnchorDate } : {}),
+          description: task.description ?? '',
+          people: task.people ?? [],
+          ...(task.effort !== undefined ? { effort: task.effort } : {}),
+        }}
+        allPeople={allPeople}
+        onUpdateTask={updated => onUpdate(task, updated)}
+        onSave={() => setEditing(false)}
+        onClose={() => setEditing(false)}
+      />
     )}
     </li>
   );
@@ -326,6 +328,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const [notificationTaskId, setNotificationTaskId] = useState<string | null>(null);
   const [notificationTaskError, setNotificationTaskError] = useState<string | null>(null);
   const targetTaskId = searchParams.get('tab') === 'tasks' ? searchParams.get('taskId') : null;
+  const locatingTask = searchParams.get('taskAction') === 'locate';
   useEffect(() => {
     setNotificationTaskId(targetTaskId);
     setNotificationTaskError(null);
@@ -523,6 +526,7 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
   const openTask = React.useCallback((task: DashboardTask) => {
     const params = new URLSearchParams({ tab: task.source === 'project' ? 'projects' : 'tasks', taskId: task.id });
     if (task.projectId) params.set('projectId', task.projectId);
+    params.set('taskAction', 'locate');
     router.push(`/?${params.toString()}`);
   }, [router]);
 
@@ -745,19 +749,29 @@ export default function HomePage({ style, searchQuery = '', onReady, isActive }:
       {!loading && notificationTaskId && !notificationTask && (
         <p role="alert">The task for this notification is no longer available.</p>
       )}
-      {notificationTask && (
-        <section className={`${styles.card} ${styles.openTask}`}>
-          <h2>{notificationTask.text}</h2>
-          <TaskModal
-            key={notificationTask.id}
-            inline
-            task={{ ...notificationTask, people: notificationTask.people ?? [] }}
+      {notificationTask && locatingTask && (
+        <ul className={styles.list} aria-label="Located task">
+          <DashboardTaskItem
+            task={{ ...notificationTask, source: 'global' }}
+            icon="task_alt"
+            meta="Task location"
+            onOpen={openTask}
+            onMarkDone={markTaskDone}
+            onUpdate={updateDashboardTask}
             allPeople={contacts}
-            onUpdateTask={updateNotificationTask}
-            onSave={() => setNotificationTaskId(null)}
-            onClose={() => setNotificationTaskId(null)}
+            highlighted
           />
-        </section>
+        </ul>
+      )}
+      {notificationTask && !locatingTask && (
+        <TaskModal
+          key={notificationTask.id}
+          task={{ ...notificationTask, people: notificationTask.people ?? [] }}
+          allPeople={contacts}
+          onUpdateTask={updateNotificationTask}
+          onSave={() => setNotificationTaskId(null)}
+          onClose={() => setNotificationTaskId(null)}
+        />
       )}
       <div className={styles.container}>
 

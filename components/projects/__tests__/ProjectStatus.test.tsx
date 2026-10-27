@@ -390,7 +390,7 @@ it('discards update drafts on blur and Escape and protects historical and read-o
   expect(onSave).not.toHaveBeenCalled();
 });
 
-it('shows every task and its notes in dated history, including tasks hidden from current ready work', () => {
+it('keeps project status history without displaying task histories or changing recorded data', () => {
   const p = project();
   p.subprojects[0]!.tasks[1]!.statusUpdates = [{ id: 'old-note', text: 'Waiting for approval' }];
   const first = recordProjectStatus(p, 'owner', new Date('2026-10-25T12:00:00Z'))[0]!;
@@ -399,21 +399,15 @@ it('shows every task and its notes in dated history, including tasks hidden from
   p.subprojects[0]!.tasks[0]!.scheduleHealth = 'behind';
   p.subprojects[0]!.tasks[1]!.statusUpdates = [{ id: 'new-note', text: 'Approval requested' }];
   p.statusHistory = recordProjectStatus(p, 'owner', new Date('2026-10-26T12:00:00Z'));
+  const recordedHistory = JSON.stringify(p.statusHistory);
   render(<ProjectStatus project={p} canManage={false} />);
   expect(within(screen.getByRole('table', { name: 'Task status' })).queryByText('Build')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByText('Task history for 2026-10-26 (4 tasks)'));
-  const history = within(screen.getByRole('table', { name: 'Task history for 2026-10-26' }));
-  expect(history.getByText('Build')).toBeInTheDocument();
-  expect(history.getByText('Ship')).toBeInTheDocument();
-  expect(history.getByText('Approval requested')).toBeInTheDocument();
-  expect(history.getByText('Added since previous snapshot')).toBeInTheDocument();
-  expect(history.getByText('Waiting for approval')).toBeInTheDocument();
-  expect(history.getByText('1 note removed')).toBeInTheDocument();
-  expect(history.getByText('Status: Not Started -> In Progress')).toBeInTheDocument();
-  expect(history.getAllByText('Behind (prerequisite)')).toHaveLength(2);
-  expect(history.queryByRole('combobox')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByText('Task history for 2026-10-25 (4 tasks)'));
-  expect(within(screen.getByRole('table', { name: 'Task history for 2026-10-25' })).getByText('Waiting for approval')).toBeInTheDocument();
+  const history = screen.getByRole('table', { name: 'Status history' });
+  expect(history).toHaveTextContent('2026-10-26');
+  expect(history).toHaveTextContent('2026-10-25');
+  expect(screen.queryByText(/Task history for/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('table', { name: /Task history/ })).not.toBeInTheDocument();
+  expect(JSON.stringify(p.statusHistory)).toBe(recordedHistory);
 });
 
 it('compares task additions/removals, renames, section moves and edited notes by stable IDs', () => {
@@ -445,10 +439,6 @@ it('does not invent addition dates when comparing legacy snapshots lacking notes
   expect(compared.notes![0]!.change).toBeNull();
   expect(compared.removedNotes).toEqual([]);
   expect(compareTaskSnapshots(first)[0]!.notes).toBeUndefined();
-  p.statusHistory = [first, next];
-  render(<ProjectStatus project={p} canManage={false} />);
-  fireEvent.click(screen.getByText('Task history for 2026-10-25 (4 tasks)'));
-  expect(within(screen.getByRole('table', { name: 'Task history for 2026-10-25' })).getByText('Notes not recorded in this legacy snapshot.')).toBeInTheDocument();
 });
 
 it('lets schedule switches toggle immediately while persisting repeated changes in order', async () => {

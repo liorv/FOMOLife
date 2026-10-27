@@ -6,11 +6,12 @@ import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } f
 import { createPortal } from 'react-dom';
 import type { ProjectItem, ProjectMilestone, ProjectTask } from '@myorg/types';
 import { generateId } from '@myorg/utils';
+import { createProjectsApiClient } from '@myorg/api-client';
 import RoadmapEventTables from './RoadmapEventTables';
 import { ModalOverlay, TaskModal } from '@myorg/ui';
 import {
   getLinkWarning, getPlanLayers, getPlanNodes, getSectionSequence, isRequirement, linkKey, planKey,
-  validatePlanLinks, type PlanLink, type PlanNode,
+  parsePlanLinks, validatePlanLinks, type PlanLink, type PlanNode,
 } from '@/lib/projects/planning';
 import styles from './ProjectPlan.module.css';
 import { updateProjectTask } from '@/lib/projects/taskUpdates';
@@ -18,6 +19,7 @@ import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { usePlanLinks } from './usePlanLinks';
 import PlanSaveStatus from './PlanSaveStatus';
 import ProjectViewHelp from './ProjectViewHelp';
+import taskDialogStyles from './ProjectEditorTaskDialog.module.css';
 
 type Props = {
   project: ProjectItem;
@@ -27,6 +29,7 @@ type Props = {
   onSaveLink?: (action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
   onSaveLinks?: (links: PlanLink[]) => Promise<PlanLink[]>;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
+  onCreateDependencyTask?: (dependentTaskId: string, task: ProjectTask) => Promise<ProjectItem>;
 };
 
 const EMPTY_LINKS: PlanLink[] = [];
@@ -35,12 +38,11 @@ const mapNodeHeight = 44;
 const mapColumnGap = 40;
 const mapRowGap = 16;
 
-export default function ProjectPlan({ project, canManage, actionsContainer, onLinksSaved, onSaveLink, onSaveLinks, onApplyChange }: Props) {
+export default function ProjectPlan({ project, canManage, actionsContainer, onLinksSaved, onSaveLink, onSaveLinks, onApplyChange, onCreateDependencyTask }: Props) {
   const [subprojects, setSubprojects] = useState(project.subprojects);
   const subprojectsRef = useRef(subprojects);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const { links, saveState, save: saveLink, saveMany, dismissError: dismissSaveError } = usePlanLinks({
+  const { links, saveState, save: saveLink, saveMany, acceptSavedLinks, dismissError: dismissSaveError } = usePlanLinks({
     projectId: project.id, initialLinks: project.planningLinks ?? EMPTY_LINKS, onSaveLink, onSaveLinks, onLinksSaved,
   });
   const [selectedKey, setSelectedKey] = useState('');
@@ -65,6 +67,12 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
   const promptRef = useRef<HTMLParagraphElement>(null);
   const mapId = useId();
   const clearTitleId = `${mapId}-clear-title`;
+  const [taskCreation, setTaskCreation] = useState<{ dependentTaskId: string; task: ProjectTask } | null>(null);
+  const creationOpen = taskCreation !== null;
+  const [creationError, setCreationError] = useState('');
+  const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
+  const creationTriggerRef = useRef<HTMLButtonElement | null>(null);
   const planningProject = useMemo(() => ({ ...project, subprojects }), [project, subprojects]);
   const nodes = useMemo(() => getPlanNodes(planningProject), [subprojects]);
   const tasks = subprojects.flatMap(section => section.tasks);
@@ -101,16 +109,6 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     setSubprojects(project.subprojects);
     subprojectsRef.current = project.subprojects;
   }, [project.subprojects]);
-  useEffect(() => {
-    if (editingTaskId) revealEditor();
-  }, [editingTaskId]);
-
-  function revealEditor() {
-    editorRef.current?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
-    const taskRow = editorRef.current?.closest('tr')?.previousElementSibling;
-    taskRow?.scrollIntoView?.({ behavior: 'instant', block: 'start', inline: 'nearest' });
-  }
-
   function editTask(task: ProjectTask) {
     if (!canManage || !onApplyChange) return;
     const section = subprojectsRef.current.find(item => item.tasks.some(item => item.id === task.id));
@@ -119,6 +117,57 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
     subprojectsRef.current = updated;
     setSubprojects(updated);
     onApplyChange({ subprojects: updated });
+  }
+  useEffect(() => {
+    if (!creationOpen) creationTriggerRef.current?.focus();
+  }, [creationOpen]);
+
+  function closeTaskCreation() {
+    if (creatingRef.current) return;
+    setTaskCreation(null);
+    setCreationError('');
+  }
+
+  function startTaskCreation(node: PlanNode, trigger: HTMLButtonElement) {
+    creationTriggerRef.current = trigger;
+    setEditingTaskId(null);
+    setGraphTarget(null);
+    setSelectedKey(node.key);
+    setCreationError('');
+    setTaskCreation({
+      dependentTaskId: node.ref.id,
+      task: { id: generateId(), text: '', done: false, dueDate: null, favorite: false, people: [] },
+    });
+  }
+
+  async function createDependencyTask(task: ProjectTask) {
+    if (!canManage || !taskCreation || creatingRef.current) return;
+    const text = task.text.trim();
+    if (!text) { setCreationError('Enter a task name to continue.'); return; }
+    if (task.recurrence) { setCreationError('Recurring tasks cannot be task requirements yet.'); return; }
+    creatingRef.current = true;
+    setCreating(true);
+    setCreationError('');
+    try {
+      const saved = await (onCreateDependencyTask
+        ? onCreateDependencyTask(taskCreation.dependentTaskId, { ...task, text })
+        : createProjectsApiClient().createDependencyTask(project.id, taskCreation.dependentTaskId, { ...task, text }));
+      const savedLinks = parsePlanLinks(saved.planningLinks);
+      if (!savedLinks || !saved.subprojects.some(section => section.tasks.some(item => item.id === task.id)) ||
+        !savedLinks.some(link => link.prerequisite.kind === 'task' && link.prerequisite.id === task.id &&
+          link.dependent.kind === 'task' && link.dependent.id === taskCreation.dependentTaskId)) {
+        throw new Error('The server returned an invalid dependency task. Reload the project before retrying.');
+      }
+      subprojectsRef.current = saved.subprojects;
+      setSubprojects(saved.subprojects);
+      acceptSavedLinks(savedLinks, 'Dependency task created. Saved.');
+      setTaskCreation(null);
+    } catch (failure) {
+      setCreationError(failure instanceof Error ? failure.message : 'Unable to create the dependency task. Please retry.');
+    } finally {
+      creatingRef.current = false;
+      setCreating(false);
+    }
   }
   useEffect(() => {
     const map = mapRef.current;
@@ -356,8 +405,7 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
         startSelection(graphNode, trigger instanceof HTMLButtonElement ? trigger : event.currentTarget);
       }}><span className="material-icons" aria-hidden="true">add_link</span>Add dependency</button>}
       {graphNode?.ref.kind === 'task' && onApplyChange && <button type="button" onClick={() => {
-        if (editingTaskId === graphNode.ref.id) revealEditor();
-        else setEditingTaskId(graphNode.ref.id);
+        setEditingTaskId(graphNode.ref.id);
       }}>
         <span className="material-icons" aria-hidden="true">edit</span>Edit
       </button>}
@@ -468,6 +516,26 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
         </div>
       </ModalOverlay>
       <ProjectViewHelp view="plan" />
+      {taskCreation && <TaskModal
+        key={taskCreation.task.id}
+        task={taskCreation.task}
+        dialogTitle="Create dependency task"
+        dialogDescription={`${tasks.find(task => task.id === taskCreation.dependentTaskId)?.text ?? 'Selected task'} will depend on this new task, in the same section.`}
+        beforeFields={creationError && <p className={taskDialogStyles.error} role="alert">{creationError}</p>}
+        disabled={creating}
+        footer={<div className={taskDialogStyles.actions}>
+          <button type="button" className={taskDialogStyles.cancel} disabled={creating} onClick={closeTaskCreation}>Cancel</button>
+          <button type="button" className={taskDialogStyles.done} disabled={creating}
+            onClick={() => { void createDependencyTask(taskCreation.task); }}>
+            <span className="material-icons" aria-hidden="true">add_task</span>{creating ? 'Creating...' : 'Create dependency task'}
+          </button>
+        </div>}
+        allPeople={assignablePeople}
+        onUpdateTask={task => setTaskCreation(current => current ? { ...current, task } : current)}
+        onSave={task => { void createDependencyTask(task); }}
+        onClose={closeTaskCreation}
+        closeOnSave={false}
+      />}
       <div className={styles.sequence}>
         {!nodes.length && <p className={styles.empty}>Add tasks or sections in Tasks to start planning.</p>}
         {!!nodes.length && <table ref={tableRef} className={styles.table} aria-label="Project dependencies" tabIndex={-1}>
@@ -491,15 +559,20 @@ export default function ProjectPlan({ project, canManage, actionsContainer, onLi
                 aria-label={`Add dependency for ${node.text} (${node.ref.kind}, ${node.context})`}
                 title={`Add dependency for ${node.text}`}
                 onClick={event => startSelection(node, event.currentTarget)}><span className="material-icons" aria-hidden="true">add_link</span></button>
+                {node.ref.kind === 'task' && <button type="button"
+                  className={styles.createTaskAction}
+                  disabled={selecting || !!graphError || node.recurring || saveState.status === 'saving' || creating}
+                  aria-label={`Create dependency task for ${node.text} (${node.ref.kind}, ${node.context})`}
+                  title={node.recurring ? 'Recurring tasks cannot be task requirements yet.' : `Create dependency task for ${node.text}`}
+                  onClick={event => startTaskCreation(node, event.currentTarget)}>
+                  <span className="material-icons" aria-hidden="true">add_task</span>
+                  <span aria-hidden="true">New task</span>
+                </button>}
               </td>}
             </tr>
-              {node.ref.kind === 'task' && editingTask?.id === node.ref.id && <tr><td colSpan={canManage ? 3 : 2}>
-                <div ref={editorRef} className={styles.taskEditor} role="region" aria-label={`Edit ${editingTask.text}`}>
-                  <TaskModal task={editingTask} inline allPeople={assignablePeople} onUpdateTask={editTask}
-                    onSave={() => setEditingTaskId(null)} onClose={() => setEditingTaskId(null)} />
-                  <button type="button" className={styles.closeEditor} onClick={() => setEditingTaskId(null)}>Done</button>
-                </div>
-              </td></tr>}
+              {node.ref.kind === 'task' && editingTask?.id === node.ref.id && <TaskModal task={editingTask}
+                allPeople={assignablePeople} onUpdateTask={editTask}
+                onSave={() => setEditingTaskId(null)} onClose={() => setEditingTaskId(null)} />}
             </React.Fragment>;
           })}</tbody>
         </table>}

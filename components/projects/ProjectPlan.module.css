@@ -42,12 +42,12 @@
 .selection { justify-content: space-between; background: #7771ce12; border: 1px solid var(--plan-accent); border-radius: 5px; padding: 4px 8px; margin: 6px 0; }
 .selection p { margin: 0; line-height: 1.4; }
 .error { border: 1px solid #c35b54; padding: 8px; border-radius: 5px; line-height: 1.4; }
-.sequence { margin-top: 12px; overflow: hidden; border: 1px solid var(--plan-border); border-radius: 12px; box-shadow: 0 1px 3px #00000012; }
+.sequence { margin-top: 12px; overflow-x: auto; border: 1px solid var(--plan-border); border-radius: 12px; box-shadow: 0 1px 3px #00000012; }
 .table { border-collapse: collapse; width: 100%; table-layout: fixed; background: var(--plan-surface); }
 .table th, .table td { border-bottom: 1px solid var(--plan-border); padding: 2px 6px; text-align: left; vertical-align: middle; min-width: 0; overflow-wrap: anywhere; }
 .table thead th { font-size: 11px; font-weight: 600; padding: 8px 6px; background: #f3f5f9; color: #45546b; }
 .table th:first-child { width: 42%; }
-.table thead th:nth-child(3) { width: 40px; box-sizing: border-box; }
+.table thead th:nth-child(3) { width: 116px; box-sizing: border-box; }
 .table td:nth-child(3) { padding: 2px 4px; }
 .table td[colspan] { padding: 0; }
 .table tbody th { padding: 0; font-weight: 400; }
@@ -78,6 +78,8 @@
 .noLinks { opacity: 0.4; }
 .actions { white-space: nowrap; }
 .actions button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 2px; border: 0; color: #1565c0; background: transparent; }
+.actions button.createTaskAction { width: auto; gap: 4px; padding: 2px 6px; font-size: 11px; white-space: nowrap; }
+.actions button.createTaskAction :global(.material-icons) { font-size: 18px; }
 .actions button:hover { background: #e3f2fd; }
 .sectionLabel { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; padding: 2px 4px; }
 .plan .sectionLabel .node { flex: 1 1 100px; width: auto; min-width: 0; padding-left: 0; }
@@ -135,8 +137,6 @@
 .zoomHint { position: absolute; top: 8px; right: 12px; z-index: 1; display: flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 16px; background: #263047e6; color: #fff; font-size: 11px; opacity: 0; pointer-events: none; transition: opacity 120ms; }
 .zoomHint :global(.material-icons) { font-size: 16px; }
 .graphTile:hover .zoomHint, .graphTile:focus-within .zoomHint { opacity: 1; }
-.taskEditor { box-sizing: border-box; max-width: 100%; min-width: 0; overflow-x: hidden; padding: 12px; background: #f8fafd; border-radius: 8px; scroll-margin-top: 24px; }
-.closeEditor { padding: 6px 16px; border: 0; border-radius: 16px; background: #1565c0; color: #fff !important; }
 .roadmap { border: 1px solid var(--plan-border); border-radius: 12px; padding: 12px; background: var(--plan-surface); }
 .roadmapSummary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 0 0 16px; }
 .roadmapSummary > div { padding: 12px 16px; border-radius: 12px; background: #f3f6fc; border: 1px solid var(--plan-border); }
@@ -174,7 +174,6 @@ button.roadmapBar:focus-visible { outline: 2px solid #ffab00; outline-offset: 2p
 .selectedBar { z-index: 2; outline: 3px solid #ffab00; outline-offset: 2px; box-shadow: 0 0 0 6px #ffab0040, 0 2px 8px #00000059; }
 button.pickableBar { cursor: crosshair; }
 button.pickableBar.selectedBar { cursor: not-allowed; }
-.roadmapEditor { box-sizing: border-box; position: sticky; left: 0; width: 100%; margin: 0 0 12px; padding: 12px; background: #f8fafd; border: 1px solid var(--plan-border); border-left: 4px solid #ffab00; border-radius: 8px; box-shadow: 0 2px 8px #0000001f; scroll-margin: 24px; }
 .estimateLabel { font-size: 11px; font-weight: 600; padding: 0 3px; white-space: nowrap; color: inherit; }
 .roadmapBar { justify-content: flex-start; padding: 0 2px; overflow: hidden; }
 .roadmapBar .estimateLabel { flex: 1 1 auto; text-align: center; }

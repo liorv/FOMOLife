@@ -307,7 +307,7 @@ it('task-name clicks open only the task editor', () => {
   setup();
   select();
   fireEvent.click(screen.getByRole('button', { name: 'Order parts' }));
-  expect(screen.getByRole('region', { name: 'Edit Order parts' })).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Edit task' })).toBeInTheDocument();
   expect(screen.queryByRole('textbox', { name: 'New risk for Order parts' })).not.toBeInTheDocument();
 });
 

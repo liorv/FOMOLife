@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ProjectItem, ProjectScheduleHealth, ProjectTaskStatus, ProjectUpdateInput } from '@myorg/types';
-import { applyTaskStatusUpdate, buildProjectStatus, compareTaskSnapshots, getStatusUpdateTaskId, isActiveStatus, isTaskStatus, TASK_STATUSES } from '@/lib/projects/status';
+import { applyTaskStatusUpdate, buildProjectStatus, getStatusUpdateTaskId, isActiveStatus, isTaskStatus, TASK_STATUSES } from '@/lib/projects/status';
 import { generateId } from '@myorg/utils';
 import CompletedTaskIcon from './CompletedTaskIcon';
 import ProjectViewHelp from './ProjectViewHelp';
@@ -279,7 +279,7 @@ export default function ProjectStatus({ project: incomingProject, canManage, onS
       <table className={`${styles.history} ${styles.table}`} aria-label="Status history">
         <thead><tr><th scope="col">Date (UTC)</th><th scope="col">Status</th><th scope="col">Summary / impact</th><th scope="col">Updated by</th></tr></thead>
         <tbody>
-          {[...history].reverse().map(row => <React.Fragment key={row.date}><tr>
+          {[...history].reverse().map(row => <tr key={row.date}>
             <td><button type="button" className={styles.dateButton} aria-pressed={selectedDate === row.date}
               onClick={() => setSelectedDate(row.date)}>{row.date}</button><small>{row.updatedAt.slice(11, 19)} UTC</small></td>
             <td>{row.status === 'complete' ? <StatusBadge status="complete" />
@@ -292,39 +292,7 @@ export default function ProjectStatus({ project: incomingProject, canManage, onS
               : <>{row.tasks.filter(task => task.status === 'complete').length} / {row.tasks.length} tasks complete
                 <small>{row.forecast ? 'Finish not estimated' : 'Forecast not recorded'}</small></>}</td>
             <td>{project.members?.find(member => member.userId === row.updatedBy)?.name ?? row.updatedBy}</td>
-          </tr>
-          <tr><td colSpan={4}>
-            <details className={styles.taskHistory}>
-              <summary>Task history for {row.date} ({row.tasks.length} tasks)</summary>
-              <p className={tableStyles.caption}>{history.indexOf(row) > 0
-                ? `Changes since ${history[history.indexOf(row) - 1]!.date}.`
-                : 'First recorded snapshot: notes shown here were already present by this date; their exact addition time is unknown.'}</p>
-              <table className={styles.taskHistoryTable} aria-label={`Task history for ${row.date}`}>
-                <thead><tr><th scope="col">Section / Task</th><th scope="col">Status / Schedule</th><th scope="col">Notes in snapshot</th><th scope="col">Changes since previous snapshot</th></tr></thead>
-                <tbody>{compareTaskSnapshots(row, history[history.indexOf(row) - 1]).map(entry => <tr key={entry.task.id}>
-                  <th scope="row"><strong>{entry.task.text}</strong><small>{entry.task.section}</small>
-                    <small>{entry.removed ? 'Removed from project' : entry.task.status === 'complete' ? 'Complete' : entry.task.eligible ? 'Ready / active' : 'Waiting on prerequisites'}</small>
-                  </th>
-                  <td><StatusBadge status={entry.task.status} />
-                    {entry.task.scheduleHealth ? <HealthBadge health={entry.task.scheduleHealth} inherited={entry.task.inheritedBehind ?? false} />
-                      : <small>{entry.task.scheduleHealth === undefined ? 'Schedule not recorded' : 'Not active'}</small>}
-                    {entry.removed && <small>Last recorded state before removal</small>}
-                  </td>
-                  <td>{entry.notes === undefined ? <span>Notes not recorded in this legacy snapshot.</span>
-                    : entry.notes.length ? <ul className={riskStyles.mitigations}>{entry.notes.map(note => <li key={note.id}>
-                      {note.text}{note.change && <span className={styles.noteChange}> {note.change} since previous snapshot</span>}
-                    </li>)}</ul> : <span>No notes</span>}
-                    {!!entry.removedNotes.length && <div className={styles.removedNotes}>
-                      <strong>Removed since previous snapshot:</strong>
-                      <ul className={riskStyles.mitigations}>{entry.removedNotes.map(note => <li key={note.id}>{note.text}</li>)}</ul>
-                    </div>}
-                  </td>
-                  <td><ul className={riskStyles.mitigations}>{entry.changes.map(change => <li key={change}>{change}</li>)}</ul></td>
-                </tr>)}</tbody>
-              </table>
-            </details>
-          </td></tr>
-          </React.Fragment>)}
+          </tr>)}
           {!project.statusHistory?.length && <tr><td colSpan={4}>No status updates recorded yet.</td></tr>}
         </tbody>
       </table>

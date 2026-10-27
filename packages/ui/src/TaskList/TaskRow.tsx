@@ -6,6 +6,9 @@ import type { ProjectTask, ProjectTaskPerson } from "@myorg/types";
  *   expand toggle | checkbox | title | date | people avatars | star | delete
  */
 export interface TaskRowProps {
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectTask?: (taskId: string) => void;
   item: ProjectTask;
   id: string;
   type: "tasks" | "people" | string;
@@ -27,6 +30,9 @@ export interface TaskRowProps {
 }
 
 export default function TaskRow({
+  selectionMode = false,
+  selected = false,
+  onSelectTask,
 item,
   id,
   type,
@@ -47,7 +53,7 @@ item,
 }: TaskRowProps) {
   const isOpen = editorTaskId === id;
 
-  // inline title editing state
+  // Title editing state for newly added tasks.
   const [editingTitle, setEditingTitle] = useState(
     newlyAddedTaskId === id && (!item.text || item.text.trim() === "")
   );
@@ -82,6 +88,10 @@ item,
 
   const handleTitleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (selectionMode) {
+      onSelectTask?.(id);
+      return;
+    }
     if (type === "tasks") {
       setEditorTaskId?.(isOpen ? null : id);
     }
@@ -96,6 +106,10 @@ item,
       target.closest('input') ||
       target.closest('button')
     ) {
+      return;
+    }
+    if (selectionMode) {
+      onSelectTask?.(id);
       return;
     }
     if (type === 'tasks') {
@@ -124,27 +138,37 @@ item,
 
   return (
     <div
-      className="task-row"
-      draggable={type === "tasks"}
+      className={`task-row${selectionMode ? ' task-row--selectable' : ''}`}
+      role={selectionMode ? 'button' : undefined}
+      tabIndex={selectionMode ? 0 : undefined}
+      aria-pressed={selectionMode ? selected : undefined}
+      aria-label={selectionMode ? `Select task: ${item.text}` : undefined}
+      onKeyDown={event => {
+        if (selectionMode && event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onSelectTask?.(id);
+        }
+      }}
+      draggable={type === "tasks" && !selectionMode}
       onDragStart={(e) => {
-        if (type === "tasks") {
+        if (type === "tasks" && !selectionMode) {
           onDragStart?.(id, e);
         }
       }}
       onDragOver={(e) => {
-        if (type === "tasks") {
+        if (type === "tasks" && !selectionMode) {
           e.preventDefault();
           onDragOver?.(id, e);
         }
       }}
       onDrop={(e) => {
-        if (type === "tasks") {
+        if (type === "tasks" && !selectionMode) {
           e.preventDefault();
           onDrop?.(id, e);
         }
       }}
       onDragEnd={(e) => {
-        if (type === "tasks") {
+        if (type === "tasks" && !selectionMode) {
           onDragEnd?.(id, e);
         }
       }}
@@ -152,18 +176,18 @@ item,
     >
       {/* Left group: expand, checkbox, title */}
       <div className="left-group">
-        {type === "tasks" && (
+        {type === "tasks" && !selectionMode && (
           <span
-            className={`material-icons expand-icon${isOpen ? " open" : ""}`}
+            className="material-icons expand-icon"
             onClick={() => setEditorTaskId?.(id)}
-            title={isOpen ? "Collapse editor" : "Expand editor"}
+            title="Edit task"
             aria-hidden="true"
           >
-            {isOpen ? "expand_less" : "expand_more"}
+            edit
           </span>
         )}
 
-        {type === "tasks" && (
+        {type === "tasks" && !selectionMode && (
           <label className="task-checkbox-target" onClick={(e) => e.stopPropagation()}>
             <input
               id={`task-${id}-done`}
@@ -181,7 +205,7 @@ item,
 
       {/* Title */}
       <div className="task-title-wrapper">
-        {editingTitle ? (
+        {editingTitle && !selectionMode ? (
           <input
             className="task-title-input"
             name={`task-title-${id}`}
@@ -210,7 +234,7 @@ item,
             >
               <span>{item.text}</span>
 
-              {type === "tasks" && (
+              {type === "tasks" && !selectionMode && (
                 <span
                   className="material-icons editable-indicator"
                   onClick={(e) => {
@@ -282,7 +306,7 @@ item,
             )}
           </div>
         )}
-        {type === "tasks" && onChatClick && (
+        {type === "tasks" && !selectionMode && onChatClick && (
           <button
             className={`chat-btn${(commentCount ?? 0) > 0 ? ' chat-btn--has-messages' : ''}`}
             title={(commentCount ?? 0) > 0 ? `${commentCount} message${commentCount === 1 ? '' : 's'}` : 'Start conversation'}
@@ -297,7 +321,7 @@ item,
             )}
           </button>
         )}
-        {type === "tasks" && (
+        {type === "tasks" && !selectionMode && (
           <button
             className={item.favorite ? "star favorite" : "star"}
             title={item.favorite ? "Unstar" : "Star"}
@@ -309,13 +333,13 @@ item,
             </span>
           </button>
         )}
-        <button
+        {!selectionMode && <button
           className="delete"
           onClick={() => handleDelete?.(id)}
           aria-label="Delete"
         >
           <span className="material-icons">close</span>
-        </button>
+        </button>}
       </div>
     </div>
   );

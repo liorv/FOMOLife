@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ProjectItem, ProjectTask } from '@myorg/types';
+import type { ProjectItem, ProjectSubproject, ProjectTask } from '@myorg/types';
 import ProjectsPage from '../ProjectsPage';
 import ProjectEditor from '../ProjectEditor';
 import { setCachedProjects } from '@/lib/client/projectsCache';
@@ -37,12 +37,13 @@ jest.mock('../../ConversationThread', () => ({
 }));
 jest.mock('../ProjectsDashboard', () => ({
   __esModule: true,
-  default: ({ projects, selectedProjectId, selectedTaskId, onApplyChange, onPlanMutation }: {
+  default: ({ projects, selectedProjectId, selectedTaskId, onApplyChange, onPlanMutation, onBulkTaskUpdate }: {
     projects: ProjectItem[];
     selectedProjectId?: string | null;
     selectedTaskId?: string | null;
     onApplyChange: (id: string, patch: Partial<ProjectItem>) => void;
     onPlanMutation: (id: string, action: 'add' | 'remove', link: PlanLink) => Promise<PlanLink[]>;
+    onBulkTaskUpdate: (id: string, subprojects: ProjectSubproject[]) => Promise<ProjectItem>;
   }) => {
     const Editor = jest.requireActual('../ProjectEditor').default;
     return projects.map(project => <React.Fragment key={project.id}>
@@ -54,6 +55,7 @@ jest.mock('../ProjectsDashboard', () => ({
         project={project}
         targetTaskId={project.id === selectedProjectId ? selectedTaskId : null}
         onApplyChange={(patch: Partial<ProjectItem>) => onApplyChange(project.id, patch)}
+        onBulkTaskUpdate={(subprojects: ProjectSubproject[]) => onBulkTaskUpdate(project.id, subprojects)}
       />
     </React.Fragment>);
   },
@@ -110,6 +112,48 @@ describe('rapid project task completion', () => {
     mockProjectsApi.updateProject.mockResolvedValue(project());
   });
 
+  it('persists bulk dates through the API and shows server-confirmed tasks in the cache', async () => {
+    mockProjectsApi.updateProject.mockImplementation(async (_id, patch) => ({ ...project(), ...patch }));
+    render(<ProjectsPage canManage />);
+    await screen.findByText('Task first');
+    fireEvent.click(screen.getByRole('button', { name: 'More project actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit multiple tasks' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select task: Task first' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select task: Task third' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Due date' }));
+    fireEvent.change(screen.getByLabelText('Due date for selected tasks'), { target: { value: '2026-12-25' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set date on 2 tasks' }));
+    await waitFor(() => expect(mockProjectsApi.updateProject).toHaveBeenCalledTimes(1));
+    expect(mockProjectsApi.updateProject).toHaveBeenCalledWith('project', {
+      subprojects: [
+        expect.objectContaining({ tasks: [
+          expect.objectContaining({ id: 'first', dueDate: '2026-12-25' }),
+          expect.objectContaining({ id: 'second', dueDate: null }),
+        ] }),
+        expect.objectContaining({ tasks: [expect.objectContaining({ id: 'third', dueDate: '2026-12-25' })] }),
+      ],
+    });
+    await waitFor(() => expect(screen.getByText('Updated 2 tasks.')).toBeInTheDocument());
+    expect(setCachedProjects).toHaveBeenLastCalledWith([savedRequest(0)]);
+  });
+
+  it('retains the selection and previous cached tasks when a bulk API request fails', async () => {
+    mockProjectsApi.updateProject.mockRejectedValueOnce(new Error('Bulk save unavailable'));
+    render(<ProjectsPage canManage />);
+    await screen.findByText('Task first');
+    fireEvent.click(screen.getByRole('button', { name: 'More project actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit multiple tasks' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select task: Task first' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Due date' }));
+    fireEvent.change(screen.getByLabelText('Due date for selected tasks'), { target: { value: '2026-12-25' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set date on 1 task' }));
+    await waitFor(() => expect(screen.getAllByText('Bulk save unavailable').length).toBeGreaterThan(0));
+    expect(screen.getByRole('button', { name: 'Select task: Task first' })).toHaveAttribute('aria-pressed', 'true');
+    expect(document.querySelector('[data-task-id="first"] .date-container')).not.toBeInTheDocument();
+    expect(setCachedProjects).toHaveBeenLastCalledWith([project()]);
+    expect(screen.queryByText('Updated 1 task.')).not.toBeInTheDocument();
+  });
+
   it('orders Plan saves after pending task edits and before subsequent task edits', async () => {
     const taskSave = deferred<ProjectItem>();
     const planSave = deferred<ProjectItem>();
@@ -147,7 +191,7 @@ describe('rapid project task completion', () => {
   it('opens the exact task editor rather than a conversation for task notifications', async () => {
     mockSearchParams = new URLSearchParams('tab=projects&projectId=project&taskId=second');
     render(<ProjectsPage canManage />);
-    await waitFor(() => expect(document.querySelector('[data-task-id="second"]')).toHaveClass('is-editing'));
+    expect(await screen.findByRole('dialog', { name: 'Edit task' })).toBeInTheDocument();
     const dueDateInput = await screen.findByLabelText(/Due date/);
     expect(dueDateInput.id).toMatch(/^task-date-second-/);
     expect(screen.getByLabelText('Task title')).toBeInTheDocument();
@@ -206,7 +250,7 @@ describe('rapid project task completion', () => {
     });
 
     expect(checkbox('first')).not.toBeChecked();
-    expect(document.querySelector('[data-task-id="first"]')).not.toHaveClass('is-editing');
+    expect(screen.queryByRole('dialog', { name: 'Edit task' })).not.toBeInTheDocument();
   });
 
   it('keeps the saved recurring due date in the reload cache and after remounting', async () => {

@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo, useId } from "react";
+import React, { useState, useEffect, useRef, useMemo, useId, useCallback } from "react";
 import type { ProjectItem, ProjectSubproject, ProjectTask, Contact, ProjectMember } from "@myorg/types";
 import type { TaskItem } from "@myorg/types";
 import { getProjectMemberContacts } from '@/lib/client/projectMembers';
 import { advanceRecurringTask } from '@/lib/tasks/recurrence';
 import DashboardMetricCard from './DashboardMetricCard';
 import { deleteProjectTask, updateProjectTask } from '@/lib/projects/taskUpdates';
-import { ModalOverlay, TaskModal } from '@myorg/ui';
+import { TaskModal } from '@myorg/ui';
 import taskDialogStyles from './ProjectEditorTaskDialog.module.css';
+import TaskDependencyDeleteDialog from './TaskDependencyDeleteDialog';
+import BulkTaskToolbar, { type BulkTaskChange } from './BulkTaskToolbar';
+import TaskUpdateSnackbar from './TaskUpdateSnackbar';
+import { getPlanNodes, getTaskPlanLinks, removeTaskPlanLinks } from '@/lib/projects/planning';
 
 // Subprojects used within the editor always have a defined `collapsed` boolean
 interface EditorSubproject extends ProjectSubproject {
@@ -19,8 +23,10 @@ interface LocalProject extends ProjectItem {
 }
 
 interface ProjectEditorProps {
+  onBulkTaskUpdate?: (subprojects: ProjectSubproject[]) => Promise<ProjectItem>;
   project: ProjectItem;
   targetTaskId?: string | null;
+  locateTaskOnly?: boolean;
   targetSubprojectId?: string | null;
   onSelectSubproject?: (id: string | null) => void;
   onApplyChange?: (updated: Partial<ProjectItem>) => void;
@@ -76,8 +82,10 @@ function initLocalProject(project: ProjectItem): LocalProject {
 }
 
 export default function ProjectEditor({
+  onBulkTaskUpdate,
   project,
   targetTaskId,
+  locateTaskOnly = false,
   targetSubprojectId,
   onSelectSubproject,
   onApplyChange,
@@ -231,14 +239,108 @@ export default function ProjectEditor({
     }
   };
   const [editorTaskId, setEditorTaskId] = useState<string | null>(null);
+  const [pendingTaskDelete, setPendingTaskDelete] = useState<{ subprojectId: string; taskId: string } | null>(null);
   const [taskCreation, setTaskCreation] = useState<{ subprojectId: string; task: ProjectTask } | null>(null);
   const [taskCreationError, setTaskCreationError] = useState('');
-  const taskCreationTitleId = useId();
   const taskCreationTriggerRef = useRef<HTMLElement | null>(null);
   const [newlyAddedTaskId, setNewlyAddedTaskId] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<{ subId: string | null; taskId: string | null }>({ subId: null, taskId: null });
   const [dragOverSubprojectId, setDragOverSubprojectId] = useState<string | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const bulkSavingRef = useRef(false);
+  const [bulkError, setBulkError] = useState('');
+  const [bulkMessage, setBulkMessage] = useState('');
+  const dismissBulkMessage = useCallback(() => setBulkMessage(''), []);
+  const taskFilterKey = JSON.stringify(taskFilters);
+
+  const closeSelection = useCallback(() => {
+    if (bulkSavingRef.current) return;
+    setSelectionMode(false);
+    setSelectedTaskIds(new Set());
+    setBulkError('');
+    toolTriggerRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedTaskIds(new Set());
+    setBulkError('');
+    setBulkMessage('');
+  }, [project.id, workspaceView, canManage, searchQuery, taskFilterKey]);
+
+  useEffect(() => {
+    if (!selectionMode) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSelection();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [selectionMode, closeSelection]);
+
+  const selectTasks = (ids: string[], selected: boolean) => {
+    if (bulkSavingRef.current) return;
+    setBulkError('');
+    setSelectedTaskIds(previous => {
+      const next = new Set(previous);
+      ids.forEach(id => selected ? next.add(id) : next.delete(id));
+      return next;
+    });
+  };
+
+  const selectTask = (id: string) => selectTasks([id], !selectedTaskIds.has(id));
+
+  const applyBulkChange = async (change: BulkTaskChange) => {
+    if (!canManage || !onBulkTaskUpdate || bulkSavingRef.current || !selectedTaskIds.size) return;
+    const currentProjectId = project.id;
+    const current = localRef.current;
+    const count = current.subprojects.flatMap(section => section.tasks)
+      .filter(task => selectedTaskIds.has(task.id)).length;
+    const subprojects = current.subprojects.map(section => ({
+      ...section,
+      tasks: section.tasks.map(task => {
+        if (!selectedTaskIds.has(task.id)) return task;
+        if ('dueDate' in change) {
+          return {
+            ...task,
+            dueDate: change.dueDate,
+            ...(task.recurrence ? { recurrenceAnchorDate: change.dueDate } : {}),
+          };
+        }
+        const people = task.people ?? [];
+        return people.some(person => person.name.toLowerCase() === change.person.name.toLowerCase())
+          ? task
+          : { ...task, people: [...people, { name: change.person.name }] };
+      }),
+    }));
+    bulkSavingRef.current = true;
+    setBulkSaving(true);
+    setBulkError('');
+    setBulkMessage('');
+    try {
+      const saved = await onBulkTaskUpdate(subprojects);
+      if (localRef.current.id !== currentProjectId) return;
+      const next = initLocalProject(saved);
+      localRef.current = next;
+      setLocal(next);
+      setSelectedTaskIds(new Set());
+      setSelectionMode(false);
+      setBulkMessage(`Updated ${count} task${count === 1 ? '' : 's'}.`);
+      toolTriggerRef.current?.focus();
+    } catch (error) {
+      if (localRef.current.id === currentProjectId) {
+        setBulkError(error instanceof Error ? error.message : 'Failed to update tasks. Please try again.');
+      }
+    } finally {
+      bulkSavingRef.current = false;
+      setBulkSaving(false);
+    }
+  };
 
 
   // safe call wrappers for optional callbacks
@@ -353,6 +455,13 @@ export default function ProjectEditor({
     () => (local.subprojects || []).flatMap((s) => s.tasks || []),
     [local.subprojects],
   );
+
+  useEffect(() => {
+    const availableIds = new Set(projectTasks.map(task => task.id));
+    setSelectedTaskIds(previous => [...previous].every(id => availableIds.has(id))
+      ? previous
+      : new Set([...previous].filter(id => availableIds.has(id))));
+  }, [projectTasks]);
 
   const tasksRemaining = useMemo(
     () => projectTasks.filter((t) => !t.done).length,
@@ -499,7 +608,7 @@ export default function ProjectEditor({
 
   useEffect(() => {
     if (!targetTaskId) return;
-    setEditorTaskId(targetTaskId);
+    setEditorTaskId(locateTaskOnly ? null : targetTaskId);
     setLocal(previous => ({
       ...previous,
       subprojects: previous.subprojects.map(subproject =>
@@ -508,7 +617,17 @@ export default function ProjectEditor({
           : subproject
       ),
     }));
-  }, [targetTaskId, project.id]);
+  }, [targetTaskId, project.id, locateTaskOnly]);
+
+  useEffect(() => {
+    if (!locateTaskOnly || !targetTaskId) return;
+    const element = Array.from(editorContainerRef.current?.querySelectorAll<HTMLElement>('[data-task-id]') ?? [])
+      .find(row => row.dataset.taskId === targetTaskId);
+    if (!element) return;
+    element.classList.add('task-navigation-highlight');
+    element.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    return () => element.classList.remove('task-navigation-highlight');
+  }, [locateTaskOnly, targetTaskId, local.subprojects, taskFilters, searchQuery]);
 
   const targetSubprojectExists = project.subprojects.some(sub => sub.id === targetSubprojectId);
   useEffect(() => {
@@ -834,15 +953,32 @@ export default function ProjectEditor({
     setLocalAndApply(updated);
   };
 
-  const handleTaskDelete = (subId: string, taskId: string) => {
+  const deleteTask = (subId: string, taskId: string, removeDependencies: boolean) => {
     if (!canManage) return;
     const current = localRef.current;
+    const planningLinks = removeDependencies
+      ? removeTaskPlanLinks(current.planningLinks ?? [], taskId)
+      : current.planningLinks;
     const updated = {
       ...current,
       subprojects: deleteProjectTask(current.subprojects || [], subId, taskId),
+      ...(planningLinks !== undefined ? { planningLinks } : {}),
     };
     setLocalAndApply(updated);
     if (editorTaskId === taskId) setEditorTaskId(null);
+    setPendingTaskDelete(null);
+  };
+
+  const handleTaskDelete = (subId: string, taskId: string) => {
+    if (!canManage) return;
+    const task = localRef.current.subprojects
+      .find(section => section.id === subId)?.tasks.find(item => item.id === taskId);
+    if (!task) return;
+    if (getTaskPlanLinks(localRef.current.planningLinks ?? [], taskId).length) {
+      setPendingTaskDelete({ subprojectId: subId, taskId });
+      return;
+    }
+    deleteTask(subId, taskId, false);
   };
 
   const handleTaskStar = (subId: string, taskId: string) => {
@@ -1144,6 +1280,7 @@ export default function ProjectEditor({
           type="button"
           className={`project-action-btn${openToolPanel === panel ? ' project-action-btn--active' : ''}`}
           aria-label={panel === 'view' ? 'View options' : 'More project actions'}
+          disabled={bulkSaving}
           aria-expanded={openToolPanel === panel}
           aria-controls={`${toolPanelId}-${panel}`}
           onClick={(event) => {
@@ -1200,6 +1337,16 @@ export default function ProjectEditor({
         </>
       ) : (
         <>
+          {canManage && onBulkTaskUpdate && workspaceView === 'tasks' && !selectionMode && (
+            <button type="button" onClick={() => {
+              setEditorTaskId(null);
+              setBulkMessage('');
+              setSelectionMode(true);
+            }}>
+              <span className="material-icons" aria-hidden="true">edit_note</span>
+              <span>Edit multiple tasks</span>
+            </button>
+          )}
           {projectActions}
           {onExport && (
             <button type="button" onClick={onExport}>
@@ -1220,49 +1367,72 @@ export default function ProjectEditor({
 
   return (
     <>
-    <ModalOverlay open={!!taskCreation} onClose={closeTaskCreation} ariaLabelledby={taskCreationTitleId}
-      className={taskDialogStyles.overlay} contentClassName={taskDialogStyles.dialog}>
-      {taskCreation && <div id="project-task-create-dialog" onKeyDown={event => {
-        if (event.key === 'Escape') {
-          event.stopPropagation();
-          closeTaskCreation();
+    {bulkMessage && <TaskUpdateSnackbar message={bulkMessage} onDismiss={dismissBulkMessage} />}
+    {pendingTaskDelete && (() => {
+      const task = local.subprojects
+        .find(section => section.id === pendingTaskDelete.subprojectId)?.tasks
+        .find(item => item.id === pendingTaskDelete.taskId);
+      const links = getTaskPlanLinks(local.planningLinks ?? [], pendingTaskDelete.taskId);
+      return task && links.length > 0 ? (
+        <TaskDependencyDeleteDialog
+          task={task}
+          links={links}
+          nodes={getPlanNodes(local)}
+          onCancel={() => setPendingTaskDelete(null)}
+          onConfirm={() => deleteTask(pendingTaskDelete.subprojectId, pendingTaskDelete.taskId, true)}
+        />
+      ) : null;
+    })()}
+    {taskCreation && <TaskModal
+        key={taskCreation.task.id}
+        task={taskCreation.task}
+        dialogTitle="Add task"
+        dialogDescription="Choose a section, then add task details."
+        beforeFields={
+          <>
+            <label className={taskDialogStyles.sectionField}>
+              <span>Section</span>
+              <select aria-label="Section" value={taskCreation.subprojectId}
+                onChange={event => setTaskCreation(current => current ? { ...current, subprojectId: event.target.value } : current)}>
+                {!local.subprojects.some(section => !section.isProjectLevel) && <option value="">Add a section first</option>}
+                {local.subprojects.filter(section => !section.isProjectLevel).map(section =>
+                  <option key={section.id} value={section.id}>{section.text}</option>)}
+              </select>
+            </label>
+            {taskCreationError && <p className={taskDialogStyles.error} role="alert">{taskCreationError}</p>}
+            {!local.subprojects.some(section => !section.isProjectLevel) && <button type="button"
+              className={taskDialogStyles.addSection} onClick={() => window.dispatchEvent(new Event('framework-action-add-section'))}>
+              <span className="material-icons" aria-hidden="true">view_agenda</span>Add section
+            </button>}
+          </>
         }
-      }}>
-        <div className={taskDialogStyles.header}>
-          <span className={`material-icons ${taskDialogStyles.headerIcon}`} aria-hidden="true">add_task</span>
-          <div>
-            <h2 id={taskCreationTitleId}>Add task</h2>
-            <p>Choose a section, then add task details.</p>
-          </div>
-        </div>
-        <label className={taskDialogStyles.sectionField}>
-          <span>Section</span>
-          <select aria-label="Section" value={taskCreation.subprojectId}
-            onChange={event => setTaskCreation(current => current ? { ...current, subprojectId: event.target.value } : current)}>
-            {!local.subprojects.some(section => !section.isProjectLevel) && <option value="">Add a section first</option>}
-            {local.subprojects.filter(section => !section.isProjectLevel).map(section =>
-              <option key={section.id} value={section.id}>{section.text}</option>)}
-          </select>
-        </label>
-        {taskCreationError && <p className={taskDialogStyles.error} role="alert">{taskCreationError}</p>}
-        {!local.subprojects.some(section => !section.isProjectLevel) && <button type="button"
-          className={taskDialogStyles.addSection} onClick={() => window.dispatchEvent(new Event('framework-action-add-section'))}>
-          <span className="material-icons" aria-hidden="true">view_agenda</span>Add section
-        </button>}
-        <TaskModal key={taskCreation.task.id} task={taskCreation.task} allPeople={peopleList}
-          onUpdateTask={task => setTaskCreation(current => current ? { ...current, task } : current)}
-          onSave={saveTaskCreation} onClose={closeTaskCreation} />
-        <div className={taskDialogStyles.actions}>
+        footer={<div className={taskDialogStyles.actions}>
           <button type="button" className={taskDialogStyles.cancel} onClick={closeTaskCreation}>Cancel</button>
           <button type="button" className={taskDialogStyles.done} onClick={() => saveTaskCreation(taskCreation.task)}>
             <span className="material-icons" aria-hidden="true">check</span>Done
           </button>
-        </div>
-      </div>}
-    </ModalOverlay>
+        </div>}
+        allPeople={peopleList}
+        onUpdateTask={task => setTaskCreation(current => current ? { ...current, task } : current)}
+        onSave={saveTaskCreation}
+        onClose={closeTaskCreation}
+        closeOnSave={false}
+      />}
     <div
       className="project-editor"
       ref={editorContainerRef}
+      onClickCapture={event => {
+        if (bulkSaving) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      onDragStartCapture={event => {
+        if (selectionMode) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
     >
       <div
         className={`dashboard-project-header${dashboardProjectHeaderTop ? ' dashboard-project-header--tile' : ''}`}
@@ -1825,7 +1995,23 @@ export default function ProjectEditor({
         </div>
       )}
 
-      {workspaceContent ?? <div className="project-editor-content">
+      {workspaceContent ?? <div className={`project-editor-content${selectionMode ? ' project-editor-content--selecting' : ''}`}>
+      {selectionMode && (
+        <BulkTaskToolbar
+          count={projectTasks.filter(task => selectedTaskIds.has(task.id)).length}
+          people={peopleList}
+          saving={bulkSaving}
+          error={bulkError}
+          onApply={applyBulkChange}
+          onCancel={closeSelection}
+          onClear={() => setSelectedTaskIds(new Set())}
+          onSelectAll={() => selectTasks(filteredFlatTasks
+            .filter(task => showFlatFilterView || searchQuery.trim() !== '' ||
+              !local.subprojects.find(section => section.id === task._subId)?.collapsed)
+            .map(task => task.id), true)}
+        />
+      )}
+      <fieldset disabled={bulkSaving} className="task-selection-content">
       {showFlatFilterView || (searchQuery && searchQuery.trim() !== "") ? (
         /* ── Flat filter view: replaces subproject list ───────────────────── */
         <div className="filter-flat-view">
@@ -1834,6 +2020,9 @@ export default function ProjectEditor({
           ) : (
             <ul className="item-list">
               <TaskList
+                selectionMode={selectionMode}
+                selectedTaskIds={selectedTaskIds}
+                onSelectTask={selectTask}
                 items={filteredFlatTasks}
                 type="tasks"
                 editorTaskId={editorTaskId}
@@ -1895,6 +2084,10 @@ export default function ProjectEditor({
         </div>
       {(local.subprojects || []).map((sub) => (
         <SubprojectEditor
+          selectionMode={selectionMode}
+          selectedTaskIds={selectedTaskIds}
+          onSelectTask={selectTask}
+          onSelectTasks={selectTasks}
           key={sub.id}
           sub={sub}
           project={local}
@@ -1940,6 +2133,7 @@ export default function ProjectEditor({
       ))}
         </div>
       )}
+      </fieldset>
     </div>}
       </div>
 

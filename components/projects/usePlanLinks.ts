@@ -98,5 +98,11 @@ export function usePlanLinks({ projectId, initialLinks, onSaveLink, onSaveLinks,
     return queueRef.current;
   }
 
-  return { links, linksRef, saveState, save, saveMany, dismissError: () => setSaveState({ status: 'idle' }) };
+  function acceptSavedLinks(saved: PlanLink[], message: string) {
+    apply(saved);
+    onLinksSaved?.(saved);
+    setSaveState({ status: 'saved', message, savedAt: new Date() });
+  }
+
+  return { links, linksRef, saveState, save, saveMany, acceptSavedLinks, dismissError: () => setSaveState({ status: 'idle' }) };
 }

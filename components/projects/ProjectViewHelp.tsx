@@ -36,6 +36,7 @@ const helpContent: Record<ProjectView, {
     steps: [
       { icon: 'ads_click', title: 'Choose a task', description: 'Select a row.' },
       { icon: 'add_link', title: 'Connect tasks', description: 'Use the link button.' },
+      { icon: 'add_task', title: 'Create a prerequisite', description: 'Use the add-task button on a task row to create a new prerequisite in the same section. Save to create and link it; Cancel discards it.' },
       { icon: 'task_alt', title: 'Check the order', description: 'Prerequisites come first.' },
     ],
   },

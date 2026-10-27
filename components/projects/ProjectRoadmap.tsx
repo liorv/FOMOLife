@@ -55,26 +55,14 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const pickingTask = selecting;
   const [editing, setEditing] = useState<{ taskId: string; lane: string } | null>(null);
   const [error, setError] = useState('');
-  const editorRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLParagraphElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [viewportWidth, setViewportWidth] = useState(0);
   const startDeadline = useCallback(() => {
     setSelecting(false);
     setAddingDeadline(true);
     setError('');
   }, []);
-  useEffect(() => {
-    const scroller = scrollRef.current;
-    if (!editing || !scroller) return;
-    const measure = () => setViewportWidth(scroller.clientWidth);
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(scroller);
-    return () => observer.disconnect();
-  }, [editing]);
   useEffect(() => {
     setSubprojects(project.subprojects);
     subprojectsRef.current = project.subprojects;
@@ -93,11 +81,6 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
   const selectedTask = tasks.find(task => task.id === selectedId);
   const editingTask = tasks.find(task => task.id === editing?.taskId);
   const assignablePeople = useMemo(() => getProjectMemberContacts(project.members ?? []), [project.members]);
-  useEffect(() => {
-    if (!editing) return;
-    editorRef.current?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
-    editorRef.current?.scrollIntoView?.({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
-  }, [editing]);
   useEffect(() => {
     if (pickingTask) promptRef.current?.focus();
   }, [pickingTask]);
@@ -309,12 +292,8 @@ export default function ProjectRoadmap({ project, links: initialLinks, people, c
                     })}
                   </div>
                 </div>
-                {editingEntry && editingTask && <div ref={editorRef} className={styles.roadmapEditor} role="region" aria-label={`Edit ${editingTask.text}`}
-                  style={viewportWidth ? { width: viewportWidth } : undefined}>
-                  <TaskModal task={editingTask} inline allPeople={assignablePeople} onUpdateTask={editTask}
-                    onSave={() => setEditing(null)} onClose={() => setEditing(null)} />
-                  <button type="button" className={styles.closeEditor} onClick={() => { setEditing(null); triggerRef.current?.focus(); }}>Done</button>
-                </div>}
+                {editingEntry && editingTask && <TaskModal task={editingTask} allPeople={assignablePeople} onUpdateTask={editTask}
+                  onSave={() => setEditing(null)} onClose={() => setEditing(null)} />}
                 </React.Fragment>;
               })}
             </React.Fragment>)}

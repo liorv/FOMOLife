@@ -17,6 +17,9 @@ import type { ProjectTask } from "@myorg/types";
 type ListItem = ProjectTask | TaskItem | Contact;
 
 export interface TaskListProps {
+  selectionMode?: boolean;
+  selectedTaskIds?: ReadonlySet<string>;
+  onSelectTask?: (taskId: string) => void;
   items?: ListItem[];
   type: "tasks" | "people" | string;
   editorTaskId?: string | null;
@@ -49,6 +52,9 @@ export interface TaskListProps {
 }
 
 export default function TaskList({
+  selectionMode = false,
+  selectedTaskIds,
+  onSelectTask,
   items = [],
   type,
   editorTaskId,
@@ -79,6 +85,10 @@ export default function TaskList({
   onChatClick,
   commentCounts,
 }: TaskListProps) {
+  const editingTask = type === "tasks"
+    ? items.find((item) => item.id === editorTaskId) as ProjectTask | undefined
+    : undefined;
+
   return (
     <>
       {items.map((item) => {
@@ -107,6 +117,9 @@ export default function TaskList({
         const taskItem = item as ProjectTask;
         const row = (
           <Task
+            selectionMode={selectionMode}
+            selected={selectedTaskIds?.has(id) ?? false}
+            {...(onSelectTask ? { onSelectTask } : {})}
             key={id}
             item={taskItem}
             id={id}
@@ -129,47 +142,19 @@ export default function TaskList({
           />
         );
 
-        if (type === "tasks" && editorTaskId === id) {
-          const editor = (
-            <div key={`${id}-editor`} className="task-editor-wrapper">
-              <TaskEditor
-                task={taskItem}
-                onSave={onEditorSave ?? ((_task: ProjectTask) => {})}
-                {...(onEditorUpdate !== undefined && { onUpdateTask: (task) => onEditorUpdate(task.id, task) })}
-                onClose={onEditorClose ?? (() => {})}
-                allPeople={allPeople}
-                {...(onOpenPeople !== undefined && { onOpenPeople })}
-                {...(onCreatePerson !== undefined && { onCreatePerson: (person) => onCreatePerson!(person.name) })}
-                inline={true}
-              />
-            </div>
-          );
-          return (
-            <Task
-              key={id}
-              item={taskItem}
-              id={id}
-              type={type}
-              editorTaskId={editorTaskId ?? null}
-              {...(setEditorTaskId !== undefined && { setEditorTaskId })}
-              {...(handleToggle !== undefined && { handleToggle })}
-              {...(handleStar !== undefined && { handleStar })}
-              {...(handleDelete !== undefined && { handleDelete })}
-              {...(onTitleChange !== undefined && { onTitleChange })}
-              {...(onDragStart !== undefined && { onDragStart })}
-              {...(onDragOver !== undefined && { onDragOver })}
-              {...(onDrop !== undefined && { onDrop })}
-              {...(onDragEnd !== undefined && { onDragEnd })}
-            {...(onChatClick !== undefined && { onChatClick })}
-            {...(commentCounts?.[id] !== undefined && { commentCount: commentCounts[id] })}
-            >
-              {editor}
-            </Task>
-          );
-        }
-
         return row;
       })}
+      {editingTask && !selectionMode && (
+        <TaskEditor
+          task={editingTask}
+          onSave={onEditorSave ?? (() => {})}
+          {...(onEditorUpdate !== undefined && { onUpdateTask: (task) => onEditorUpdate(task.id, task) })}
+          onClose={onEditorClose ?? (() => {})}
+          allPeople={allPeople}
+          {...(onOpenPeople !== undefined && { onOpenPeople })}
+          {...(onCreatePerson !== undefined && { onCreatePerson: (person) => onCreatePerson(person.name) })}
+        />
+      )}
     </>
   );
 }
