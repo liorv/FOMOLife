@@ -2,6 +2,85 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import ProjectEditor from "../ProjectEditor";
 import ProjectsDashboard from "../ProjectsDashboard";
 import { validateProjectImportJson } from "@/lib/projects/importProject";
+import type { ProjectItem, ProjectTask } from "@myorg/types";
+import { getProjectCardSummary } from "@/lib/projects/cardSummary";
+
+const attentionTask = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({
+  id, text: id, done: false, dueDate: null, favorite: false, people: [], ...extra,
+});
+const attentionProject = (id: string, tasks: ProjectTask[], extra: Partial<ProjectItem> = {}): ProjectItem => ({
+  id, text: id, color: '#1976d2', subprojects: [{ id: `${id}-s`, text: 'Work', tasks }], ...extra,
+});
+
+it('classifies active, blocked, and overdue projects consistently, excluding finished, archived, and template work', () => {
+  const now = new Date(2026, 9, 27, 16);
+  expect(getProjectCardSummary(attentionProject('legacy', [attentionTask('t', { status: 'on_track' })]), now).active).toBe(true);
+  expect(getProjectCardSummary(attentionProject('partial', [
+    attentionTask('done', { done: true }), attentionTask('new'),
+  ]), now).active).toBe(false);
+  const blocked = attentionProject('blocked', [attentionTask('b', { status: 'blocked', dueDate: '2026-10-26' })]);
+  expect(getProjectCardSummary(blocked, now)).toMatchObject({ active: true, blocked: true, overdue: true });
+  expect(getProjectCardSummary({ ...blocked, archived: true }, now)).toMatchObject({ active: false, blocked: false, overdue: false });
+  expect(getProjectCardSummary({ ...blocked, isTemplate: true }, now)).toMatchObject({ active: false, blocked: false, overdue: false });
+  expect(getProjectCardSummary(attentionProject('deadline', [attentionTask('t')], { dueDate: '2026-10-26' }), now).overdue).toBe(true);
+  expect(getProjectCardSummary(attentionProject('today', [attentionTask('t', { dueDate: '2026-10-27T00:00:00Z' })]), now).overdue).toBe(false);
+  expect(getProjectCardSummary(attentionProject('done', [
+    attentionTask('t', { done: true, status: 'blocked', dueDate: '2026-10-26' }),
+  ], { dueDate: '2026-10-26' }), now)).toMatchObject({ active: false, blocked: false, overdue: false });
+});
+
+it('groups active cards first, filters by project attention, and preserves filters in dense layouts and search', () => {
+  const projects = [
+    attentionProject('Not started', [attentionTask('new')]),
+    attentionProject('Working', [attentionTask('ongoing', { status: 'in_progress' })]),
+    attentionProject('Blocked work', [attentionTask('blocker', { status: 'blocked' })]),
+    attentionProject('Late deadline', [attentionTask('future')], { dueDate: '2000-01-01' }),
+    attentionProject('Late task', [attentionTask('late', { dueDate: '2000-01-01' })]),
+  ];
+  const page = render(<ProjectsDashboard projects={projects} />);
+  const active = screen.getByRole('region', { name: 'Active projects' });
+  const other = screen.getByRole('region', { name: 'Other projects' });
+  expect(active.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(active).getByText('Working')).toBeInTheDocument();
+  expect(within(active).getByText('Blocked work')).toBeInTheDocument();
+  expect(within(other).getByText('Not started')).toBeInTheDocument();
+  const blocked = screen.getByRole('button', { name: 'Blocked projects (1)' });
+  fireEvent.click(blocked);
+  expect(blocked).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByText('Blocked work')).toBeInTheDocument();
+  expect(screen.queryByText('Working')).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Other projects' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Overdue projects (2)' }));
+  expect(screen.getByText('Late deadline')).toBeInTheDocument();
+  expect(screen.getByText('Late task')).toBeInTheDocument();
+  expect(screen.queryByText('Blocked work')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'List view' }));
+  expect(screen.queryByRole('heading', { name: /Other projects/ })).not.toBeInTheDocument();
+  expect(screen.getAllByTestId('project-tile')).toHaveLength(2);
+  page.rerender(<ProjectsDashboard projects={projects} projectSearch="Late" />);
+  expect(screen.getByText('Late deadline')).toBeInTheDocument();
+  expect(screen.getAllByText('Late task')).toHaveLength(2);
+  page.rerender(<ProjectsDashboard projects={projects} projectSearch="Working" />);
+  expect(screen.getByText(/No matches/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'All projects' }));
+  expect(screen.getByText('Working')).toBeInTheDocument();
+});
+
+it('shows a clear empty filter state and does not apply attention filters to archived projects or templates', () => {
+  render(<ProjectsDashboard projects={[
+    attentionProject('New work', []),
+    attentionProject('Archived work', [], { archived: true }),
+    attentionProject('Template', [], { isTemplate: true }),
+  ]} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Blocked projects (0)' }));
+  expect(screen.getByText('No blocked projects')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Archived (1)' }));
+  expect(screen.getByText('Archived work')).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Filter projects' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Templates \(1\)/ }));
+  expect(screen.getByRole('heading', { name: 'Template' })).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Filter projects' })).not.toBeInTheDocument();
+});
 
 beforeEach(() => {
   localStorage.removeItem("project-swipe-actions-hint-dismissed");
@@ -454,6 +533,7 @@ it("switches between card, list, and compact project layouts", () => {
 
   expect(cardsButton).toHaveAttribute("aria-pressed", "true");
   expect(document.querySelector(".dashboard-tiles-grid--cards")).toBeInTheDocument();
+  expect(screen.getByText('Next up')).toBeInTheDocument();
   expect(screen.getByRole("progressbar", { name: "Project One progress" })).toHaveAttribute("aria-valuenow", "50");
 
   fireEvent.click(listButton);
@@ -461,6 +541,7 @@ it("switches between card, list, and compact project layouts", () => {
   expect(localStorage.getItem("fomo:projects:view")).toBe("list");
   expect(cardsButton).toHaveAttribute("aria-pressed", "false");
   expect(document.querySelector(".dashboard-tiles-grid--list")).toBeInTheDocument();
+  expect(screen.queryByText('Next up')).not.toBeInTheDocument();
   expect(document.querySelector(".project-inline-progress-fill")).toHaveStyle({ width: "50%" });
   const projectLink = screen.getByRole("link", {
     name: "Open project link for Project One (opens in a new tab)",

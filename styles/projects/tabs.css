@@ -1296,6 +1296,39 @@
   outline-offset: 2px;
 }
 
+.dashboard-tiles-grid--cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+}
+
+.project-attention-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.dashboard-project-group-title {
+  margin: 12px 16px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashboard-project-group-title span {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.dashboard-tiles-grid--cards .dashboard-tile-wrapper {
+  --project-tile-height: 100%;
+}
+
+.dashboard-tiles-grid--cards [data-testid="project-tile"] {
+  min-height: 224px;
+  height: 100%;
+}
+
 /* Denser project layouts keep using ProjectTile so its actions remain available. */
 .project-inline-progress {
   display: none;

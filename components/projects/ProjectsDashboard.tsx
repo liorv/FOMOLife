@@ -27,6 +27,8 @@ import ProjectRisks from "./ProjectRisks";
 import ProjectStatus from "./ProjectStatus";
 import { getPlanNodes, getTaskPlanLinks, removeTaskPlanLinks, type PlanLink } from "@/lib/projects/planning";
 import TaskDependencyDeleteDialog from "./TaskDependencyDeleteDialog";
+import ProjectCardDetails from "./ProjectCardDetails";
+import { getProjectCardSummary } from "@/lib/projects/cardSummary";
 
 // Helper function to convert hex color to RGB string
 function hexToRgb(hex: string | undefined): string {
@@ -210,6 +212,10 @@ export default function ProjectsDashboard({
   const [showArchived, setShowArchived] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [projectView, setProjectView] = useState<ProjectView>("cards");
+  const [projectAttentionFilter, setProjectAttentionFilter] = useState<'all' | 'blocked' | 'overdue'>('all');
+  const projectSummaries = useMemo(() => new Map(projects.map(project => [
+    project.id, getProjectCardSummary(project),
+  ])), [projects]);
   const [templateAction, setTemplateAction] = useState<TemplateAction | null>(null);
   const templates = useMemo(() => projects.filter(project => project.isTemplate), [projects]);
   useEffect(() => {
@@ -241,9 +247,20 @@ export default function ProjectsDashboard({
   };
 
   const visibleProjects = useMemo(
-    () => projects.filter((p) => !p.isTemplate && (showArchived ? !!p.archived : !p.archived)),
-    [projects, showArchived],
+    () => projects.filter((p) => !p.isTemplate && (showArchived ? !!p.archived : !p.archived)
+      && (showArchived || projectAttentionFilter === 'all' || projectSummaries.get(p.id)?.[projectAttentionFilter])),
+    [projects, showArchived, projectAttentionFilter, projectSummaries],
   );
+  const projectGroups = projectView === 'cards' && !showArchived ? [
+    { key: 'active', title: 'Active projects', projects: visibleProjects.filter(project => projectSummaries.get(project.id)?.active) },
+    { key: 'other', title: 'Other projects', projects: visibleProjects.filter(project => !projectSummaries.get(project.id)?.active) },
+  ].filter(group => group.projects.length > 0) : [
+    { key: 'all', title: null, projects: visibleProjects },
+  ];
+  const attentionCounts = {
+    blocked: [...projectSummaries.values()].filter(summary => summary.blocked).length,
+    overdue: [...projectSummaries.values()].filter(summary => summary.overdue).length,
+  };
   const archivedCount = useMemo(() => projects.filter((p) => !p.isTemplate && p.archived).length, [projects]);
   // Switch back to the active view once the archived tab becomes empty (e.g. restoring the last archived project)
   useEffect(() => {
@@ -336,6 +353,8 @@ export default function ProjectsDashboard({
     const ql = q.toLowerCase();
     const results: SearchResultItem[] = [];
     for (const p of projects) {
+      if (!showArchived && !showTemplates && projectAttentionFilter !== 'all'
+        && !projectSummaries.get(p.id)?.[projectAttentionFilter]) continue;
       const projectMatches = (p.text || "").toLowerCase().includes(ql);
       const matchingTasks: { task: ProjectTask; subproject: ProjectSubproject }[] = [];
       for (const sub of p.subprojects || []) {
@@ -353,7 +372,7 @@ export default function ProjectsDashboard({
       }
     }
     return results;
-  }, [projects, projectSearch]);
+  }, [projects, projectSearch, projectAttentionFilter, projectSummaries, showArchived, showTemplates]);
 
   // ── Task mutation helpers (used in combined search results) ───────────────
 
@@ -864,7 +883,19 @@ export default function ProjectsDashboard({
               </button>}
             </div>
           </div>
-          {/* Home watermark removed */}
+          {!showTemplates && !showArchived && (
+            <div className="project-attention-filters" role="group" aria-label="Filter projects">
+              {(['all', 'blocked', 'overdue'] as const).map(filter => (
+                <button key={filter} type="button"
+                  className={`project-archive-tab${projectAttentionFilter === filter ? ' project-archive-tab--active' : ''}`}
+                  aria-pressed={projectAttentionFilter === filter}
+                  onClick={() => setProjectAttentionFilter(filter)}>
+                  {filter === 'all' ? 'All projects'
+                    : `${filter === 'blocked' ? 'Blocked' : 'Overdue'} projects (${attentionCounts[filter]})`}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Combined search results (projects + tasks) */}
           <div
@@ -1072,17 +1103,22 @@ export default function ProjectsDashboard({
                   <div className="dashboard-watermark empty-watermark">
                     <EmptyState
                       icon={showArchived ? "archive" : "folder_open"}
-                      title={showArchived ? "No archived projects" : "No active projects"}
+                      title={showArchived ? "No archived projects" : projectAttentionFilter !== 'all'
+                        ? `No ${projectAttentionFilter} projects` : "No active projects"}
                       description={
                         showArchived
                           ? "Projects you mark complete will show up here."
-                          : "Create a new project or use a template. Archived projects can be restored from the Archived tab."
+                          : projectAttentionFilter !== 'all' ? "Choose All projects to see the rest of your work."
+                            : "Create a new project or use a template. Archived projects can be restored from the Archived tab."
                       }
                     />
                   </div>
                 ) : (
-                <div className={`dashboard-tiles-grid dashboard-tiles-grid--${projectView}`}>
-                  {visibleProjects.map((p) => (
+                projectGroups.map(group => (
+                <section key={group.key} aria-label={group.title ?? (showArchived ? 'Archived projects' : 'Projects')}>
+                  {group.title && <h2 className="dashboard-project-group-title">{group.title} <span>({group.projects.length})</span></h2>}
+                  <div className={`dashboard-tiles-grid dashboard-tiles-grid--${projectView}`}>
+                  {group.projects.map((p) => (
                     <div
                       key={p.id}
                       className="dashboard-tile-wrapper"
@@ -1093,6 +1129,7 @@ export default function ProjectsDashboard({
                     >
                       <ProjectTile
                         project={p}
+                        details={projectView === "cards" ? <ProjectCardDetails project={p} /> : undefined}
                         onEdit={handleSelectProject}
                         onTitleChange={onTitleChange}
                         {...(onApplyChange ? {
@@ -1111,6 +1148,8 @@ export default function ProjectsDashboard({
                     </div>
                   ))}
                 </div>
+                </section>
+                ))
                 )}
               </>
             )

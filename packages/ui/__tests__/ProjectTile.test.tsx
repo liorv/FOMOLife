@@ -55,6 +55,72 @@ test('renders project tile with name and color', () => {
   );
 });
 
+test('renders custom card details without the large ring or duplicate progress and preserves actions', () => {
+  render(<ProjectTile project={project} details={<div>Project brief</div>} />);
+  const tile = screen.getByTestId('project-tile');
+  expect(tile).toHaveClass('brief');
+  expect(tile.querySelector('.briefIcon')).toHaveTextContent('T');
+  expect(screen.getByText('Project brief')).toBeInTheDocument();
+  expect(tile.querySelector('.progress-visualization')).not.toBeInTheDocument();
+  expect(tile.querySelector('.project-stats')).not.toBeInTheDocument();
+  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  expect(tile).toHaveAttribute('draggable', 'true');
+  expect(tile.querySelector('.project-name-row')).toContainElement(
+    screen.getByRole('button', { name: 'Open actions for Test' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Open actions for Test' }));
+  expect(tile).toHaveClass('project-tile-actions-open');
+});
+
+test('uses the project photo for the small title icon when supplied', () => {
+  render(<ProjectTile project={{ ...project, avatarUrl: '/project.png' }} details={<div>Brief</div>} />);
+  const icon = screen.getByTestId('project-tile').querySelector('.briefIcon')!;
+  expect(icon.querySelector('img')).toHaveAttribute('src', '/project.png');
+  expect(icon).toHaveAttribute('aria-hidden', 'true');
+});
+
+test.each(['cards', 'list', 'compact'])(
+  'closes the tray with its dedicated click and drag handle in %s view',
+  (view) => {
+    const onOpen = jest.fn();
+    render(
+      <div className={`dashboard-tiles-grid dashboard-tiles-grid--${view}`} onClick={onOpen}>
+        <ProjectTile project={project} {...(view === 'cards' ? { details: <div>Brief</div> } : {})} />
+      </div>,
+    );
+    const tile = screen.getByTestId('project-tile');
+    const opener = screen.getByRole('button', { name: 'Open actions for Test' });
+    opener.focus();
+    fireEvent.click(opener);
+    const close = screen.getByRole('button', { name: 'Close action tray for Test' });
+    expect(close).toHaveFocus();
+    expect(close.parentElement).toHaveClass('actionTray');
+    expect(close.parentElement?.querySelector('.actionGrid')).not.toContainElement(close);
+    fireEvent.click(close);
+    expect(tile).not.toHaveClass('project-tile-actions-open');
+    expect(opener).toHaveFocus();
+
+    fireEvent.click(opener);
+    firePointerEvent(close, 'pointerdown', 'mouse', 150, 100);
+    const nativeDrag = new Event('dragstart', { bubbles: true, cancelable: true });
+    fireEvent(tile, nativeDrag);
+    expect(nativeDrag.defaultPrevented).toBe(true);
+    firePointerEvent(tile, 'pointermove', 'mouse', 220, 100);
+    firePointerEvent(tile, 'pointerup', 'mouse', 220, 100);
+    fireEvent.click(close);
+    expect(tile).not.toHaveClass('project-tile-actions-open');
+    expect(opener).toHaveFocus();
+
+    fireEvent.click(opener);
+    fireEvent.touchStart(close, { touches: [{ clientX: 150, clientY: 100 }] });
+    fireEvent.touchMove(close, { touches: [{ clientX: 220, clientY: 102 }] });
+    fireEvent.touchEnd(close, { changedTouches: [{ clientX: 220, clientY: 102 }] });
+    fireEvent.click(close);
+    expect(tile).not.toHaveClass('project-tile-actions-open');
+    expect(onOpen).not.toHaveBeenCalled();
+  },
+);
+
 test('renders direct actions instead of the old floating menu', () => {
   render(
     <ProjectTile
@@ -119,6 +185,8 @@ test.each(['cards', 'list', 'compact'])(
     const tile = screen.getByTestId('project-tile');
     const handle = screen.getByRole('button', { name: 'Open actions for Test' });
     const tray = screen.getByRole('group', { name: 'Test actions' });
+    expect(tile.querySelector('.project-name-row')).toContainElement(handle);
+    expect(screen.getAllByRole('button', { name: 'Open actions for Test' })).toHaveLength(1);
     expect(handle).toHaveAttribute('aria-expanded', 'false');
     expect(handle).toHaveAttribute('aria-controls', tray.id);
     const closedChevron = handle.querySelector('path')?.getAttribute('d');
@@ -224,7 +292,7 @@ test('follows a horizontal swipe, restores on cancellation, and leaves vertical 
   );
   const tile = screen.getByTestId('project-tile');
   fireEvent.touchStart(tile, { touches: [{ clientX: 150, clientY: 100 }] });
-  fireEvent.touchMove(tile, { touches: [{ clientX: 51, clientY: 102 }] });
+  fireEvent.touchMove(tile, { touches: [{ clientX: 35, clientY: 102 }] });
   expect(tile).toHaveClass('swiping');
   expect(tile).toHaveStyle('--actions-offset: 50%');
   fireEvent.touchCancel(tile);
@@ -342,7 +410,8 @@ test('keeps delete confirmation and cancellation in the tray', () => {
     />,
   );
   const tray = screen.getByRole('group', { name: 'Test actions' });
-  expect(tray.children).toHaveLength(1);
+  expect(tray.querySelector('.actionGrid')?.children).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Close action tray for Test' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Edit Test' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Rename Test' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Delete Test' })).not.toBeInTheDocument();

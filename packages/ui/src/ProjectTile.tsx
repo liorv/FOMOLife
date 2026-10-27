@@ -15,6 +15,7 @@ import type { ProjectItem } from "@myorg/types";
 
 export interface ProjectTileProps {
   project: ProjectItem;
+  details?: React.ReactNode;
   size?: number | string;
   width?: number | string;
   height?: number | string;
@@ -67,10 +68,11 @@ export const PROJECT_COLORS = [
 
 const SWIPE_OPEN_THRESHOLD = 44;
 const SWIPE_AXIS_LOCK = 8;
-const ACTIONS_WIDTH = 198;
+const ACTIONS_WIDTH = 230;
 
 export default function ProjectTile({
   project,
+  details,
   // old 'size' used for both dimensions; newer code accepts width/height separately
   size = 200, // make default width/height larger so longer names fit
   width,
@@ -109,6 +111,7 @@ export default function ProjectTile({
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const dragRef = useRef<HTMLDivElement | null>(null);
   const actionsHandleRef = useRef<HTMLButtonElement | null>(null);
+  const trayHandleRef = useRef<HTMLButtonElement | null>(null);
   const actionsId = useId();
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const linkButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -119,6 +122,7 @@ export default function ProjectTile({
     y: number;
     axis: "none" | "x" | "y";
     open: boolean;
+    trayHandle: boolean;
   } | null>(null);
   const swipedRef = useRef(false);
   const hasLink = isValidExternalUrl(project.externalUrl);
@@ -131,6 +135,17 @@ export default function ProjectTile({
   const isInteractiveTarget = (target: EventTarget) =>
     target instanceof Element &&
     Boolean(target.closest("button, input, a, [role='dialog']"));
+
+  const isTrayHandle = (target: EventTarget) =>
+    target instanceof Element && Boolean(target.closest("[data-action-tray-handle]"));
+
+  useEffect(() => {
+    if (touchActionsOpen && document.activeElement === actionsHandleRef.current) {
+      trayHandleRef.current?.focus();
+    } else if (!touchActionsOpen && document.activeElement === trayHandleRef.current) {
+      actionsHandleRef.current?.focus();
+    }
+  }, [touchActionsOpen]);
 
   useEffect(() => {
     if (!editingLink) return;
@@ -159,7 +174,7 @@ export default function ProjectTile({
       !event.isPrimary ||
       event.pointerType === "touch" ||
       (event.pointerType === "mouse" && event.button !== 0) ||
-      isInteractiveTarget(event.target)
+      (isInteractiveTarget(event.target) && !isTrayHandle(event.target))
     ) {
       return;
     }
@@ -168,7 +183,11 @@ export default function ProjectTile({
       y: event.clientY,
       axis: "none",
       open: touchActionsOpen,
+      trayHandle: isTrayHandle(event.target),
     };
+    if (isTrayHandle(event.target)) {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -218,7 +237,7 @@ export default function ProjectTile({
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     swipedRef.current = false;
-    if (event.touches.length !== 1 || isInteractiveTarget(event.target)) {
+    if (event.touches.length !== 1 || (isInteractiveTarget(event.target) && !isTrayHandle(event.target))) {
       touchGestureRef.current = null;
       return;
     }
@@ -228,6 +247,7 @@ export default function ProjectTile({
       y: touch.clientY,
       axis: "none",
       open: touchActionsOpen,
+      trayHandle: isTrayHandle(event.target),
     };
   };
 
@@ -259,7 +279,11 @@ export default function ProjectTile({
 
   const finishSwipe = (dx: number, open: boolean) => {
     setSwipeOffset(null);
-    setTouchActionsOpen(open ? dx < SWIPE_OPEN_THRESHOLD : Math.abs(dx) >= SWIPE_OPEN_THRESHOLD);
+    const nextOpen = open ? dx < SWIPE_OPEN_THRESHOLD : Math.abs(dx) >= SWIPE_OPEN_THRESHOLD;
+    setTouchActionsOpen(nextOpen);
+    if (!nextOpen && document.activeElement === trayHandleRef.current) {
+      actionsHandleRef.current?.focus();
+    }
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
@@ -390,6 +414,10 @@ export default function ProjectTile({
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     const gesture = touchGestureRef.current;
+    if (gesture?.trayHandle) {
+      e.preventDefault();
+      return;
+    }
     if (
       gesture &&
       (gesture.axis === "x" ||
@@ -427,9 +455,44 @@ export default function ProjectTile({
     }
   };
 
+  const actionHandle = (
+    <button
+      ref={actionsHandleRef}
+      type="button"
+      className={styles.actionsHandle}
+      aria-label={`${touchActionsOpen ? "Close" : "Open"} actions for ${project.text}`}
+      aria-expanded={touchActionsOpen}
+      aria-controls={actionsId}
+      title={touchActionsOpen ? "Close actions" : "Open actions"}
+      onClick={(event) => {
+        event.stopPropagation();
+        setSwipeOffset(null);
+        setTouchActionsOpen((open) => !open);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") event.stopPropagation();
+      }}
+      onDragStart={(event) => event.preventDefault()}
+    >
+      <svg width="32" height="24" viewBox="0 0 32 24" fill="currentColor" aria-hidden="true">
+        <path
+          d={touchActionsOpen ? "M3 7l5 5-5 5" : "M8 7l-5 5 5 5"}
+          fill="none" stroke="currentColor" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round"
+        />
+        <rect x="13" y="5" width="4" height="4" rx="1" />
+        <rect x="20" y="5" width="4" height="4" rx="1" />
+        <rect x="27" y="5" width="4" height="4" rx="1" />
+        <rect x="13" y="12" width="4" height="4" rx="1" />
+        <rect x="20" y="12" width="4" height="4" rx="1" />
+        <rect x="27" y="12" width="4" height="4" rx="1" />
+      </svg>
+    </button>
+  );
+
   return (
     <div
-      className={`${styles.tile} ${touchActionsOpen ? `${styles.actionsOpen} project-tile-actions-open` : ""} ${swipeOffset !== null ? styles.swiping : ""}`}
+      className={`${styles.tile} ${details ? styles.brief : ""} ${touchActionsOpen ? `${styles.actionsOpen} project-tile-actions-open` : ""} ${swipeOffset !== null ? styles.swiping : ""}`}
       style={
         {
           width: widthStr,
@@ -491,6 +554,12 @@ export default function ProjectTile({
         <div className={`${styles.tileHeader} project-tile-header`}>
           <div className={`${styles.nameSection} project-name-section`}>
             <div className={`${styles.nameRow} project-name-row`}>
+              {details && (
+                <span className={styles.briefIcon} aria-hidden="true">
+                  {project.avatarUrl ? <img src={project.avatarUrl} alt="" draggable={false} />
+                    : project.text.charAt(0).toUpperCase()}
+                </span>
+              )}
               {editingName ? (
                 <input
                   ref={nameInputRef}
@@ -540,6 +609,7 @@ export default function ProjectTile({
                 </>
               )}
               {editingName && <ProjectLink url={project.externalUrl} projectName={project.text} />}
+              {actionHandle}
             </div>
               {editingLink && ReactDOM.createPortal(
               <div
@@ -627,7 +697,7 @@ export default function ProjectTile({
               document.body,
             )}
             <div className={`${styles.nameAccent} project-name-accent`} />
-            <div
+            {!details && <div
               className="project-inline-progress"
               role="progressbar"
               aria-label={`${project.text} progress`}
@@ -639,11 +709,12 @@ export default function ProjectTile({
                 className="project-inline-progress-fill"
                 style={{ width: `${progress}%` }}
               />
-            </div>
+            </div>}
           </div>
 
         </div>
 
+        {details || <>
         {/* Progress visualization with avatar */}
         <div className={`${styles.progressSection} project-progress-section`}>
           <div
@@ -747,8 +818,9 @@ export default function ProjectTile({
             <span className={`${styles.statLabel} stat-label`}>{(project.subprojects || []).flatMap((s) => s.tasks || []).filter((t) => !t.done).length === 1 ? "Task" : "Tasks"}</span>
           </div>
         </div>
+        </>}
 
-        {project.archived && (
+        {project.archived && !details && (
           <span
             className="project-archived-badge"
             style={{
@@ -773,39 +845,6 @@ export default function ProjectTile({
         )}
       </div>
 
-      <button
-        ref={actionsHandleRef}
-        type="button"
-        className={styles.actionsHandle}
-        aria-label={`${touchActionsOpen ? "Close" : "Open"} actions for ${project.text}`}
-        aria-expanded={touchActionsOpen}
-        aria-controls={actionsId}
-        title={touchActionsOpen ? "Close actions" : "Open actions"}
-        onClick={(event) => {
-          event.stopPropagation();
-          setSwipeOffset(null);
-          setTouchActionsOpen((open) => !open);
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape") event.stopPropagation();
-        }}
-        onDragStart={(event) => event.preventDefault()}
-      >
-        <svg width="32" height="24" viewBox="0 0 32 24" fill="currentColor" aria-hidden="true">
-          <path
-            d={touchActionsOpen ? "M3 7l5 5-5 5" : "M8 7l-5 5 5 5"}
-            fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round"
-          />
-          <rect x="13" y="5" width="4" height="4" rx="1" />
-          <rect x="20" y="5" width="4" height="4" rx="1" />
-          <rect x="27" y="5" width="4" height="4" rx="1" />
-          <rect x="13" y="12" width="4" height="4" rx="1" />
-          <rect x="20" y="12" width="4" height="4" rx="1" />
-          <rect x="27" y="12" width="4" height="4" rx="1" />
-        </svg>
-      </button>
-
       <div
         id={actionsId}
         className={styles.actionTray}
@@ -816,6 +855,7 @@ export default function ProjectTile({
           if (event.key !== "Escape") event.stopPropagation();
         }}
       >
+        <div className={styles.actionGrid}>
         {showDelete && isPendingDelete ? (
           <div className={styles.deleteConfirmation}>
             <button type="button" className={`${styles.actionButton} ${styles.actionDelete}`}
@@ -891,6 +931,25 @@ export default function ProjectTile({
         )}
           </>
         )}
+        </div>
+        <button
+          ref={trayHandleRef}
+          type="button"
+          className={styles.trayHandle}
+          data-action-tray-handle
+          aria-label={`Close action tray for ${project.text}`}
+          title="Click or drag right to close actions"
+          onClick={() => {
+            closeActions();
+            actionsHandleRef.current?.focus();
+          }}
+          onDragStart={(event) => event.preventDefault()}
+        >
+          <svg width="20" height="40" viewBox="0 0 20 40" fill="none" aria-hidden="true">
+            <path d="M7 6l5 5-5 5M7 25v9M12 25v9" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
 
       {/* Hidden elements for backward compatibility with tests */}

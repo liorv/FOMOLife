@@ -32,6 +32,42 @@ Legacy compatibility redirects (handled by framework host shell):
 
 ## Task editing
 
+### Project cards
+
+Cards view shows a compact project brief: an optional one-line goal, task-derived
+progress and completed/total counts, overdue tasks, tasks due today through the
+next seven days, and up to two unfinished task previews ordered by due date
+(undated tasks come last). Completed tasks are excluded from attention counts and
+previews. All projects show their blocked count when nonzero.
+Management-enabled projects also show the existing schedule health;
+their previews exclude blocked work and tasks waiting on explicit task
+prerequisites. Section planning hints do not restrict previews.
+Cards include member initials/photos and the project due date when available.
+Empty, completed, waiting, and archived projects have explicit empty states.
+Existing swipe actions, renaming, links, and drag reordering remain available;
+List and Compact keep their existing tile presentation.
+
+Cards have a small project photo (or initial) beside the title and bullets on
+Next up items. The action handle sits directly in the title row at the top right,
+without a separate panel or strip. Opening actions replaces it with a tray-edge
+close handle in its own column, so actions never slide beneath the button.
+Click that handle or drag it right to close; Escape also closes and restores focus.
+List and Compact use the same inline title-row action button, with no reserved
+full-height strip while closed. Their action trays continue to slide over the row.
+**Active projects** appear above **Other projects**: active means
+at least one unfinished task is In Progress or Blocked (including legacy On track
+work statuses). Completed-task counts alone do not make a project active.
+The **All projects**, **Blocked projects**, and **Overdue projects** filters
+include counts and apply to Cards, List, Compact, and project/task search results.
+Blocked means at least one unfinished task is explicitly Blocked; merely waiting
+on a prerequisite does not count. Overdue means an unfinished task has a due date
+before today, or the project deadline is before today with unfinished work.
+Dates use the local calendar day; tasks due today are not overdue. Card labels
+use those same definitions, even when project management is disabled.
+Archived projects and templates are excluded from attention counts and filters.
+Within each card section the existing project order and drag actions are preserved;
+task status determines section membership, not dragging.
+
 ### Bulk task edits
 
 In a project's Tasks view, open **More > Edit multiple tasks** to select rows across

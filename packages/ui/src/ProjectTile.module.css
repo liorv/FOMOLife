@@ -15,7 +15,6 @@
 
 /* Tile custom property defaults */
 .tile {
-  --project-actions-handle-width: 44px;
   --project-icon-space: 144px;
   --project-avatar-size: 80px;
   width: 100%;
@@ -37,6 +36,63 @@
 
 .tile:active {
   cursor: grabbing;
+}
+
+.brief {
+  --project-icon-space: 0px;
+  min-width: 0;
+  border-left: 3px solid var(--project-color);
+  background: var(--color-surface, #fff);
+  box-shadow: none;
+}
+
+.brief .tileBg,
+.brief .nameAccent {
+  display: none;
+}
+
+.brief .tileContent {
+  padding: 14px;
+  margin-right: 0;
+  gap: 8px;
+  justify-content: flex-start;
+  flex: 1;
+  height: auto;
+}
+
+.brief .nameRow {
+  display: flex;
+  margin: 0;
+}
+
+.brief .name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.briefIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--project-color, #1976d2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.briefIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .tile:hover {
@@ -91,7 +147,6 @@
 /* Main content container */
 .tileContent {
   position: relative;
-  z-index: 2;
   padding: 16px 16px 16px var(--project-icon-space);
   box-sizing: border-box;
   display: flex;
@@ -99,7 +154,7 @@
   justify-content: center;
   gap: 12px;
   height: 100%;
-  margin-right: var(--project-actions-handle-width);
+  margin-right: 0;
 }
 
 /* Header section */
@@ -117,8 +172,9 @@
 }
 
 .nameRow {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  width: 100%;
   max-width: 100%;
   margin-bottom: 6px;
 }
@@ -158,6 +214,7 @@
 }
 
 .name {
+  flex: 1;
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
@@ -581,20 +638,27 @@
 }
 
 .actionsHandle {
-  position: absolute;
-  inset: 0 0 0 auto;
+  position: relative;
   z-index: 6;
   display: flex;
+  flex-shrink: 0;
+  margin-left: auto;
   align-items: center;
   justify-content: center;
-  width: var(--project-actions-handle-width);
-  min-height: 44px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
   border: none;
-  border-left: 1px solid var(--color-border);
-  background: var(--color-bg-light, #f8faff);
+  border-radius: 8px;
+  background: transparent;
   color: var(--color-text-muted, #5f6368);
   cursor: pointer;
+}
+
+.actionsHandle svg {
+  width: 24px;
+  height: 18px;
 }
 
 .actionsHandle:hover,
@@ -610,17 +674,54 @@
 .actionTray {
   container-type: inline-size;
   position: absolute;
-  inset: 0 var(--project-actions-handle-width) 0 auto;
+  inset: 0 0 0 auto;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  width: min(calc(100% - var(--project-icon-space) - var(--project-actions-handle-width)), 198px);
+  grid-template-columns: 32px minmax(0, 1fr);
+  width: min(100%, 230px);
+  background: var(--color-surface, #fff);
   overflow: hidden;
-  transform: translateX(calc(100% + var(--project-actions-handle-width)));
+  transform: translateX(100%);
   visibility: hidden;
   pointer-events: none;
   transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0.25s;
+}
+
+.actionGrid {
+  grid-column: 2;
+  grid-row: 1;
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  min-height: 0;
+}
+
+.trayHandle {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-light, #f8faff);
+  color: var(--project-color, #1976d2);
+  cursor: ew-resize;
+  touch-action: pan-y;
+}
+
+.trayHandle:focus-visible {
+  outline: 2px solid var(--project-color, #1976d2);
+  outline-offset: -3px;
+}
+
+.actionsOpen .actionsHandle,
+.swiping .actionsHandle {
+  visibility: hidden;
 }
 
 .actionsOpen .actionTray {
@@ -677,7 +778,7 @@
   min-height: 0;
 }
 
-.actionTray:has(.deleteConfirmation) {
+.actionGrid:has(.deleteConfirmation) {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
 }
