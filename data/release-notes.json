@@ -1,106 +1,50 @@
 {
   "releases": [
     {
-      "version": "October 2026 Bulk Task Actions",
-      "date": "October 27, 2026",
+      "version": "October 2026",
+      "date": "October 2026",
       "changes": [
-        "Edit multiple tasks at once: in a project's Tasks view, open More > Edit multiple tasks, then select rows across sections.",
-        "Selected tasks use a tinted background and colored edge instead of completion checkboxes. Select all visible tasks or an entire section, and choose Done or press Escape to leave selection mode.",
-        "A Material-style panel separates selection controls from actions. Set or clear due dates, add a project member without replacing existing assignees, or mark selected tasks complete in one save.",
-        "Recurring tasks keep their usual behavior: changing a due date resets the recurrence anchor, and marking complete advances to the next occurrence. Already-completed tasks stay complete.",
-        "Successful bulk edits show a dismissible snackbar. If a save fails, your tasks stay unchanged and your selection remains available to retry."
+        "Bulk task actions: open More > Edit multiple tasks to set or clear due dates, add assignees, or mark tasks complete across sections. Highlighted rows keep selection separate from completion.",
+        "Plan and Roadmap: organize dependencies, edit tasks from graphs and timelines, and forecast completion across the project or by person.",
+        "Status reporting: track work status, schedule health, delays, and task updates. See downstream impact and compare daily history.",
+        "A cleaner Material-style interface separates selection controls from bulk actions, confirms saves with snackbars, and simplifies project tools and mobile navigation."
       ]
     },
     {
-      "version": "October 2026 Status Update",
-      "date": "October 25, 2026",
+      "version": "September 2026",
+      "date": "September 2026",
       "changes": [
-        "New Status tab: review completed and ready-to-start tasks by section, with clear Not Started, In Progress, Blocked, and Complete controls.",
-        "Track schedule health with a responsive On track / Behind sliding switch. Behind work highlights affected dependent tasks, while the project overview keeps overall schedule health clear.",
-        "Forecast the earliest project finish using remaining effort as calendar days. Enter delay days for active Behind tasks and see whether the forecast misses any project deadlines.",
-        "Add task update bullets directly in Status. Press Enter to save and immediately start the next bullet, without waiting for earlier updates to finish saving.",
-        "Status changes automatically save a daily snapshot of every task, its status, schedule health, and notes. Expand a date to compare task and note changes with the previous recorded day.",
-        "A refreshed Material-style layout brings crisp icons, red Behind indicators, and wrapping task history without a separate horizontal scrollbar."
+        "Improved mobile spacing, touch targets, and tab transitions.",
+        "Simplified invitations and collaboration, with clearer search, notifications, and conversation cues.",
+        "Fixed interaction issues across projects, tasks, and chat."
       ]
     },
     {
-      "version": "October 2026 Update",
-      "date": "October 22, 2026",
+      "version": "May 2026",
+      "date": "May 2026",
       "changes": [
-        "New Plan tab: see project work as a Dependency Graph and a compact Dependency Table. Click a task or section, choose Add dependency, then pick what it depends on. Click an arrow to remove a dependency. Scroll the graph to zoom.",
-        "New Roadmap tab: forecasts when the remaining work will finish based on effort and dependencies, with a summary of the expected completion date, sized effort, and unsized tasks. View it across the project or by person.",
-        "Click a task on the Plan graph or a Roadmap bar to edit the task in place or add a dependency right from the project header.",
-        "Switching between Tasks, Plan, and Roadmap now slides smoothly, with consistent spacing below the project header.",
-        "View and More now open options below the project toolbar instead of overlay menus. Open controls stay highlighted, and options are easy to dismiss.",
-        "Project tools fit a single row without horizontal scrolling, with icons above wrapping labels on smaller screens.",
-        "Clearer project actions make it easier to open the project overview, import or export JSON, and complete and archive a project.",
-        "The project header now has a rounded, Material-style Invite button.",
-        "Leave project now lives at the bottom of the project overview, with a second click required to confirm."
+        "Task and project chat buttons now show message counts and highlight active conversations.",
+        "Refreshed task editing with clearer labels and smoother focus states."
       ]
     },
     {
-      "version": "September 2026 Update",
-      "date": "September 18, 2026",
-      "changes": [
-        "Polished the mobile experience with cleaner spacing, faster tab transitions, and more consistent touch targets across project and task views.",
-        "Improved the invite and collaboration flow so contact requests and project sharing are easier to follow and less error-prone.",
-        "Refined search and notification cues to make it clearer when updates are waiting and easier to jump back into active conversations.",
-        "Fixed a number of small UI and interaction bugs to keep project, task, and chat workflows feeling more reliable overall."
-      ]
-    },
-    {
-      "version": "May 2026 Update",
-      "date": "May 29, 2026",
-      "changes": [
-        "Tasks with active conversations now show a filled chat icon and message count badge right on the task row — no more guessing which tasks have ongoing discussions.",
-        "The project Chat button now highlights and shows a message count when there are messages in the project thread.",
-        "Expanding a task to edit it now shows a clean, modern inline editor with icon labels, smooth focus states, and a slide-in animation."
-      ]
-    },
-    {
-      "version": "April 2026 Update (End of Month)",
-      "date": "April 28, 2026",
-      "changes": [
-        "You can now invite people to collaborate on a project — the Invite button is colored to match your project so it's easy to spot.",
-        "Added an Export button to save a copy of your project data.",
-        "Added a new 'Assigned to me' filter so you can quickly find tasks assigned specifically to you.",
-        "Swipe left or right to jump between tabs on mobile.",
-        "Helpful on-screen tips appear to guide you around drag & drop and navigation — tap 'got it' to dismiss them.",
-        "Cleaned up the mobile toolbar so it stays compact and uncluttered on small screens.",
-        "Fixed an issue that occasionally prevented deleting older projects."
-      ]
-    },
-    {
-      "version": "April 2026 Update (late)",
+      "version": "April 2026",
       "date": "April 2026",
       "changes": [
-        "Invite links now redirect unauthenticated users to log in and return them to the acceptance page automatically.",
-        "Existing projects without an icon are automatically assigned a fun random emoji icon.",
-        "Icon search in Project Overview now shows results as you type with smart debouncing.",
-        "The arrow guide in Contacts is hidden when an active invite link is already visible on screen."
+        "Added a chat-based AI assistant to help create and organize projects.",
+        "Added task effort and priority, global task search, and an Assigned to me filter.",
+        "Expanded project collaboration with invitations that return you to the invite after sign-in, plus JSON export.",
+        "Added project covers, automatic icons, live icon search, and X sign-in.",
+        "Refreshed the dashboard and mobile toolbar, added swipe navigation and helpful tips, and fixed project deletion issues."
       ]
     },
     {
-      "version": "April 2026 Update",
-      "date": "April 2026",
-      "changes": [
-        "Introduced a new Chat-based AI Assistant to effortlessly generate, organize, and enhance your projects.",
-        "Added 'Effort' and 'Priority' fields to tasks to help you better manage your workload.",
-        "Global search now instantly finds specific tasks directly within your projects.",
-        "You can now customize your projects by adding custom cover images.",
-        "Added the ability to log in quickly and securely using your X (Twitter) account.",
-        "Complete visual overhaul of the dashboard, project tiles, and task details for a more professional look.",
-        "Added a 'What's New' section on the home page so you never miss an update."
-      ]
-    },
-    {
-      "version": "March 2026 Update",
+      "version": "March 2026",
       "date": "March 2026",
       "changes": [
-        "Launched the Connections system! You can now invite contacts using easy-to-share links and collaborate seamlessly.",
-        "Dramatically improved app speed with instant, flicker-free tab switching and optimistic UI updates.",
-        "Added visual confirmations when deleting projects to prevent accidental removals.",
-        "Improved task navigation: you can now open and close a task's details simply by clicking its name."
+        "Launched Connections with shareable contact invitations.",
+        "Made tab switching and updates faster, and added deletion confirmations.",
+        "Made task details easier to open and close by clicking the task name."
       ]
     }
   ]
