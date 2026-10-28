@@ -252,8 +252,10 @@ it('automatically saves updates without a record button and supports read-only h
 
 it('opens Status from workspace navigation and opens its thumb help', () => {
   jest.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}));
-  render(<><ThumbButton activeTab="projects" /><ProjectsDashboard projects={[project()]} selectedProjectId="p" /></>);
-  fireEvent.click(within(screen.getByRole('group', { name: 'Project workspace view' })).getByRole('button', { name: 'Status' }));
+  const managedProject = { ...project(), projectManagementEnabled: true };
+  render(<><ThumbButton activeTab="projects" /><ProjectsDashboard projects={[managedProject]} selectedProjectId="p" /></>);
+  fireEvent.click(within(screen.getByRole('group', { name: 'Project workspace view' })).getByRole('button', { name: 'Manage' }));
+  fireEvent.click(within(screen.getByRole('group', { name: 'Manage sections' })).getByRole('button', { name: 'Status' }));
   expect(screen.getByRole('table', { name: 'Task status' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Status help' }));
   expect(screen.getByRole('dialog', { name: 'Project Status' })).toHaveTextContent('Compare dates');
